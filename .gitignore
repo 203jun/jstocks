@@ -23,6 +23,10 @@ db.sqlite3-journal
 .env
 .env.local
 
+# API Token
+token.json
+*.token.json
+
 # IDE
 .vscode/
 .idea/
