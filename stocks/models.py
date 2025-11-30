@@ -17,6 +17,7 @@ class Info(models.Model):
     - 종목-테마 매핑은 별도 API로 채워집니다
     """
 
+    # === 기본 정보 ===
     code = models.CharField(max_length=10, primary_key=True, verbose_name='종목코드')
     name = models.CharField(max_length=100, verbose_name='종목명')
     market = models.CharField(
@@ -28,9 +29,49 @@ class Info(models.Model):
         ],
         verbose_name='시장구분'
     )
-    market_cap = models.BigIntegerField(null=True, blank=True, verbose_name='시가총액')
     is_active = models.BooleanField(default=True, verbose_name='활성화')
+
+    # === 주식/시가총액 정보 ===
+    listed_shares = models.BigIntegerField(null=True, blank=True, verbose_name='상장주식')
+    market_cap = models.BigIntegerField(null=True, blank=True, verbose_name='시가총액')
+    listed_ratio = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='유통비율')
+
+    # === 투자 지표 ===
+    credit_ratio = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='신용비율')
+    foreign_exhaustion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='외인소진률')
+
+    # === 재무 지표 ===
+    per = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='PER')
+    eps = models.BigIntegerField(null=True, blank=True, verbose_name='EPS')
+    roe = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='ROE')
+    pbr = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='PBR')
+    ev = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='EV')
+    bps = models.BigIntegerField(null=True, blank=True, verbose_name='BPS')
+
+    # === 실적 정보 ===
+    sales = models.BigIntegerField(null=True, blank=True, verbose_name='매출액')
+    operating_profit = models.BigIntegerField(null=True, blank=True, verbose_name='영업이익')
+    net_income = models.BigIntegerField(null=True, blank=True, verbose_name='당기순이익')
+
+    # === 가격 정보 ===
+    year_high = models.BigIntegerField(null=True, blank=True, verbose_name='연중최고')
+    year_low = models.BigIntegerField(null=True, blank=True, verbose_name='연중최저')
+    high_250 = models.BigIntegerField(null=True, blank=True, verbose_name='250최고')
+    low_250 = models.BigIntegerField(null=True, blank=True, verbose_name='250최저')
+    high_price = models.BigIntegerField(null=True, blank=True, verbose_name='고가')
+    open_price = models.BigIntegerField(null=True, blank=True, verbose_name='시가')
+    low_price = models.BigIntegerField(null=True, blank=True, verbose_name='저가')
+    current_price = models.BigIntegerField(null=True, blank=True, verbose_name='현재가')
+    price_change = models.BigIntegerField(null=True, blank=True, verbose_name='전일대비')
+    change_rate = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='등락율')
+
+    # === 거래 정보 ===
+    volume = models.BigIntegerField(null=True, blank=True, verbose_name='거래량')
+    volume_change = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='거래대비')
+
+    # === 시간 정보 ===
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
 
     # === 테마 관계 ===
     themes = models.ManyToManyField(
