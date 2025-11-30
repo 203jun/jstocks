@@ -5,6 +5,7 @@ from decimal import Decimal
 from django.core.management.base import BaseCommand
 from stocks.utils import get_valid_token
 from stocks.models import Info, ShortSelling
+from stocks.logger import StockLogger
 
 
 class Command(BaseCommand):
@@ -24,21 +25,25 @@ class Command(BaseCommand):
             required=True,
             help='조회 모드: all(2개월 데이터), day(최근 거래일 1일만)'
         )
+        StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
+        # 로거 초기화
+        self.log = StockLogger(self.stdout, self.style, options, 'save_short_selling')
+
         # 1. 토큰 가져오기
         token = get_valid_token()
 
         if not token:
-            self.stdout.write(self.style.ERROR('토큰이 없습니다. python manage.py get_token을 먼저 실행하세요.'))
+            self.log.error('토큰이 없습니다. python manage.py get_token을 먼저 실행하세요.')
             return
 
         # 2. 파라미터 설정
         stock_code = options['code']
         mode = options['mode']
 
-        self.stdout.write(f'\n종목코드: {stock_code} | 모드: {mode}')
-        self.stdout.write('=' * 70)
+        self.log.info(f'종목코드: {stock_code} | 모드: {mode}')
+        self.log.separator()
 
         # 3. 모드에 따라 처리
         if mode == 'day':
@@ -48,7 +53,7 @@ class Command(BaseCommand):
 
     def fetch_latest_day(self, token, stock_code):
         """최근 거래일 1일 데이터만 조회"""
-        self.stdout.write('\n[ 최근 거래일 데이터 조회 ]')
+        self.log.header('최근 거래일 데이터 조회')
 
         # 오늘부터 일주일 전까지 조회 (최근 거래일 찾기 위함)
         today = datetime.now()
@@ -78,24 +83,24 @@ class Command(BaseCommand):
                     if item.get('dt') == latest_date
                 ]
 
-                self.stdout.write(f'\n최근 거래일: {latest_date}')
-                self.stdout.write(f'데이터 개수: {len(latest_data)}개')
+                self.log.debug(f'최근 거래일: {latest_date}')
+                self.log.debug(f'데이터 개수: {len(latest_data)}개')
 
                 # DB에 저장
                 self.save_to_db(stock_code, latest_data)
             else:
-                self.stdout.write(self.style.WARNING('데이터가 없습니다.'))
+                self.log.warning('데이터가 없습니다.')
 
     def fetch_two_months(self, token, stock_code):
         """2개월 데이터 조회 (연속조회 포함)"""
-        self.stdout.write('\n[ 2개월 데이터 조회 ]')
+        self.log.header('2개월 데이터 조회')
 
         # 2개월 전 날짜 계산
         two_months_ago = datetime.now() - timedelta(days=60)
         cutoff_date = two_months_ago.strftime('%Y%m%d')
         today = datetime.now().strftime('%Y%m%d')
 
-        self.stdout.write(f'조회 기간: {cutoff_date} ~ {today}')
+        self.log.debug(f'조회 기간: {cutoff_date} ~ {today}')
 
         params = {
             'stk_cd': stock_code,
@@ -113,32 +118,32 @@ class Command(BaseCommand):
         while True:
             loop_count += 1
 
-            self.stdout.write(f'\n[루프 {loop_count}] API 호출 (cont_yn={cont_yn}, next_key={next_key[:10] if next_key else "없음"}...)')
+            self.log.debug(f'[루프 {loop_count}] API 호출 (cont_yn={cont_yn}, next_key={next_key[:10] if next_key else "없음"}...)')
             response_data = self.call_api(token, params, cont_yn, next_key)
 
             if not response_data:
-                self.stdout.write('응답 데이터 없음 - 중단')
+                self.log.debug('응답 데이터 없음 - 중단')
                 break
 
             # 데이터 수집
             data_key = self.find_data_key(response_data)
             if data_key:
                 current_batch = response_data[data_key]
-                self.stdout.write(f'현재 배치 데이터 수: {len(current_batch)}개')
+                self.log.debug(f'현재 배치 데이터 수: {len(current_batch)}개')
 
                 if current_batch:
                     dates = [item.get('dt', '') for item in current_batch if item.get('dt')]
                     if dates:
                         oldest = min(dates)
                         newest = max(dates)
-                        self.stdout.write(f'날짜 범위: {oldest} ~ {newest}')
+                        self.log.debug(f'날짜 범위: {oldest} ~ {newest}')
 
                 # 2개월 이내 데이터만 필터링
                 filtered = [
                     item for item in current_batch
                     if item.get('dt', '') >= cutoff_date
                 ]
-                self.stdout.write(f'필터링 후: {len(filtered)}개 추가 (cutoff: {cutoff_date})')
+                self.log.debug(f'필터링 후: {len(filtered)}개 추가 (cutoff: {cutoff_date})')
                 all_data.extend(filtered)
 
                 # 가장 오래된 데이터 확인
@@ -147,28 +152,28 @@ class Command(BaseCommand):
                     if old_dates:
                         oldest_date = min(old_dates)
                         if oldest_date < cutoff_date:
-                            self.stdout.write(f'2개월 이전 데이터 도달 ({oldest_date}) - 중단')
+                            self.log.debug(f'2개월 이전 데이터 도달 ({oldest_date}) - 중단')
                             break
 
             # 연속조회 확인
             header_info = response_data.get('_headers', {})
-            self.stdout.write(f'헤더: cont-yn={header_info.get("cont-yn")}, next-key={header_info.get("next-key")}')
+            self.log.debug(f'헤더: cont-yn={header_info.get("cont-yn")}, next-key={header_info.get("next-key")}')
 
             if header_info.get('cont-yn') == 'Y' and header_info.get('next-key'):
                 cont_yn = 'Y'
                 next_key = header_info.get('next-key')
-                self.stdout.write(f'✓ 연속조회 계속... (next-key: {next_key})')
+                self.log.debug(f'연속조회 계속... (next-key: {next_key})')
             else:
-                self.stdout.write('연속조회 종료 - 더 이상 데이터 없음')
+                self.log.debug('연속조회 종료 - 더 이상 데이터 없음')
                 break
 
-        self.stdout.write(f'\n\n총 {len(all_data)}개 데이터 수집 완료')
+        self.log.debug(f'총 {len(all_data)}개 데이터 수집 완료')
 
         # DB에 저장
         if all_data:
             self.save_to_db(stock_code, all_data)
         else:
-            self.stdout.write(self.style.WARNING('저장할 데이터가 없습니다.'))
+            self.log.warning('저장할 데이터가 없습니다.')
 
     def find_data_key(self, response_data):
         """응답에서 데이터 배열 키 찾기"""
@@ -220,14 +225,14 @@ class Command(BaseCommand):
             stock_code: 종목코드 (예: '005930')
             data_list: API 응답 데이터 리스트
         """
-        self.stdout.write(f'\n\n[ DB 저장 시작 ]')
+        self.log.header('DB 저장 시작')
 
         # 종목 정보 가져오기
         try:
             stock = Info.objects.get(code=stock_code)
         except Info.DoesNotExist:
-            self.stdout.write(self.style.ERROR(f'종목 정보 없음: {stock_code}'))
-            self.stdout.write('먼저 Info 테이블에 종목 정보를 추가해주세요.')
+            self.log.error(f'종목 정보 없음: {stock_code}')
+            self.log.debug('먼저 Info 테이블에 종목 정보를 추가해주세요.')
             return
 
         created_count = 0
@@ -258,13 +263,10 @@ class Command(BaseCommand):
                     updated_count += 1
 
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f'저장 실패 ({item.get("dt")}): {str(e)}'))
+                self.log.error(f'저장 실패 ({item.get("dt")}): {str(e)}')
 
         # 결과 출력
-        self.stdout.write(self.style.SUCCESS(f'\n✓ 저장 완료!'))
-        self.stdout.write(f'  - 신규 생성: {created_count}개')
-        self.stdout.write(f'  - 업데이트: {updated_count}개')
-        self.stdout.write(f'  - 총합: {created_count + updated_count}개')
+        self.log.info(f'저장 완료! 신규: {created_count}개, 업데이트: {updated_count}개, 총합: {created_count + updated_count}개', success=True)
 
     def call_api(self, token, data, cont_yn='N', next_key=''):
         """공매도추이요청 API 호출"""
@@ -289,8 +291,8 @@ class Command(BaseCommand):
 
             # 응답 상태 코드 확인
             if response.status_code != 200:
-                self.stdout.write(self.style.ERROR(f'API 호출 실패: {response.status_code}'))
-                self.stdout.write(self.style.ERROR(f'응답: {response.text}'))
+                self.log.error(f'API 호출 실패: {response.status_code}')
+                self.log.debug(f'응답: {response.text}')
                 return None
 
             # 응답 데이터 파싱
@@ -305,5 +307,5 @@ class Command(BaseCommand):
             return response_data
 
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'API 호출 실패: {str(e)}'))
+            self.log.error(f'API 호출 실패: {str(e)}')
             return None

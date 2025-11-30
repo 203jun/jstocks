@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from django.core.management.base import BaseCommand
+from stocks.logger import StockLogger
 
 
 class Command(BaseCommand):
@@ -20,13 +21,17 @@ class Command(BaseCommand):
             default='day',
             help='크롤링 모드: all(1~6페이지 전체), day(최근 1일만)'
         )
+        StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
+        # 로거 초기화
+        self.log = StockLogger(self.stdout, self.style, options, 'crawl_naver_investor')
+
         stock_code = options['code']
         mode = options['mode']
 
-        self.stdout.write(f'\n종목코드: {stock_code} | 모드: {mode}')
-        self.stdout.write('=' * 70)
+        self.log.info(f'종목코드: {stock_code} | 모드: {mode}')
+        self.log.separator()
 
         if mode == 'all':
             # 1~6페이지 전체 크롤링
@@ -35,44 +40,42 @@ class Command(BaseCommand):
             # 최근 1일만 크롤링
             self.crawl_latest_day(stock_code)
 
-        self.stdout.write(self.style.SUCCESS('\n\n크롤링 완료!'))
+        self.log.info('크롤링 완료!', success=True)
 
     def crawl_all_pages(self, stock_code):
         """1~6페이지 전체 크롤링"""
         for page_num in range(1, 7):
-            self.stdout.write(f'\n\n[ 페이지 {page_num} ]')
-            self.stdout.write('-' * 70)
+            self.log.header(f'페이지 {page_num}')
 
             data = self.crawl_page(stock_code, page_num)
 
             if data:
-                self.stdout.write(f"날짜\t\t| 기관 순매수\t| 외국인 순매수")
-                self.stdout.write('-' * 70)
+                self.log.debug(f"날짜\t\t| 기관 순매수\t| 외국인 순매수")
+                self.log.debug('-' * 70)
 
                 for item in data:
-                    self.stdout.write(
+                    self.log.debug(
                         f"{item['date']}\t| {item['institution']:>12}\t| {item['foreign']:>12}"
                     )
             else:
-                self.stdout.write(self.style.WARNING(f'페이지 {page_num} 데이터 없음'))
+                self.log.warning(f'페이지 {page_num} 데이터 없음')
 
     def crawl_latest_day(self, stock_code):
         """최근 1일만 크롤링"""
-        self.stdout.write(f'\n\n[ 최근 1일 데이터 ]')
-        self.stdout.write('-' * 70)
+        self.log.header('최근 1일 데이터')
 
         data = self.crawl_page(stock_code, 1)
 
         if data and len(data) > 0:
             # 첫 번째 데이터만 가져오기
             item = data[0]
-            self.stdout.write(f"날짜\t\t| 기관 순매수\t| 외국인 순매수")
-            self.stdout.write('-' * 70)
-            self.stdout.write(
+            self.log.debug(f"날짜\t\t| 기관 순매수\t| 외국인 순매수")
+            self.log.debug('-' * 70)
+            self.log.debug(
                 f"{item['date']}\t| {item['institution']:>12}\t| {item['foreign']:>12}"
             )
         else:
-            self.stdout.write(self.style.WARNING('데이터 없음'))
+            self.log.warning('데이터 없음')
 
     def crawl_page(self, stock_code, page_num):
         """네이버 금융 페이지 크롤링"""
@@ -117,5 +120,5 @@ class Command(BaseCommand):
                 return None
 
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'크롤링 실패: {str(e)}'))
+            self.log.error(f'크롤링 실패: {str(e)}')
             return None
