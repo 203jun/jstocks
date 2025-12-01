@@ -101,6 +101,155 @@ class Info(models.Model):
         return f"{self.name} ({self.code})"
 
 
+class Financial(models.Model):
+    """
+    재무제표 데이터 (분기/연간)
+
+    OpenDART 재무정보 일괄다운로드 데이터 저장
+    손익계산서/포괄손익계산서에서 추출한 매출액, 영업이익, 순이익 데이터
+
+    ※ 데이터 구분:
+    - 분기: quarter 값 있음 (1Q, 2Q, 3Q, 4Q)
+    - 연간: quarter = None
+
+    ※ 증가율:
+    - 분기: 전분기 대비 증가율
+    - 연간: 전년 대비 증가율
+
+    ※ 쿼리 예시:
+    - 연간 데이터: Financial.objects.filter(stock=info, quarter__isnull=True)
+    - 분기 데이터: Financial.objects.filter(stock=info, quarter__isnull=False)
+    - 2024년 전체: Financial.objects.filter(stock=info, year=2024)
+    - 2023년 2분기: Financial.objects.filter(stock=info, year=2023, quarter='2Q')
+    """
+
+    # === 기본 정보 ===
+    stock = models.ForeignKey(
+        'Info',
+        on_delete=models.CASCADE,
+        verbose_name='종목',
+        help_text='종목 정보 (Info 모델 참조)',
+        db_index=True
+    )
+    year = models.IntegerField(
+        verbose_name='연도',
+        help_text='회계연도 (예: 2024)',
+        db_index=True
+    )
+    quarter = models.CharField(
+        max_length=2,
+        null=True,
+        blank=True,
+        verbose_name='분기',
+        help_text='분기 (1Q, 2Q, 3Q, 4Q) - null이면 연간 데이터',
+        db_index=True
+    )
+
+    # === 실적 정보 ===
+    revenue = models.BigIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='매출액',
+        help_text='매출액 (원 단위)'
+    )
+    operating_profit = models.BigIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='영업이익',
+        help_text='영업이익 (원 단위)'
+    )
+    net_income = models.BigIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='순이익',
+        help_text='당기순이익 (원 단위)'
+    )
+
+    # === 증가율 (%) ===
+    revenue_growth = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='매출액증가율',
+        help_text='전분기/전년 대비 매출액 증가율 (%)'
+    )
+    operating_profit_growth = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='영업이익증가율',
+        help_text='전분기/전년 대비 영업이익 증가율 (%)'
+    )
+    net_income_growth = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='순이익증가율',
+        help_text='전분기/전년 대비 순이익 증가율 (%)'
+    )
+
+    # === 수익성 지표 (%) ===
+    operating_margin = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='영업이익률',
+        help_text='영업이익 / 매출액 * 100 (%)'
+    )
+    net_margin = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='순이익률',
+        help_text='당기순이익 / 매출액 * 100 (%)'
+    )
+    roe = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='ROE',
+        help_text='자기자본이익률 (지배주주 기준, %)'
+    )
+
+    # === 추정치 여부 ===
+    is_estimated = models.BooleanField(
+        default=False,
+        verbose_name='추정치여부',
+        help_text='네이버 금융 (E) 표시 - True면 추정치'
+    )
+
+    # === 메타 정보 ===
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='수정일시'
+    )
+
+    class Meta:
+        db_table = 'financial'
+        verbose_name = '재무제표'
+        verbose_name_plural = '재무제표'
+        ordering = ['-year', '-quarter']
+        unique_together = [('stock', 'year', 'quarter')]
+        indexes = [
+            models.Index(fields=['stock', '-year', '-quarter']),  # 종목별 최신순 조회용
+            models.Index(fields=['-year', '-quarter']),           # 연도/분기별 조회용
+        ]
+
+    def __str__(self):
+        period = f"{self.year} {self.quarter}" if self.quarter else f"{self.year}"
+        return f"{self.stock.name} - {period}"
+
+
 class InvestorTrend(models.Model):
     """
     투자자별 매매동향 (일별)

@@ -1,0 +1,226 @@
+import re
+from decimal import Decimal, InvalidOperation
+import requests
+from bs4 import BeautifulSoup
+from django.core.management.base import BaseCommand
+from stocks.models import Info, Financial
+
+
+# 월 -> 분기 매핑
+MONTH_TO_QUARTER = {
+    '03': '1Q',
+    '06': '2Q',
+    '09': '3Q',
+    '12': '4Q',
+}
+
+
+class Command(BaseCommand):
+    help = '재무제표 데이터 크롤링 및 저장 (네이버 금융)'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--code',
+            type=str,
+            required=True,
+            help='종목코드 (필수)'
+        )
+
+    def handle(self, *args, **options):
+        stock_code = options['code']
+
+        # Info 확인
+        try:
+            info = Info.objects.get(code=stock_code)
+        except Info.DoesNotExist:
+            self.stdout.write(self.style.ERROR(f'종목코드 {stock_code}가 Info에 없습니다.'))
+            return
+
+        self.stdout.write(f'{info.name}({stock_code}) 네이버 금융 크롤링 시작...')
+
+        # 네이버 금융 크롤링
+        data = self.crawl_naver_finance(stock_code)
+        if not data:
+            self.stdout.write(self.style.ERROR('크롤링 실패'))
+            return
+
+        # DB 저장
+        self.save_to_db(info, data)
+
+    def crawl_naver_finance(self, stock_code):
+        """네이버 금융에서 재무제표 테이블 크롤링"""
+        url = f'https://finance.naver.com/item/main.naver?code={stock_code}'
+        headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
+
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f'HTTP 요청 실패: {e}'))
+            return None
+
+        soup = BeautifulSoup(response.text, 'lxml')
+        table = soup.select_one('#content > div.section.cop_analysis > div.sub_section > table')
+
+        if not table:
+            self.stdout.write(self.style.ERROR('테이블을 찾을 수 없습니다.'))
+            return None
+
+        # 헤더 파싱
+        headers = [th.get_text(strip=True) for th in table.select('thead th')]
+
+        # 연간/분기 컬럼 인덱스 찾기
+        # 헤더 구조: [주요재무정보, 최근 연간 실적, 최근 분기 실적, 연간1, 연간2, 연간3, 연간4, 분기1, 분기2, ...]
+        # 연간: 인덱스 3~6 (4개)
+        # 분기: 인덱스 7~12 (6개)
+        annual_columns = []  # (index, year, is_estimated)
+        quarterly_columns = []  # (index, year, quarter, is_estimated)
+
+        annual_start = 3
+        annual_end = 7  # exclusive
+        quarterly_start = 7
+        quarterly_end = 13  # exclusive
+
+        for idx in range(annual_start, min(annual_end, len(headers))):
+            parsed = self.parse_header(headers[idx])
+            if parsed:
+                year, quarter, is_estimated = parsed
+                annual_columns.append((idx, year, is_estimated))
+
+        for idx in range(quarterly_start, min(quarterly_end, len(headers))):
+            parsed = self.parse_header(headers[idx])
+            if parsed:
+                year, quarter, is_estimated = parsed
+                quarterly_columns.append((idx, year, quarter, is_estimated))
+
+        # 데이터 행 파싱
+        row_data = {}
+        for tr in table.select('tbody tr'):
+            row_header = tr.select_one('th')
+            cells = tr.select('td')
+            if row_header:
+                row_name = row_header.get_text(strip=True)
+                values = [td.get_text(strip=True) for td in cells]
+                row_data[row_name] = values
+
+        return {
+            'annual_columns': annual_columns,
+            'quarterly_columns': quarterly_columns,
+            'row_data': row_data,
+        }
+
+    def parse_header(self, header):
+        """헤더 파싱: '2025.12(E)' -> (2025, '4Q', True)"""
+        # 연간: 2024.12, 2025.12(E)
+        # 분기: 2024.09, 2025.03(E)
+        match = re.match(r'(\d{4})\.(\d{2})(\(E\))?', header)
+        if not match:
+            return None
+
+        year = int(match.group(1))
+        month = match.group(2)
+        is_estimated = match.group(3) is not None
+
+        quarter = MONTH_TO_QUARTER.get(month)
+        if not quarter:
+            return None
+
+        return year, quarter, is_estimated
+
+    def parse_value(self, value):
+        """값 파싱: '3,022,314' -> 3022314"""
+        if not value or value == '-' or value == '':
+            return None
+        try:
+            # 쉼표 제거
+            cleaned = value.replace(',', '')
+            return int(cleaned)
+        except (ValueError, TypeError):
+            return None
+
+    def parse_decimal(self, value):
+        """소수점 값 파싱: '14.35' -> Decimal('14.35')"""
+        if not value or value == '-' or value == '':
+            return None
+        try:
+            return Decimal(value)
+        except InvalidOperation:
+            return None
+
+    def save_to_db(self, info, data):
+        """크롤링 데이터를 DB에 저장"""
+        annual_columns = data['annual_columns']
+        quarterly_columns = data['quarterly_columns']
+        row_data = data['row_data']
+
+        saved_count = 0
+        updated_count = 0
+
+        # 연간 데이터 저장
+        for idx, year, is_estimated in annual_columns:
+            result = self.save_financial_record(
+                info=info,
+                year=year,
+                quarter=None,
+                is_estimated=is_estimated,
+                row_data=row_data,
+                col_idx=idx - 3,  # 헤더 오프셋 조정 (첫 3개는 헤더)
+            )
+            if result == 'created':
+                saved_count += 1
+            elif result == 'updated':
+                updated_count += 1
+
+        # 분기 데이터 저장
+        for idx, year, quarter, is_estimated in quarterly_columns:
+            result = self.save_financial_record(
+                info=info,
+                year=year,
+                quarter=quarter,
+                is_estimated=is_estimated,
+                row_data=row_data,
+                col_idx=idx - 3,  # 헤더 오프셋 조정
+            )
+            if result == 'created':
+                saved_count += 1
+            elif result == 'updated':
+                updated_count += 1
+
+        self.stdout.write(self.style.SUCCESS(
+            f'{info.name}({info.code}) 저장 완료: 신규 {saved_count}건, 업데이트 {updated_count}건'
+        ))
+
+    def save_financial_record(self, info, year, quarter, is_estimated, row_data, col_idx):
+        """개별 재무 레코드 저장"""
+        # 값 추출
+        revenue = self.parse_value(row_data.get('매출액', [])[col_idx] if col_idx < len(row_data.get('매출액', [])) else None)
+        operating_profit = self.parse_value(row_data.get('영업이익', [])[col_idx] if col_idx < len(row_data.get('영업이익', [])) else None)
+        net_income = self.parse_value(row_data.get('당기순이익', [])[col_idx] if col_idx < len(row_data.get('당기순이익', [])) else None)
+        operating_margin = self.parse_decimal(row_data.get('영업이익률', [])[col_idx] if col_idx < len(row_data.get('영업이익률', [])) else None)
+        net_margin = self.parse_decimal(row_data.get('순이익률', [])[col_idx] if col_idx < len(row_data.get('순이익률', [])) else None)
+        roe = self.parse_decimal(row_data.get('ROE(지배주주)', [])[col_idx] if col_idx < len(row_data.get('ROE(지배주주)', [])) else None)
+
+        # 네이버는 억 단위 -> 원 단위로 변환 (억 * 1억)
+        if revenue:
+            revenue = revenue * 100000000
+        if operating_profit:
+            operating_profit = operating_profit * 100000000
+        if net_income:
+            net_income = net_income * 100000000
+
+        # 기존 레코드 조회 -> 있으면 UPDATE, 없으면 INSERT
+        financial, created = Financial.objects.update_or_create(
+            stock=info,
+            year=year,
+            quarter=quarter,
+            defaults={
+                'revenue': revenue,
+                'operating_profit': operating_profit,
+                'net_income': net_income,
+                'operating_margin': operating_margin,
+                'net_margin': net_margin,
+                'roe': roe,
+                'is_estimated': is_estimated,
+            }
+        )
+        return 'created' if created else 'updated'
