@@ -1,3 +1,4 @@
+import time
 import requests
 import json
 from decimal import Decimal, InvalidOperation
@@ -5,6 +6,10 @@ from django.core.management.base import BaseCommand
 from stocks.models import Info
 from stocks.utils import get_valid_token
 from stocks.logger import StockLogger
+
+
+# 기본 최소 시가총액 (1000억)
+DEFAULT_MIN_CAP = 1000
 
 
 class Command(BaseCommand):
@@ -15,13 +20,23 @@ class Command(BaseCommand):
             '--code',
             type=str,
             required=True,
-            help='종목코드 (필수)'
+            help='종목코드 또는 "all" (전체 종목, ETF 제외)'
+        )
+        parser.add_argument(
+            '--min-cap',
+            type=int,
+            default=DEFAULT_MIN_CAP,
+            help=f'최소 시가총액 (억 단위, 기본값: {DEFAULT_MIN_CAP}억) - 미만은 is_active=False'
         )
         StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
         # 로거 초기화
         self.log = StockLogger(self.stdout, self.style, options, 'save_stock_info')
+
+        code = options['code']
+        self.min_cap = options['min_cap']  # 억 단위 (API 응답 mac도 억 단위)
+        process_all = code.lower() == 'all'
 
         # 1. 토큰 가져오기
         token = get_valid_token()
@@ -30,9 +45,15 @@ class Command(BaseCommand):
             self.log.error('토큰이 없습니다. python manage.py get_token을 먼저 실행하세요.')
             return
 
-        # 2. API 호출
-        stock_code = options['code']
+        if process_all:
+            # 전체 종목 처리
+            self.process_all_stocks(token, self.min_cap)
+        else:
+            # 단일 종목 처리
+            self.process_single_stock(token, code)
 
+    def process_single_stock(self, token, stock_code):
+        """단일 종목 처리"""
         self.log.info(f'종목코드: {stock_code}')
         self.log.separator()
 
@@ -40,10 +61,59 @@ class Command(BaseCommand):
 
         if response_data:
             self.log.debug(f'\n응답 데이터:\n{json.dumps(response_data, indent=2, ensure_ascii=False)}')
-            # 3. DB 저장
             self.save_to_db(response_data)
         else:
             self.log.error('API 호출 실패')
+
+    def process_all_stocks(self, token, min_cap_억):
+        """전체 종목 일괄 처리 (ETF 제외)"""
+        # 전체 종목 조회 (ETF 제외, is_active 관계없이)
+        stocks = Info.objects.exclude(
+            market='ETF'
+        ).values_list('code', 'name')
+
+        total_count = stocks.count()
+        self.log.info(f'종목 상세정보 조회 시작 ({total_count}개 종목, ETF 제외, 시가총액 {min_cap_억}억 기준 활성화/비활성화)')
+
+        activated_count = 0
+        deactivated_count = 0
+        updated_count = 0
+        error_count = 0
+
+        for idx, (code, name) in enumerate(stocks, 1):
+            try:
+                response_data = self.call_api(token, code)
+
+                if response_data:
+                    result = self.save_to_db(response_data, silent=True)
+                    # mac은 억 단위
+                    cap_억 = self._parse_int(response_data.get('mac')) or 0
+
+                    if result == 'deactivated':
+                        deactivated_count += 1
+                        self.log.info(f'[{idx}/{total_count}] {code} {name}: {cap_억}억 (비활성화됨)')
+                    elif result == 'activated':
+                        activated_count += 1
+                        self.log.info(f'[{idx}/{total_count}] {code} {name}: {cap_억}억 (활성화됨)')
+                    else:
+                        updated_count += 1
+                        self.log.info(f'[{idx}/{total_count}] {code} {name}: {cap_억}억')
+                else:
+                    self.log.error(f'[{idx}/{total_count}] {code} {name}: API 호출 실패')
+                    error_count += 1
+
+                # API 호출 간격 (0.1초)
+                time.sleep(0.1)
+
+            except Exception as e:
+                self.log.error(f'[{idx}/{total_count}] {code} {name}: 처리 실패 - {str(e)}')
+                error_count += 1
+
+        # 최종 요약
+        self.log.info(
+            f'종목 상세정보 조회 완료: 업데이트 {updated_count}개, 활성화 {activated_count}개, 비활성화 {deactivated_count}개, 오류 {error_count}개',
+            success=True
+        )
 
     def call_api(self, token, stock_code):
         """주식기본정보요청 API 호출"""
@@ -108,14 +178,25 @@ class Command(BaseCommand):
         except (InvalidOperation, AttributeError):
             return None
 
-    def save_to_db(self, data):
-        """API 응답 데이터를 DB에 저장"""
+    def save_to_db(self, data, silent=False):
+        """API 응답 데이터를 DB에 저장
+
+        Args:
+            data: API 응답 데이터
+            silent: True면 로그 출력 안함 (전체 처리 시)
+
+        Returns:
+            'deactivated': 시가총액 미달로 비활성화됨
+            'updated': 정상 업데이트
+            'created': 신규 생성
+        """
         stock_code = data.get('stk_cd')
         stock_name = data.get('stk_nm')
 
         if not stock_code or not stock_name:
-            self.log.error('종목코드 또는 종목명이 없습니다')
-            return
+            if not silent:
+                self.log.error('종목코드 또는 종목명이 없습니다')
+            return None
 
         # Info 조회 또는 생성
         info, created = Info.objects.get_or_create(
@@ -152,7 +233,24 @@ class Command(BaseCommand):
         info.volume = self._parse_int(data.get('trde_qty'))
         info.volume_change = self._parse_decimal(data.get('trde_pre'))
 
+        # 시가총액 체크 (활성화/비활성화 처리)
+        result = 'created' if created else 'updated'
+        if info.market_cap is not None:
+            if info.market_cap < self.min_cap:
+                # 시가총액 미달 → 비활성화
+                if info.is_active:
+                    info.is_active = False
+                    result = 'deactivated'
+            else:
+                # 시가총액 충족 → 활성화
+                if not info.is_active:
+                    info.is_active = True
+                    result = 'activated'
+
         info.save()
 
-        action = '생성' if created else '업데이트'
-        self.log.info(f'{stock_name}({stock_code}) {action} 완료', success=True)
+        if not silent:
+            action = '생성' if created else '업데이트'
+            self.log.info(f'{stock_name}({stock_code}) {action} 완료', success=True)
+
+        return result

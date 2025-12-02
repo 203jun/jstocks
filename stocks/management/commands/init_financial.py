@@ -1,10 +1,12 @@
 import os
 import re
+import math
 import unicodedata
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import pandas as pd
 from django.core.management.base import BaseCommand
 from stocks.models import Info, Financial
+from stocks.logger import StockLogger
 
 
 # 분기별 컬럼 정의
@@ -35,27 +37,33 @@ class Command(BaseCommand):
     help = '재무제표 초기 데이터 로드 (jemu 폴더 txt 파일) - 최초 1회 실행'
 
     def add_arguments(self, parser):
+        # 종목 선택 (종목코드 또는 'all')
         parser.add_argument(
             '--code',
             type=str,
             required=True,
-            help='종목코드 (필수)'
+            help='종목코드 또는 "all" (전체 종목, ETF 제외)'
         )
+        # 데이터 유형 (--mode: annual/quarterly/all)
         parser.add_argument(
-            '--annual',
-            action='store_true',
-            help='연간 데이터 출력'
+            '--mode',
+            type=str,
+            choices=['annual', 'quarterly', 'all'],
+            default='all',
+            help='데이터 유형 (annual: 연간, quarterly: 분기, all: 둘 다, 기본값: all)'
         )
-        parser.add_argument(
-            '--save',
-            action='store_true',
-            help='DB에 저장'
-        )
+        StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
-        stock_code = options['code']
-        is_annual = options['annual']
-        do_save = options['save']
+        self.log = StockLogger(self.stdout, self.style, options, 'init_financial')
+
+        code = options['code']
+        mode = options['mode']
+        process_all = code.lower() == 'all'
+
+        # mode에 따라 처리할 데이터 유형 결정
+        do_annual = mode in ['annual', 'all']
+        do_quarterly = mode in ['quarterly', 'all']
 
         # jemu 폴더 경로 (프로젝트 루트/jemu)
         from django.conf import settings
@@ -67,6 +75,15 @@ class Command(BaseCommand):
             if f.endswith('.txt') and '포괄손익계산서' in unicodedata.normalize('NFC', f)
         ])
 
+        if process_all:
+            # 전체 종목 처리 (ETF 제외)
+            self.process_all_stocks(jemu_path, comprehensive_files, do_annual, do_quarterly)
+        else:
+            # 단일 종목 처리
+            self.process_single_stock(jemu_path, comprehensive_files, code, do_annual, do_quarterly)
+
+    def process_single_stock(self, jemu_path, comprehensive_files, stock_code, do_annual, do_quarterly):
+        """단일 종목 처리"""
         # 재무 데이터 수집
         financial_data = []
         for filename in comprehensive_files:
@@ -77,18 +94,127 @@ class Command(BaseCommand):
         # 연도/분기 순으로 정렬
         financial_data.sort(key=lambda x: (x['year'], x['quarter']))
 
-        if is_annual:
+        if do_annual:
             # 연간 데이터: 4Q 원본 데이터 (보정 전) 사용
             annual_data = self.get_annual_data(financial_data)
             self.print_financial_table(stock_code, annual_data, is_annual=True)
-            if do_save:
-                self.save_to_db(stock_code, annual_data, is_annual=True)
-        else:
+            self.save_to_db(stock_code, annual_data, is_annual=True)
+
+        if do_quarterly:
             # 분기 데이터: 4Q 보정 적용
-            financial_data = self.adjust_4q_data(financial_data)
-            self.print_financial_table(stock_code, financial_data, is_annual=False)
-            if do_save:
-                self.save_to_db(stock_code, financial_data, is_annual=False)
+            quarterly_data = self.adjust_4q_data(financial_data.copy())
+            self.print_financial_table(stock_code, quarterly_data, is_annual=False)
+            self.save_to_db(stock_code, quarterly_data, is_annual=False)
+
+    def process_all_stocks(self, jemu_path, comprehensive_files, do_annual, do_quarterly):
+        """전체 종목 일괄 처리 (ETF 제외)"""
+        # KOSPI, KOSDAQ만 조회 (ETF 제외)
+        stocks = Info.objects.filter(
+            is_active=True
+        ).exclude(
+            market='ETF'
+        ).values_list('code', 'name', 'market')
+
+        total_count = stocks.count()
+        data_types = []
+        if do_annual:
+            data_types.append('연간')
+        if do_quarterly:
+            data_types.append('분기')
+        self.log.info(f'재무제표 초기 데이터 로드 시작 ({"/".join(data_types)}, {total_count}개 종목, ETF 제외)')
+
+        success_count = 0
+        no_data_count = 0
+        error_codes = []
+
+        for idx, (code, name, market) in enumerate(stocks, 1):
+            self.log.debug(f'[{idx}/{total_count}] {code} {name} ({market}) 처리 중...')
+
+            try:
+                # 재무 데이터 수집
+                financial_data = []
+                for filename in comprehensive_files:
+                    data = self.extract_financial_data(jemu_path, filename, code)
+                    if data:
+                        financial_data.append(data)
+
+                if not financial_data:
+                    self.log.info(f'[{idx}/{total_count}] {code} {name}: 데이터 없음')
+                    no_data_count += 1
+                    continue
+
+                # 연도/분기 순으로 정렬
+                financial_data.sort(key=lambda x: (x['year'], x['quarter']))
+
+                results = []
+
+                if do_annual:
+                    annual_data = self.get_annual_data(financial_data)
+                    if annual_data:
+                        saved, updated = self.save_to_db_silent(code, annual_data, is_annual=True)
+                        results.append(f'연간 {len(annual_data)}건')
+
+                if do_quarterly:
+                    quarterly_data = self.adjust_4q_data(financial_data.copy())
+                    if quarterly_data:
+                        saved, updated = self.save_to_db_silent(code, quarterly_data, is_annual=False)
+                        results.append(f'분기 {len(quarterly_data)}건')
+
+                if results:
+                    self.log.info(f'[{idx}/{total_count}] {code} {name}: {", ".join(results)}')
+                    success_count += 1
+
+            except Exception as e:
+                self.log.error(f'[{idx}/{total_count}] {code} {name}: 처리 실패 - {str(e)}')
+                error_codes.append(code)
+
+        # 최종 요약
+        error_count = len(error_codes)
+        summary = f'재무제표 초기 데이터 로드 완료: 성공 {success_count}개, 데이터없음 {no_data_count}개, 오류 {error_count}개'
+        if error_codes:
+            summary += f' ({", ".join(error_codes)})'
+        self.log.info(summary, success=True)
+
+    def save_to_db_silent(self, stock_code, financial_data, is_annual=False):
+        """재무 데이터를 DB에 저장 (신규/업데이트 카운트 반환)"""
+        info = Info.objects.get(code=stock_code)
+        saved_count = 0
+        updated_count = 0
+
+        for idx, data in enumerate(financial_data):
+            year = data['year']
+            quarter = None if is_annual else data['quarter']
+
+            # 증가율 계산
+            prev_data = self.get_previous_data(financial_data, idx)
+            revenue_growth = self.calc_growth(data['매출액'], prev_data['매출액']) if prev_data else None
+            op_growth = self.calc_growth(data['영업이익'], prev_data['영업이익']) if prev_data else None
+            ni_growth = self.calc_growth(data['순이익'], prev_data['순이익']) if prev_data else None
+
+            # 값 파싱 (원 단위 정수로)
+            revenue = self.parse_value(data['매출액'])
+            operating_profit = self.parse_value(data['영업이익'])
+            net_income = self.parse_value(data['순이익'])
+
+            _, created = Financial.objects.update_or_create(
+                stock=info,
+                year=year,
+                quarter=quarter,
+                defaults={
+                    'revenue': int(revenue) if revenue else None,
+                    'operating_profit': int(operating_profit) if operating_profit else None,
+                    'net_income': int(net_income) if net_income else None,
+                    'revenue_growth': self._safe_decimal(revenue_growth),
+                    'operating_profit_growth': self._safe_decimal(op_growth),
+                    'net_income_growth': self._safe_decimal(ni_growth),
+                }
+            )
+            if created:
+                saved_count += 1
+            else:
+                updated_count += 1
+
+        return saved_count, updated_count
 
     def parse_filename(self, filename):
         """파일명에서 연도와 분기 추출
@@ -315,7 +441,20 @@ class Command(BaseCommand):
         prev = self.parse_value(previous)
         if curr is None or prev is None or prev == 0:
             return None
-        return ((curr - prev) / abs(prev)) * 100
+        result = ((curr - prev) / abs(prev)) * 100
+        # inf, nan, 또는 너무 큰 값 체크
+        if math.isnan(result) or math.isinf(result) or abs(result) > 99999999:
+            return None
+        return result
+
+    def _safe_decimal(self, value):
+        """안전한 Decimal 변환 (실패 시 None 반환)"""
+        if value is None:
+            return None
+        try:
+            return Decimal(str(round(value, 2)))
+        except (InvalidOperation, ValueError, OverflowError):
+            return None
 
     def get_annual_data(self, financial_data):
         """4Q 데이터만 추출 (연간 누적 값 그대로 사용)"""
@@ -416,9 +555,9 @@ class Command(BaseCommand):
                     'revenue': int(revenue) if revenue else None,
                     'operating_profit': int(operating_profit) if operating_profit else None,
                     'net_income': int(net_income) if net_income else None,
-                    'revenue_growth': Decimal(str(round(revenue_growth, 2))) if revenue_growth else None,
-                    'operating_profit_growth': Decimal(str(round(op_growth, 2))) if op_growth else None,
-                    'net_income_growth': Decimal(str(round(ni_growth, 2))) if ni_growth else None,
+                    'revenue_growth': self._safe_decimal(revenue_growth),
+                    'operating_profit_growth': self._safe_decimal(op_growth),
+                    'net_income_growth': self._safe_decimal(ni_growth),
                 }
             )
 

@@ -43,7 +43,7 @@ class Info(models.Model):
     # === 재무 지표 ===
     per = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='PER')
     eps = models.BigIntegerField(null=True, blank=True, verbose_name='EPS')
-    roe = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='ROE')
+    roe = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='ROE')
     pbr = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='PBR')
     ev = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='EV')
     bps = models.BigIntegerField(null=True, blank=True, verbose_name='BPS')
