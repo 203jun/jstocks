@@ -1,0 +1,43 @@
+{% extends 'stocks/base.html' %}
+
+{% block title %}대시보드 - JStocks{% endblock %}
+
+{% block content %}
+<h4 class="mb-3">대시보드</h4>
+<p class="text-muted">주식 데이터 분석 시스템</p>
+
+<div class="row">
+    <div class="col-12 col-md-6 col-lg-3 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="text-muted">KOSPI</h6>
+                <div class="fs-4">-</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="text-muted">KOSDAQ</h6>
+                <div class="fs-4">-</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="text-muted">등록 종목</h6>
+                <div class="fs-4">-</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="text-muted">최근 업데이트</h6>
+                <div class="fs-4">-</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

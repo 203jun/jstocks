@@ -1,4 +1,5 @@
 import re
+import time
 from decimal import Decimal, InvalidOperation
 import requests
 from bs4 import BeautifulSoup
@@ -23,13 +24,19 @@ class Command(BaseCommand):
             '--code',
             type=str,
             required=True,
-            help='종목코드 (필수)'
+            help='종목코드 또는 "all" (전체 종목)'
         )
 
     def handle(self, *args, **options):
         stock_code = options['code']
 
-        # Info 확인
+        if stock_code.lower() == 'all':
+            self.process_all_stocks()
+        else:
+            self.process_single_stock(stock_code)
+
+    def process_single_stock(self, stock_code):
+        """단일 종목 처리"""
         try:
             info = Info.objects.get(code=stock_code)
         except Info.DoesNotExist:
@@ -38,14 +45,50 @@ class Command(BaseCommand):
 
         self.stdout.write(f'{info.name}({stock_code}) 네이버 금융 크롤링 시작...')
 
-        # 네이버 금융 크롤링
         data = self.crawl_naver_finance(stock_code)
         if not data:
             self.stdout.write(self.style.ERROR('크롤링 실패'))
             return
 
-        # DB 저장
         self.save_to_db(info, data)
+
+    def process_all_stocks(self):
+        """전체 종목 처리"""
+        stocks = Info.objects.filter(is_active=True).exclude(market='ETF').values_list('code', 'name')
+        total = len(stocks)
+
+        self.stdout.write(f'전체 {total}개 종목 처리 시작...')
+
+        success_count = 0
+        error_count = 0
+        error_codes = []
+
+        for idx, (code, name) in enumerate(stocks, 1):
+            self.stdout.write(f'[{idx}/{total}] {name}({code}) 처리 중...')
+
+            try:
+                data = self.crawl_naver_finance(code)
+                if data:
+                    info = Info.objects.get(code=code)
+                    self.save_to_db(info, data, silent=True)
+                    success_count += 1
+                else:
+                    error_count += 1
+                    error_codes.append(code)
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(f'  {code} 처리 실패: {e}'))
+                error_count += 1
+                error_codes.append(code)
+
+            # 요청 간격 (네이버 차단 방지)
+            time.sleep(0.3)
+
+        self.stdout.write('')
+        self.stdout.write(self.style.SUCCESS(f'=== 처리 완료 ==='))
+        self.stdout.write(f'성공: {success_count}개')
+        self.stdout.write(f'실패: {error_count}개')
+        if error_codes:
+            self.stdout.write(f'실패 종목: {", ".join(error_codes[:20])}{"..." if len(error_codes) > 20 else ""}')
 
     def crawl_naver_finance(self, stock_code):
         """네이버 금융에서 재무제표 테이블 크롤링"""
@@ -147,7 +190,7 @@ class Command(BaseCommand):
         except InvalidOperation:
             return None
 
-    def save_to_db(self, info, data):
+    def save_to_db(self, info, data, silent=False):
         """크롤링 데이터를 DB에 저장"""
         annual_columns = data['annual_columns']
         quarterly_columns = data['quarterly_columns']
@@ -186,9 +229,10 @@ class Command(BaseCommand):
             elif result == 'updated':
                 updated_count += 1
 
-        self.stdout.write(self.style.SUCCESS(
-            f'{info.name}({info.code}) 저장 완료: 신규 {saved_count}건, 업데이트 {updated_count}건'
-        ))
+        if not silent:
+            self.stdout.write(self.style.SUCCESS(
+                f'{info.name}({info.code}) 저장 완료: 신규 {saved_count}건, 업데이트 {updated_count}건'
+            ))
 
     def save_financial_record(self, info, year, quarter, is_estimated, row_data, col_idx):
         """개별 재무 레코드 저장"""

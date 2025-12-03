@@ -41,7 +41,6 @@ class Command(BaseCommand):
         parser.add_argument(
             '--code',
             type=str,
-            required=True,
             help='종목코드 또는 "all" (전체 종목, ETF 제외)'
         )
         # 데이터 유형 (--mode: annual/quarterly/all)
@@ -52,12 +51,35 @@ class Command(BaseCommand):
             default='all',
             help='데이터 유형 (annual: 연간, quarterly: 분기, all: 둘 다, 기본값: all)'
         )
+        # 기존 데이터 삭제
+        parser.add_argument(
+            '--clear',
+            action='store_true',
+            help='기존 Financial 데이터 전체 삭제'
+        )
         StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
         self.log = StockLogger(self.stdout, self.style, options, 'init_financial')
 
+        clear = options['clear']
         code = options['code']
+
+        # 옵션 검증: --clear와 --code는 동시 사용 불가
+        if clear and code:
+            self.log.error('--clear와 --code는 동시에 사용할 수 없습니다.')
+            return
+
+        if not clear and not code:
+            self.log.error('--clear 또는 --code 옵션이 필요합니다.')
+            return
+
+        # --clear 옵션: 기존 데이터 삭제 후 종료
+        if clear:
+            deleted_count, _ = Financial.objects.all().delete()
+            self.log.info(f'Financial 데이터 {deleted_count}건 삭제 완료', success=True)
+            return
+
         mode = options['mode']
         process_all = code.lower() == 'all'
 

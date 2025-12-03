@@ -5,6 +5,9 @@
 ## 사용법
 
 ```bash
+# 기존 데이터 전체 삭제
+python manage.py init_financial --clear
+
 # 단일 종목 - 연간+분기 둘 다
 python manage.py init_financial --code 005930
 
@@ -28,9 +31,12 @@ python manage.py init_financial --code all --log-level info
 
 | 옵션 | 설명 | 기본값 |
 |------|------|--------|
-| `--code` | 종목코드 또는 `all` (전체 종목, ETF 제외) | (필수) |
+| `--clear` | 기존 Financial 데이터 전체 삭제 | - |
+| `--code` | 종목코드 또는 `all` (전체 종목, ETF 제외) | - |
 | `--mode` | 데이터 유형 (annual/quarterly/all) | all |
 | `--log-level` | 로그 레벨 (debug/info/error) | debug |
+
+> **주의:** `--clear`와 `--code`는 동시에 사용할 수 없습니다.
 
 ## 동작 방식
 

@@ -1,0 +1,308 @@
+{% extends 'stocks/base.html' %}
+{% load humanize %}
+
+{% block title %}{{ stock.name }} - JStocks{% endblock %}
+
+{% block content %}
+<!-- 종목 헤더 -->
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h4 class="mb-1">{{ stock.name }}</h4>
+        <span class="text-muted">{{ stock.code }}</span>
+        <span class="badge bg-secondary ms-1">{{ stock.market }}</span>
+    </div>
+    <a href="{% url 'stocks:stock_list' %}" class="btn btn-outline-secondary btn-sm">목록</a>
+</div>
+
+<!-- 가격 정보 카드 -->
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-6 col-md-3">
+                <small class="text-muted">현재가</small>
+                <div class="fs-4 fw-bold">
+                    {% if stock.current_price %}
+                        {{ stock.current_price|intcomma }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <small class="text-muted">등락율</small>
+                <div class="fs-4 fw-bold {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}">
+                    {% if stock.change_rate %}
+                        {% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <small class="text-muted">전일대비</small>
+                <div class="{% if stock.price_change > 0 %}text-up{% elif stock.price_change < 0 %}text-down{% endif %}">
+                    {% if stock.price_change %}
+                        {% if stock.price_change > 0 %}+{% endif %}{{ stock.price_change|intcomma }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <small class="text-muted">거래량</small>
+                <div>
+                    {% if stock.volume %}
+                        {{ stock.volume|intcomma }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 투자 지표 -->
+    <div class="col-12 col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header py-2">
+                <strong>투자 지표</strong>
+            </div>
+            <div class="card-body py-2">
+                <table class="table table-sm mb-0">
+                    <tr>
+                        <td class="text-muted">PER</td>
+                        <td class="text-end">{% if stock.per %}{{ stock.per }}배{% else %}-{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">PBR</td>
+                        <td class="text-end">{% if stock.pbr %}{{ stock.pbr }}배{% else %}-{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">ROE</td>
+                        <td class="text-end">{% if stock.roe %}{{ stock.roe }}%{% else %}-{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">EPS</td>
+                        <td class="text-end">{% if stock.eps %}{{ stock.eps|intcomma }}원{% else %}-{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">BPS</td>
+                        <td class="text-end">{% if stock.bps %}{{ stock.bps|intcomma }}원{% else %}-{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">EV</td>
+                        <td class="text-end">{% if stock.ev %}{{ stock.ev }}{% else %}-{% endif %}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 시가총액 정보 -->
+    <div class="col-12 col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header py-2">
+                <strong>시가총액</strong>
+            </div>
+            <div class="card-body py-2">
+                <table class="table table-sm mb-0">
+                    <tr>
+                        <td class="text-muted">시가총액</td>
+                        <td class="text-end">{% if stock.market_cap %}{{ stock.market_cap|intcomma }}억{% else %}-{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">유통비율</td>
+                        <td class="text-end">{% if stock.listed_ratio %}{{ stock.listed_ratio }}%{% else %}-{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">신용비율</td>
+                        <td class="text-end">{% if stock.credit_ratio %}{{ stock.credit_ratio }}%{% else %}-{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">외인소진률</td>
+                        <td class="text-end">{% if stock.foreign_exhaustion %}{{ stock.foreign_exhaustion }}%{% else %}-{% endif %}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 실적 차트 -->
+<div class="row">
+    <div class="col-12 col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header py-2">
+                <strong>연간 실적</strong>
+            </div>
+            <div class="card-body py-2">
+                <div style="height: 400px;">
+                    <canvas id="annualChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-8 mb-3">
+        <div class="card h-100">
+            <div class="card-header py-2">
+                <strong>분기 실적</strong>
+            </div>
+            <div class="card-body py-2">
+                <div style="height: 400px;">
+                    <canvas id="quarterlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 업데이트 시간 -->
+<div class="text-muted text-end small">
+    업데이트: {{ stock.updated_at|date:"Y-m-d H:i" }}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+        mode: 'index',
+        intersect: false,
+    },
+    plugins: {
+        legend: {
+            position: 'bottom',
+            labels: { boxWidth: 12, padding: 8, font: { size: 11 } }
+        }
+    },
+    scales: {
+        y: {
+            type: 'linear',
+            position: 'left',
+            beginAtZero: true,
+            ticks: {
+                callback: function(value) {
+                    return value.toLocaleString();
+                },
+                font: { size: 10 }
+            },
+            title: {
+                display: true,
+                text: '매출(억)',
+                font: { size: 10 }
+            }
+        },
+        y1: {
+            type: 'linear',
+            position: 'right',
+            beginAtZero: true,
+            grid: {
+                drawOnChartArea: false
+            },
+            ticks: {
+                callback: function(value) {
+                    return value.toLocaleString();
+                },
+                font: { size: 10 }
+            },
+            title: {
+                display: true,
+                text: '영업이익(억)',
+                font: { size: 10 }
+            }
+        },
+        x: {
+            ticks: { font: { size: 10 } }
+        }
+    }
+};
+
+// 색상 생성 함수 (추정치는 연한 색)
+function getBarColors(estimated) {
+    return estimated.map(e => e ? 'rgba(54, 162, 235, 0.3)' : 'rgba(54, 162, 235, 0.7)');
+}
+function getLineColors(estimated) {
+    return estimated.map(e => e ? 'rgba(255, 99, 132, 0.4)' : 'rgba(255, 99, 132, 1)');
+}
+function getPointColors(estimated) {
+    return estimated.map(e => e ? 'rgba(255, 99, 132, 0.4)' : 'rgba(255, 99, 132, 1)');
+}
+
+// 연간 데이터
+const annualEstimated = {{ annual_estimated|safe }};
+const quarterlyEstimated = {{ quarterly_estimated|safe }};
+
+// 연간 차트
+new Chart(document.getElementById('annualChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ annual_labels|safe }},
+        datasets: [
+            {
+                label: '매출(억)',
+                data: {{ annual_revenue|safe }},
+                backgroundColor: getBarColors(annualEstimated),
+                yAxisID: 'y',
+                order: 2
+            },
+            {
+                label: '영업이익(억)',
+                data: {{ annual_op|safe }},
+                type: 'line',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                borderWidth: 2,
+                pointRadius: 4,
+                pointBackgroundColor: getPointColors(annualEstimated),
+                segment: {
+                    borderColor: ctx => annualEstimated[ctx.p1DataIndex] ? 'rgba(255, 99, 132, 0.4)' : 'rgba(255, 99, 132, 1)',
+                    borderDash: ctx => annualEstimated[ctx.p1DataIndex] ? [5, 5] : []
+                },
+                yAxisID: 'y1',
+                order: 1
+            }
+        ]
+    },
+    options: chartOptions
+});
+
+// 분기 차트
+new Chart(document.getElementById('quarterlyChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ quarterly_labels|safe }},
+        datasets: [
+            {
+                label: '매출(억)',
+                data: {{ quarterly_revenue|safe }},
+                backgroundColor: getBarColors(quarterlyEstimated),
+                yAxisID: 'y',
+                order: 2
+            },
+            {
+                label: '영업이익(억)',
+                data: {{ quarterly_op|safe }},
+                type: 'line',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                borderWidth: 2,
+                pointRadius: 4,
+                pointBackgroundColor: getPointColors(quarterlyEstimated),
+                segment: {
+                    borderColor: ctx => quarterlyEstimated[ctx.p1DataIndex] ? 'rgba(255, 99, 132, 0.4)' : 'rgba(255, 99, 132, 1)',
+                    borderDash: ctx => quarterlyEstimated[ctx.p1DataIndex] ? [5, 5] : []
+                },
+                yAxisID: 'y1',
+                order: 1
+            }
+        ]
+    },
+    options: chartOptions
+});
+</script>
+{% endblock %}
