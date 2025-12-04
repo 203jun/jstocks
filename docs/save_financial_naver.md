@@ -10,6 +10,9 @@ python manage.py save_financial_naver --code 005930
 
 # 전체 종목
 python manage.py save_financial_naver --code all
+
+# 디버그 모드
+python manage.py save_financial_naver --code 005930 --log-level debug
 ```
 
 ## 옵션
@@ -17,6 +20,7 @@ python manage.py save_financial_naver --code all
 | 옵션 | 필수 | 설명 |
 |------|------|------|
 | `--code` | O | 종목코드 또는 "all" (전체 종목, ETF 제외) |
+| `--log-level` | X | 로그 레벨 (debug/info/warning/error, 기본: info) |
 
 ## 데이터 소스
 
@@ -42,9 +46,11 @@ python manage.py save_financial_naver --code all
 
 ## 저장 방식
 
-- 기존 데이터가 있으면 UPDATE
+- 기존 데이터와 비교하여 변경된 경우에만 UPDATE
+- 변경 없으면 SKIP (불필요한 DB 쓰기 방지)
 - 없으면 INSERT
 - `Financial` 모델에 저장
+- 빈 값은 NULL로 저장 (0과 구분)
 
 ## 전체 종목 처리 시
 
@@ -57,16 +63,15 @@ python manage.py save_financial_naver --code all
 ```
 # 단일 종목
 삼성전자(005930) 네이버 금융 크롤링 시작...
-삼성전자(005930) 저장 완료: 신규 0건, 업데이트 10건
+삼성전자(005930) 저장 완료: 신규 0건, 업데이트 3건, 스킵 7건
 
 # 전체 종목
 전체 2847개 종목 처리 시작...
-[1/2847] 삼성전자(005930) 처리 중...
-[2/2847] SK하이닉스(000660) 처리 중...
+[1/2847] 삼성전자(005930): 신규 0, 업데이트 2, 스킵 8
+[2/2847] SK하이닉스(000660): 신규 0, 업데이트 0, 스킵 10
+[3/2847] LG에너지솔루션(373220): 데이터 없음
 ...
-=== 처리 완료 ===
-성공: 2840개
-실패: 7개
+처리 완료: 성공 2840개, 실패 7개
 실패 종목: 000000, 111111, ...
 ```
 
@@ -75,3 +80,4 @@ python manage.py save_financial_naver --code all
 - `Info` 모델에 종목이 등록되어 있어야 함
 - 네이버 금융 페이지 구조 변경 시 파싱 실패 가능
 - 전체 종목 처리 시 약 15분 소요 (2800개 기준)
+- "데이터 없음": 네이버 금융에 재무제표 테이블이 없는 종목 (정상)

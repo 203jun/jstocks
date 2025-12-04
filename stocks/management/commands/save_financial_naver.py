@@ -5,6 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 from django.core.management.base import BaseCommand
 from stocks.models import Info, Financial
+from stocks.logger import StockLogger
 
 
 # 월 -> 분기 매핑
@@ -26,8 +27,10 @@ class Command(BaseCommand):
             required=True,
             help='종목코드 또는 "all" (전체 종목)'
         )
+        StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
+        self.log = StockLogger(self.stdout, self.style, options, 'save_financial_naver')
         stock_code = options['code']
 
         if stock_code.lower() == 'all':
@@ -40,14 +43,14 @@ class Command(BaseCommand):
         try:
             info = Info.objects.get(code=stock_code)
         except Info.DoesNotExist:
-            self.stdout.write(self.style.ERROR(f'종목코드 {stock_code}가 Info에 없습니다.'))
+            self.log.error(f'종목코드 {stock_code}가 Info에 없습니다.')
             return
 
-        self.stdout.write(f'{info.name}({stock_code}) 네이버 금융 크롤링 시작...')
+        self.log.info(f'{info.name}({stock_code}) 네이버 금융 크롤링 시작...')
 
         data = self.crawl_naver_finance(stock_code)
         if not data:
-            self.stdout.write(self.style.ERROR('크롤링 실패'))
+            self.log.error('크롤링 실패')
             return
 
         self.save_to_db(info, data)
@@ -57,38 +60,35 @@ class Command(BaseCommand):
         stocks = Info.objects.filter(is_active=True).exclude(market='ETF').values_list('code', 'name')
         total = len(stocks)
 
-        self.stdout.write(f'전체 {total}개 종목 처리 시작...')
+        self.log.info(f'전체 {total}개 종목 처리 시작...')
 
         success_count = 0
         error_count = 0
         error_codes = []
 
         for idx, (code, name) in enumerate(stocks, 1):
-            self.stdout.write(f'[{idx}/{total}] {name}({code}) 처리 중...')
-
             try:
                 data = self.crawl_naver_finance(code)
                 if data:
                     info = Info.objects.get(code=code)
-                    self.save_to_db(info, data, silent=True)
+                    saved, updated, skipped = self.save_to_db(info, data, silent=True)
+                    self.log.info(f'[{idx}/{total}] {name}({code}): 신규 {saved}, 업데이트 {updated}, 스킵 {skipped}')
                     success_count += 1
                 else:
+                    self.log.info(f'[{idx}/{total}] {name}({code}): 데이터 없음')
                     error_count += 1
                     error_codes.append(code)
             except Exception as e:
-                self.stdout.write(self.style.WARNING(f'  {code} 처리 실패: {e}'))
+                self.log.error(f'[{idx}/{total}] {name}({code}): 실패 - {e}')
                 error_count += 1
                 error_codes.append(code)
 
             # 요청 간격 (네이버 차단 방지)
             time.sleep(0.3)
 
-        self.stdout.write('')
-        self.stdout.write(self.style.SUCCESS(f'=== 처리 완료 ==='))
-        self.stdout.write(f'성공: {success_count}개')
-        self.stdout.write(f'실패: {error_count}개')
+        self.log.info(f'처리 완료: 성공 {success_count}개, 실패 {error_count}개', success=True)
         if error_codes:
-            self.stdout.write(f'실패 종목: {", ".join(error_codes[:20])}{"..." if len(error_codes) > 20 else ""}')
+            self.log.error(f'실패 종목: {", ".join(error_codes[:20])}{"..." if len(error_codes) > 20 else ""}')
 
     def crawl_naver_finance(self, stock_code):
         """네이버 금융에서 재무제표 테이블 크롤링"""
@@ -99,14 +99,14 @@ class Command(BaseCommand):
             response = requests.get(url, headers=headers)
             response.raise_for_status()
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'HTTP 요청 실패: {e}'))
+            self.log.error(f'HTTP 요청 실패: {e}')
             return None
 
         soup = BeautifulSoup(response.text, 'lxml')
         table = soup.select_one('#content > div.section.cop_analysis > div.sub_section > table')
 
         if not table:
-            self.stdout.write(self.style.ERROR('테이블을 찾을 수 없습니다.'))
+            self.log.error('테이블을 찾을 수 없습니다.')
             return None
 
         # 헤더 파싱
@@ -198,6 +198,7 @@ class Command(BaseCommand):
 
         saved_count = 0
         updated_count = 0
+        skipped_count = 0
 
         # 연간 데이터 저장
         for idx, year, is_estimated in annual_columns:
@@ -213,6 +214,8 @@ class Command(BaseCommand):
                 saved_count += 1
             elif result == 'updated':
                 updated_count += 1
+            elif result == 'skipped':
+                skipped_count += 1
 
         # 분기 데이터 저장
         for idx, year, quarter, is_estimated in quarterly_columns:
@@ -228,11 +231,13 @@ class Command(BaseCommand):
                 saved_count += 1
             elif result == 'updated':
                 updated_count += 1
+            elif result == 'skipped':
+                skipped_count += 1
 
         if not silent:
-            self.stdout.write(self.style.SUCCESS(
-                f'{info.name}({info.code}) 저장 완료: 신규 {saved_count}건, 업데이트 {updated_count}건'
-            ))
+            self.log.info(f'{info.name}({info.code}) 저장 완료: 신규 {saved_count}건, 업데이트 {updated_count}건, 스킵 {skipped_count}건', success=True)
+
+        return saved_count, updated_count, skipped_count
 
     def save_financial_record(self, info, year, quarter, is_estimated, row_data, col_idx):
         """개별 재무 레코드 저장"""
@@ -252,19 +257,42 @@ class Command(BaseCommand):
         if net_income:
             net_income = net_income * 100000000
 
-        # 기존 레코드 조회 -> 있으면 UPDATE, 없으면 INSERT
-        financial, created = Financial.objects.update_or_create(
-            stock=info,
-            year=year,
-            quarter=quarter,
-            defaults={
-                'revenue': revenue,
-                'operating_profit': operating_profit,
-                'net_income': net_income,
-                'operating_margin': operating_margin,
-                'net_margin': net_margin,
-                'roe': roe,
-                'is_estimated': is_estimated,
-            }
-        )
-        return 'created' if created else 'updated'
+        new_data = {
+            'revenue': revenue,
+            'operating_profit': operating_profit,
+            'net_income': net_income,
+            'operating_margin': operating_margin,
+            'net_margin': net_margin,
+            'roe': roe,
+            'is_estimated': is_estimated,
+        }
+
+        # 기존 레코드 조회
+        try:
+            existing = Financial.objects.get(stock=info, year=year, quarter=quarter)
+
+            # 값 비교 (변경된 경우에만 업데이트)
+            has_changes = False
+            for field, new_val in new_data.items():
+                old_val = getattr(existing, field)
+                if old_val != new_val:
+                    has_changes = True
+                    break
+
+            if has_changes:
+                for field, new_val in new_data.items():
+                    setattr(existing, field, new_val)
+                existing.save()
+                return 'updated'
+            else:
+                return 'skipped'
+
+        except Financial.DoesNotExist:
+            # 신규 생성
+            Financial.objects.create(
+                stock=info,
+                year=year,
+                quarter=quarter,
+                **new_data
+            )
+            return 'created'

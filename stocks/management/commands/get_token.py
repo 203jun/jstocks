@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from stocks.utils import issue_token, save_token, get_token, is_token_valid
+from stocks.utils import issue_token, save_token
 from stocks.logger import StockLogger
 
 
@@ -13,14 +13,7 @@ class Command(BaseCommand):
         # 로거 초기화
         self.log = StockLogger(self.stdout, self.style, options, 'get_token')
 
-        # 1. 기존 토큰 확인
-        if is_token_valid():
-            existing = get_token()
-            self.log.info(f'기존 토큰 유효 (만료: {existing["expires_dt"]})')
-            self.log.debug('새 토큰을 강제로 발급받으려면 token.json을 삭제하세요.')
-            return
-
-        # 2. 토큰 발급
+        # 토큰 발급 (항상 새로 발급)
         self.log.debug('토큰 발급 중...')
         token_data = issue_token()
 

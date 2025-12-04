@@ -1,5 +1,4 @@
 import requests
-import json
 from datetime import datetime, timedelta
 from django.core.management.base import BaseCommand
 from stocks.utils import get_valid_token
@@ -20,9 +19,9 @@ class Command(BaseCommand):
         parser.add_argument(
             '--mode',
             type=str,
-            choices=['all', 'day'],
+            choices=['all', 'last'],
             required=True,
-            help='조회 모드: all(6년 데이터), day(최근 거래월 1개월만)'
+            help='조회 모드: all(6년 데이터), last(최근 1개월만)'
         )
         StockLogger.add_arguments(parser)
 
@@ -53,8 +52,8 @@ class Command(BaseCommand):
         self.log.info(f'종목코드: {stock_code} | 모드: {mode}')
         self.log.separator()
 
-        if mode == 'day':
-            self.fetch_latest_day(token, stock_code)
+        if mode == 'last':
+            self.fetch_latest_month(token, stock_code)
         elif mode == 'all':
             self.fetch_six_years(token, stock_code)
 
@@ -69,16 +68,17 @@ class Command(BaseCommand):
         ).values_list('code', 'name')
 
         total_count = stocks.count()
-        mode_desc = '6년 데이터' if mode == 'all' else '최근 1개월'
+        mode_desc = '6년 데이터' if mode == 'all' else '최근 1개월만'
         self.log.info(f'월봉 차트 조회 시작 ({mode_desc}, {total_count}개 종목, ETF 제외)')
 
         success_count = 0
-        error_codes = []
+        no_data_list = []  # 데이터 없음
+        error_list = []  # 에러 발생
 
         for idx, (code, name) in enumerate(stocks, 1):
             try:
-                if mode == 'day':
-                    result = self.fetch_latest_day(token, code, silent=True)
+                if mode == 'last':
+                    result = self.fetch_latest_month(token, code, silent=True)
                 else:
                     result = self.fetch_six_years(token, code, silent=True)
 
@@ -87,25 +87,35 @@ class Command(BaseCommand):
                     success_count += 1
                 else:
                     self.log.info(f'[{idx}/{total_count}] {code} {name}: 데이터 없음')
+                    no_data_list.append((code, name))
 
                 # API 호출 간격 (0.1초)
                 time.sleep(0.1)
 
             except Exception as e:
                 self.log.error(f'[{idx}/{total_count}] {code} {name}: 처리 실패 - {str(e)}')
-                error_codes.append(code)
+                error_list.append((code, name, str(e)))
 
-        # 최종 요약
-        error_count = len(error_codes)
-        summary = f'월봉 차트 조회 완료: 성공 {success_count}개, 오류 {error_count}개'
-        if error_codes:
-            summary += f' ({", ".join(error_codes)})'
-        self.log.info(summary, success=True)
+        # 최종 리포트
+        self.log.separator()
+        self.log.info(f'월봉 차트 조회 완료: 성공 {success_count}개, 데이터없음 {len(no_data_list)}개, 오류 {len(error_list)}개', success=True)
 
-    def fetch_latest_day(self, token, stock_code, silent=False):
-        """최근 거래일 1일 데이터만 조회"""
+        if no_data_list:
+            self.log.info(f'[데이터 없음] {len(no_data_list)}개:')
+            for code, name in no_data_list[:20]:
+                self.log.info(f'  - {code} {name}')
+            if len(no_data_list) > 20:
+                self.log.info(f'  ... 외 {len(no_data_list) - 20}개')
+
+        if error_list:
+            self.log.info(f'[오류 발생] {len(error_list)}개:')
+            for code, name, err in error_list:
+                self.log.error(f'  - {code} {name}: {err}')
+
+    def fetch_latest_month(self, token, stock_code, silent=False):
+        """최근 1개월 데이터만 조회"""
         if not silent:
-            self.log.header('최근 거래일 데이터 조회')
+            self.log.header('최근 1개월 데이터 조회')
 
         # 오늘 날짜로 API 호출
         today = datetime.now().strftime('%Y%m%d')
@@ -181,6 +191,13 @@ class Command(BaseCommand):
                 if not silent:
                     self.log.debug('응답 데이터 없음 - 중단')
                 break
+
+            # 디버그: 응답 키 출력
+            if not silent:
+                keys = [k for k in response_data.keys() if not k.startswith('_')]
+                self.log.debug(f'응답 키: {keys}')
+                if 'return_code' in response_data:
+                    self.log.debug(f'return_code: {response_data["return_code"]}, return_msg: {response_data.get("return_msg", "")}')
 
             # 데이터 수집
             data_key = self.find_data_key(response_data)
@@ -328,12 +345,10 @@ class Command(BaseCommand):
                 if not silent:
                     self.log.error(f'저장 실패 ({item.get("dt")}): {str(e)}')
 
-        total_count = created_count + updated_count
-
         if silent:
-            return f'{total_count}건'
+            return f'신규 {created_count}, 업데이트 {updated_count}'
         else:
-            self.log.info(f'저장 완료! 신규: {created_count}개, 업데이트: {updated_count}개, 총합: {total_count}개', success=True)
+            self.log.info(f'저장 완료: 신규 {created_count}건, 업데이트 {updated_count}건', success=True)
             return None
 
     def call_api(self, token, data, cont_yn='N', next_key=''):

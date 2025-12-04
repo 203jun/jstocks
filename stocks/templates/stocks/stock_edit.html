@@ -1,0 +1,853 @@
+{% extends 'stocks/base.html' %}
+{% load humanize %}
+
+{% block title %}{{ stock.name }} 편집 - JStocks{% endblock %}
+
+{% block content %}
+<!-- 종목 헤더 -->
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h4 class="mb-1">{{ stock.name }}</h4>
+        <span class="text-muted">{{ stock.code }}</span>
+        <span class="badge bg-secondary ms-1">{{ stock.market }}</span>
+    </div>
+    <a href="{% url 'stocks:stock_detail' stock.code %}" class="btn btn-outline-secondary btn-sm">상세</a>
+</div>
+
+<!-- 메인 탭 -->
+<ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-content" type="button" role="tab">기본정보</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="disclosure-tab" data-bs-toggle="tab" data-bs-target="#disclosure-content" type="button" role="tab">공시</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab">리포트</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="telegram-tab" data-bs-toggle="tab" data-bs-target="#telegram-content" type="button" role="tab">텔레그램</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="nodaji-tab" data-bs-toggle="tab" data-bs-target="#nodaji-content" type="button" role="tab">노다지</button>
+    </li>
+</ul>
+
+<div class="tab-content" id="mainTabContent">
+    <!-- 기본정보 탭 -->
+    <div class="tab-pane fade show active" id="info-content" role="tabpanel">
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="card mb-3">
+                <div class="card-header py-2">
+                    <strong>관심 단계</strong>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <select name="interest_level" class="form-select">
+                                <option value="">선택 안함</option>
+                                {% for value, label in interest_choices %}
+                                <option value="{{ value }}" {% if stock.interest_level == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">초관심 > 관심 > 인큐베이터 순으로 중요도가 높습니다.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header py-2">
+                    <strong>투자포인트</strong>
+                </div>
+                <div class="card-body">
+                    <div class="text-muted">추후 추가 예정</div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header py-2">
+                    <strong>리스크</strong>
+                </div>
+                <div class="card-body">
+                    <div class="text-muted">추후 추가 예정</div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header py-2">
+                    <strong>일정</strong>
+                </div>
+                <div class="card-body">
+                    <div class="text-muted">추후 추가 예정</div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">저장</button>
+                <a href="{% url 'stocks:stock_detail' stock.code %}" class="btn btn-outline-secondary">취소</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- 공시 탭 -->
+    <div class="tab-pane fade" id="disclosure-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>공시</strong>
+                    <small class="text-muted ms-2">최근 2주</small>
+                </div>
+                <button type="button" id="btnSearchDisclosure" class="btn btn-sm btn-outline-primary">
+                    검색
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="disclosureLoading" class="text-center py-3 d-none">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span class="ms-2">검색 중...</span>
+                </div>
+                <div id="disclosureResult" class="d-none"></div>
+                <div id="disclosureEmpty" class="text-muted">버튼을 클릭하면 "{{ stock.name }}" 공시 검색 결과를 표시합니다.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 리포트 탭 -->
+    <div class="tab-pane fade" id="report-content" role="tabpanel">
+        <!-- 주가 vs 목표가 차트 -->
+        {% if reports %}
+        <div class="card mb-3">
+            <div class="card-header py-2">
+                <strong>주가 vs 목표가</strong>
+            </div>
+            <div class="card-body">
+                <canvas id="priceTargetChart" style="height: 250px;"></canvas>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header py-2">
+                <strong>애널리스트 리포트</strong>
+                <small class="text-muted ms-2">최근 20개</small>
+            </div>
+            <div class="card-body">
+                {% if reports %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 80px;">일자</th>
+                                <th>제목</th>
+                                <th style="width: 100px;" class="d-none d-md-table-cell">애널리스트</th>
+                                <th style="width: 90px;" class="d-none d-md-table-cell">증권사</th>
+                                <th style="width: 90px;" class="text-end">목표가</th>
+                                <th style="width: 70px;" class="text-end">괴리율</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in reports %}
+                            <tr>
+                                <td class="text-muted small">{{ report.date|date:"y/m/d" }}</td>
+                                <td class="text-truncate" style="max-width: 250px;" title="{{ report.title }}">
+                                    <a href="#" class="text-decoration-none report-search-link" data-title="{{ report.title }}">{{ report.title }}</a>
+                                </td>
+                                <td class="small d-none d-md-table-cell">{{ report.author }}</td>
+                                <td class="small d-none d-md-table-cell">{{ report.provider }}</td>
+                                <td class="text-end">
+                                    {% if report.target_price %}
+                                    <strong class="text-danger">{{ report.target_price|intcomma }}원</strong>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if report.gap_rate != None %}
+                                    <span class="{% if report.gap_rate > 0 %}text-danger{% elif report.gap_rate < 0 %}text-primary{% endif %}">
+                                        {% if report.gap_rate > 0 %}+{% endif %}{{ report.gap_rate }}%
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-muted p-3">리포트가 없습니다. <code>python manage.py save_report --code {{ stock.code }}</code> 실행</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 리포트 제목으로 텔레그램 검색 결과 -->
+        <div id="reportSearchResult" class="card mt-3 d-none">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>텔레그램 검색</strong>
+                    <small class="text-muted ms-2" id="reportSearchKeyword"></small>
+                </div>
+                <button type="button" class="btn-close btn-sm" id="btnCloseReportSearch"></button>
+            </div>
+            <div class="card-body">
+                <div id="reportSearchLoading" class="text-center py-3 d-none">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span class="ms-2">검색 중...</span>
+                </div>
+                <div id="reportSearchTabs" class="d-none">
+                    <ul class="nav nav-tabs" id="reportChannelTabs" role="tablist"></ul>
+                    <div class="tab-content pt-3" id="reportChannelTabContent"></div>
+                </div>
+                <div id="reportSearchEmpty" class="text-muted d-none">검색 결과가 없습니다.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 텔레그램 탭 -->
+    <div class="tab-pane fade" id="telegram-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>텔레그램 검색</strong>
+                    <small class="text-muted ms-2">1주일 데이터, 최소 3개</small>
+                </div>
+                <button type="button" id="btnSearchTelegram" class="btn btn-sm btn-outline-primary">
+                    검색
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="telegramLoading" class="text-center py-3 d-none">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span class="ms-2">검색 중...</span>
+                </div>
+                <div id="telegramTabs" class="d-none">
+                    <ul class="nav nav-tabs" id="channelTabs" role="tablist"></ul>
+                    <div class="tab-content pt-3" id="channelTabContent"></div>
+                </div>
+                <div id="telegramEmpty" class="text-muted">버튼을 클릭하면 "{{ stock.name }}" 검색 결과를 표시합니다.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 노다지 탭 -->
+    <div class="tab-pane fade" id="nodaji-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>노다지 IR노트</strong>
+                    <small class="text-muted ms-2">네이버 프리미엄 콘텐츠</small>
+                </div>
+                <button type="button" id="btnSearchNodaji" class="btn btn-sm btn-outline-success">
+                    검색
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="nodajiLoading" class="text-center py-3 d-none">
+                    <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                    <span class="ms-2">검색 중... (5~10초 소요)</span>
+                </div>
+                <div id="nodajiResult" class="d-none"></div>
+                <div id="nodajiEmpty" class="text-muted">버튼을 클릭하면 "{{ stock.name }}" 검색 결과를 표시합니다.</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.highlight {
+    background-color: #fff3cd;
+    padding: 0 2px;
+    border-radius: 2px;
+    font-weight: bold;
+}
+/* 텔레그램 채널 탭 스타일 - 반응형 그리드 */
+#channelTabs,
+#reportChannelTabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    border-bottom: none;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #dee2e6;
+}
+@media (min-width: 768px) {
+    #channelTabs,
+    #reportChannelTabs {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+#channelTabs .nav-item,
+#reportChannelTabs .nav-item {
+    margin: 0;
+}
+#channelTabs .nav-link,
+#reportChannelTabs .nav-link {
+    display: block;
+    width: 100%;
+    padding: 4px 6px;
+    font-size: 0.7rem;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    background: #f8f9fa;
+    color: #495057;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#channelTabs .nav-link:hover,
+#reportChannelTabs .nav-link:hover {
+    background: #e9ecef;
+}
+#channelTabs .nav-link.active,
+#reportChannelTabs .nav-link.active {
+    background: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+#channelTabs .nav-link .badge,
+#reportChannelTabs .nav-link .badge {
+    font-size: 0.6rem;
+    padding: 1px 3px;
+    margin-left: 2px;
+}
+#channelTabs .nav-link.has-recent,
+#reportChannelTabs .nav-link.has-recent {
+    border-color: #dc3545;
+    background: #fff5f5;
+}
+#channelTabs .nav-link.has-recent.active,
+#reportChannelTabs .nav-link.has-recent.active {
+    background: #dc3545;
+    border-color: #dc3545;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const stockName = "{{ stock.name }}";
+
+// ============ 주가 vs 목표가 차트 ============
+const priceChartData = {{ price_chart_data|safe }};
+const targetChartData = {{ target_chart_data|safe }};
+const gapChartData = {{ gap_chart_data|safe }};
+let priceTargetChart = null;
+
+function initPriceTargetChart() {
+    if (priceTargetChart) return;
+    if (priceChartData.length === 0) return;
+
+    const ctx = document.getElementById('priceTargetChart');
+    if (!ctx) return;
+
+    // 날짜 라벨 추출
+    const labels = priceChartData.map(d => d.x);
+    const priceValues = priceChartData.map(d => d.y);
+
+    // 목표가를 같은 x축에 매핑
+    const targetMap = {};
+    targetChartData.forEach(d => { targetMap[d.x] = d.y; });
+    const targetValues = labels.map(date => targetMap[date] || null);
+
+    // 괴리율을 같은 x축에 매핑
+    const gapMap = {};
+    gapChartData.forEach(d => { gapMap[d.x] = d.y; });
+    const gapValues = labels.map(date => gapMap[date] !== undefined ? gapMap[date] : null);
+
+    priceTargetChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: '종가',
+                    data: priceValues,
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.1,
+                    fill: true,
+                    yAxisID: 'y'
+                },
+                {
+                    label: '목표가',
+                    data: targetValues,
+                    borderColor: '#dc3545',
+                    backgroundColor: '#dc3545',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    tension: 0.1,
+                    spanGaps: true,
+                    yAxisID: 'y'
+                },
+                {
+                    label: '괴리율',
+                    data: gapValues,
+                    borderColor: '#198754',
+                    backgroundColor: '#198754',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    tension: 0.1,
+                    spanGaps: true,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        boxWidth: 8
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            if (context.parsed.y === null) return null;
+                            let label = context.dataset.label || '';
+                            if (label) label += ': ';
+                            if (context.dataset.yAxisID === 'y1') {
+                                label += context.parsed.y + '%';
+                            } else {
+                                label += new Intl.NumberFormat('ko-KR').format(context.parsed.y) + '원';
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    display: true,
+                    ticks: {
+                        maxTicksLimit: 6,
+                        callback: function(value, index) {
+                            const label = this.getLabelForValue(value);
+                            return label ? label.substring(2, 10) : '';
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    beginAtZero: false,
+                    ticks: {
+                        callback: function(value) {
+                            return new Intl.NumberFormat('ko-KR').format(value);
+                        }
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    position: 'right',
+                    beginAtZero: false,
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 리포트 탭 활성화 시 차트 생성
+document.getElementById('report-tab').addEventListener('shown.bs.tab', function() {
+    initPriceTargetChart();
+});
+
+// ============ 리포트 제목으로 텔레그램 검색 ============
+const reportSearchResult = document.getElementById('reportSearchResult');
+const reportSearchKeyword = document.getElementById('reportSearchKeyword');
+const reportSearchLoading = document.getElementById('reportSearchLoading');
+const reportSearchTabs = document.getElementById('reportSearchTabs');
+const reportChannelTabs = document.getElementById('reportChannelTabs');
+const reportChannelTabContent = document.getElementById('reportChannelTabContent');
+const reportSearchEmpty = document.getElementById('reportSearchEmpty');
+const btnCloseReportSearch = document.getElementById('btnCloseReportSearch');
+
+// 닫기 버튼
+btnCloseReportSearch.addEventListener('click', () => {
+    reportSearchResult.classList.add('d-none');
+});
+
+// 리포트 제목 클릭 이벤트
+document.querySelectorAll('.report-search-link').forEach(link => {
+    link.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const keyword = link.dataset.title;
+
+        // UI 초기화
+        reportSearchKeyword.textContent = `"${keyword}"`;
+        reportSearchResult.classList.remove('d-none');
+        reportSearchLoading.classList.remove('d-none');
+        reportSearchTabs.classList.add('d-none');
+        reportSearchEmpty.classList.add('d-none');
+        reportChannelTabs.innerHTML = '';
+        reportChannelTabContent.innerHTML = '';
+
+        // 결과 영역으로 스크롤
+        reportSearchResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        try {
+            const response = await fetch(`/api/telegram/search/?keyword=${encodeURIComponent(keyword)}&limit=30&days=180`);
+            const data = await response.json();
+
+            if (data.error) {
+                reportChannelTabContent.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                reportSearchTabs.classList.remove('d-none');
+                return;
+            }
+
+            const channels = Object.keys(data.results);
+            const channelNames = data.channel_names || {};
+            let tabsHtml = '';
+            let contentHtml = '';
+
+            // 전체 문구가 포함된 메시지만 필터링한 결과로 탭 생성
+            channels.forEach((channel) => {
+                const channelData = data.results[channel];
+                const filteredData = filterByKeyword(channelData, keyword);
+                const totalCount = Object.values(filteredData).reduce((sum, arr) => sum + arr.length, 0);
+
+                if (totalCount === 0) return;
+
+                const channelId = 'rpt_' + channel.replace('@', '');
+                const displayName = channelNames[channel] || channel;
+                const isFirst = tabsHtml === '';
+
+                tabsHtml += `
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link ${isFirst ? 'active' : ''}"
+                                id="${channelId}-tab"
+                                data-bs-toggle="tab"
+                                data-bs-target="#${channelId}-content"
+                                type="button" role="tab">
+                            ${displayName} <span class="badge bg-secondary">${totalCount}</span>
+                        </button>
+                    </li>`;
+
+                contentHtml += `
+                    <div class="tab-pane fade ${isFirst ? 'show active' : ''}"
+                         id="${channelId}-content" role="tabpanel">
+                        ${renderReportChannelContent(filteredData, keyword)}
+                    </div>`;
+            });
+
+            if (tabsHtml) {
+                reportChannelTabs.innerHTML = tabsHtml;
+                reportChannelTabContent.innerHTML = contentHtml;
+                reportSearchTabs.classList.remove('d-none');
+            } else {
+                reportSearchEmpty.classList.remove('d-none');
+            }
+
+        } catch (err) {
+            reportChannelTabContent.innerHTML = `<div class="alert alert-danger">오류: ${err.message}</div>`;
+            reportSearchTabs.classList.remove('d-none');
+        } finally {
+            reportSearchLoading.classList.add('d-none');
+        }
+    });
+});
+
+// 전체 문구로 필터링
+function filterByKeyword(channelData, keyword) {
+    const result = {};
+    for (const date in channelData) {
+        const filtered = channelData[date].filter(item => item.text.includes(keyword));
+        if (filtered.length > 0) {
+            result[date] = filtered;
+        }
+    }
+    return result;
+}
+
+function renderReportChannelContent(channelData, keyword) {
+    const dates = Object.keys(channelData).sort().reverse();
+    if (dates.length === 0) {
+        return '<div class="text-muted">검색 결과가 없습니다.</div>';
+    }
+
+    let html = '';
+    for (const date of dates) {
+        const items = channelData[date];
+        html += `<div class="mb-3">`;
+        html += `<h6 class="text-primary mb-2">${date} (${items.length}건)</h6>`;
+        items.forEach((item, idx) => {
+            let text = item.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            text = linkify(text);
+            text = highlightKeyword(text, keyword);
+            html += `<div class="border-start border-2 border-success ps-2 py-2 small bg-light mb-0">`;
+            html += `<span class="text-muted">[${item.time}]</span> `;
+            html += `<span style="white-space: pre-wrap;">${text}</span>`;
+            html += `</div>`;
+            if (idx < items.length - 1) {
+                html += `<hr class="my-2">`;
+            }
+        });
+        html += `</div>`;
+    }
+    return html;
+}
+
+// ============ 노다지 검색 ============
+const btnNodaji = document.getElementById('btnSearchNodaji');
+const nodajiLoading = document.getElementById('nodajiLoading');
+const nodajiResult = document.getElementById('nodajiResult');
+const nodajiEmpty = document.getElementById('nodajiEmpty');
+
+btnNodaji.addEventListener('click', async () => {
+    btnNodaji.disabled = true;
+    nodajiLoading.classList.remove('d-none');
+    nodajiResult.classList.add('d-none');
+    nodajiEmpty.classList.add('d-none');
+
+    try {
+        const response = await fetch(`/api/nodaji/search/?keyword=${encodeURIComponent(stockName)}`);
+        const data = await response.json();
+
+        if (data.error) {
+            nodajiResult.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+        } else if (data.results.length === 0) {
+            nodajiResult.innerHTML = '<div class="text-muted">검색 결과가 없습니다.</div>';
+        } else {
+            let html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0">';
+            html += '<thead class="table-light"><tr><th style="width:90px;">날짜</th><th style="width:80px;">카테고리</th><th>제목</th></tr></thead><tbody>';
+            data.results.forEach(item => {
+                html += `<tr>`;
+                html += `<td class="text-muted small">${item.date}</td>`;
+                html += `<td class="small">${item.category || ''}</td>`;
+                html += `<td><a href="${item.link}" target="_blank" class="text-decoration-none">${item.title}</a></td>`;
+                html += `</tr>`;
+            });
+            html += '</tbody></table></div>';
+            nodajiResult.innerHTML = html;
+        }
+        nodajiResult.classList.remove('d-none');
+
+    } catch (err) {
+        nodajiResult.innerHTML = `<div class="alert alert-danger">오류: ${err.message}</div>`;
+        nodajiResult.classList.remove('d-none');
+    } finally {
+        btnNodaji.disabled = false;
+        nodajiLoading.classList.add('d-none');
+    }
+});
+
+// 공통 함수
+function linkify(text) {
+    const urlRegex = /(https?:\/\/[^\s<]+)/g;
+    return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
+
+function highlightKeyword(text, keyword) {
+    if (!keyword) return text;
+    const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(regex, '<span class="highlight">$1</span>');
+}
+
+// ============ 공시 검색 ============
+const btnDisclosure = document.getElementById('btnSearchDisclosure');
+const disclosureLoading = document.getElementById('disclosureLoading');
+const disclosureResult = document.getElementById('disclosureResult');
+const disclosureEmpty = document.getElementById('disclosureEmpty');
+
+function renderDisclosureContent(data) {
+    const dates = Object.keys(data).sort().reverse();
+    if (dates.length === 0) {
+        return '<div class="text-muted">검색 결과가 없습니다.</div>';
+    }
+
+    let html = '';
+    for (const date of dates) {
+        const items = data[date];
+        html += `<div class="mb-3">`;
+        html += `<h6 class="text-primary mb-2">${date} (${items.length}건)</h6>`;
+        items.forEach((item, idx) => {
+            let text = item.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            text = linkify(text);
+            text = highlightKeyword(text, stockName);
+            html += `<div class="border-start border-2 border-warning ps-2 py-2 small bg-light mb-0">`;
+            html += `<span class="text-muted">[${item.time}]</span> `;
+            html += `<span style="white-space: pre-wrap;">${text}</span>`;
+            html += `</div>`;
+            if (idx < items.length - 1) {
+                html += `<hr class="my-2">`;
+            }
+        });
+        html += `</div>`;
+    }
+    return html;
+}
+
+btnDisclosure.addEventListener('click', async () => {
+    btnDisclosure.disabled = true;
+    disclosureLoading.classList.remove('d-none');
+    disclosureResult.classList.add('d-none');
+    disclosureEmpty.classList.add('d-none');
+
+    try {
+        const response = await fetch(`/api/disclosure/search/?keyword=${encodeURIComponent(stockName)}&limit=50`);
+        const data = await response.json();
+
+        if (data.error) {
+            disclosureResult.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+        } else {
+            disclosureResult.innerHTML = renderDisclosureContent(data.results);
+        }
+        disclosureResult.classList.remove('d-none');
+
+    } catch (err) {
+        disclosureResult.innerHTML = `<div class="alert alert-danger">오류: ${err.message}</div>`;
+        disclosureResult.classList.remove('d-none');
+    } finally {
+        btnDisclosure.disabled = false;
+        disclosureLoading.classList.add('d-none');
+    }
+});
+
+// ============ 텔레그램 검색 ============
+const btnTelegram = document.getElementById('btnSearchTelegram');
+const telegramLoading = document.getElementById('telegramLoading');
+const telegramTabs = document.getElementById('telegramTabs');
+const channelTabs = document.getElementById('channelTabs');
+const channelTabContent = document.getElementById('channelTabContent');
+const telegramEmpty = document.getElementById('telegramEmpty');
+
+function renderChannelContent(channelData) {
+    const dates = Object.keys(channelData).sort().reverse();
+    if (dates.length === 0) {
+        return '<div class="text-muted">검색 결과가 없습니다.</div>';
+    }
+
+    let html = '';
+    for (const date of dates) {
+        const items = channelData[date];
+        html += `<div class="mb-3">`;
+        html += `<h6 class="text-primary mb-2">${date} (${items.length}건)</h6>`;
+        items.forEach((item, idx) => {
+            let text = item.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            text = linkify(text);
+            text = highlightKeyword(text, stockName);
+            html += `<div class="border-start border-2 border-primary ps-2 py-2 small bg-light mb-0">`;
+            html += `<span class="text-muted">[${item.time}]</span> `;
+            html += `<span style="white-space: pre-wrap;">${text}</span>`;
+            html += `</div>`;
+            if (idx < items.length - 1) {
+                html += `<hr class="my-2">`;
+            }
+        });
+        html += `</div>`;
+    }
+    return html;
+}
+
+function countMessages(channelData) {
+    let total = 0;
+    let recent = 0;
+    const today = new Date();
+    const threeDaysAgo = new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const threeDaysAgoStr = threeDaysAgo.toISOString().split('T')[0];
+
+    for (const date in channelData) {
+        const count = channelData[date].length;
+        total += count;
+        if (date >= threeDaysAgoStr) {
+            recent += count;
+        }
+    }
+    return { total, recent };
+}
+
+btnTelegram.addEventListener('click', async () => {
+    btnTelegram.disabled = true;
+    telegramLoading.classList.remove('d-none');
+    telegramTabs.classList.add('d-none');
+    channelTabs.innerHTML = '';
+    channelTabContent.innerHTML = '';
+    telegramEmpty.classList.add('d-none');
+
+    try {
+        const response = await fetch(`/api/telegram/search/?keyword=${encodeURIComponent(stockName)}&limit=30`);
+        const data = await response.json();
+
+        if (data.error) {
+            channelTabContent.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            telegramTabs.classList.remove('d-none');
+            return;
+        }
+
+        const channels = Object.keys(data.results);
+        const channelNames = data.channel_names || {};
+        let tabsHtml = '';
+        let contentHtml = '';
+
+        channels.forEach((channel, idx) => {
+            const channelId = channel.replace('@', '');
+            const displayName = channelNames[channel] || channel;
+            const isActive = idx === 0;
+            const { total, recent } = countMessages(data.results[channel]);
+
+            const recentBadge = recent > 0 ? `<span class="badge bg-danger">${recent}</span>` : '';
+            const totalBadge = total > 0 ? `<span class="badge bg-secondary">${total}</span>` : '';
+
+            tabsHtml += `
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link ${isActive ? 'active' : ''} ${recent > 0 ? 'has-recent' : ''}"
+                            id="${channelId}-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#${channelId}-content"
+                            type="button" role="tab">
+                        ${displayName} ${recentBadge}${totalBadge}
+                    </button>
+                </li>`;
+
+            contentHtml += `
+                <div class="tab-pane fade ${isActive ? 'show active' : ''}"
+                     id="${channelId}-content" role="tabpanel">
+                    ${renderChannelContent(data.results[channel])}
+                </div>`;
+        });
+
+        channelTabs.innerHTML = tabsHtml;
+        channelTabContent.innerHTML = contentHtml;
+        telegramTabs.classList.remove('d-none');
+
+    } catch (err) {
+        channelTabContent.innerHTML = `<div class="alert alert-danger">오류: ${err.message}</div>`;
+        telegramTabs.classList.remove('d-none');
+    } finally {
+        btnTelegram.disabled = false;
+        telegramLoading.classList.add('d-none');
+    }
+});
+</script>
+{% endblock %}

@@ -91,6 +91,20 @@ class Info(models.Model):
         help_text='이 종목이 속한 업종들 (예: 종합, 대형주, 반도체업종 등)'
     )
 
+    # === 관심 단계 ===
+    interest_level = models.CharField(
+        max_length=10,
+        choices=[
+            ('super', '초관심'),
+            ('normal', '관심'),
+            ('incubator', '인큐베이터'),
+        ],
+        null=True,
+        blank=True,
+        verbose_name='관심단계',
+        help_text='투자 관심 단계 (초관심 > 관심 > 인큐베이터)'
+    )
+
     class Meta:
         db_table = 'info'
         verbose_name = '종목정보'
@@ -923,3 +937,93 @@ class Sector(models.Model):
 
     def __str__(self):
         return f"{self.name}({self.code}) [{self.market}] - {self.date} (개인: {self.individual_net_buying:,})"
+
+
+class Report(models.Model):
+    """
+    애널리스트 리포트 데이터
+
+    FnGuide API (comp.wisereport.co.kr) 응답 데이터 저장
+    각 종목의 증권사 애널리스트 리포트 정보를 저장합니다.
+
+    ※ 핵심 정보:
+    - 리포트 제목, 작성자(애널리스트), 제공처(증권사)
+    - 목표가, 투자의견 (BUY, HOLD, SELL 등)
+    - 발행일
+
+    ※ 활용:
+    - 종목별 최신 리포트 조회
+    - 목표가 추이 분석
+    - 증권사별 투자의견 비교
+    """
+
+    # === 기본 정보 ===
+    stock = models.ForeignKey(
+        Info,
+        on_delete=models.CASCADE,
+        verbose_name='종목',
+        help_text='종목 정보 (Info 모델 참조)',
+        db_index=True
+    )
+    report_id = models.IntegerField(
+        verbose_name='리포트ID',
+        help_text='FnGuide 리포트 고유 ID (API: RPT_ID)',
+        unique=True
+    )
+    date = models.DateField(
+        verbose_name='발행일',
+        help_text='리포트 발행일 (API: ANL_DT)',
+        db_index=True
+    )
+
+    # === 리포트 정보 ===
+    title = models.CharField(
+        max_length=500,
+        verbose_name='제목',
+        help_text='리포트 제목 (API: RPT_TITLE)'
+    )
+    author = models.CharField(
+        max_length=100,
+        verbose_name='작성자',
+        help_text='애널리스트명 (API: ANL_NM_KOR) - 복수인 경우 콤마로 구분'
+    )
+    provider = models.CharField(
+        max_length=100,
+        verbose_name='제공처',
+        help_text='증권사명 (API: BRK_NM_KOR)'
+    )
+
+    # === 투자의견 ===
+    target_price = models.BigIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='목표가',
+        help_text='목표주가 (API: TARGET_PRC) - 없는 경우 null'
+    )
+    recommendation = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        verbose_name='투자의견',
+        help_text='투자의견 (API: RECOMM) - BUY, HOLD, SELL 등'
+    )
+
+    # === 메타 정보 ===
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+
+    class Meta:
+        db_table = 'report'
+        verbose_name = '애널리스트리포트'
+        verbose_name_plural = '애널리스트리포트'
+        ordering = ['-date', 'stock']
+        indexes = [
+            models.Index(fields=['stock', '-date']),  # 종목별 최신순 조회용
+            models.Index(fields=['-date']),           # 날짜별 조회용
+        ]
+
+    def __str__(self):
+        target = f"{self.target_price:,}원" if self.target_price else "-"
+        return f"{self.stock.name} - {self.date} [{self.provider}] {self.title[:30]} (목표가: {target})"

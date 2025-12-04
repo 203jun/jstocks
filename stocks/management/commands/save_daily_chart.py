@@ -1,5 +1,4 @@
 import requests
-import json
 from datetime import datetime, timedelta
 from django.core.management.base import BaseCommand
 from stocks.utils import get_valid_token
@@ -8,21 +7,21 @@ from stocks.logger import StockLogger
 
 
 class Command(BaseCommand):
-    help = '주식 일봉 차트 조회 (주식일봉차트조회요청 - ka10081)'
+    help = '주식 일봉 차트 조회 및 저장 (주식일봉차트조회요청 - ka10081)'
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--code',
             type=str,
             required=True,
-            help='종목코드 (필수)'
+            help='종목코드 또는 "all" (전체 종목, ETF 제외)'
         )
         parser.add_argument(
             '--mode',
             type=str,
-            choices=['all', 'day'],
+            choices=['all', 'last'],
             required=True,
-            help='조회 모드: all(2년 데이터), day(최근 거래일 1일만)'
+            help='조회 모드: all(2년 데이터), last(최근 1일만)'
         )
         StockLogger.add_arguments(parser)
 
@@ -38,21 +37,85 @@ class Command(BaseCommand):
             return
 
         # 2. 파라미터 설정
-        stock_code = options['code']
+        code = options['code']
         mode = options['mode']
+        process_all = code.lower() == 'all'
 
+        # 3. 처리
+        if process_all:
+            self.process_all_stocks(token, mode)
+        else:
+            self.process_single_stock(token, code, mode)
+
+    def process_single_stock(self, token, stock_code, mode):
+        """단일 종목 처리"""
         self.log.info(f'종목코드: {stock_code} | 모드: {mode}')
         self.log.separator()
 
-        # 3. 모드에 따라 처리
-        if mode == 'day':
+        if mode == 'last':
             self.fetch_latest_day(token, stock_code)
         elif mode == 'all':
             self.fetch_two_years(token, stock_code)
 
-    def fetch_latest_day(self, token, stock_code):
-        """최근 거래일 1일 데이터만 조회"""
-        self.log.header('최근 거래일 데이터 조회')
+    def process_all_stocks(self, token, mode):
+        """전체 종목 처리 (ETF 제외, is_active=True)"""
+        import time
+
+        stocks = Info.objects.filter(
+            is_active=True
+        ).exclude(
+            market='ETF'
+        ).values_list('code', 'name')
+
+        total_count = stocks.count()
+        mode_desc = '2년 데이터' if mode == 'all' else '최근 1일만'
+        self.log.info(f'일봉 차트 조회 시작 ({mode_desc}, {total_count}개 종목, ETF 제외)')
+
+        success_count = 0
+        no_data_list = []  # 데이터 없음
+        error_list = []  # 에러 발생
+
+        for idx, (code, name) in enumerate(stocks, 1):
+            try:
+                if mode == 'last':
+                    result = self.fetch_latest_day(token, code, silent=True)
+                else:
+                    result = self.fetch_two_years(token, code, silent=True)
+
+                if result:
+                    self.log.info(f'[{idx}/{total_count}] {code} {name}: {result}')
+                    success_count += 1
+                else:
+                    self.log.info(f'[{idx}/{total_count}] {code} {name}: 데이터 없음')
+                    no_data_list.append((code, name))
+
+                # API 호출 간격 (0.1초)
+                time.sleep(0.1)
+
+            except Exception as e:
+                self.log.error(f'[{idx}/{total_count}] {code} {name}: 처리 실패 - {str(e)}')
+                error_list.append((code, name, str(e)))
+
+        # 최종 리포트
+        self.log.separator()
+        self.log.info(f'일봉 차트 조회 완료: 성공 {success_count}개, 데이터없음 {len(no_data_list)}개, 오류 {len(error_list)}개', success=True)
+
+        if no_data_list:
+            self.log.info(f'[데이터 없음] {len(no_data_list)}개:')
+            for code, name in no_data_list[:20]:
+                self.log.info(f'  - {code} {name}')
+            if len(no_data_list) > 20:
+                self.log.info(f'  ... 외 {len(no_data_list) - 20}개')
+
+        if error_list:
+            self.log.info(f'[오류 발생] {len(error_list)}개:')
+            for code, name, err in error_list:
+                self.log.error(f'  - {code} {name}: {err}')
+
+    def fetch_latest_day(self, token, stock_code, silent=False):
+        """최근 1일 데이터만 조회"""
+        if not silent:
+            self.log.header('최근 1일 데이터 조회')
 
         # 오늘 날짜로 API 호출
         today = datetime.now().strftime('%Y%m%d')
@@ -80,24 +143,31 @@ class Command(BaseCommand):
                     if item.get('dt') == latest_date
                 ]
 
-                self.log.debug(f'최근 거래일: {latest_date}')
-                self.log.debug(f'데이터 개수: {len(latest_data)}개')
+                if not silent:
+                    self.log.debug(f'최근 거래일: {latest_date}')
+                    self.log.debug(f'데이터 개수: {len(latest_data)}개')
 
                 # DB에 저장
-                self.save_to_db(stock_code, latest_data)
+                result = self.save_to_db(stock_code, latest_data, silent=silent)
+                return result
             else:
-                self.log.warning('데이터가 없습니다.')
+                if not silent:
+                    self.log.warning('데이터가 없습니다.')
+                return None
+        return None
 
-    def fetch_two_years(self, token, stock_code):
+    def fetch_two_years(self, token, stock_code, silent=False):
         """2년 데이터 조회 (연속조회 포함)"""
-        self.log.header('2년 데이터 조회')
+        if not silent:
+            self.log.header('2년 데이터 조회')
 
         # 2년 전 날짜 계산
         two_years_ago = datetime.now() - timedelta(days=730)  # 2년 = 730일
         cutoff_date = two_years_ago.strftime('%Y%m%d')
         today = datetime.now().strftime('%Y%m%d')
 
-        self.log.debug(f'조회 기간: {cutoff_date} ~ {today}')
+        if not silent:
+            self.log.debug(f'조회 기간: {cutoff_date} ~ {today}')
 
         all_data = []
         cont_yn = 'N'
@@ -113,32 +183,43 @@ class Command(BaseCommand):
                 'upd_stkpc_tp': '1',
             }
 
-            self.log.debug(f'[루프 {loop_count}] API 호출 (cont_yn={cont_yn}, next_key={next_key[:10] if next_key else "없음"}...)')
+            if not silent:
+                self.log.debug(f'[루프 {loop_count}] API 호출 (cont_yn={cont_yn}, next_key={next_key[:10] if next_key else "없음"}...)')
             response_data = self.call_api(token, params, cont_yn, next_key)
 
             if not response_data:
-                self.log.debug('응답 데이터 없음 - 중단')
+                if not silent:
+                    self.log.debug('응답 데이터 없음 - 중단')
                 break
+
+            # 디버그: 응답 키 출력
+            if not silent:
+                keys = [k for k in response_data.keys() if not k.startswith('_')]
+                self.log.debug(f'응답 키: {keys}')
+                if 'return_code' in response_data:
+                    self.log.debug(f'return_code: {response_data["return_code"]}, return_msg: {response_data.get("return_msg", "")}')
 
             # 데이터 수집
             data_key = self.find_data_key(response_data)
             if data_key:
                 current_batch = response_data[data_key]
-                self.log.debug(f'현재 배치 데이터 수: {len(current_batch)}개')
+                if not silent:
+                    self.log.debug(f'현재 배치 데이터 수: {len(current_batch)}개')
 
-                if current_batch:
-                    dates = [item.get('dt', '') for item in current_batch if item.get('dt')]
-                    if dates:
-                        oldest = min(dates)
-                        newest = max(dates)
-                        self.log.debug(f'날짜 범위: {oldest} ~ {newest}')
+                    if current_batch:
+                        dates = [item.get('dt', '') for item in current_batch if item.get('dt')]
+                        if dates:
+                            oldest = min(dates)
+                            newest = max(dates)
+                            self.log.debug(f'날짜 범위: {oldest} ~ {newest}')
 
                 # 2년 이내 데이터만 필터링
                 filtered = [
                     item for item in current_batch
                     if item.get('dt', '') >= cutoff_date
                 ]
-                self.log.debug(f'필터링 후: {len(filtered)}개 추가 (cutoff: {cutoff_date})')
+                if not silent:
+                    self.log.debug(f'필터링 후: {len(filtered)}개 추가 (cutoff: {cutoff_date})')
                 all_data.extend(filtered)
 
                 # 가장 오래된 데이터 확인
@@ -147,28 +228,36 @@ class Command(BaseCommand):
                     if old_dates:
                         oldest_date = min(old_dates)
                         if oldest_date < cutoff_date:
-                            self.log.debug(f'2년 이전 데이터 도달 ({oldest_date}) - 중단')
+                            if not silent:
+                                self.log.debug(f'2년 이전 데이터 도달 ({oldest_date}) - 중단')
                             break
 
             # 연속조회 확인
             header_info = response_data.get('_headers', {})
-            self.log.debug(f'헤더: cont-yn={header_info.get("cont-yn")}, next-key={header_info.get("next-key")}')
+            if not silent:
+                self.log.debug(f'헤더: cont-yn={header_info.get("cont-yn")}, next-key={header_info.get("next-key")}')
 
             if header_info.get('cont-yn') == 'Y' and header_info.get('next-key'):
                 cont_yn = 'Y'
                 next_key = header_info.get('next-key')
-                self.log.debug(f'연속조회 계속... (next-key: {next_key})')
+                if not silent:
+                    self.log.debug(f'연속조회 계속... (next-key: {next_key})')
             else:
-                self.log.debug('연속조회 종료 - 더 이상 데이터 없음')
+                if not silent:
+                    self.log.debug('연속조회 종료 - 더 이상 데이터 없음')
                 break
 
-        self.log.debug(f'총 {len(all_data)}개 데이터 수집 완료')
+        if not silent:
+            self.log.debug(f'총 {len(all_data)}개 데이터 수집 완료')
 
         # DB에 저장
         if all_data:
-            self.save_to_db(stock_code, all_data)
+            result = self.save_to_db(stock_code, all_data, silent=silent)
+            return result
         else:
-            self.log.warning('저장할 데이터가 없습니다.')
+            if not silent:
+                self.log.warning('저장할 데이터가 없습니다.')
+            return None
 
     def find_data_key(self, response_data):
         """응답에서 데이터 배열 키 찾기"""
@@ -199,23 +288,25 @@ class Command(BaseCommand):
         """날짜 문자열을 date 객체로 변환 (20250908 -> date(2025, 9, 8))"""
         return datetime.strptime(date_str, '%Y%m%d').date()
 
-    def save_to_db(self, stock_code, data_list):
+    def save_to_db(self, stock_code, data_list, silent=False):
         """
         수집한 일봉 데이터를 DB에 저장
 
         Args:
             stock_code: 종목코드 (예: '005930')
             data_list: API 응답 데이터 리스트
+            silent: True면 간단한 결과만 반환
         """
-        self.log.header('DB 저장 시작')
+        if not silent:
+            self.log.header('DB 저장 시작')
 
         # 종목 정보 가져오기
         try:
             stock = Info.objects.get(code=stock_code)
         except Info.DoesNotExist:
-            self.log.error(f'종목 정보 없음: {stock_code}')
-            self.log.debug('먼저 Info 테이블에 종목 정보를 추가해주세요.')
-            return
+            if not silent:
+                self.log.error(f'종목 정보 없음: {stock_code}')
+            return None
 
         created_count = 0
         updated_count = 0
@@ -246,10 +337,14 @@ class Command(BaseCommand):
                     updated_count += 1
 
             except Exception as e:
-                self.log.error(f'저장 실패 ({item.get("dt")}): {str(e)}')
+                if not silent:
+                    self.log.error(f'저장 실패 ({item.get("dt")}): {str(e)}')
 
-        # 결과 출력
-        self.log.info(f'저장 완료! 신규: {created_count}개, 업데이트: {updated_count}개, 총합: {created_count + updated_count}개', success=True)
+        if silent:
+            return f'신규 {created_count}, 업데이트 {updated_count}'
+        else:
+            self.log.info(f'저장 완료: 신규 {created_count}건, 업데이트 {updated_count}건', success=True)
+            return None
 
     def call_api(self, token, data, cont_yn='N', next_key=''):
         """주식일봉차트조회요청 API 호출"""

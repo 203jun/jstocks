@@ -10,8 +10,18 @@
         <h4 class="mb-1">{{ stock.name }}</h4>
         <span class="text-muted">{{ stock.code }}</span>
         <span class="badge bg-secondary ms-1">{{ stock.market }}</span>
+        {% if stock.interest_level == 'super' %}
+        <span class="badge bg-danger ms-1">초관심</span>
+        {% elif stock.interest_level == 'normal' %}
+        <span class="badge bg-warning text-dark ms-1">관심</span>
+        {% elif stock.interest_level == 'incubator' %}
+        <span class="badge bg-info ms-1">인큐베이터</span>
+        {% endif %}
     </div>
-    <a href="{% url 'stocks:stock_list' %}" class="btn btn-outline-secondary btn-sm">목록</a>
+    <div>
+        <a href="{% url 'stocks:stock_edit' stock.code %}" class="btn btn-outline-primary btn-sm me-1">편집</a>
+        <a href="{% url 'stocks:stock_list' %}" class="btn btn-outline-secondary btn-sm">목록</a>
+    </div>
 </div>
 
 <!-- 가격 정보 카드 -->
@@ -158,6 +168,41 @@
     </div>
 </div>
 
+<!-- 일봉 차트 -->
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>일봉</strong>
+        <small class="text-muted ms-2">최근 240일</small>
+        <span class="badge bg-warning text-dark ms-2" style="font-size: 0.65rem;">MA20</span>
+        <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">MA60</span>
+    </div>
+    <div class="card-body py-2">
+        <div id="dailyChart" style="height: 400px;"></div>
+    </div>
+</div>
+
+<!-- 주봉 차트 -->
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>주봉</strong>
+        <small class="text-muted ms-2">최근 2년</small>
+    </div>
+    <div class="card-body py-2">
+        <div id="weeklyChart" style="height: 400px;"></div>
+    </div>
+</div>
+
+<!-- 월봉 차트 -->
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>월봉</strong>
+        <small class="text-muted ms-2">최근 6년</small>
+    </div>
+    <div class="card-body py-2">
+        <div id="monthlyChart" style="height: 400px;"></div>
+    </div>
+</div>
+
 <!-- 업데이트 시간 -->
 <div class="text-muted text-end small">
     업데이트: {{ stock.updated_at|date:"Y-m-d H:i" }}
@@ -166,6 +211,121 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+// 캔들스틱 차트 생성 함수
+function createCandleChart(containerId, candleData, volumeData, emptyMessage, ma20Data, ma60Data) {
+    const container = document.getElementById(containerId);
+
+    if (candleData.length === 0) {
+        container.innerHTML = `<div class="text-muted text-center py-5">${emptyMessage}</div>`;
+        return;
+    }
+
+    const chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth,
+        height: 400,
+        layout: {
+            backgroundColor: '#ffffff',
+            textColor: '#333',
+        },
+        grid: {
+            vertLines: { color: '#f0f0f0' },
+            horzLines: { color: '#f0f0f0' },
+        },
+        crosshair: {
+            mode: LightweightCharts.CrosshairMode.Normal,
+        },
+        rightPriceScale: {
+            borderColor: '#ddd',
+        },
+        timeScale: {
+            borderColor: '#ddd',
+            timeVisible: true,
+            fixLeftEdge: true,
+            fixRightEdge: true,
+        },
+    });
+
+    // 캔들스틱 시리즈
+    const candleSeries = chart.addCandlestickSeries({
+        upColor: '#ef5350',
+        downColor: '#26a69a',
+        borderUpColor: '#ef5350',
+        borderDownColor: '#26a69a',
+        wickUpColor: '#ef5350',
+        wickDownColor: '#26a69a',
+    });
+    candleSeries.setData(candleData);
+
+    // 이동평균선 (MA20 - 노란색)
+    if (ma20Data && ma20Data.length > 0) {
+        const ma20Series = chart.addLineSeries({
+            color: '#ffc107',
+            lineWidth: 1,
+            priceLineVisible: false,
+            lastValueVisible: false,
+        });
+        ma20Series.setData(ma20Data);
+    }
+
+    // 이동평균선 (MA60 - 파란색)
+    if (ma60Data && ma60Data.length > 0) {
+        const ma60Series = chart.addLineSeries({
+            color: '#0d6efd',
+            lineWidth: 1,
+            priceLineVisible: false,
+            lastValueVisible: false,
+        });
+        ma60Series.setData(ma60Data);
+    }
+
+    // 거래량 시리즈
+    const volumeSeries = chart.addHistogramSeries({
+        color: '#26a69a',
+        priceFormat: { type: 'volume' },
+        priceScaleId: '',
+        scaleMargins: { top: 0.8, bottom: 0 },
+    });
+    volumeSeries.setData(volumeData);
+
+    // 차트 자동 크기 조정
+    chart.timeScale().fitContent();
+
+    // 반응형
+    new ResizeObserver(entries => {
+        if (entries.length > 0) {
+            chart.applyOptions({ width: entries[0].contentRect.width });
+        }
+    }).observe(container);
+}
+
+// 일봉 차트 (이평선 포함)
+createCandleChart(
+    'dailyChart',
+    {{ daily_candle_data|safe }},
+    {{ daily_volume_data|safe }},
+    '일봉 데이터가 없습니다.',
+    {{ daily_ma20_data|safe }},
+    {{ daily_ma60_data|safe }}
+);
+
+// 주봉 차트
+createCandleChart(
+    'weeklyChart',
+    {{ weekly_candle_data|safe }},
+    {{ weekly_volume_data|safe }},
+    '주봉 데이터가 없습니다.'
+);
+
+// 월봉 차트
+createCandleChart(
+    'monthlyChart',
+    {{ monthly_candle_data|safe }},
+    {{ monthly_volume_data|safe }},
+    '월봉 데이터가 없습니다.'
+);
+</script>
 <script>
 const chartOptions = {
     responsive: true,

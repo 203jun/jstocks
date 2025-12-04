@@ -15,6 +15,8 @@ python-decouple = "^3.8"
 django = "^5.2.8"
 pandas = "^2.3.3"
 openpyxl = "^3.1.5"
+telethon = "^1.42.0"
+playwright = "^1.56.0"
 
 [tool.poetry.group.dev.dependencies]
 
