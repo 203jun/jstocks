@@ -187,3 +187,15 @@ def get_valid_token():
     # 2. 토큰이 없거나 만료되었으면 자동 갱신
     _get_file_logger().info('utils: 토큰 만료/없음 - 자동 갱신 시도')
     return refresh_token()
+
+
+def get_last_trading_date():
+    """
+    DailyChart에서 가장 최근 거래일을 반환합니다.
+
+    Returns:
+        date: 가장 최근 거래일
+        None: 데이터가 없는 경우
+    """
+    from stocks.models import DailyChart
+    return DailyChart.objects.order_by('-date').values_list('date', flat=True).first()

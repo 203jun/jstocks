@@ -8,7 +8,8 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 from decouple import config
 from telethon import TelegramClient
-from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report
+from django.views.decorators.http import require_POST
+from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, Schedule, IndexChart, MarketTrend
 
 
 def index(request):
@@ -176,8 +177,16 @@ def stock_detail(request, code):
         for m in monthly_charts
     ]
 
+    # 일정
+    schedules = Schedule.objects.filter(stock=stock).order_by('date_sort')
+
+    # 섹터 (업종) - 고유한 이름만 추출
+    sectors = stock.sectors.values('code', 'name').distinct().order_by('name')
+
     context = {
         'stock': stock,
+        'schedules': schedules,
+        'sectors': sectors,
         'annual_labels': json.dumps(annual_labels),
         'annual_revenue': json.dumps(annual_revenue),
         'annual_op': json.dumps(annual_op),
@@ -205,9 +214,11 @@ def stock_edit(request, code):
     if request.method == 'POST':
         interest_level = request.POST.get('interest_level', '')
         stock.interest_level = interest_level if interest_level else None
+        stock.investment_point = request.POST.get('investment_point', '')
+        stock.risk = request.POST.get('risk', '')
         stock.save()
         messages.success(request, f'{stock.name} 정보가 저장되었습니다.')
-        return redirect('stocks:stock_detail', code=code)
+        return redirect('stocks:stock_edit', code=code)
 
     # 관심 단계 선택지
     interest_choices = Info._meta.get_field('interest_level').choices
@@ -268,6 +279,18 @@ def stock_edit(request, code):
         target_chart_data = []
         gap_chart_data = []
 
+    # 노다지 기사 (종목명 포함된 것만, 최근 20개)
+    nodaji_articles = Nodaji.objects.filter(
+        stock=stock,
+        title__contains=stock.name
+    ).order_by('-date')[:20]
+
+    # 공시 (최근 20개)
+    gongsi_list = Gongsi.objects.filter(stock=stock).order_by('-date')[:20]
+
+    # 일정
+    schedules = Schedule.objects.filter(stock=stock).order_by('date_sort')
+
     context = {
         'stock': stock,
         'interest_choices': interest_choices,
@@ -275,6 +298,9 @@ def stock_edit(request, code):
         'price_chart_data': json.dumps(price_chart_data),
         'target_chart_data': json.dumps(target_chart_data),
         'gap_chart_data': json.dumps(gap_chart_data),
+        'nodaji_articles': nodaji_articles,
+        'gongsi_list': gongsi_list,
+        'schedules': schedules,
     }
     return render(request, 'stocks/stock_edit.html', context)
 
@@ -413,8 +439,6 @@ def search_report(request):
 @require_GET
 def search_nodaji(request):
     """노다지(네이버 프리미엄 콘텐츠) 검색 API - Playwright 사용"""
-    from playwright.sync_api import sync_playwright
-
     keyword = request.GET.get('keyword', '')
 
     if not keyword:
@@ -423,6 +447,7 @@ def search_nodaji(request):
     url = f'https://contents.premium.naver.com/ystreet/irnote/search?searchQuery={keyword}'
 
     try:
+        from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
@@ -532,3 +557,429 @@ def search_disclosure(request):
         })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+def market(request):
+    """시황 페이지"""
+    # KOSPI 차트 데이터 (최근 240일)
+    kospi_charts = list(IndexChart.objects.filter(code='KOSPI').order_by('-date')[:240])
+    kospi_charts.reverse()
+
+    kospi_candle_data = [
+        {
+            'time': c.date.strftime('%Y-%m-%d'),
+            'open': float(c.opening_price),
+            'high': float(c.high_price),
+            'low': float(c.low_price),
+            'close': float(c.closing_price),
+        }
+        for c in kospi_charts
+    ]
+    kospi_volume_data = [
+        {
+            'time': c.date.strftime('%Y-%m-%d'),
+            'value': c.trading_volume,
+            'color': '#ef5350' if c.closing_price >= c.opening_price else '#26a69a',
+        }
+        for c in kospi_charts
+    ]
+
+    # KOSDAQ 차트 데이터 (최근 240일)
+    kosdaq_charts = list(IndexChart.objects.filter(code='KOSDAQ').order_by('-date')[:240])
+    kosdaq_charts.reverse()
+
+    kosdaq_candle_data = [
+        {
+            'time': c.date.strftime('%Y-%m-%d'),
+            'open': float(c.opening_price),
+            'high': float(c.high_price),
+            'low': float(c.low_price),
+            'close': float(c.closing_price),
+        }
+        for c in kosdaq_charts
+    ]
+    kosdaq_volume_data = [
+        {
+            'time': c.date.strftime('%Y-%m-%d'),
+            'value': c.trading_volume,
+            'color': '#ef5350' if c.closing_price >= c.opening_price else '#26a69a',
+        }
+        for c in kosdaq_charts
+    ]
+
+    # 최신 데이터
+    kospi_latest = kospi_charts[-1] if kospi_charts else None
+    kosdaq_latest = kosdaq_charts[-1] if kosdaq_charts else None
+
+    # 전일 대비
+    if len(kospi_charts) >= 2:
+        kospi_change = float(kospi_charts[-1].closing_price - kospi_charts[-2].closing_price)
+        kospi_change_rate = round(kospi_change / float(kospi_charts[-2].closing_price) * 100, 2)
+    else:
+        kospi_change = 0
+        kospi_change_rate = 0
+
+    if len(kosdaq_charts) >= 2:
+        kosdaq_change = float(kosdaq_charts[-1].closing_price - kosdaq_charts[-2].closing_price)
+        kosdaq_change_rate = round(kosdaq_change / float(kosdaq_charts[-2].closing_price) * 100, 2)
+    else:
+        kosdaq_change = 0
+        kosdaq_change_rate = 0
+
+    # MarketTrend data (top 20 per market)
+    kospi_trends = MarketTrend.objects.filter(market='KOSPI').order_by('-date')[:20]
+    kosdaq_trends = MarketTrend.objects.filter(market='KOSDAQ').order_by('-date')[:20]
+    futures_trends = MarketTrend.objects.filter(market='FUTURES').order_by('-date')[:20]
+
+    # Cumulative chart data (120 days)
+    def get_cumulative_data(market):
+        trends = list(MarketTrend.objects.filter(market=market).order_by('-date')[:120])
+        trends.reverse()  # oldest first
+
+        cumulative_individual = 0
+        cumulative_foreign = 0
+        cumulative_institution = 0
+
+        chart_data = []
+        for t in trends:
+            cumulative_individual += t.individual
+            cumulative_foreign += t.foreign
+            cumulative_institution += t.institution
+            chart_data.append({
+                'date': t.date.strftime('%Y-%m-%d'),
+                'individual': cumulative_individual,
+                'foreign': cumulative_foreign,
+                'institution': cumulative_institution,
+            })
+        return chart_data
+
+    kospi_cumulative = get_cumulative_data('KOSPI')
+    kosdaq_cumulative = get_cumulative_data('KOSDAQ')
+    futures_cumulative = get_cumulative_data('FUTURES')
+
+    context = {
+        'kospi_candle_data': json.dumps(kospi_candle_data),
+        'kospi_volume_data': json.dumps(kospi_volume_data),
+        'kosdaq_candle_data': json.dumps(kosdaq_candle_data),
+        'kosdaq_volume_data': json.dumps(kosdaq_volume_data),
+        'kospi_latest': kospi_latest,
+        'kosdaq_latest': kosdaq_latest,
+        'kospi_change': kospi_change,
+        'kospi_change_rate': kospi_change_rate,
+        'kosdaq_change': kosdaq_change,
+        'kosdaq_change_rate': kosdaq_change_rate,
+        'kospi_trends': kospi_trends,
+        'kosdaq_trends': kosdaq_trends,
+        'futures_trends': futures_trends,
+        'kospi_cumulative': json.dumps(kospi_cumulative),
+        'kosdaq_cumulative': json.dumps(kosdaq_cumulative),
+        'futures_cumulative': json.dumps(futures_cumulative),
+    }
+    return render(request, 'stocks/market.html', context)
+
+
+@require_GET
+def fetch_nodaji_brief(request):
+    """노다지 브리프 API (모닝브리프/마감브리프 최신 날짜만)"""
+    try:
+        from playwright.sync_api import sync_playwright
+        from bs4 import BeautifulSoup
+    except ImportError as e:
+        return JsonResponse({'error': f'필수 모듈 없음: {e}'}, status=500)
+
+    # 브리프 카테고리 페이지
+    url = 'https://contents.premium.naver.com/ystreet/irnote/contents?categoryId=1949743df60000ube'
+
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.goto(url, wait_until='networkidle')
+
+            # 페이지 로드 대기
+            page.wait_for_timeout(3000)
+            page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
+            page.wait_for_timeout(2000)
+
+            html = page.content()
+            browser.close()
+
+            # HTML 파싱
+            soup = BeautifulSoup(html, 'html.parser')
+            results = []
+            items = soup.select('.content_item')
+
+            for item in items:
+                # 제목
+                title_el = item.select_one('.content_title')
+                title = title_el.get_text(strip=True) if title_el else ''
+
+                # 모닝브리프, 마감브리프만 필터링
+                if not title.startswith('[모닝브리프]') and not title.startswith('[마감브리프]'):
+                    continue
+
+                # 카테고리 추출
+                category = '모닝브리프' if '[모닝브리프]' in title else '마감브리프'
+
+                # 날짜 (두번째 info_text)
+                info_texts = item.select('.content_info_text')
+                date = info_texts[1].get_text(strip=True) if len(info_texts) > 1 else ''
+
+                # 링크
+                link_el = item.select_one('a.content_text_link')
+                link = ''
+                if link_el and link_el.get('href'):
+                    link = link_el.get('href')
+                    if not link.startswith('http'):
+                        link = 'https://contents.premium.naver.com' + link
+
+                if title:
+                    results.append({
+                        'category': category,
+                        'title': title,
+                        'date': date,
+                        'link': link,
+                    })
+
+        # 모닝브리프, 마감브리프 각각 최신 1개씩
+        morning = [r for r in results if r['category'] == '모닝브리프']
+        evening = [r for r in results if r['category'] == '마감브리프']
+
+        filtered = []
+        if morning:
+            filtered.append(morning[0])
+        if evening:
+            filtered.append(evening[0])
+
+        return JsonResponse({
+            'success': True,
+            'results': filtered,
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+def nodaji_summary(request, nodaji_id):
+    """노다지 요약 편집 페이지"""
+    nodaji = get_object_or_404(Nodaji, id=nodaji_id)
+
+    if request.method == 'POST':
+        summary = request.POST.get('summary', '')
+        nodaji.summary = summary
+        nodaji.save()
+        messages.success(request, '요약이 저장되었습니다.')
+        return redirect('stocks:nodaji_summary', nodaji_id=nodaji_id)
+
+    return render(request, 'stocks/nodaji_summary.html', {
+        'nodaji': nodaji,
+    })
+
+
+@require_GET
+def fetch_dart(request, code):
+    """DART 공시 조회 API"""
+    try:
+        from playwright.sync_api import sync_playwright
+        from bs4 import BeautifulSoup
+    except ImportError as e:
+        return JsonResponse({'error': f'필수 모듈 없음: {e}'}, status=500)
+
+    url = f'https://dart.fss.or.kr/html/search/SearchCompany_M2.html?textCrpNM={code}'
+
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.goto(url, wait_until='domcontentloaded', timeout=60000)
+            page.wait_for_timeout(5000)
+
+            html = page.content()
+            browser.close()
+
+            soup = BeautifulSoup(html, 'html.parser')
+            table = soup.select_one('table')
+            rows = table.select('tbody tr') if table else []
+
+            results = []
+            for row in rows[:20]:
+                cells = row.select('td')
+                if len(cells) >= 5:
+                    report_el = cells[2].select_one('a')
+                    report_name = report_el.get_text(strip=True) if report_el else ''
+                    report_link = report_el.get('href', '') if report_el else ''
+
+                    if report_link and not report_link.startswith('http'):
+                        report_link = 'https://dart.fss.or.kr' + report_link
+
+                    results.append({
+                        'date': cells[4].get_text(strip=True),
+                        'title': report_name,
+                        'link': report_link,
+                        'submitter': cells[3].get_text(strip=True),
+                    })
+
+        return JsonResponse({
+            'success': True,
+            'results': results,
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_POST
+def schedule_add(request, code):
+    """일정 추가 API"""
+    stock = get_object_or_404(Info, code=code)
+
+    date_text = request.POST.get('date_text', '').strip()
+    date_sort = request.POST.get('date_sort', '').strip()
+    content = request.POST.get('content', '').strip()
+
+    if not date_text or not content:
+        return JsonResponse({'error': '날짜와 내용을 입력해주세요.'}, status=400)
+
+    # date_sort 파싱
+    date_sort_value = None
+    if date_sort:
+        try:
+            date_sort_value = datetime.strptime(date_sort, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+
+    schedule = Schedule.objects.create(
+        stock=stock,
+        date_text=date_text,
+        date_sort=date_sort_value,
+        content=content,
+    )
+
+    return JsonResponse({
+        'success': True,
+        'id': schedule.id,
+        'date_text': schedule.date_text,
+        'date_sort': schedule.date_sort.strftime('%Y-%m-%d') if schedule.date_sort else '',
+        'content': schedule.content,
+    })
+
+
+@require_POST
+def schedule_delete(request, schedule_id):
+    """일정 삭제 API"""
+    schedule = get_object_or_404(Schedule, id=schedule_id)
+    schedule.delete()
+
+    return JsonResponse({'success': True})
+
+
+def sector(request):
+    """섹터 페이지"""
+    from .models import Sector
+
+    # === 업종 데이터 ===
+    latest_kospi_date = Sector.objects.filter(market='KOSPI').order_by('-date').values_list('date', flat=True).first()
+    latest_kosdaq_date = Sector.objects.filter(market='KOSDAQ').order_by('-date').values_list('date', flat=True).first()
+
+    kospi_sectors = []
+    if latest_kospi_date:
+        kospi_sectors = list(Sector.objects.filter(
+            market='KOSPI',
+            date=latest_kospi_date
+        ).order_by('-foreign_net_buying'))
+
+    kosdaq_sectors = []
+    if latest_kosdaq_date:
+        kosdaq_sectors = list(Sector.objects.filter(
+            market='KOSDAQ',
+            date=latest_kosdaq_date
+        ).order_by('-foreign_net_buying'))
+
+    # 업종 60일 차트 데이터
+    def get_sector_chart_data(market):
+        dates = list(Sector.objects.filter(market=market)
+                     .values_list('date', flat=True)
+                     .distinct()
+                     .order_by('-date')[:60])
+        dates.reverse()
+
+        if not dates:
+            return {}
+
+        sectors = Sector.objects.filter(market=market, date=dates[-1]).values_list('code', 'name')
+
+        chart_data = {}
+        for code, name in sectors:
+            sector_data = list(Sector.objects.filter(
+                market=market,
+                code=code,
+                date__in=dates
+            ).order_by('date').values(
+                'date', 'individual_net_buying', 'foreign_net_buying', 'institution_net_buying'
+            ))
+
+            cum_individual = 0
+            cum_foreign = 0
+            cum_institution = 0
+            cumulative_data = []
+
+            for d in sector_data:
+                cum_individual += d['individual_net_buying'] or 0
+                cum_foreign += d['foreign_net_buying'] or 0
+                cum_institution += d['institution_net_buying'] or 0
+                cumulative_data.append({
+                    'date': d['date'].strftime('%m.%d'),
+                    'individual': cum_individual,
+                    'foreign': cum_foreign,
+                    'institution': cum_institution,
+                })
+
+            chart_data[code] = {
+                'name': name,
+                'data': cumulative_data
+            }
+
+        return chart_data
+
+    kospi_chart_data = get_sector_chart_data('KOSPI')
+    kosdaq_chart_data = get_sector_chart_data('KOSDAQ')
+
+    context = {
+        'latest_kospi_date': latest_kospi_date,
+        'latest_kosdaq_date': latest_kosdaq_date,
+        'kospi_sectors': kospi_sectors,
+        'kosdaq_sectors': kosdaq_sectors,
+        'kospi_chart_data': json.dumps(kospi_chart_data),
+        'kosdaq_chart_data': json.dumps(kosdaq_chart_data),
+    }
+    return render(request, 'stocks/sector.html', context)
+
+
+@require_GET
+def sector_date_data(request):
+    """섹터 날짜별 데이터 API (차트용)"""
+    from .models import Sector
+
+    market = request.GET.get('market', 'KOSPI')
+    code = request.GET.get('code', '')
+
+    if not code:
+        return JsonResponse({'error': '업종 코드가 필요합니다.'}, status=400)
+
+    data = list(Sector.objects.filter(
+        market=market,
+        code=code
+    ).order_by('-date')[:10].values(
+        'date', 'name', 'individual_net_buying', 'foreign_net_buying', 'institution_net_buying'
+    ))
+
+    # 오래된 날짜부터 정렬 (차트용)
+    data.reverse()
+
+    # date를 문자열로 변환
+    for item in data:
+        item['date'] = item['date'].strftime('%m.%d')
+
+    sector_name = data[0]['name'] if data else ''
+
+    return JsonResponse({'success': True, 'data': data, 'name': sector_name})

@@ -4,17 +4,6 @@ from django.db import models
 class Info(models.Model):
     """
     종목 기본 정보
-
-    ※ 테마와의 관계:
-    - 하나의 종목은 여러 테마에 속할 수 있음 (N:M)
-    - 예: 삼성전자 → 반도체, 대형주, 배당주 등
-    - themes 필드로 연결된 테마 조회 가능
-    - 역참조: theme.stocks.all() → 해당 테마에 속한 모든 종목
-
-    ※ 주의:
-    - Theme 모델은 시계열 데이터 (code + date)
-    - Info.themes는 테마 코드별로 최신 데이터와 연결하는 것을 권장
-    - 종목-테마 매핑은 별도 API로 채워집니다
     """
 
     # === 기본 정보 ===
@@ -73,15 +62,6 @@ class Info(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
 
-    # === 테마 관계 ===
-    themes = models.ManyToManyField(
-        'Theme',
-        related_name='stocks',
-        blank=True,
-        verbose_name='소속 테마',
-        help_text='이 종목이 속한 테마들 (예: 반도체, AI, 2차전지 등)'
-    )
-
     # === 업종 관계 ===
     sectors = models.ManyToManyField(
         'Sector',
@@ -103,6 +83,20 @@ class Info(models.Model):
         blank=True,
         verbose_name='관심단계',
         help_text='투자 관심 단계 (초관심 > 관심 > 인큐베이터)'
+    )
+
+    # === 투자 메모 ===
+    investment_point = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='투자포인트',
+        help_text='투자포인트 (HTML 형식)'
+    )
+    risk = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='리스크',
+        help_text='리스크 (HTML 형식)'
     )
 
     class Meta:
@@ -689,102 +683,6 @@ class ShortSelling(models.Model):
         return f"{self.stock.name} - {self.date} (공매도량: {self.short_volume:,}, 비중: {self.trading_weight}%)"
 
 
-class Theme(models.Model):
-    """
-    테마 일별 통계 데이터 (시계열)
-
-    키움 API ka90001 (테마그룹별요청) 응답 데이터 저장
-    각 테마의 일자별 등락율, 기간수익률, 종목수 등의 통계를 저장합니다.
-
-    ※ 핵심 개념:
-    - 테마는 시장에서 주목받는 테마/섹터를 의미 (예: 2차전지, 반도체, AI 등)
-    - 각 테마별로 일자별 통계를 시계열로 저장
-    - 같은 테마(code)가 여러 날짜(date)에 대해 여러 레코드를 가짐
-
-    ※ 데이터 구조 예시:
-    - Theme(code='TH001', name='2차전지', date='2025-11-29', fluctuation_rate=5.2)
-    - Theme(code='TH001', name='2차전지', date='2025-11-28', fluctuation_rate=3.1)
-    - Theme(code='TH001', name='2차전지', date='2025-11-27', fluctuation_rate=-1.2)
-    → '2차전지' 테마의 3일간 시계열 데이터
-
-    ※ 활용:
-    - 테마별 일자별 등락율 추이 차트
-    - 테마별 기간수익률 비교
-    - 상승/하락 종목수 분석
-
-    ※ 중요:
-    - save_theme 명령어를 실행하기 전에 DailyChart 데이터 필수
-    - DailyChart에서 실제 거래일을 가져와서 날짜를 매핑
-    """
-
-    # === 기본 정보 ===
-    code = models.CharField(
-        max_length=20,
-        verbose_name='테마그룹코드',
-        help_text='테마 고유 코드 (API: thema_grp_cd)',
-        db_index=True
-    )
-    name = models.CharField(
-        max_length=100,
-        verbose_name='테마명',
-        help_text='테마 이름 (API: thema_nm) - 예: 2차전지, 반도체, AI 등'
-    )
-    date = models.DateField(
-        verbose_name='일자',
-        help_text='거래일자 (DailyChart 기준)',
-        db_index=True
-    )
-
-    # === 종목 통계 ===
-    stock_count = models.IntegerField(
-        verbose_name='종목수',
-        help_text='종목수 (API: stk_num) - 해당 테마에 속한 종목 개수'
-    )
-    rising_stock_count = models.IntegerField(
-        verbose_name='상승종목수',
-        help_text='상승종목수 (API: rising_stk_num) - 당일 상승한 종목 수'
-    )
-    falling_stock_count = models.IntegerField(
-        verbose_name='하락종목수',
-        help_text='하락종목수 (API: fall_stk_num) - 당일 하락한 종목 수'
-    )
-
-    # === 수익률 정보 ===
-    fluctuation_rate = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        verbose_name='등락율',
-        help_text='등락율 (API: flu_rt) - 당일 테마 평균 등락율(%)'
-    )
-    period_profit_rate = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        verbose_name='기간수익률',
-        help_text='기간수익률 (API: dt_prft_rt) - 특정 기간 동안의 수익률(%)'
-    )
-
-    # === 메타 정보 ===
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='생성일시'
-    )
-
-    class Meta:
-        db_table = 'theme'
-        verbose_name = '테마통계'
-        verbose_name_plural = '테마통계'
-        ordering = ['-date', 'code']  # 날짜 최신순, 테마코드순
-        unique_together = [('code', 'date')]  # 테마코드+날짜 조합은 유일 (같은 테마의 같은 날짜는 1개만)
-        indexes = [
-            models.Index(fields=['code', '-date']),  # 테마별 최신순 조회용
-            models.Index(fields=['-date']),          # 날짜별 조회용
-            models.Index(fields=['-period_profit_rate']),  # 기간수익률 정렬용
-        ]
-
-    def __str__(self):
-        return f"{self.name}({self.code}) - {self.date} (등락율: {self.fluctuation_rate}%, 수익률: {self.period_profit_rate}%)"
-
-
 class Sector(models.Model):
     """
     업종별 투자자 순매수 데이터 (시계열)
@@ -1027,3 +925,366 @@ class Report(models.Model):
     def __str__(self):
         target = f"{self.target_price:,}원" if self.target_price else "-"
         return f"{self.stock.name} - {self.date} [{self.provider}] {self.title[:30]} (목표가: {target})"
+
+
+class Nodaji(models.Model):
+    """
+    노다지 IR노트 기사 데이터
+
+    네이버 프리미엄 콘텐츠 '노다지 IR노트' 검색 결과 저장
+    https://contents.premium.naver.com/ystreet/irnote
+
+    ※ 활용:
+    - 종목별 노다지 기사 조회
+    - IR 분석 자료 아카이빙
+    """
+
+    # === 기본 정보 ===
+    stock = models.ForeignKey(
+        Info,
+        on_delete=models.CASCADE,
+        verbose_name='종목',
+        help_text='종목 정보 (Info 모델 참조)',
+        db_index=True
+    )
+    date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='발행일',
+        help_text='기사 발행일',
+        db_index=True
+    )
+
+    # === 기사 정보 ===
+    title = models.CharField(
+        max_length=500,
+        verbose_name='제목',
+        help_text='기사 제목'
+    )
+    link = models.URLField(
+        max_length=500,
+        verbose_name='링크',
+        help_text='기사 URL'
+    )
+    summary = models.TextField(
+        blank=True,
+        verbose_name='요약',
+        help_text='기사 요약 내용'
+    )
+
+    # === 메타 정보 ===
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+
+    class Meta:
+        db_table = 'nodaji'
+        verbose_name = '노다지기사'
+        verbose_name_plural = '노다지기사'
+        ordering = ['-date', 'stock']
+        indexes = [
+            models.Index(fields=['stock', '-date']),  # 종목별 최신순 조회용
+            models.Index(fields=['-date']),           # 날짜별 조회용
+        ]
+
+    def __str__(self):
+        return f"{self.stock.name} - {self.date} {self.title[:30]}"
+
+
+class Gongsi(models.Model):
+    """
+    DART 공시 데이터
+
+    전자공시시스템(DART)에서 가져온 공시 정보 저장
+    https://dart.fss.or.kr
+
+    ※ 활용:
+    - 종목별 공시 조회
+    - 주요 공시 아카이빙
+    """
+
+    # === 기본 정보 ===
+    stock = models.ForeignKey(
+        Info,
+        on_delete=models.CASCADE,
+        verbose_name='종목',
+        help_text='종목 정보 (Info 모델 참조)',
+        db_index=True
+    )
+    date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='접수일',
+        help_text='공시 접수일',
+        db_index=True
+    )
+
+    # === 공시 정보 ===
+    title = models.CharField(
+        max_length=500,
+        verbose_name='보고서명',
+        help_text='공시 보고서명'
+    )
+    link = models.URLField(
+        max_length=500,
+        verbose_name='링크',
+        help_text='DART 공시 URL'
+    )
+    submitter = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='제출인',
+        help_text='공시 제출인'
+    )
+
+    # === 메타 정보 ===
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+
+    class Meta:
+        db_table = 'gongsi'
+        verbose_name = '공시'
+        verbose_name_plural = '공시'
+        ordering = ['-date', 'stock']
+        indexes = [
+            models.Index(fields=['stock', '-date']),  # 종목별 최신순 조회용
+            models.Index(fields=['-date']),           # 날짜별 조회용
+        ]
+
+    def __str__(self):
+        return f"{self.stock.name} - {self.date} {self.title[:30]}"
+
+
+class Schedule(models.Model):
+    """
+    종목별 일정 정보
+
+    ※ 구조:
+    - date_text: 표시용 날짜 텍스트 ("내년 상반기", "2025-03-15" 등)
+    - date_sort: 정렬/알림용 날짜 (대략적인 날짜, 선택사항)
+    - content: 일정 내용
+    """
+
+    # === 기본 정보 ===
+    stock = models.ForeignKey(
+        Info,
+        on_delete=models.CASCADE,
+        related_name='schedules',
+        verbose_name='종목',
+        db_index=True
+    )
+    date_text = models.CharField(
+        max_length=50,
+        verbose_name='날짜(표시)',
+        help_text='표시용 날짜 텍스트 (예: "내년 상반기", "2025-03-15")'
+    )
+    date_sort = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='알림일자',
+        help_text='정렬/알림용 날짜 (대략적인 날짜, 선택사항)',
+        db_index=True
+    )
+    content = models.CharField(
+        max_length=200,
+        verbose_name='내용',
+        help_text='일정 내용'
+    )
+
+    # === 메타 정보 ===
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+
+    class Meta:
+        db_table = 'schedule'
+        verbose_name = '일정'
+        verbose_name_plural = '일정'
+        ordering = ['date_sort', 'stock']
+        indexes = [
+            models.Index(fields=['stock', 'date_sort']),
+            models.Index(fields=['date_sort']),
+        ]
+
+    def __str__(self):
+        return f"{self.stock.name} - {self.date_text} {self.content[:20]}"
+
+
+class IndexChart(models.Model):
+    """
+    지수 일봉 차트 데이터 (KOSPI, KOSDAQ)
+
+    ※ 데이터 소스: 네이버 금융 API
+    - https://fchart.stock.naver.com/siseJson.nhn?symbol={code}&requestType=1&startTime={start}&endTime={end}&timeframe=day
+    """
+
+    # === 기본 정보 ===
+    code = models.CharField(
+        max_length=10,
+        verbose_name='지수코드',
+        help_text='지수 코드 (KOSPI, KOSDAQ)',
+        db_index=True
+    )
+    date = models.DateField(
+        verbose_name='일자',
+        db_index=True
+    )
+
+    # === 가격 정보 (OHLC) ===
+    opening_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name='시가'
+    )
+    high_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name='고가'
+    )
+    low_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name='저가'
+    )
+    closing_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name='종가'
+    )
+
+    # === 거래 정보 ===
+    trading_volume = models.BigIntegerField(
+        verbose_name='거래량'
+    )
+
+    # === 메타 정보 ===
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='수정일시'
+    )
+
+    class Meta:
+        db_table = 'index_chart'
+        verbose_name = '지수차트'
+        verbose_name_plural = '지수차트'
+        ordering = ['-date', 'code']
+        unique_together = [('code', 'date')]
+        indexes = [
+            models.Index(fields=['code', '-date']),
+            models.Index(fields=['-date']),
+        ]
+
+    def __str__(self):
+        return f"{self.code} - {self.date}"
+
+
+class MarketTrend(models.Model):
+    """
+    시장별 투자자 매매동향 (KOSPI, KOSDAQ, FUTURES)
+
+    네이버 금융 투자자별 매매동향 데이터 저장
+    https://finance.naver.com/sise/sise_trans_style.naver?sosok=01
+
+    ※ 시장 코드:
+    - 01: KOSPI
+    - 02: KOSDAQ
+    - 03: FUTURES (선물)
+    """
+
+    # === 기본 정보 ===
+    market = models.CharField(
+        max_length=10,
+        verbose_name='시장',
+        help_text='KOSPI, KOSDAQ, FUTURES',
+        db_index=True
+    )
+    date = models.DateField(
+        verbose_name='일자',
+        db_index=True
+    )
+
+    # === 주요 투자자 ===
+    individual = models.BigIntegerField(
+        verbose_name='개인',
+        help_text='개인 순매수 (백만원)'
+    )
+    foreign = models.BigIntegerField(
+        verbose_name='외국인',
+        help_text='외국인 순매수 (백만원)'
+    )
+    institution = models.BigIntegerField(
+        verbose_name='기관계',
+        help_text='기관 전체 순매수 (백만원)'
+    )
+
+    # === 기관 세부 ===
+    financial_investment = models.BigIntegerField(
+        verbose_name='금융투자',
+        help_text='금융투자 순매수 (백만원)',
+        null=True,
+        blank=True
+    )
+    insurance = models.BigIntegerField(
+        verbose_name='보험',
+        help_text='보험 순매수 (백만원)',
+        null=True,
+        blank=True
+    )
+    trust = models.BigIntegerField(
+        verbose_name='투신(사모)',
+        help_text='투신/사모 순매수 (백만원)',
+        null=True,
+        blank=True
+    )
+    bank = models.BigIntegerField(
+        verbose_name='은행',
+        help_text='은행 순매수 (백만원)',
+        null=True,
+        blank=True
+    )
+    other_financial = models.BigIntegerField(
+        verbose_name='기타금융기관',
+        help_text='기타금융기관 순매수 (백만원)',
+        null=True,
+        blank=True
+    )
+    pension_fund = models.BigIntegerField(
+        verbose_name='연기금등',
+        help_text='연기금 등 순매수 (백만원)',
+        null=True,
+        blank=True
+    )
+    other_corporation = models.BigIntegerField(
+        verbose_name='기타법인',
+        help_text='기타법인 순매수 (백만원)',
+        null=True,
+        blank=True
+    )
+
+    # === 메타 정보 ===
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+
+    class Meta:
+        db_table = 'market_trend'
+        verbose_name = '시장별매매동향'
+        verbose_name_plural = '시장별매매동향'
+        ordering = ['-date', 'market']
+        unique_together = [('market', 'date')]
+        indexes = [
+            models.Index(fields=['market', '-date']),
+            models.Index(fields=['-date']),
+        ]
+
+    def __str__(self):
+        return f"{self.market} - {self.date} (개인: {self.individual:,}, 외국인: {self.foreign:,})"

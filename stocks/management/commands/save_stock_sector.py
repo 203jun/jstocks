@@ -59,7 +59,8 @@ class Command(BaseCommand):
         total_count = len(sectors_list)
         success_count = 0
         fail_count = 0
-        total_mappings = 0
+        total_added = 0
+        total_unchanged = 0
 
         for idx, sector_info in enumerate(sectors_list, start=1):
             sector_code = sector_info['code']
@@ -106,21 +107,30 @@ class Command(BaseCommand):
                 continue
 
             # 종목-업종 매핑
-            mapped_count = self.map_stocks_to_sector(stock_list, sector)
-            total_mappings += mapped_count
+            added_count, unchanged_count = self.map_stocks_to_sector(stock_list, sector)
+            total_added += added_count
+            total_unchanged += unchanged_count
             success_count += 1
 
-            self.log.debug(f'  → {mapped_count}개 종목 매핑 완료')
+            if added_count > 0:
+                self.log.info(f'[{sector.name}] 추가: {added_count}개, 변경없음: {unchanged_count}개')
+            else:
+                self.log.debug(f'  → 변경 없음 ({unchanged_count}개 종목)')
 
             # API 호출 제한 방지 (0.5초 대기)
             time.sleep(0.5)
 
         # 최종 결과
-        self.log.info(f'처리 완료! 성공: {success_count}개 업종, 실패: {fail_count}개 업종, 총 매핑: {total_mappings}개', success=True)
+        self.log.separator()
+        if total_added > 0:
+            self.log.info(f'처리 완료! 추가: {total_added}개, 변경없음: {total_unchanged}개', success=True)
+        else:
+            self.log.info(f'처리 완료! 변경 없음 (총 {total_unchanged}개 종목)', success=True)
 
     def map_stocks_to_sector(self, stock_list, sector):
         """종목 리스트와 업종을 매핑"""
-        mapped_count = 0
+        added_count = 0
+        unchanged_count = 0
 
         for stock_data in stock_list:
             stock_code = stock_data.get('stk_cd')
@@ -130,15 +140,21 @@ class Command(BaseCommand):
 
             try:
                 info = Info.objects.get(code=stock_code)
-                info.sectors.add(sector)
-                mapped_count += 1
+
+                # 이미 매핑되어 있는지 확인
+                if sector in info.sectors.all():
+                    unchanged_count += 1
+                else:
+                    info.sectors.add(sector)
+                    added_count += 1
+                    self.log.info(f'  + {info.name}({stock_code}) → {sector.name}')
 
             except Info.DoesNotExist:
                 pass
             except Exception as e:
                 self.log.error(f'매핑 실패 ({stock_code}): {str(e)}')
 
-        return mapped_count
+        return added_count, unchanged_count
 
     def find_data_key(self, response_data):
         """응답에서 데이터 배열 키 찾기"""

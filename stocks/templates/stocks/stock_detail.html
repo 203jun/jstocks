@@ -24,6 +24,16 @@
     </div>
 </div>
 
+<!-- 업종 -->
+{% if sectors %}
+<div class="mb-3">
+    <small class="text-muted me-2">업종</small>
+    {% for s in sectors %}
+    <span class="badge border border-secondary text-secondary me-1" style="background: transparent;">{{ s.name }}</span>
+    {% endfor %}
+</div>
+{% endif %}
+
 <!-- 가격 정보 카드 -->
 <div class="card mb-3">
     <div class="card-body">
@@ -71,6 +81,71 @@
         </div>
     </div>
 </div>
+
+<!-- 투자포인트 / 리스크 -->
+{% if stock.investment_point or stock.risk %}
+<div class="row mb-3">
+    <div class="col-md-6 mb-3 mb-md-0">
+        <div class="card h-100">
+            <div class="card-header py-2">
+                <strong>투자포인트</strong>
+            </div>
+            <div class="card-body">
+                {% if stock.investment_point %}
+                <div class="content">{{ stock.investment_point|safe }}</div>
+                {% else %}
+                <div class="text-muted">-</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header py-2">
+                <strong>리스크</strong>
+            </div>
+            <div class="card-body">
+                {% if stock.risk %}
+                <div class="content">{{ stock.risk|safe }}</div>
+                {% else %}
+                <div class="text-muted">-</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 일정 -->
+{% if schedules %}
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>일정</strong>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3" style="width:100px;">날짜</th>
+                        <th style="width:110px;">알림일자</th>
+                        <th>내용</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for schedule in schedules %}
+                    <tr>
+                        <td class="ps-3">{{ schedule.date_text }}</td>
+                        <td class="text-muted small">{{ schedule.date_sort|date:"Y-m-d"|default:"-" }}</td>
+                        <td>{{ schedule.content }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="row">
     <!-- 투자 지표 -->

@@ -1,0 +1,610 @@
+{% extends 'stocks/base.html' %}
+{% load humanize %}
+
+{% block title %}시황 - JStocks{% endblock %}
+
+{% block content %}
+<h4 class="mb-3">시황</h4>
+
+<!-- KOSPI / KOSDAQ 가격 정보 -->
+<div class="row mb-3">
+    <div class="col-md-6 mb-3 mb-md-0">
+        <div class="card h-100">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong class="fs-5">KOSPI</strong>
+                        {% if kospi_latest %}
+                        <span class="fs-4 fw-bold ms-2">{{ kospi_latest.closing_price|floatformat:2 }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="text-end">
+                        {% if kospi_change_rate > 0 %}
+                        <span class="text-up fs-5">+{{ kospi_change|floatformat:2 }} (+{{ kospi_change_rate }}%)</span>
+                        {% elif kospi_change_rate < 0 %}
+                        <span class="text-down fs-5">{{ kospi_change|floatformat:2 }} ({{ kospi_change_rate }}%)</span>
+                        {% else %}
+                        <span class="text-muted fs-5">0.00 (0.00%)</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong class="fs-5">KOSDAQ</strong>
+                        {% if kosdaq_latest %}
+                        <span class="fs-4 fw-bold ms-2">{{ kosdaq_latest.closing_price|floatformat:2 }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="text-end">
+                        {% if kosdaq_change_rate > 0 %}
+                        <span class="text-up fs-5">+{{ kosdaq_change|floatformat:2 }} (+{{ kosdaq_change_rate }}%)</span>
+                        {% elif kosdaq_change_rate < 0 %}
+                        <span class="text-down fs-5">{{ kosdaq_change|floatformat:2 }} ({{ kosdaq_change_rate }}%)</span>
+                        {% else %}
+                        <span class="text-muted fs-5">0.00 (0.00%)</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- KOSPI / KOSDAQ 차트 -->
+<div class="row mb-3">
+    <div class="col-md-6 mb-3 mb-md-0">
+        <div class="card h-100">
+            <div class="card-header py-2">
+                <strong>KOSPI</strong>
+                <span class="badge bg-warning text-dark ms-2" style="font-size: 0.65rem;">MA20</span>
+                <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">MA60</span>
+            </div>
+            <div class="card-body p-0">
+                <div id="kospiChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header py-2">
+                <strong>KOSDAQ</strong>
+                <span class="badge bg-warning text-dark ms-2" style="font-size: 0.65rem;">MA20</span>
+                <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">MA60</span>
+            </div>
+            <div class="card-body p-0">
+                <div id="kosdaqChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 탭 메뉴 -->
+<ul class="nav nav-tabs mb-3" id="marketTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="trend-tab" data-bs-toggle="tab" data-bs-target="#trend-content" type="button" role="tab">매매동향</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="nodaji-tab" data-bs-toggle="tab" data-bs-target="#nodaji-content" type="button" role="tab">노다지</button>
+    </li>
+</ul>
+
+<!-- 탭 콘텐츠 -->
+<div class="tab-content" id="marketTabsContent">
+    <!-- 매매동향 탭 -->
+    <div class="tab-pane fade show active" id="trend-content" role="tabpanel">
+        <!-- 매매동향 서브탭 -->
+        <ul class="nav nav-pills mb-3" id="trendSubTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="kospi-trend-tab" data-bs-toggle="pill" data-bs-target="#kospi-trend" type="button" role="tab">KOSPI</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="kosdaq-trend-tab" data-bs-toggle="pill" data-bs-target="#kosdaq-trend" type="button" role="tab">KOSDAQ</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="futures-trend-tab" data-bs-toggle="pill" data-bs-target="#futures-trend" type="button" role="tab">FUTURES</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="trendSubTabsContent">
+            <!-- KOSPI -->
+            <div class="tab-pane fade show active" id="kospi-trend" role="tabpanel">
+                <div class="card mb-3">
+                    <div class="card-header py-2">
+                        <strong>120일 누적 순매수</strong>
+                        <span class="badge text-bg-danger ms-2" style="font-size: 0.65rem;">개인</span>
+                        <span class="badge text-bg-success ms-1" style="font-size: 0.65rem;">외국인</span>
+                        <span class="badge text-bg-warning text-dark ms-1" style="font-size: 0.65rem;">기관</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="kospiCumulativeChart" style="height: 250px;"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr class="small">
+                                        <th class="ps-3">날짜</th>
+                                        <th class="text-end">개인</th>
+                                        <th class="text-end">외국인</th>
+                                        <th class="text-end">기관계</th>
+                                        <th class="text-end">금융투자</th>
+                                        <th class="text-end">보험</th>
+                                        <th class="text-end">투신</th>
+                                        <th class="text-end">은행</th>
+                                        <th class="text-end">기타금융</th>
+                                        <th class="text-end">연기금</th>
+                                        <th class="text-end pe-3">기타법인</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for t in kospi_trends %}
+                                    <tr class="small">
+                                        <td class="ps-3 text-muted">{{ t.date|date:"m.d" }}</td>
+                                        <td class="text-end {% if t.individual > 0 %}text-up{% elif t.individual < 0 %}text-down{% endif %}">{{ t.individual|intcomma }}</td>
+                                        <td class="text-end {% if t.foreign > 0 %}text-up{% elif t.foreign < 0 %}text-down{% endif %}">{{ t.foreign|intcomma }}</td>
+                                        <td class="text-end {% if t.institution > 0 %}text-up{% elif t.institution < 0 %}text-down{% endif %}">{{ t.institution|intcomma }}</td>
+                                        <td class="text-end {% if t.financial_investment > 0 %}text-up{% elif t.financial_investment < 0 %}text-down{% endif %}">{{ t.financial_investment|intcomma }}</td>
+                                        <td class="text-end {% if t.insurance > 0 %}text-up{% elif t.insurance < 0 %}text-down{% endif %}">{{ t.insurance|intcomma }}</td>
+                                        <td class="text-end {% if t.trust > 0 %}text-up{% elif t.trust < 0 %}text-down{% endif %}">{{ t.trust|intcomma }}</td>
+                                        <td class="text-end {% if t.bank > 0 %}text-up{% elif t.bank < 0 %}text-down{% endif %}">{{ t.bank|intcomma }}</td>
+                                        <td class="text-end {% if t.other_financial > 0 %}text-up{% elif t.other_financial < 0 %}text-down{% endif %}">{{ t.other_financial|intcomma }}</td>
+                                        <td class="text-end {% if t.pension_fund > 0 %}text-up{% elif t.pension_fund < 0 %}text-down{% endif %}">{{ t.pension_fund|intcomma }}</td>
+                                        <td class="text-end pe-3 {% if t.other_corporation > 0 %}text-up{% elif t.other_corporation < 0 %}text-down{% endif %}">{{ t.other_corporation|intcomma }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="11" class="text-center text-muted py-3">데이터가 없습니다.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- KOSDAQ -->
+            <div class="tab-pane fade" id="kosdaq-trend" role="tabpanel">
+                <div class="card mb-3">
+                    <div class="card-header py-2">
+                        <strong>120일 누적 순매수</strong>
+                        <span class="badge text-bg-danger ms-2" style="font-size: 0.65rem;">개인</span>
+                        <span class="badge text-bg-success ms-1" style="font-size: 0.65rem;">외국인</span>
+                        <span class="badge text-bg-warning text-dark ms-1" style="font-size: 0.65rem;">기관</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="kosdaqCumulativeChart" style="height: 250px;"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr class="small">
+                                        <th class="ps-3">날짜</th>
+                                        <th class="text-end">개인</th>
+                                        <th class="text-end">외국인</th>
+                                        <th class="text-end">기관계</th>
+                                        <th class="text-end">금융투자</th>
+                                        <th class="text-end">보험</th>
+                                        <th class="text-end">투신</th>
+                                        <th class="text-end">은행</th>
+                                        <th class="text-end">기타금융</th>
+                                        <th class="text-end">연기금</th>
+                                        <th class="text-end pe-3">기타법인</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for t in kosdaq_trends %}
+                                    <tr class="small">
+                                        <td class="ps-3 text-muted">{{ t.date|date:"m.d" }}</td>
+                                        <td class="text-end {% if t.individual > 0 %}text-up{% elif t.individual < 0 %}text-down{% endif %}">{{ t.individual|intcomma }}</td>
+                                        <td class="text-end {% if t.foreign > 0 %}text-up{% elif t.foreign < 0 %}text-down{% endif %}">{{ t.foreign|intcomma }}</td>
+                                        <td class="text-end {% if t.institution > 0 %}text-up{% elif t.institution < 0 %}text-down{% endif %}">{{ t.institution|intcomma }}</td>
+                                        <td class="text-end {% if t.financial_investment > 0 %}text-up{% elif t.financial_investment < 0 %}text-down{% endif %}">{{ t.financial_investment|intcomma }}</td>
+                                        <td class="text-end {% if t.insurance > 0 %}text-up{% elif t.insurance < 0 %}text-down{% endif %}">{{ t.insurance|intcomma }}</td>
+                                        <td class="text-end {% if t.trust > 0 %}text-up{% elif t.trust < 0 %}text-down{% endif %}">{{ t.trust|intcomma }}</td>
+                                        <td class="text-end {% if t.bank > 0 %}text-up{% elif t.bank < 0 %}text-down{% endif %}">{{ t.bank|intcomma }}</td>
+                                        <td class="text-end {% if t.other_financial > 0 %}text-up{% elif t.other_financial < 0 %}text-down{% endif %}">{{ t.other_financial|intcomma }}</td>
+                                        <td class="text-end {% if t.pension_fund > 0 %}text-up{% elif t.pension_fund < 0 %}text-down{% endif %}">{{ t.pension_fund|intcomma }}</td>
+                                        <td class="text-end pe-3 {% if t.other_corporation > 0 %}text-up{% elif t.other_corporation < 0 %}text-down{% endif %}">{{ t.other_corporation|intcomma }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="11" class="text-center text-muted py-3">데이터가 없습니다.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- FUTURES -->
+            <div class="tab-pane fade" id="futures-trend" role="tabpanel">
+                <div class="card mb-3">
+                    <div class="card-header py-2">
+                        <strong>120일 누적 순매수</strong>
+                        <span class="badge text-bg-danger ms-2" style="font-size: 0.65rem;">개인</span>
+                        <span class="badge text-bg-success ms-1" style="font-size: 0.65rem;">외국인</span>
+                        <span class="badge text-bg-warning text-dark ms-1" style="font-size: 0.65rem;">기관</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="futuresCumulativeChart" style="height: 250px;"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr class="small">
+                                        <th class="ps-3">날짜</th>
+                                        <th class="text-end">개인</th>
+                                        <th class="text-end">외국인</th>
+                                        <th class="text-end">기관계</th>
+                                        <th class="text-end">금융투자</th>
+                                        <th class="text-end">보험</th>
+                                        <th class="text-end">투신</th>
+                                        <th class="text-end">은행</th>
+                                        <th class="text-end">기타금융</th>
+                                        <th class="text-end">연기금</th>
+                                        <th class="text-end pe-3">기타법인</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for t in futures_trends %}
+                                    <tr class="small">
+                                        <td class="ps-3 text-muted">{{ t.date|date:"m.d" }}</td>
+                                        <td class="text-end {% if t.individual > 0 %}text-up{% elif t.individual < 0 %}text-down{% endif %}">{{ t.individual|intcomma }}</td>
+                                        <td class="text-end {% if t.foreign > 0 %}text-up{% elif t.foreign < 0 %}text-down{% endif %}">{{ t.foreign|intcomma }}</td>
+                                        <td class="text-end {% if t.institution > 0 %}text-up{% elif t.institution < 0 %}text-down{% endif %}">{{ t.institution|intcomma }}</td>
+                                        <td class="text-end {% if t.financial_investment > 0 %}text-up{% elif t.financial_investment < 0 %}text-down{% endif %}">{{ t.financial_investment|intcomma }}</td>
+                                        <td class="text-end {% if t.insurance > 0 %}text-up{% elif t.insurance < 0 %}text-down{% endif %}">{{ t.insurance|intcomma }}</td>
+                                        <td class="text-end {% if t.trust > 0 %}text-up{% elif t.trust < 0 %}text-down{% endif %}">{{ t.trust|intcomma }}</td>
+                                        <td class="text-end {% if t.bank > 0 %}text-up{% elif t.bank < 0 %}text-down{% endif %}">{{ t.bank|intcomma }}</td>
+                                        <td class="text-end {% if t.other_financial > 0 %}text-up{% elif t.other_financial < 0 %}text-down{% endif %}">{{ t.other_financial|intcomma }}</td>
+                                        <td class="text-end {% if t.pension_fund > 0 %}text-up{% elif t.pension_fund < 0 %}text-down{% endif %}">{{ t.pension_fund|intcomma }}</td>
+                                        <td class="text-end pe-3 {% if t.other_corporation > 0 %}text-up{% elif t.other_corporation < 0 %}text-down{% endif %}">{{ t.other_corporation|intcomma }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="11" class="text-center text-muted py-3">데이터가 없습니다.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 노다지 탭 -->
+    <div class="tab-pane fade" id="nodaji-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>노다지 브리프</strong>
+                    <small class="text-muted ms-2">모닝브리프 / 마감브리프</small>
+                </div>
+                <button type="button" id="btnFetchBrief" class="btn btn-sm btn-outline-success">
+                    불러오기
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="briefLoading" class="text-center py-3 d-none">
+                    <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                    <span class="ms-2">불러오는 중... (5~10초 소요)</span>
+                </div>
+                <div id="briefResult" class="d-none"></div>
+                <div id="briefEmpty" class="text-muted">버튼을 클릭하면 최신 브리프를 불러옵니다.</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+// 차트 데이터
+const kospiCandleData = {{ kospi_candle_data|safe }};
+const kospiVolumeData = {{ kospi_volume_data|safe }};
+const kosdaqCandleData = {{ kosdaq_candle_data|safe }};
+const kosdaqVolumeData = {{ kosdaq_volume_data|safe }};
+
+// 누적 순매수 데이터
+const kospiCumulativeData = {{ kospi_cumulative|safe }};
+const kosdaqCumulativeData = {{ kosdaq_cumulative|safe }};
+const futuresCumulativeData = {{ futures_cumulative|safe }};
+
+// 차트 공통 옵션
+const chartOptions = {
+    layout: {
+        background: { color: '#ffffff' },
+        textColor: '#333',
+    },
+    grid: {
+        vertLines: { color: '#f0f0f0' },
+        horzLines: { color: '#f0f0f0' },
+    },
+    timeScale: {
+        timeVisible: false,
+        borderColor: '#ddd',
+        fixLeftEdge: true,
+        fixRightEdge: true,
+    },
+    rightPriceScale: {
+        borderColor: '#ddd',
+    },
+};
+
+// 이동평균 계산 함수
+function calculateMA(data, period) {
+    const result = [];
+    for (let i = 0; i < data.length; i++) {
+        if (i < period - 1) {
+            continue;
+        }
+        let sum = 0;
+        for (let j = 0; j < period; j++) {
+            sum += data[i - j].close;
+        }
+        result.push({
+            time: data[i].time,
+            value: sum / period,
+        });
+    }
+    return result;
+}
+
+// KOSPI 차트
+function initKospiChart() {
+    const container = document.getElementById('kospiChart');
+    if (!container || kospiCandleData.length === 0) return;
+
+    const chart = LightweightCharts.createChart(container, {
+        ...chartOptions,
+        height: 300,
+    });
+
+    const candleSeries = chart.addCandlestickSeries({
+        upColor: '#ef5350',
+        downColor: '#26a69a',
+        borderUpColor: '#ef5350',
+        borderDownColor: '#26a69a',
+        wickUpColor: '#ef5350',
+        wickDownColor: '#26a69a',
+    });
+    candleSeries.setData(kospiCandleData);
+
+    // 이동평균선 (MA20 - 노란색)
+    const ma20Series = chart.addLineSeries({
+        color: '#ffc107',
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+    });
+    ma20Series.setData(calculateMA(kospiCandleData, 20));
+
+    // 이동평균선 (MA60 - 파란색)
+    const ma60Series = chart.addLineSeries({
+        color: '#0d6efd',
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+    });
+    ma60Series.setData(calculateMA(kospiCandleData, 60));
+
+    const volumeSeries = chart.addHistogramSeries({
+        priceFormat: { type: 'volume' },
+        priceScaleId: '',
+        scaleMargins: { top: 0.85, bottom: 0 },
+    });
+    volumeSeries.setData(kospiVolumeData);
+
+    chart.timeScale().fitContent();
+
+    // 날짜 범위 제한 (데이터 범위 내로)
+    if (kospiCandleData.length > 0) {
+        chart.timeScale().setVisibleRange({
+            from: kospiCandleData[0].time,
+            to: kospiCandleData[kospiCandleData.length - 1].time,
+        });
+    }
+}
+
+// KOSDAQ 차트
+function initKosdaqChart() {
+    const container = document.getElementById('kosdaqChart');
+    if (!container || kosdaqCandleData.length === 0) return;
+
+    const chart = LightweightCharts.createChart(container, {
+        ...chartOptions,
+        height: 300,
+    });
+
+    const candleSeries = chart.addCandlestickSeries({
+        upColor: '#ef5350',
+        downColor: '#26a69a',
+        borderUpColor: '#ef5350',
+        borderDownColor: '#26a69a',
+        wickUpColor: '#ef5350',
+        wickDownColor: '#26a69a',
+    });
+    candleSeries.setData(kosdaqCandleData);
+
+    // 이동평균선 (MA20 - 노란색)
+    const ma20Series = chart.addLineSeries({
+        color: '#ffc107',
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+    });
+    ma20Series.setData(calculateMA(kosdaqCandleData, 20));
+
+    // 이동평균선 (MA60 - 파란색)
+    const ma60Series = chart.addLineSeries({
+        color: '#0d6efd',
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+    });
+    ma60Series.setData(calculateMA(kosdaqCandleData, 60));
+
+    const volumeSeries = chart.addHistogramSeries({
+        priceFormat: { type: 'volume' },
+        priceScaleId: '',
+        scaleMargins: { top: 0.85, bottom: 0 },
+    });
+    volumeSeries.setData(kosdaqVolumeData);
+
+    chart.timeScale().fitContent();
+
+    // 날짜 범위 제한 (데이터 범위 내로)
+    if (kosdaqCandleData.length > 0) {
+        chart.timeScale().setVisibleRange({
+            from: kosdaqCandleData[0].time,
+            to: kosdaqCandleData[kosdaqCandleData.length - 1].time,
+        });
+    }
+}
+
+// 누적 순매수 차트 (공통 함수)
+function initCumulativeChart(containerId, data) {
+    const container = document.getElementById(containerId);
+    if (!container || data.length === 0) return null;
+
+    const chart = LightweightCharts.createChart(container, {
+        layout: {
+            background: { color: '#ffffff' },
+            textColor: '#333',
+        },
+        grid: {
+            vertLines: { color: '#f0f0f0' },
+            horzLines: { color: '#f0f0f0' },
+        },
+        timeScale: {
+            timeVisible: false,
+            borderColor: '#ddd',
+            fixLeftEdge: true,
+            fixRightEdge: true,
+        },
+        rightPriceScale: {
+            borderColor: '#ddd',
+        },
+        height: 250,
+    });
+
+    // 개인 (빨간색)
+    const individualSeries = chart.addLineSeries({
+        color: '#dc3545',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+    });
+    individualSeries.setData(data.map(d => ({
+        time: d.date,
+        value: d.individual,
+    })));
+
+    // 외국인 (녹색)
+    const foreignSeries = chart.addLineSeries({
+        color: '#198754',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+    });
+    foreignSeries.setData(data.map(d => ({
+        time: d.date,
+        value: d.foreign,
+    })));
+
+    // 기관 (노란색)
+    const institutionSeries = chart.addLineSeries({
+        color: '#ffc107',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+    });
+    institutionSeries.setData(data.map(d => ({
+        time: d.date,
+        value: d.institution,
+    })));
+
+    chart.timeScale().fitContent();
+    return chart;
+}
+
+// 초기화
+initKospiChart();
+initKosdaqChart();
+initCumulativeChart('kospiCumulativeChart', kospiCumulativeData);
+
+// 탭 전환 시 차트 초기화 (숨겨진 탭의 차트는 처음에 렌더링되지 않음)
+let kosdaqCumulativeChartInit = false;
+let futuresCumulativeChartInit = false;
+
+document.getElementById('kosdaq-trend-tab').addEventListener('shown.bs.tab', () => {
+    if (!kosdaqCumulativeChartInit) {
+        initCumulativeChart('kosdaqCumulativeChart', kosdaqCumulativeData);
+        kosdaqCumulativeChartInit = true;
+    }
+});
+
+document.getElementById('futures-trend-tab').addEventListener('shown.bs.tab', () => {
+    if (!futuresCumulativeChartInit) {
+        initCumulativeChart('futuresCumulativeChart', futuresCumulativeData);
+        futuresCumulativeChartInit = true;
+    }
+});
+
+// 노다지 브리프
+const btnFetchBrief = document.getElementById('btnFetchBrief');
+const briefLoading = document.getElementById('briefLoading');
+const briefResult = document.getElementById('briefResult');
+const briefEmpty = document.getElementById('briefEmpty');
+
+btnFetchBrief.addEventListener('click', async () => {
+    btnFetchBrief.disabled = true;
+    briefLoading.classList.remove('d-none');
+    briefResult.classList.add('d-none');
+    briefEmpty.classList.add('d-none');
+
+    try {
+        const response = await fetch('/api/nodaji/brief/');
+        const data = await response.json();
+
+        if (data.error) {
+            briefResult.innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
+        } else if (data.results.length === 0) {
+            briefResult.innerHTML = '<div class="text-muted">브리프가 없습니다.</div>';
+        } else {
+            let html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0">';
+            html += '<thead class="table-light"><tr><th class="ps-3" style="width:100px;">날짜</th><th style="width:100px;">카테고리</th><th>제목</th></tr></thead><tbody>';
+            data.results.forEach(item => {
+                const categoryClass = item.category === '모닝브리프' ? 'text-primary' : 'text-danger';
+                html += `<tr>`;
+                html += `<td class="text-muted small ps-3">${item.date}</td>`;
+                html += `<td class="small ${categoryClass}">${item.category}</td>`;
+                html += `<td><a href="${item.link}" target="_blank" class="text-decoration-none">${item.title}</a></td>`;
+                html += `</tr>`;
+            });
+            html += '</tbody></table></div>';
+            briefResult.innerHTML = html;
+        }
+        briefResult.classList.remove('d-none');
+
+    } catch (err) {
+        briefResult.innerHTML = `<div class="alert alert-danger mb-0">오류: ${err.message}</div>`;
+        briefResult.classList.remove('d-none');
+    } finally {
+        btnFetchBrief.disabled = false;
+        briefLoading.classList.add('d-none');
+    }
+});
+</script>
+{% endblock %}

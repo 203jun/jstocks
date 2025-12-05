@@ -1,152 +1,121 @@
-import requests
-import json
+# -*- coding: utf-8 -*-
 import time
-from datetime import datetime
-from decimal import Decimal
+import requests
 from django.core.management.base import BaseCommand
 from stocks.utils import get_valid_token
-from stocks.models import DailyChart, Sector
+from stocks.models import Sector, DailyChart
 from stocks.logger import StockLogger
 
 
 class Command(BaseCommand):
     help = '''
-    업종별 투자자 순매수 데이터 저장 (업종별투자자순매수요청 - ka10051)
+    업종별 투자자 순매수 데이터 저장 (ka10051)
 
-    ※ 동작 방식:
-    1. DailyChart에서 실제 거래일 가져오기
-    2. 각 거래일마다 API를 2번 호출 (KOSPI, KOSDAQ)
-    3. Sector 테이블에 저장
-
-    ※ 실행 순서:
-    1. python manage.py save_daily_chart --code [아무종목] --mode all
-    2. python manage.py save_sector --mode all
+    사용법:
+      python manage.py save_sector              # 최근 거래일 1일
+      python manage.py save_sector --mode all   # 최근 60거래일
+      python manage.py save_sector --clear      # 전체 삭제
     '''
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--mode',
-            type=str,
-            choices=['all', 'day'],
-            required=True,
-            help='조회 모드: all(10일 데이터), day(최근 거래일 1일만)'
+            choices=['last', 'all'],
+            default='last',
+            help='last: 최근 1일 (기본값), all: 최근 60거래일'
+        )
+        parser.add_argument(
+            '--clear',
+            action='store_true',
+            help='전체 데이터 삭제'
         )
         StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
-        # 로거 초기화
+        # Clear existing data if requested
+        if options.get('clear'):
+            deleted_count = Sector.objects.all().delete()[0]
+            self.stdout.write(self.style.WARNING(f'Deleted {deleted_count} existing records'))
+            return
+
         self.log = StockLogger(self.stdout, self.style, options, 'save_sector')
 
-        # 1. 토큰 가져오기
+        # Get token
         token = get_valid_token()
-
         if not token:
-            self.log.error('토큰이 없습니다. python manage.py get_token을 먼저 실행하세요.')
+            self.log.error('No token. Run: python manage.py get_token')
             return
 
-        # 2. DailyChart 데이터 확인
-        daily_count = DailyChart.objects.count()
-        if daily_count == 0:
-            self.log.error('DailyChart 테이블이 비어있습니다!')
-            self.log.debug('먼저 python manage.py save_daily_chart --code [종목코드] --mode all 실행')
-            return
+        # Get trading dates from DailyChart
+        mode = options.get('mode', 'last')
+        limit = 60 if mode == 'all' else 1
 
-        self.log.debug(f'DailyChart 데이터 확인 완료 ({daily_count:,}개 레코드)')
-
-        # 3. 거래일 가져오기
-        mode = options['mode']
-        trading_dates = self.get_trading_dates(mode)
+        trading_dates = list(
+            DailyChart.objects.values_list('date', flat=True)
+            .distinct()
+            .order_by('-date')[:limit]
+        )
 
         if not trading_dates:
-            self.log.error('거래일 데이터가 없습니다.')
+            self.log.error('DailyChart 데이터가 없습니다.')
+            self.log.error('먼저 실행: python manage.py save_daily_chart')
             return
 
-        self.log.info(f'총 {len(trading_dates)}일 데이터 수집 예정')
-        self.log.debug(f'기간: {trading_dates[-1]} ~ {trading_dates[0]}')
+        trading_dates.reverse()  # 오래된 날짜부터 처리
+
+        self.log.info(f'수집 대상: {len(trading_dates)}일 ({trading_dates[0]} ~ {trading_dates[-1]})')
         self.log.separator()
 
-        # 4. 각 거래일에 대해 KOSPI + KOSDAQ 데이터 수집
-        self.process_all_dates(token, trading_dates)
-
-    def get_trading_dates(self, mode):
-        """DailyChart에서 실제 거래일 가져오기"""
-        limit = 10 if mode == 'all' else 1
-
-        trading_dates = DailyChart.objects.values_list('date', flat=True)\
-            .distinct()\
-            .order_by('-date')[:limit]
-
-        return list(trading_dates)
-
-    def process_all_dates(self, token, trading_dates):
-        """모든 거래일에 대해 업종 데이터 수집"""
-        total_dates = len(trading_dates)
-        success_count = 0
-        fail_count = 0
-        total_sectors = 0
-
+        total_saved = 0
         for idx, trade_date in enumerate(trading_dates, start=1):
-            self.log.debug(f'[{idx}/{total_dates}] {trade_date} 데이터 수집 중...')
+            date_str = trade_date.strftime('%Y%m%d')
 
-            date_tp = str(idx)
+            # KOSPI
+            kospi_count = self.fetch_and_save_market(token, '0', 'KOSPI', trade_date, date_str)
 
-            # KOSPI 데이터 수집
-            kospi_count = self.fetch_and_save_market(
-                token, date_tp, '0', 'KOSPI', trade_date
-            )
+            # KOSDAQ
+            kosdaq_count = self.fetch_and_save_market(token, '1', 'KOSDAQ', trade_date, date_str)
 
-            # KOSDAQ 데이터 수집
-            kosdaq_count = self.fetch_and_save_market(
-                token, date_tp, '1', 'KOSDAQ', trade_date
-            )
+            day_total = kospi_count + kosdaq_count
+            total_saved += day_total
 
-            if kospi_count >= 0 or kosdaq_count >= 0:
-                success_count += 1
-                total_sectors += (kospi_count + kosdaq_count)
-                self.log.debug(
-                    f'  → KOSPI {kospi_count}개 + KOSDAQ {kosdaq_count}개 = 총 {kospi_count + kosdaq_count}개 저장'
-                )
+            if mode == 'all':
+                self.log.debug(f'[{idx}/{len(trading_dates)}] {trade_date}: {day_total}개')
+                time.sleep(0.3)  # API 호출 제한 방지
             else:
-                fail_count += 1
-                self.log.debug(f'  → 데이터 수집 실패')
+                self.log.info(f'{trade_date}: KOSPI {kospi_count}개, KOSDAQ {kosdaq_count}개')
 
-        # 최종 결과
-        self.log.info(f'처리 완료! 성공: {success_count}일, 실패: {fail_count}일, 총 업종 데이터: {total_sectors}개', success=True)
+        self.log.separator()
+        self.log.info(f'완료! 총 {total_saved}개 저장', success=True)
 
-    def fetch_and_save_market(self, token, date_tp, mrkt_tp, market_name, trade_date):
-        """특정 시장의 업종 데이터 수집 및 저장"""
+    def fetch_and_save_market(self, token, mrkt_tp, market_name, trade_date, date_str):
+        """Fetch and save sector data for a market"""
         params = {
-            'date_tp': date_tp,
             'mrkt_tp': mrkt_tp,
             'amt_qty_tp': '0',
+            'base_dt': date_str,
             'stex_tp': '1',
         }
 
         response_data = self.call_api(token, params)
 
         if not response_data:
-            return -1
+            return 0
 
         data_key = self.find_data_key(response_data)
         if not data_key or not response_data[data_key]:
-            return -1
+            return 0
 
         sector_list = response_data[data_key]
-
-        saved_count = self.save_to_db(sector_list, market_name, trade_date)
-
-        time.sleep(0.5)
-
-        return saved_count
+        return self.save_to_db(sector_list, market_name, trade_date)
 
     def save_to_db(self, sector_list, market, trade_date):
-        """업종 데이터를 DB에 저장"""
-        created_count = 0
-        updated_count = 0
+        """Save sector data to DB"""
+        saved_count = 0
 
         for item in sector_list:
             try:
-                sector, created = Sector.objects.update_or_create(
+                Sector.objects.update_or_create(
                     code=item.get('inds_cd'),
                     date=trade_date,
                     market=market,
@@ -167,41 +136,32 @@ class Command(BaseCommand):
                         'nation_net_buying': self.parse_number(item.get('natn_netprps')),
                     }
                 )
-
-                if created:
-                    created_count += 1
-                else:
-                    updated_count += 1
-
+                saved_count += 1
             except Exception as e:
-                self.log.error(f'저장 실패 ({item.get("inds_cd")}): {str(e)}')
+                self.log.error(f'Save failed ({item.get("inds_cd")}): {str(e)}')
 
-        return created_count + updated_count
+        return saved_count
 
     def parse_number(self, value):
-        """API 응답 숫자 파싱"""
+        """Parse number string"""
         if not value:
             return 0
-        cleaned = str(value).strip().replace(',', '')
-        if cleaned.startswith('+'):
-            cleaned = cleaned[1:]
+        cleaned = str(value).strip().replace(',', '').replace('+', '')
         try:
             return int(cleaned)
         except (ValueError, TypeError):
             return 0
 
     def find_data_key(self, response_data):
-        """응답에서 데이터 배열 키 찾기"""
+        """Find data array key in response"""
         for key in ['inds_netprps', 'data', 'result', 'output']:
             if key in response_data and isinstance(response_data[key], list):
                 return key
         return None
 
     def call_api(self, token, data):
-        """업종별투자자순매수요청 API 호출"""
-        host = 'https://api.kiwoom.com'
-        endpoint = '/api/dostk/sect'
-        url = host + endpoint
+        """Call ka10051 API"""
+        url = 'https://api.kiwoom.com/api/dostk/sect'
 
         headers = {
             'Content-Type': 'application/json;charset=UTF-8',
@@ -211,13 +171,10 @@ class Command(BaseCommand):
 
         try:
             response = requests.post(url, headers=headers, json=data)
-
             if response.status_code != 200:
+                self.log.error(f'API error: {response.status_code}')
                 return None
-
-            response_data = response.json()
-
-            return response_data
-
-        except Exception:
+            return response.json()
+        except Exception as e:
+            self.log.error(f'API exception: {e}')
             return None

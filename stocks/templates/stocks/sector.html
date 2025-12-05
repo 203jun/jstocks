@@ -1,0 +1,220 @@
+{% extends 'stocks/base.html' %}
+{% load humanize %}
+
+{% block title %}섹터 - JStocks{% endblock %}
+
+{% block content %}
+<h4 class="mb-3">섹터</h4>
+
+<!-- KOSPI / KOSDAQ 탭 -->
+<ul class="nav nav-pills mb-3" id="sectorTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="kospi-tab" data-bs-toggle="pill" data-bs-target="#kospi-content" type="button" role="tab">KOSPI</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="kosdaq-tab" data-bs-toggle="pill" data-bs-target="#kosdaq-content" type="button" role="tab">KOSDAQ</button>
+    </li>
+</ul>
+
+<div class="tab-content" id="sectorTabsContent">
+    <!-- KOSPI -->
+    <div class="tab-pane fade show active" id="kospi-content" role="tabpanel">
+        <div class="card mb-3">
+            <div class="card-header py-2">
+                <strong>누적 순매수</strong>
+                <small class="text-muted ms-2" id="kospi-chart-name">업종을 선택하세요</small>
+                <span class="badge text-bg-danger ms-2" style="font-size: 0.65rem;">개인</span>
+                <span class="badge text-bg-success ms-1" style="font-size: 0.65rem;">외국인</span>
+                <span class="badge text-bg-warning text-dark ms-1" style="font-size: 0.65rem;">기관</span>
+            </div>
+            <div class="card-body p-2">
+                <div id="kospiSectorChart" style="height: 280px;">
+                    <div class="d-flex justify-content-center align-items-center h-100 text-muted">업종을 클릭하세요</div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header py-2">
+                <strong>업종별 순매수</strong>
+                {% if latest_kospi_date %}<small class="text-muted ms-2">{{ latest_kospi_date|date:"m.d" }} 기준</small>{% endif %}
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr class="small">
+                                <th class="ps-3">업종</th>
+                                <th class="text-end">개인</th>
+                                <th class="text-end">외국인</th>
+                                <th class="text-end">기관</th>
+                                <th class="text-end">증권</th>
+                                <th class="text-end">보험</th>
+                                <th class="text-end">투신</th>
+                                <th class="text-end">은행</th>
+                                <th class="text-end">연기금</th>
+                                <th class="text-end">사모</th>
+                                <th class="text-end pe-3">기타법인</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in kospi_sectors %}
+                            <tr class="small sector-row" data-code="{{ s.code }}" data-market="KOSPI" data-name="{{ s.name }}" style="cursor: pointer;">
+                                <td class="ps-3">{{ s.name }}</td>
+                                <td class="text-end {% if s.individual_net_buying > 0 %}text-up{% elif s.individual_net_buying < 0 %}text-down{% endif %}">{{ s.individual_net_buying|intcomma }}</td>
+                                <td class="text-end {% if s.foreign_net_buying > 0 %}text-up{% elif s.foreign_net_buying < 0 %}text-down{% endif %}">{{ s.foreign_net_buying|intcomma }}</td>
+                                <td class="text-end {% if s.institution_net_buying > 0 %}text-up{% elif s.institution_net_buying < 0 %}text-down{% endif %}">{{ s.institution_net_buying|intcomma }}</td>
+                                <td class="text-end {% if s.securities_net_buying > 0 %}text-up{% elif s.securities_net_buying < 0 %}text-down{% endif %}">{{ s.securities_net_buying|intcomma }}</td>
+                                <td class="text-end {% if s.insurance_net_buying > 0 %}text-up{% elif s.insurance_net_buying < 0 %}text-down{% endif %}">{{ s.insurance_net_buying|intcomma }}</td>
+                                <td class="text-end {% if s.investment_trust_net_buying > 0 %}text-up{% elif s.investment_trust_net_buying < 0 %}text-down{% endif %}">{{ s.investment_trust_net_buying|intcomma }}</td>
+                                <td class="text-end {% if s.bank_net_buying > 0 %}text-up{% elif s.bank_net_buying < 0 %}text-down{% endif %}">{{ s.bank_net_buying|intcomma }}</td>
+                                <td class="text-end {% if s.pension_fund_net_buying > 0 %}text-up{% elif s.pension_fund_net_buying < 0 %}text-down{% endif %}">{{ s.pension_fund_net_buying|intcomma }}</td>
+                                <td class="text-end {% if s.private_fund_net_buying > 0 %}text-up{% elif s.private_fund_net_buying < 0 %}text-down{% endif %}">{{ s.private_fund_net_buying|intcomma }}</td>
+                                <td class="text-end pe-3 {% if s.other_corporation_net_buying > 0 %}text-up{% elif s.other_corporation_net_buying < 0 %}text-down{% endif %}">{{ s.other_corporation_net_buying|intcomma }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="11" class="text-center text-muted py-3">데이터가 없습니다.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KOSDAQ -->
+    <div class="tab-pane fade" id="kosdaq-content" role="tabpanel">
+        <div class="card mb-3">
+            <div class="card-header py-2">
+                <strong>누적 순매수</strong>
+                <small class="text-muted ms-2" id="kosdaq-chart-name">업종을 선택하세요</small>
+                <span class="badge text-bg-danger ms-2" style="font-size: 0.65rem;">개인</span>
+                <span class="badge text-bg-success ms-1" style="font-size: 0.65rem;">외국인</span>
+                <span class="badge text-bg-warning text-dark ms-1" style="font-size: 0.65rem;">기관</span>
+            </div>
+            <div class="card-body p-2">
+                <div id="kosdaqSectorChart" style="height: 280px;">
+                    <div class="d-flex justify-content-center align-items-center h-100 text-muted">업종을 클릭하세요</div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header py-2">
+                <strong>업종별 순매수</strong>
+                {% if latest_kosdaq_date %}<small class="text-muted ms-2">{{ latest_kosdaq_date|date:"m.d" }} 기준</small>{% endif %}
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr class="small">
+                                <th class="ps-3">업종</th>
+                                <th class="text-end">개인</th>
+                                <th class="text-end">외국인</th>
+                                <th class="text-end">기관</th>
+                                <th class="text-end">증권</th>
+                                <th class="text-end">보험</th>
+                                <th class="text-end">투신</th>
+                                <th class="text-end">은행</th>
+                                <th class="text-end">연기금</th>
+                                <th class="text-end">사모</th>
+                                <th class="text-end pe-3">기타법인</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in kosdaq_sectors %}
+                            <tr class="small sector-row" data-code="{{ s.code }}" data-market="KOSDAQ" data-name="{{ s.name }}" style="cursor: pointer;">
+                                <td class="ps-3">{{ s.name }}</td>
+                                <td class="text-end {% if s.individual_net_buying > 0 %}text-up{% elif s.individual_net_buying < 0 %}text-down{% endif %}">{{ s.individual_net_buying|intcomma }}</td>
+                                <td class="text-end {% if s.foreign_net_buying > 0 %}text-up{% elif s.foreign_net_buying < 0 %}text-down{% endif %}">{{ s.foreign_net_buying|intcomma }}</td>
+                                <td class="text-end {% if s.institution_net_buying > 0 %}text-up{% elif s.institution_net_buying < 0 %}text-down{% endif %}">{{ s.institution_net_buying|intcomma }}</td>
+                                <td class="text-end {% if s.securities_net_buying > 0 %}text-up{% elif s.securities_net_buying < 0 %}text-down{% endif %}">{{ s.securities_net_buying|intcomma }}</td>
+                                <td class="text-end {% if s.insurance_net_buying > 0 %}text-up{% elif s.insurance_net_buying < 0 %}text-down{% endif %}">{{ s.insurance_net_buying|intcomma }}</td>
+                                <td class="text-end {% if s.investment_trust_net_buying > 0 %}text-up{% elif s.investment_trust_net_buying < 0 %}text-down{% endif %}">{{ s.investment_trust_net_buying|intcomma }}</td>
+                                <td class="text-end {% if s.bank_net_buying > 0 %}text-up{% elif s.bank_net_buying < 0 %}text-down{% endif %}">{{ s.bank_net_buying|intcomma }}</td>
+                                <td class="text-end {% if s.pension_fund_net_buying > 0 %}text-up{% elif s.pension_fund_net_buying < 0 %}text-down{% endif %}">{{ s.pension_fund_net_buying|intcomma }}</td>
+                                <td class="text-end {% if s.private_fund_net_buying > 0 %}text-up{% elif s.private_fund_net_buying < 0 %}text-down{% endif %}">{{ s.private_fund_net_buying|intcomma }}</td>
+                                <td class="text-end pe-3 {% if s.other_corporation_net_buying > 0 %}text-up{% elif s.other_corporation_net_buying < 0 %}text-down{% endif %}">{{ s.other_corporation_net_buying|intcomma }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="11" class="text-center text-muted py-3">데이터가 없습니다.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const kospiChartData = {{ kospi_chart_data|safe }};
+const kosdaqChartData = {{ kosdaq_chart_data|safe }};
+
+let kospiChart = null;
+let kosdaqChart = null;
+
+function createSectorChart(containerId, sectorData) {
+    const container = document.getElementById(containerId);
+    if (!container || !sectorData || sectorData.data.length === 0) return null;
+
+    container.innerHTML = `<canvas id="${containerId}Canvas"></canvas>`;
+    const ctx = document.getElementById(`${containerId}Canvas`);
+    const data = sectorData.data;
+
+    return new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(d => d.date),
+            datasets: [
+                { label: '개인', data: data.map(d => d.individual), borderColor: '#dc3545', borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false },
+                { label: '외국인', data: data.map(d => d.foreign), borderColor: '#198754', borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false },
+                { label: '기관', data: data.map(d => d.institution), borderColor: '#ffc107', borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.raw.toLocaleString('ko-KR') }}
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { maxTicksLimit: 10 }},
+                y: { ticks: { callback: v => Math.abs(v) >= 100000000 ? (v/100000000).toFixed(1)+'억' : Math.abs(v) >= 10000 ? (v/10000).toFixed(1)+'만' : v.toFixed(0) }, grid: { color: '#f0f0f0' }}
+            }
+        }
+    });
+}
+
+document.querySelectorAll('.sector-row').forEach(row => {
+    row.addEventListener('click', function() {
+        const code = this.dataset.code;
+        const market = this.dataset.market;
+        const name = this.dataset.name;
+
+        this.closest('tbody').querySelectorAll('tr').forEach(tr => tr.classList.remove('table-active'));
+        this.classList.add('table-active');
+
+        const chartData = market === 'KOSPI' ? kospiChartData : kosdaqChartData;
+        const sectorData = chartData[code];
+        if (!sectorData || sectorData.data.length === 0) return;
+
+        const chartId = market === 'KOSPI' ? 'kospiSectorChart' : 'kosdaqSectorChart';
+        const nameId = market === 'KOSPI' ? 'kospi-chart-name' : 'kosdaq-chart-name';
+
+        document.getElementById(nameId).textContent = name;
+
+        if (market === 'KOSPI' && kospiChart) kospiChart.destroy();
+        else if (market === 'KOSDAQ' && kosdaqChart) kosdaqChart.destroy();
+
+        const newChart = createSectorChart(chartId, sectorData);
+        if (market === 'KOSPI') kospiChart = newChart;
+        else kosdaqChart = newChart;
+    });
+});
+</script>
+{% endblock %}
