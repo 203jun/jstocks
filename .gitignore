@@ -28,6 +28,9 @@ db.sqlite3-journal
 token.json
 *.token.json
 
+# Telegram Session
+telegram_session.session
+
 # IDE
 .vscode/
 .idea/
