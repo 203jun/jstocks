@@ -20,6 +20,12 @@
         <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-content" type="button" role="tab">기본정보</button>
     </li>
     <li class="nav-item" role="presentation">
+        <button class="nav-link" id="supply-tab" data-bs-toggle="tab" data-bs-target="#supply-content" type="button" role="tab">수급</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="shortsell-tab" data-bs-toggle="tab" data-bs-target="#shortsell-content" type="button" role="tab">공매도</button>
+    </li>
+    <li class="nav-item" role="presentation">
         <button class="nav-link" id="disclosure-tab" data-bs-toggle="tab" data-bs-target="#disclosure-content" type="button" role="tab">공시</button>
     </li>
     <li class="nav-item" role="presentation">
@@ -140,6 +146,123 @@
                 <a href="{% url 'stocks:stock_detail' stock.code %}" class="btn btn-outline-secondary">취소</a>
             </div>
         </form>
+    </div>
+
+    <!-- 수급 탭 -->
+    <div class="tab-pane fade" id="supply-content" role="tabpanel">
+        <!-- 누적 순매수 차트 -->
+        {% if investor_trends %}
+        <div class="card mb-3">
+            <div class="card-header py-2">
+                <strong>누적 순매수</strong>
+                <span class="badge text-bg-warning text-dark ms-2" style="font-size: 0.65rem;">개인</span>
+                <span class="badge text-bg-success ms-1" style="font-size: 0.65rem;">외국인</span>
+                <span class="badge text-bg-danger ms-1" style="font-size: 0.65rem;">기관</span>
+            </div>
+            <div class="card-body p-2">
+                <div style="height: 280px;">
+                    <canvas id="investorTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header py-2">
+                <strong>투자자별 매매동향</strong>
+                <small class="text-muted ms-2">최근 60일</small>
+            </div>
+            <div class="card-body p-0">
+                {% if investor_trends %}
+                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr class="small">
+                                <th class="ps-3">일자</th>
+                                <th class="text-end">개인</th>
+                                <th class="text-end">외국인</th>
+                                <th class="text-end">기관</th>
+                                <th class="text-end">금융투자</th>
+                                <th class="text-end">보험</th>
+                                <th class="text-end">투신</th>
+                                <th class="text-end">은행</th>
+                                <th class="text-end">연기금</th>
+                                <th class="text-end">사모</th>
+                                <th class="text-end pe-3">기타법인</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in investor_trends %}
+                            <tr class="small">
+                                <td class="ps-3 text-muted">{{ t.date|date:"m.d" }}</td>
+                                <td class="text-end {% if t.individual > 0 %}text-up{% elif t.individual < 0 %}text-down{% endif %}">{{ t.individual|intcomma }}</td>
+                                <td class="text-end {% if t.foreign > 0 %}text-up{% elif t.foreign < 0 %}text-down{% endif %}">{{ t.foreign|intcomma }}</td>
+                                <td class="text-end {% if t.institution > 0 %}text-up{% elif t.institution < 0 %}text-down{% endif %}">{{ t.institution|intcomma }}</td>
+                                <td class="text-end {% if t.financial > 0 %}text-up{% elif t.financial < 0 %}text-down{% endif %}">{{ t.financial|intcomma }}</td>
+                                <td class="text-end {% if t.insurance > 0 %}text-up{% elif t.insurance < 0 %}text-down{% endif %}">{{ t.insurance|intcomma }}</td>
+                                <td class="text-end {% if t.investment_trust > 0 %}text-up{% elif t.investment_trust < 0 %}text-down{% endif %}">{{ t.investment_trust|intcomma }}</td>
+                                <td class="text-end {% if t.bank > 0 %}text-up{% elif t.bank < 0 %}text-down{% endif %}">{{ t.bank|intcomma }}</td>
+                                <td class="text-end {% if t.pension_fund > 0 %}text-up{% elif t.pension_fund < 0 %}text-down{% endif %}">{{ t.pension_fund|intcomma }}</td>
+                                <td class="text-end {% if t.private_fund > 0 %}text-up{% elif t.private_fund < 0 %}text-down{% endif %}">{{ t.private_fund|intcomma }}</td>
+                                <td class="text-end pe-3 {% if t.other_corporation > 0 %}text-up{% elif t.other_corporation < 0 %}text-down{% endif %}">{{ t.other_corporation|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    수급 데이터가 없습니다.<br>
+                    <code class="small">python manage.py save_investor_trend --code {{ stock.code }} --mode all</code>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 공매도 탭 -->
+    <div class="tab-pane fade" id="shortsell-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2">
+                <strong>공매도 현황</strong>
+                <small class="text-muted ms-2">최근 60일</small>
+            </div>
+            <div class="card-body p-0">
+                {% if short_sellings %}
+                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr class="small">
+                                <th class="ps-3">일자</th>
+                                <th class="text-end">거래량</th>
+                                <th class="text-end">공매도량</th>
+                                <th class="text-end">비중(%)</th>
+                                <th class="text-end">공매도대금</th>
+                                <th class="text-end pe-3">평균가</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in short_sellings %}
+                            <tr class="small">
+                                <td class="ps-3 text-muted">{{ s.date|date:"m.d" }}</td>
+                                <td class="text-end">{{ s.trading_volume|intcomma }}</td>
+                                <td class="text-end">{{ s.short_volume|intcomma }}</td>
+                                <td class="text-end {% if s.trading_weight >= 10 %}text-danger fw-bold{% elif s.trading_weight >= 5 %}text-warning{% endif %}">{{ s.trading_weight }}%</td>
+                                <td class="text-end">{{ s.short_trading_value|intcomma }}</td>
+                                <td class="text-end pe-3">{{ s.short_average_price|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    공매도 데이터가 없습니다.<br>
+                    <code class="small">python manage.py save_short_selling --code {{ stock.code }} --mode all</code>
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
     <!-- 공시 탭 -->
@@ -272,7 +395,7 @@
                     </table>
                 </div>
                 {% else %}
-                <div class="text-muted p-3">리포트가 없습니다. <code>python manage.py save_report --code {{ stock.code }}</code> 실행</div>
+                <div class="text-muted p-3">리포트가 없습니다. <code>python manage.py save_fnguide_report --code {{ stock.code }}</code> 실행</div>
                 {% endif %}
             </div>
         </div>
@@ -475,6 +598,39 @@
 <script>
 const stockName = "{{ stock.name }}";
 const stockCode = "{{ stock.code }}";
+
+// ============ 수급 누적 차트 ============
+const investorChartData = {{ investor_chart_data|safe }};
+
+if (investorChartData && investorChartData.length > 0) {
+    const ctx = document.getElementById('investorTrendChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: investorChartData.map(d => d.date),
+                datasets: [
+                    { label: '개인', data: investorChartData.map(d => d.individual), borderColor: '#ffc107', borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false },
+                    { label: '외국인', data: investorChartData.map(d => d.foreign), borderColor: '#198754', borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false },
+                    { label: '기관', data: investorChartData.map(d => d.institution), borderColor: '#dc3545', borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.raw.toLocaleString('ko-KR') }}
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { maxTicksLimit: 10 }},
+                    y: { ticks: { callback: v => Math.abs(v) >= 100000000 ? (v/100000000).toFixed(1)+'억' : Math.abs(v) >= 10000 ? (v/10000).toFixed(1)+'만' : v.toFixed(0) }, grid: { color: '#f0f0f0' }}
+                }
+            }
+        });
+    }
+}
 
 // ============ Quill 에디터 초기화 ============
 const quillOptions = {

@@ -8,7 +8,20 @@ from stocks.logger import StockLogger
 
 
 class Command(BaseCommand):
-    help = '지수(KOSPI/KOSDAQ) 일봉 차트 데이터 저장 (네이버 금융)'
+    help = '''
+지수(KOSPI/KOSDAQ) 일봉 차트 데이터 저장 (네이버 금융)
+
+옵션:
+  --code      (선택) KOSPI / KOSDAQ / all (기본값: all)
+  --mode      (선택) all (2024.1.1부터) / last (마지막 저장일부터, 기본값)
+  --clear     (선택) 전체 데이터 삭제
+  --log-level (선택) debug / info / warning / error (기본값: info)
+
+예시:
+  python manage.py save_index_chart
+  python manage.py save_index_chart --code KOSPI --mode all
+  python manage.py save_index_chart --clear
+'''
 
     # 지원하는 지수 코드
     INDEX_CODES = ['KOSPI', 'KOSDAQ']
@@ -27,9 +40,20 @@ class Command(BaseCommand):
             choices=['all', 'last'],
             help='all: 2024.1.1부터, last: 마지막 저장일부터 (기본값: last)'
         )
+        parser.add_argument(
+            '--clear',
+            action='store_true',
+            help='전체 데이터 삭제'
+        )
         StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
+        # --clear 옵션 처리
+        if options.get('clear'):
+            deleted_count, _ = IndexChart.objects.all().delete()
+            self.stdout.write(self.style.SUCCESS(f'IndexChart 데이터 {deleted_count}건 삭제 완료'))
+            return
+
         self.log = StockLogger(self.stdout, self.style, options, 'save_index_chart')
 
         code = options['code'].upper()
@@ -44,16 +68,21 @@ class Command(BaseCommand):
             self.log.info(f'지원 코드: {", ".join(self.INDEX_CODES)}')
             return
 
-        self.log.info(f'지수 차트 저장 시작 (mode={mode})')
+        self.log.info(f'지수 차트 저장 시작 (모드: {mode}, 대상: {", ".join(codes)})')
+
+        total_created = 0
+        total_updated = 0
 
         for index_code in codes:
-            self.process_index(index_code, mode)
+            created, updated = self.process_index(index_code, mode)
+            total_created += created
+            total_updated += updated
 
         self.log.separator()
-        self.log.info('지수 차트 저장 완료', success=True)
+        self.log.info(f'완료 | 신규: {total_created}개, 업데이트: {total_updated}개', success=True)
 
     def process_index(self, code, mode):
-        """지수 데이터 처리"""
+        """지수 데이터 처리, (created, updated) 반환"""
         self.log.separator()
         self.log.info(f'[{code}] 처리 시작')
 
@@ -72,16 +101,16 @@ class Command(BaseCommand):
 
         if start_date > end_date:
             self.log.info(f'[{code}] 이미 최신 데이터')
-            return
+            return 0, 0
 
-        self.log.info(f'[{code}] 기간: {start_date} ~ {end_date}')
+        self.log.debug(f'[{code}] 기간: {start_date} ~ {end_date}')
 
         # 데이터 가져오기
         data = self.fetch_data(code, start_date, end_date)
 
         if not data:
             self.log.info(f'[{code}] 데이터 없음')
-            return
+            return 0, 0
 
         # 저장
         created_count = 0
@@ -112,7 +141,8 @@ class Command(BaseCommand):
             except Exception as e:
                 self.log.error(f'[{code}] 저장 실패: {row} - {e}')
 
-        self.log.info(f'[{code}] 신규 {created_count}개, 업데이트 {updated_count}개', success=True)
+        self.log.info(f'[{code}] 신규 {created_count}개, 업데이트 {updated_count}개')
+        return created_count, updated_count
 
     def fetch_data(self, code, start_date, end_date):
         """네이버 금융 API에서 데이터 가져오기"""

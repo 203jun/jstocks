@@ -1,4 +1,4 @@
-# init_financial
+# save_init_financial (init_financial)
 
 재무제표 초기 데이터를 로드하는 Django 관리 명령어입니다. (jemu 폴더의 txt 파일 사용)
 

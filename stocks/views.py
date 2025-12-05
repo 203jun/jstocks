@@ -9,12 +9,21 @@ from django.views.decorators.http import require_GET
 from decouple import config
 from telethon import TelegramClient
 from django.views.decorators.http import require_POST
-from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, Schedule, IndexChart, MarketTrend
+from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, Schedule, IndexChart, MarketTrend, InvestorTrend, ShortSelling
 
 
 def index(request):
-    """메인 페이지 (대시보드)"""
-    return render(request, 'stocks/index.html')
+    """종목 대시보드 (관심종목)"""
+    super_stocks = Info.objects.filter(interest_level='super', is_active=True).order_by('-market_cap')
+    normal_stocks = Info.objects.filter(interest_level='normal', is_active=True).order_by('-market_cap')
+    incubator_stocks = Info.objects.filter(interest_level='incubator', is_active=True).order_by('-market_cap')
+
+    context = {
+        'super_stocks': super_stocks,
+        'normal_stocks': normal_stocks,
+        'incubator_stocks': incubator_stocks,
+    }
+    return render(request, 'stocks/index.html', context)
 
 
 def stock_list(request):
@@ -291,6 +300,30 @@ def stock_edit(request, code):
     # 일정
     schedules = Schedule.objects.filter(stock=stock).order_by('date_sort')
 
+    # 수급 (투자자별 매매동향, 최근 60일)
+    investor_trends = list(InvestorTrend.objects.filter(stock=stock).order_by('-date')[:60])
+
+    # 수급 누적 차트 데이터 (오래된 날짜부터)
+    investor_chart_data = []
+    if investor_trends:
+        trends_asc = list(reversed(investor_trends))
+        cum_individual = 0
+        cum_foreign = 0
+        cum_institution = 0
+        for t in trends_asc:
+            cum_individual += t.individual or 0
+            cum_foreign += t.foreign or 0
+            cum_institution += t.institution or 0
+            investor_chart_data.append({
+                'date': t.date.strftime('%m.%d'),
+                'individual': cum_individual,
+                'foreign': cum_foreign,
+                'institution': cum_institution,
+            })
+
+    # 공매도 (최근 60일)
+    short_sellings = ShortSelling.objects.filter(stock=stock).order_by('-date')[:60]
+
     context = {
         'stock': stock,
         'interest_choices': interest_choices,
@@ -301,6 +334,9 @@ def stock_edit(request, code):
         'nodaji_articles': nodaji_articles,
         'gongsi_list': gongsi_list,
         'schedules': schedules,
+        'investor_trends': investor_trends,
+        'investor_chart_data': json.dumps(investor_chart_data),
+        'short_sellings': short_sellings,
     }
     return render(request, 'stocks/stock_edit.html', context)
 

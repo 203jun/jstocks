@@ -34,7 +34,22 @@ ITEM_CODES = {
 
 
 class Command(BaseCommand):
-    help = '재무제표 초기 데이터 로드 (jemu 폴더 txt 파일) - 최초 1회 실행'
+    help = '''
+재무제표 초기 데이터 로드 (jemu 폴더 txt 파일) - 최초 1회 실행
+
+옵션:
+  --code      (필수*) 종목코드 또는 "all" (전체 종목, ETF 제외)
+  --mode      (선택) annual / quarterly / all (기본값: all)
+  --clear     (선택) 기존 Financial 데이터 전체 삭제
+  --log-level (선택) debug / info / warning / error (기본값: info)
+
+  * --code 또는 --clear 중 하나는 필수
+
+예시:
+  python manage.py init_financial --code 005930
+  python manage.py init_financial --code all --mode annual --log-level info
+  python manage.py init_financial --clear
+'''
 
     def add_arguments(self, parser):
         # 종목 선택 (종목코드 또는 'all')
@@ -60,18 +75,19 @@ class Command(BaseCommand):
         StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
-        self.log = StockLogger(self.stdout, self.style, options, 'init_financial')
+        clear = options.get('clear')
+        code = options.get('code')
 
-        clear = options['clear']
-        code = options['code']
+        # 필수 옵션 체크: --clear 또는 --code 중 하나 필요
+        if not clear and not code:
+            self.print_help('manage.py', 'init_financial')
+            return
+
+        self.log = StockLogger(self.stdout, self.style, options, 'init_financial')
 
         # 옵션 검증: --clear와 --code는 동시 사용 불가
         if clear and code:
             self.log.error('--clear와 --code는 동시에 사용할 수 없습니다.')
-            return
-
-        if not clear and not code:
-            self.log.error('--clear 또는 --code 옵션이 필요합니다.')
             return
 
         # --clear 옵션: 기존 데이터 삭제 후 종료

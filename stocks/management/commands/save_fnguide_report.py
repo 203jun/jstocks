@@ -7,20 +7,49 @@ from stocks.logger import StockLogger
 
 
 class Command(BaseCommand):
-    help = '애널리스트 리포트 조회 및 저장 (FnGuide)'
+    help = '''
+애널리스트 리포트 조회 및 저장 (FnGuide)
+
+옵션:
+  --code      (필수*) 종목코드 또는 "all" (전체 종목, ETF 제외)
+  --clear     (선택) 전체 데이터 삭제
+  --log-level (선택) debug / info / warning / error (기본값: info)
+
+  * --clear 사용 시 --code 불필요
+
+예시:
+  python manage.py save_fnguide_report --code 005930
+  python manage.py save_fnguide_report --code all --log-level info
+  python manage.py save_fnguide_report --clear
+'''
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--code',
             type=str,
-            required=True,
             help='종목코드 또는 "all" (전체 종목, ETF 제외)'
+        )
+        parser.add_argument(
+            '--clear',
+            action='store_true',
+            help='전체 데이터 삭제'
         )
         StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
+        # --clear 옵션 처리
+        if options.get('clear'):
+            deleted_count, _ = Report.objects.all().delete()
+            self.stdout.write(self.style.SUCCESS(f'Report 데이터 {deleted_count}건 삭제 완료'))
+            return
+
+        # 필수 옵션 체크
+        if not options.get('code'):
+            self.print_help('manage.py', 'save_fnguide_report')
+            return
+
         # 로거 초기화
-        self.log = StockLogger(self.stdout, self.style, options, 'save_report')
+        self.log = StockLogger(self.stdout, self.style, options, 'save_fnguide_report')
 
         # stdout 버퍼링 비활성화
         import sys
@@ -38,15 +67,18 @@ class Command(BaseCommand):
         """단일 종목 처리"""
         try:
             stock = Info.objects.get(code=stock_code)
-            self.log.info(f'종목: {stock.name} ({stock_code})')
+            self.log.info(f'종목: {stock.name}({stock_code})')
         except Info.DoesNotExist:
             self.log.error(f'종목 정보 없음: {stock_code}')
             return
 
         self.log.separator()
         result = self.fetch_and_save(stock)
+        self.log.separator()
         if result:
-            self.log.info(result, success=True)
+            self.log.info(f'완료 | {result}', success=True)
+        else:
+            self.log.info('완료 | 데이터 없음', success=True)
 
     def process_all_stocks(self):
         """전체 종목 처리 (ETF 제외, is_active=True)"""
@@ -57,7 +89,7 @@ class Command(BaseCommand):
         ).values_list('code', 'name')
 
         total_count = stocks.count()
-        self.log.info(f'리포트 조회 시작 ({total_count}개 종목, ETF 제외)')
+        self.log.info(f'리포트 저장 시작 (대상: {total_count}개 종목)')
 
         success_count = 0
         no_data_list = []
@@ -84,19 +116,16 @@ class Command(BaseCommand):
 
         # 최종 리포트
         self.log.separator()
-        self.log.info(f'리포트 조회 완료: 성공 {success_count}개, 데이터없음 {len(no_data_list)}개, 오류 {len(error_list)}개', success=True)
-
-        if no_data_list:
-            self.log.info(f'[데이터 없음] {len(no_data_list)}개:')
-            for code, name in no_data_list[:20]:
-                self.log.info(f'  - {code} {name}')
-            if len(no_data_list) > 20:
-                self.log.info(f'  ... 외 {len(no_data_list) - 20}개')
-
         if error_list:
-            self.log.info(f'[오류 발생] {len(error_list)}개:')
+            self.log.info(f'완료 | 성공: {success_count}개, 데이터없음: {len(no_data_list)}개, 오류: {len(error_list)}개', success=True)
+            self.log.info('')
+            self.log.info('[오류 목록]')
             for code, name, err in error_list:
-                self.log.error(f'  - {code} {name}: {err}')
+                self.log.error(f'  {code} {name}: {err}')
+        elif no_data_list:
+            self.log.info(f'완료 | 성공: {success_count}개, 데이터없음: {len(no_data_list)}개', success=True)
+        else:
+            self.log.info(f'완료 | 성공: {success_count}개', success=True)
 
     def fetch_and_save(self, stock, silent=False):
         """리포트 조회 및 저장"""

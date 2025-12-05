@@ -18,18 +18,47 @@ MONTH_TO_QUARTER = {
 
 
 class Command(BaseCommand):
-    help = '재무제표 데이터 크롤링 및 저장 (네이버 금융)'
+    help = '''
+재무제표 데이터 크롤링 및 저장 (네이버 금융)
+
+옵션:
+  --code      (필수*) 종목코드 또는 "all" (전체 종목, ETF 제외)
+  --clear     (선택) 전체 데이터 삭제
+  --log-level (선택) debug / info / warning / error (기본값: info)
+
+  * --clear 사용 시 --code 불필요
+
+예시:
+  python manage.py save_financial_naver --code 005930
+  python manage.py save_financial_naver --code all --log-level info
+  python manage.py save_financial_naver --clear
+'''
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--code',
             type=str,
-            required=True,
             help='종목코드 또는 "all" (전체 종목)'
+        )
+        parser.add_argument(
+            '--clear',
+            action='store_true',
+            help='전체 데이터 삭제'
         )
         StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
+        # --clear 옵션 처리
+        if options.get('clear'):
+            deleted_count, _ = Financial.objects.all().delete()
+            self.stdout.write(self.style.SUCCESS(f'Financial 데이터 {deleted_count}건 삭제 완료'))
+            return
+
+        # 필수 옵션 체크
+        if not options.get('code'):
+            self.print_help('manage.py', 'save_financial_naver')
+            return
+
         self.log = StockLogger(self.stdout, self.style, options, 'save_financial_naver')
         stock_code = options['code']
 
@@ -46,7 +75,8 @@ class Command(BaseCommand):
             self.log.error(f'종목코드 {stock_code}가 Info에 없습니다.')
             return
 
-        self.log.info(f'{info.name}({stock_code}) 네이버 금융 크롤링 시작...')
+        self.log.info(f'종목: {info.name}({stock_code})')
+        self.log.separator()
 
         data = self.crawl_naver_finance(stock_code)
         if not data:
@@ -60,11 +90,11 @@ class Command(BaseCommand):
         stocks = Info.objects.filter(is_active=True).exclude(market='ETF').values_list('code', 'name')
         total = len(stocks)
 
-        self.log.info(f'전체 {total}개 종목 처리 시작...')
+        self.log.info(f'재무제표 저장 시작 (대상: {total}개 종목)')
 
         success_count = 0
-        error_count = 0
-        error_codes = []
+        no_data_list = []
+        error_list = []
 
         for idx, (code, name) in enumerate(stocks, 1):
             try:
@@ -72,23 +102,28 @@ class Command(BaseCommand):
                 if data:
                     info = Info.objects.get(code=code)
                     saved, updated, skipped = self.save_to_db(info, data, silent=True)
-                    self.log.info(f'[{idx}/{total}] {name}({code}): 신규 {saved}, 업데이트 {updated}, 스킵 {skipped}')
+                    self.log.info(f'[{idx}/{total}] {code} {name}: 신규 {saved}건, 업데이트 {updated}건, 스킵 {skipped}건')
                     success_count += 1
                 else:
-                    self.log.info(f'[{idx}/{total}] {name}({code}): 데이터 없음')
-                    error_count += 1
-                    error_codes.append(code)
+                    self.log.info(f'[{idx}/{total}] {code} {name}: 데이터 없음')
+                    no_data_list.append((code, name))
             except Exception as e:
-                self.log.error(f'[{idx}/{total}] {name}({code}): 실패 - {e}')
-                error_count += 1
-                error_codes.append(code)
+                self.log.error(f'[{idx}/{total}] {code} {name}: 실패 - {e}')
+                error_list.append((code, name, str(e)))
 
-            # 요청 간격 (네이버 차단 방지)
             time.sleep(0.3)
 
-        self.log.info(f'처리 완료: 성공 {success_count}개, 실패 {error_count}개', success=True)
-        if error_codes:
-            self.log.error(f'실패 종목: {", ".join(error_codes[:20])}{"..." if len(error_codes) > 20 else ""}')
+        self.log.separator()
+        if error_list:
+            self.log.info(f'완료 | 성공: {success_count}개, 데이터없음: {len(no_data_list)}개, 오류: {len(error_list)}개', success=True)
+            self.log.info('')
+            self.log.info('[오류 목록]')
+            for code, name, err in error_list:
+                self.log.error(f'  {code} {name}: {err}')
+        elif no_data_list:
+            self.log.info(f'완료 | 성공: {success_count}개, 데이터없음: {len(no_data_list)}개', success=True)
+        else:
+            self.log.info(f'완료 | 성공: {success_count}개', success=True)
 
     def crawl_naver_finance(self, stock_code):
         """네이버 금융에서 재무제표 테이블 크롤링"""

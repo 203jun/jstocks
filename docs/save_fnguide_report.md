@@ -1,4 +1,4 @@
-# save_report
+# save_fnguide_report
 
 FnGuide에서 애널리스트 리포트 데이터를 조회하여 저장합니다.
 
@@ -6,13 +6,13 @@ FnGuide에서 애널리스트 리포트 데이터를 조회하여 저장합니�
 
 ```bash
 # 단일 종목
-python manage.py save_report --code 005930
+python manage.py save_fnguide_report --code 005930
 
 # 전체 종목 (정기 업데이트용)
-python manage.py save_report --code all
+python manage.py save_fnguide_report --code all
 
 # 디버그 모드
-python manage.py save_report --code 005930 --log-level debug
+python manage.py save_fnguide_report --code 005930 --log-level debug
 ```
 
 ## 옵션

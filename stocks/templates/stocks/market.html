@@ -116,9 +116,9 @@
                 <div class="card mb-3">
                     <div class="card-header py-2">
                         <strong>120일 누적 순매수</strong>
-                        <span class="badge text-bg-danger ms-2" style="font-size: 0.65rem;">개인</span>
+                        <span class="badge text-bg-warning text-dark ms-2" style="font-size: 0.65rem;">개인</span>
                         <span class="badge text-bg-success ms-1" style="font-size: 0.65rem;">외국인</span>
-                        <span class="badge text-bg-warning text-dark ms-1" style="font-size: 0.65rem;">기관</span>
+                        <span class="badge text-bg-danger ms-1" style="font-size: 0.65rem;">기관</span>
                     </div>
                     <div class="card-body p-0">
                         <div id="kospiCumulativeChart" style="height: 250px;"></div>
@@ -172,9 +172,9 @@
                 <div class="card mb-3">
                     <div class="card-header py-2">
                         <strong>120일 누적 순매수</strong>
-                        <span class="badge text-bg-danger ms-2" style="font-size: 0.65rem;">개인</span>
+                        <span class="badge text-bg-warning text-dark ms-2" style="font-size: 0.65rem;">개인</span>
                         <span class="badge text-bg-success ms-1" style="font-size: 0.65rem;">외국인</span>
-                        <span class="badge text-bg-warning text-dark ms-1" style="font-size: 0.65rem;">기관</span>
+                        <span class="badge text-bg-danger ms-1" style="font-size: 0.65rem;">기관</span>
                     </div>
                     <div class="card-body p-0">
                         <div id="kosdaqCumulativeChart" style="height: 250px;"></div>
@@ -228,9 +228,9 @@
                 <div class="card mb-3">
                     <div class="card-header py-2">
                         <strong>120일 누적 순매수</strong>
-                        <span class="badge text-bg-danger ms-2" style="font-size: 0.65rem;">개인</span>
+                        <span class="badge text-bg-warning text-dark ms-2" style="font-size: 0.65rem;">개인</span>
                         <span class="badge text-bg-success ms-1" style="font-size: 0.65rem;">외국인</span>
-                        <span class="badge text-bg-warning text-dark ms-1" style="font-size: 0.65rem;">기관</span>
+                        <span class="badge text-bg-danger ms-1" style="font-size: 0.65rem;">기관</span>
                     </div>
                     <div class="card-body p-0">
                         <div id="futuresCumulativeChart" style="height: 250px;"></div>
@@ -499,9 +499,9 @@ function initCumulativeChart(containerId, data) {
         height: 250,
     });
 
-    // 개인 (빨간색)
+    // 개인 (노란색)
     const individualSeries = chart.addLineSeries({
-        color: '#dc3545',
+        color: '#ffc107',
         lineWidth: 2,
         priceLineVisible: false,
         lastValueVisible: false,
@@ -523,9 +523,9 @@ function initCumulativeChart(containerId, data) {
         value: d.foreign,
     })));
 
-    // 기관 (노란색)
+    // 기관 (빨간색)
     const institutionSeries = chart.addLineSeries({
-        color: '#ffc107',
+        color: '#dc3545',
         lineWidth: 2,
         priceLineVisible: false,
         lastValueVisible: false,

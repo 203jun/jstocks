@@ -15,7 +15,18 @@ MARKET_CODES = [
 
 
 class Command(BaseCommand):
-    help = '상장 종목 목록 동기화 (키움 API ka10099)'
+    help = '''
+상장 종목 목록 동기화 (키움 API ka10099)
+
+옵션:
+  --clear     (선택) Info 테이블 전체 삭제 (연결된 모든 데이터 함께 삭제됨)
+  --log-level (선택) debug / info / warning / error (기본값: info)
+
+예시:
+  python manage.py save_stock_list
+  python manage.py save_stock_list --log-level info
+  python manage.py save_stock_list --clear
+'''
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -33,14 +44,19 @@ class Command(BaseCommand):
             from django.db import connection
             with connection.cursor() as cursor:
                 # 연결된 테이블들 먼저 삭제 (CASCADE 수동 처리)
+                # info를 참조하는 모든 테이블 포함
                 tables = [
                     'financial', 'daily_chart', 'weekly_chart', 'monthly_chart',
-                    'investor_trend', 'short_selling', 'info_themes', 'info_sectors', 'info'
+                    'investor_trend', 'short_selling', 'gongsi', 'nodaji', 'report',
+                    'schedule', 'info_sectors', 'info'
                 ]
                 for table in tables:
-                    cursor.execute(f'DELETE FROM {table}')
-                    self.log.debug(f'  {table} 삭제 완료')
-            self.log.info('Info 및 연결된 모든 테이블 삭제 완료', success=True)
+                    try:
+                        cursor.execute(f'DELETE FROM {table}')
+                        self.stdout.write(f'  {table} 삭제 완료')
+                    except Exception as e:
+                        self.stdout.write(f'  {table} 스킵 ({e})')
+            self.stdout.write(self.style.SUCCESS('Info 및 연결된 모든 테이블 삭제 완료'))
             return
 
         token = get_valid_token()
@@ -51,9 +67,10 @@ class Command(BaseCommand):
         # ETF 코드 수집 (KOSPI/KOSDAQ에서 제외용)
         etf_codes = set()
 
+        self.log.info(f'종목목록 저장 시작 (대상: ETF, KOSPI, KOSDAQ)')
+
         # ETF → KOSPI → KOSDAQ 순서로 처리
         for market, market_code in MARKET_CODES:
-            self.log.info(f'{market} 종목 목록 조회 시작...')
 
             response_data, response_headers = self.call_api(token, market_code)
 
@@ -135,7 +152,8 @@ class Command(BaseCommand):
             self.log.error('!' * 70)
 
         # 결과 요약
-        self.log.info(f'{market} 동기화 완료: API {len(api_codes)}개, 신규 {inserted_count}개, 업데이트 {updated_count}개, 상폐 {len(delisted_codes)}개', success=True)
+        self.log.separator()
+        self.log.info(f'[{market}] 완료 | API: {len(api_codes)}개, 신규: {inserted_count}개, 업데이트: {updated_count}개, 상폐: {len(delisted_codes)}개', success=True)
 
     def call_api(self, token, market_code, cont_yn='N', next_key=''):
         """종목 목록 API 호출 (ka10099)"""

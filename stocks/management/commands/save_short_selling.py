@@ -1,5 +1,5 @@
+import time
 import requests
-import json
 from datetime import datetime, timedelta
 from decimal import Decimal
 from django.core.management.base import BaseCommand
@@ -9,59 +9,129 @@ from stocks.logger import StockLogger
 
 
 class Command(BaseCommand):
-    help = '공매도 추이 데이터 조회 (공매도추이요청 - ka10014)'
+    help = '''
+공매도 추이 저장 (키움 API ka10014)
+
+옵션:
+  --code      (필수*) 종목코드 또는 "all" (전체 종목, ETF 제외)
+  --mode      (필수*) all (60일) / last (최근 1일)
+  --clear     (선택) 전체 데이터 삭제
+  --log-level (선택) debug / info / warning / error (기본값: info)
+
+  * --clear 사용 시 --code, --mode 불필요
+
+예시:
+  python manage.py save_short_selling --code 005930 --mode all
+  python manage.py save_short_selling --code all --mode last --log-level info
+  python manage.py save_short_selling --clear
+'''
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--code',
             type=str,
-            required=True,
-            help='종목코드 (필수)'
+            help='종목코드 또는 "all" (전체 종목, ETF 제외)'
         )
         parser.add_argument(
             '--mode',
             type=str,
-            choices=['all', 'day'],
-            required=True,
-            help='조회 모드: all(2개월 데이터), day(최근 거래일 1일만)'
+            choices=['all', 'last'],
+            help='조회 모드: all(60일), last(최근 1일)'
+        )
+        parser.add_argument(
+            '--clear',
+            action='store_true',
+            help='전체 데이터 삭제'
         )
         StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
-        # 로거 초기화
+        # --clear 옵션 처리
+        if options.get('clear'):
+            deleted_count, _ = ShortSelling.objects.all().delete()
+            self.stdout.write(self.style.SUCCESS(f'ShortSelling 데이터 {deleted_count}건 삭제 완료'))
+            return
+
+        # 필수 옵션 체크
+        if not options.get('code') or not options.get('mode'):
+            self.print_help('manage.py', 'save_short_selling')
+            return
+
         self.log = StockLogger(self.stdout, self.style, options, 'save_short_selling')
 
-        # 1. 토큰 가져오기
+        # 토큰 가져오기
         token = get_valid_token()
-
         if not token:
             self.log.error('토큰이 없습니다. python manage.py get_token을 먼저 실행하세요.')
             return
 
-        # 2. 파라미터 설정
-        stock_code = options['code']
+        code = options['code']
         mode = options['mode']
 
-        self.log.info(f'종목코드: {stock_code} | 모드: {mode}')
-        self.log.separator()
+        # 전체 종목 처리
+        if code.lower() == 'all':
+            stocks = Info.objects.filter(is_active=True).exclude(market='ETF').order_by('code')
+            total = stocks.count()
 
-        # 3. 모드에 따라 처리
-        if mode == 'day':
-            self.fetch_latest_day(token, stock_code)
+            self.log.info(f'공매도 추이 저장 시작 (모드: {mode}, 대상: {total}개 종목)')
+
+            total_created = 0
+            total_updated = 0
+            error_list = []
+
+            for idx, stock in enumerate(stocks, start=1):
+                try:
+                    created, updated = self.process_stock(token, stock.code, mode)
+                    total_created += created
+                    total_updated += updated
+                    self.log.info(f'[{idx}/{total}] {stock.code} {stock.name}: 신규 {created}건, 업데이트 {updated}건')
+                except Exception as e:
+                    self.log.error(f'[{idx}/{total}] {stock.code} {stock.name}: 실패 - {str(e)}')
+                    error_list.append((stock.code, stock.name, str(e)))
+
+                if idx < total:
+                    time.sleep(0.5)
+
+            self.log.separator()
+            if error_list:
+                self.log.info(f'완료 | 신규: {total_created}개, 업데이트: {total_updated}개, 오류: {len(error_list)}개', success=True)
+                self.log.info('')
+                self.log.info('[오류 목록]')
+                for code, name, err in error_list:
+                    self.log.error(f'  {code} {name}: {err}')
+            else:
+                self.log.info(f'완료 | 신규: {total_created}개, 업데이트: {total_updated}개', success=True)
+
+        # 단일 종목 처리
+        else:
+            try:
+                stock = Info.objects.get(code=code)
+                stock_name = stock.name
+            except Info.DoesNotExist:
+                stock_name = code
+
+            self.log.info(f'종목: {stock_name}({code}) | 모드: {mode}')
+            self.log.separator()
+
+            created, updated = self.process_stock(token, code, mode)
+            self.log.info(f'완료 | 신규: {created}개, 업데이트: {updated}개', success=True)
+
+    def process_stock(self, token, stock_code, mode):
+        """종목 데이터 처리 및 저장, (created, updated) 반환"""
+        if mode == 'last':
+            return self.fetch_latest_day(token, stock_code)
         elif mode == 'all':
-            self.fetch_two_months(token, stock_code)
+            return self.fetch_sixty_days(token, stock_code)
+        return 0, 0
 
     def fetch_latest_day(self, token, stock_code):
         """최근 거래일 1일 데이터만 조회"""
-        self.log.header('최근 거래일 데이터 조회')
-
-        # 오늘부터 일주일 전까지 조회 (최근 거래일 찾기 위함)
         today = datetime.now()
         week_ago = today - timedelta(days=7)
 
         params = {
             'stk_cd': stock_code,
-            'tm_tp': '1',  # 시간구분 0:시작일, 1:기간
+            'tm_tp': '1',
             'strt_dt': week_ago.strftime('%Y%m%d'),
             'end_dt': today.strftime('%Y%m%d'),
         }
@@ -69,42 +139,33 @@ class Command(BaseCommand):
         response_data = self.call_api(token, params)
 
         if response_data:
-            # 데이터 배열 찾기
             data_key = self.find_data_key(response_data)
 
             if data_key and response_data[data_key]:
-                # 가장 최근 날짜 찾기
                 all_data = response_data[data_key]
                 latest_date = max(item.get('dt', '') for item in all_data if item.get('dt'))
 
-                # 최근 날짜 데이터만 필터링
                 latest_data = [
                     item for item in all_data
                     if item.get('dt') == latest_date
                 ]
 
-                self.log.debug(f'최근 거래일: {latest_date}')
-                self.log.debug(f'데이터 개수: {len(latest_data)}개')
+                self.log.debug(f'최근 거래일: {latest_date}, 데이터: {len(latest_data)}개')
+                return self.save_to_db(stock_code, latest_data)
 
-                # DB에 저장
-                self.save_to_db(stock_code, latest_data)
-            else:
-                self.log.warning('데이터가 없습니다.')
+        return 0, 0
 
-    def fetch_two_months(self, token, stock_code):
-        """2개월 데이터 조회 (연속조회 포함)"""
-        self.log.header('2개월 데이터 조회')
-
-        # 2개월 전 날짜 계산
-        two_months_ago = datetime.now() - timedelta(days=60)
-        cutoff_date = two_months_ago.strftime('%Y%m%d')
+    def fetch_sixty_days(self, token, stock_code):
+        """60일 데이터 조회"""
+        sixty_days_ago = datetime.now() - timedelta(days=60)
+        cutoff_date = sixty_days_ago.strftime('%Y%m%d')
         today = datetime.now().strftime('%Y%m%d')
 
         self.log.debug(f'조회 기간: {cutoff_date} ~ {today}')
 
         params = {
             'stk_cd': stock_code,
-            'tm_tp': '1',  # 시간구분 0:시작일, 1:기간
+            'tm_tp': '1',
             'strt_dt': cutoff_date,
             'end_dt': today,
         }
@@ -113,37 +174,25 @@ class Command(BaseCommand):
         cont_yn = 'N'
         next_key = ''
 
-        # 연속조회로 2개월치 데이터 수집
         loop_count = 0
         while True:
             loop_count += 1
 
-            self.log.debug(f'[루프 {loop_count}] API 호출 (cont_yn={cont_yn}, next_key={next_key[:10] if next_key else "없음"}...)')
+            self.log.debug(f'[루프 {loop_count}] API 호출')
             response_data = self.call_api(token, params, cont_yn, next_key)
 
             if not response_data:
-                self.log.debug('응답 데이터 없음 - 중단')
                 break
 
-            # 데이터 수집
             data_key = self.find_data_key(response_data)
             if data_key:
                 current_batch = response_data[data_key]
-                self.log.debug(f'현재 배치 데이터 수: {len(current_batch)}개')
 
-                if current_batch:
-                    dates = [item.get('dt', '') for item in current_batch if item.get('dt')]
-                    if dates:
-                        oldest = min(dates)
-                        newest = max(dates)
-                        self.log.debug(f'날짜 범위: {oldest} ~ {newest}')
-
-                # 2개월 이내 데이터만 필터링
+                # 60일 이내 데이터만 필터링
                 filtered = [
                     item for item in current_batch
                     if item.get('dt', '') >= cutoff_date
                 ]
-                self.log.debug(f'필터링 후: {len(filtered)}개 추가 (cutoff: {cutoff_date})')
                 all_data.extend(filtered)
 
                 # 가장 오래된 데이터 확인
@@ -152,47 +201,35 @@ class Command(BaseCommand):
                     if old_dates:
                         oldest_date = min(old_dates)
                         if oldest_date < cutoff_date:
-                            self.log.debug(f'2개월 이전 데이터 도달 ({oldest_date}) - 중단')
                             break
 
             # 연속조회 확인
             header_info = response_data.get('_headers', {})
-            self.log.debug(f'헤더: cont-yn={header_info.get("cont-yn")}, next-key={header_info.get("next-key")}')
-
             if header_info.get('cont-yn') == 'Y' and header_info.get('next-key'):
                 cont_yn = 'Y'
                 next_key = header_info.get('next-key')
-                self.log.debug(f'연속조회 계속... (next-key: {next_key})')
             else:
-                self.log.debug('연속조회 종료 - 더 이상 데이터 없음')
                 break
 
-        self.log.debug(f'총 {len(all_data)}개 데이터 수집 완료')
+        self.log.debug(f'총 {len(all_data)}개 데이터 수집')
 
-        # DB에 저장
         if all_data:
-            self.save_to_db(stock_code, all_data)
-        else:
-            self.log.warning('저장할 데이터가 없습니다.')
+            return self.save_to_db(stock_code, all_data)
+
+        return 0, 0
 
     def find_data_key(self, response_data):
         """응답에서 데이터 배열 키 찾기"""
-        # 공매도 API의 가능한 응답 키들
         for key in ['shrts_trnsn', 'data', 'result', 'output']:
             if key in response_data and isinstance(response_data[key], list):
                 return key
         return None
 
     def parse_number(self, value):
-        """
-        API 응답 숫자 파싱 ("+100500", "-520346" 등)
-        +/- 기호 제거하고 정수로 변환
-        """
+        """API 응답 숫자 파싱"""
         if not value:
             return 0
-        # +, - 기호는 유지하되 공백 제거
         cleaned = str(value).strip().replace(',', '')
-        # + 기호만 제거 (- 는 유지)
         if cleaned.startswith('+'):
             cleaned = cleaned[1:]
         try:
@@ -201,10 +238,7 @@ class Command(BaseCommand):
             return 0
 
     def parse_decimal(self, value):
-        """
-        API 응답 소수점 파싱 ("12.34", "5.67" 등)
-        Decimal 타입으로 변환
-        """
+        """API 응답 소수점 파싱"""
         if not value:
             return Decimal('0.00')
         try:
@@ -214,36 +248,24 @@ class Command(BaseCommand):
             return Decimal('0.00')
 
     def parse_date(self, date_str):
-        """날짜 문자열을 date 객체로 변환 (20251128 -> date(2025, 11, 28))"""
+        """날짜 문자열을 date 객체로 변환"""
         return datetime.strptime(date_str, '%Y%m%d').date()
 
     def save_to_db(self, stock_code, data_list):
-        """
-        수집한 공매도 데이터를 DB에 저장
-
-        Args:
-            stock_code: 종목코드 (예: '005930')
-            data_list: API 응답 데이터 리스트
-        """
-        self.log.header('DB 저장 시작')
-
-        # 종목 정보 가져오기
+        """DB에 저장하고 (created, updated) 반환"""
         try:
             stock = Info.objects.get(code=stock_code)
         except Info.DoesNotExist:
-            self.log.error(f'종목 정보 없음: {stock_code}')
-            self.log.debug('먼저 Info 테이블에 종목 정보를 추가해주세요.')
-            return
+            self.log.debug(f'종목 정보 없음: {stock_code}')
+            return 0, 0
 
         created_count = 0
         updated_count = 0
 
         for item in data_list:
             try:
-                # 날짜 파싱
                 date = self.parse_date(item['dt'])
 
-                # 데이터 저장 (있으면 업데이트, 없으면 생성)
                 short_selling, created = ShortSelling.objects.update_or_create(
                     stock=stock,
                     date=date,
@@ -263,20 +285,14 @@ class Command(BaseCommand):
                     updated_count += 1
 
             except Exception as e:
-                self.log.error(f'저장 실패 ({item.get("dt")}): {str(e)}')
+                self.log.debug(f'저장 실패 ({item.get("dt")}): {str(e)}')
 
-        # 결과 출력
-        self.log.info(f'저장 완료! 신규: {created_count}개, 업데이트: {updated_count}개, 총합: {created_count + updated_count}개', success=True)
+        return created_count, updated_count
 
     def call_api(self, token, data, cont_yn='N', next_key=''):
         """공매도추이요청 API 호출"""
-        # 1. 요청할 API URL
-        host = 'https://api.kiwoom.com'  # 실전투자
-        # host = 'https://mockapi.kiwoom.com'  # 모의투자
-        endpoint = '/api/dostk/shsa'
-        url = host + endpoint
+        url = 'https://api.kiwoom.com/api/dostk/shsa'
 
-        # 2. header 데이터
         headers = {
             'Content-Type': 'application/json;charset=UTF-8',
             'authorization': f'Bearer {token}',
@@ -286,19 +302,13 @@ class Command(BaseCommand):
         }
 
         try:
-            # 3. http POST 요청
             response = requests.post(url, headers=headers, json=data)
 
-            # 응답 상태 코드 확인
             if response.status_code != 200:
-                self.log.error(f'API 호출 실패: {response.status_code}')
-                self.log.debug(f'응답: {response.text}')
+                self.log.debug(f'API 호출 실패: {response.status_code}')
                 return None
 
-            # 응답 데이터 파싱
             response_data = response.json()
-
-            # 헤더 정보를 응답 데이터에 포함
             response_data['_headers'] = {
                 key: response.headers.get(key)
                 for key in ['next-key', 'cont-yn', 'api-id']
@@ -307,5 +317,5 @@ class Command(BaseCommand):
             return response_data
 
         except Exception as e:
-            self.log.error(f'API 호출 실패: {str(e)}')
+            self.log.debug(f'API 호출 실패: {str(e)}')
             return None

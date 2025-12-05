@@ -7,25 +7,54 @@ from stocks.logger import StockLogger
 
 
 class Command(BaseCommand):
-    help = '주식 일봉 차트 조회 및 저장 (주식일봉차트조회요청 - ka10081)'
+    help = '''
+주식 일봉 차트 조회 및 저장 (키움 API ka10081)
+
+옵션:
+  --code      (필수*) 종목코드 또는 "all" (전체 종목, ETF 제외)
+  --mode      (필수*) all (2년 데이터) / last (최근 1일)
+  --clear     (선택) 전체 데이터 삭제
+  --log-level (선택) debug / info / warning / error (기본값: info)
+
+  * --clear 사용 시 --code, --mode 불필요
+
+예시:
+  python manage.py save_daily_chart --code 005930 --mode all
+  python manage.py save_daily_chart --code all --mode last --log-level info
+  python manage.py save_daily_chart --clear
+'''
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--code',
             type=str,
-            required=True,
             help='종목코드 또는 "all" (전체 종목, ETF 제외)'
         )
         parser.add_argument(
             '--mode',
             type=str,
             choices=['all', 'last'],
-            required=True,
             help='조회 모드: all(2년 데이터), last(최근 1일만)'
+        )
+        parser.add_argument(
+            '--clear',
+            action='store_true',
+            help='전체 데이터 삭제'
         )
         StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
+        # --clear 옵션 처리
+        if options.get('clear'):
+            deleted_count, _ = DailyChart.objects.all().delete()
+            self.stdout.write(self.style.SUCCESS(f'DailyChart 데이터 {deleted_count}건 삭제 완료'))
+            return
+
+        # 필수 옵션 체크
+        if not options.get('code') or not options.get('mode'):
+            self.print_help('manage.py', 'save_daily_chart')
+            return
+
         # 로거 초기화
         self.log = StockLogger(self.stdout, self.style, options, 'save_daily_chart')
 
@@ -49,7 +78,13 @@ class Command(BaseCommand):
 
     def process_single_stock(self, token, stock_code, mode):
         """단일 종목 처리"""
-        self.log.info(f'종목코드: {stock_code} | 모드: {mode}')
+        try:
+            stock = Info.objects.get(code=stock_code)
+            stock_name = stock.name
+        except Info.DoesNotExist:
+            stock_name = stock_code
+
+        self.log.info(f'종목: {stock_name}({stock_code}) | 모드: {mode}')
         self.log.separator()
 
         if mode == 'last':
@@ -67,13 +102,12 @@ class Command(BaseCommand):
             market='ETF'
         ).values_list('code', 'name')
 
-        total_count = stocks.count()
-        mode_desc = '2년 데이터' if mode == 'all' else '최근 1일만'
-        self.log.info(f'일봉 차트 조회 시작 ({mode_desc}, {total_count}개 종목, ETF 제외)')
+        total = stocks.count()
+        self.log.info(f'일봉 차트 저장 시작 (모드: {mode}, 대상: {total}개 종목)')
 
         success_count = 0
-        no_data_list = []  # 데이터 없음
-        error_list = []  # 에러 발생
+        no_data_list = []
+        error_list = []
 
         for idx, (code, name) in enumerate(stocks, 1):
             try:
@@ -83,34 +117,30 @@ class Command(BaseCommand):
                     result = self.fetch_two_years(token, code, silent=True)
 
                 if result:
-                    self.log.info(f'[{idx}/{total_count}] {code} {name}: {result}')
+                    self.log.info(f'[{idx}/{total}] {code} {name}: {result}')
                     success_count += 1
                 else:
-                    self.log.info(f'[{idx}/{total_count}] {code} {name}: 데이터 없음')
+                    self.log.info(f'[{idx}/{total}] {code} {name}: 데이터 없음')
                     no_data_list.append((code, name))
 
-                # API 호출 간격 (0.1초)
                 time.sleep(0.1)
 
             except Exception as e:
-                self.log.error(f'[{idx}/{total_count}] {code} {name}: 처리 실패 - {str(e)}')
+                self.log.error(f'[{idx}/{total}] {code} {name}: 실패 - {str(e)}')
                 error_list.append((code, name, str(e)))
 
         # 최종 리포트
         self.log.separator()
-        self.log.info(f'일봉 차트 조회 완료: 성공 {success_count}개, 데이터없음 {len(no_data_list)}개, 오류 {len(error_list)}개', success=True)
-
-        if no_data_list:
-            self.log.info(f'[데이터 없음] {len(no_data_list)}개:')
-            for code, name in no_data_list[:20]:
-                self.log.info(f'  - {code} {name}')
-            if len(no_data_list) > 20:
-                self.log.info(f'  ... 외 {len(no_data_list) - 20}개')
-
         if error_list:
-            self.log.info(f'[오류 발생] {len(error_list)}개:')
+            self.log.info(f'완료 | 성공: {success_count}개, 데이터없음: {len(no_data_list)}개, 오류: {len(error_list)}개', success=True)
+            self.log.info('')
+            self.log.info('[오류 목록]')
             for code, name, err in error_list:
-                self.log.error(f'  - {code} {name}: {err}')
+                self.log.error(f'  {code} {name}: {err}')
+        elif no_data_list:
+            self.log.info(f'완료 | 성공: {success_count}개, 데이터없음: {len(no_data_list)}개', success=True)
+        else:
+            self.log.info(f'완료 | 성공: {success_count}개', success=True)
 
     def fetch_latest_day(self, token, stock_code, silent=False):
         """최근 1일 데이터만 조회"""

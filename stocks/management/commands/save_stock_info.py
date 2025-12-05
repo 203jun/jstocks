@@ -13,13 +13,24 @@ DEFAULT_MIN_CAP = 1000
 
 
 class Command(BaseCommand):
-    help = '종목 기본정보 조회 및 저장 (주식기본정보요청 - ka10001)'
+    help = f'''
+종목 기본정보 조회 및 저장 (키움 API ka10001)
+
+옵션:
+  --code      (필수) 종목코드 또는 "all" (전체 종목, ETF 제외)
+  --min-cap   (선택) 최소 시가총액 (억 단위, 기본값: {DEFAULT_MIN_CAP}억) - 미만은 is_active=False
+  --log-level (선택) debug / info / warning / error (기본값: info)
+
+예시:
+  python manage.py save_stock_info --code 005930
+  python manage.py save_stock_info --code all --log-level info
+  python manage.py save_stock_info --code all --min-cap 500
+'''
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--code',
             type=str,
-            required=True,
             help='종목코드 또는 "all" (전체 종목, ETF 제외)'
         )
         parser.add_argument(
@@ -31,6 +42,11 @@ class Command(BaseCommand):
         StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
+        # 필수 옵션 체크
+        if not options.get('code'):
+            self.print_help('manage.py', 'save_stock_info')
+            return
+
         # 로거 초기화
         self.log = StockLogger(self.stdout, self.style, options, 'save_stock_info')
 
@@ -54,7 +70,12 @@ class Command(BaseCommand):
 
     def process_single_stock(self, token, stock_code):
         """단일 종목 처리"""
-        self.log.info(f'종목코드: {stock_code}')
+        try:
+            stock = Info.objects.get(code=stock_code)
+            self.log.info(f'종목: {stock.name}({stock_code})')
+        except Info.DoesNotExist:
+            self.log.info(f'종목: {stock_code}')
+
         self.log.separator()
 
         response_data = self.call_api(token, stock_code)
@@ -73,7 +94,7 @@ class Command(BaseCommand):
         ).values_list('code', 'name')
 
         total_count = stocks.count()
-        self.log.info(f'종목 상세정보 조회 시작 ({total_count}개 종목, ETF 제외, 시가총액 {min_cap_억}억 기준 활성화/비활성화)')
+        self.log.info(f'종목정보 저장 시작 (대상: {total_count}개 종목, 시가총액 {min_cap_억}억 기준)')
 
         activated_count = 0
         deactivated_count = 0
@@ -110,8 +131,9 @@ class Command(BaseCommand):
                 error_count += 1
 
         # 최종 요약
+        self.log.separator()
         self.log.info(
-            f'종목 상세정보 조회 완료: 업데이트 {updated_count}개, 활성화 {activated_count}개, 비활성화 {deactivated_count}개, 오류 {error_count}개',
+            f'완료 | 업데이트: {updated_count}개, 활성화: {activated_count}개, 비활성화: {deactivated_count}개, 오류: {error_count}개',
             success=True
         )
 

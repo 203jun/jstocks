@@ -9,13 +9,18 @@ from stocks.logger import StockLogger
 
 class Command(BaseCommand):
     help = '''
-    업종별 투자자 순매수 데이터 저장 (ka10051)
+업종별 투자자 순매수 데이터 저장 (키움 API ka10051)
 
-    사용법:
-      python manage.py save_sector              # 최근 거래일 1일
-      python manage.py save_sector --mode all   # 최근 60거래일
-      python manage.py save_sector --clear      # 전체 삭제
-    '''
+옵션:
+  --mode      (선택) last (최근 1일, 기본값) / all (최근 60거래일)
+  --clear     (선택) 전체 데이터 삭제
+  --log-level (선택) debug / info / warning / error (기본값: info)
+
+예시:
+  python manage.py save_sector
+  python manage.py save_sector --mode all --log-level info
+  python manage.py save_sector --clear
+'''
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -35,7 +40,7 @@ class Command(BaseCommand):
         # Clear existing data if requested
         if options.get('clear'):
             deleted_count = Sector.objects.all().delete()[0]
-            self.stdout.write(self.style.WARNING(f'Deleted {deleted_count} existing records'))
+            self.stdout.write(self.style.SUCCESS(f'Sector 데이터 {deleted_count}건 삭제 완료'))
             return
 
         self.log = StockLogger(self.stdout, self.style, options, 'save_sector')
@@ -63,8 +68,7 @@ class Command(BaseCommand):
 
         trading_dates.reverse()  # 오래된 날짜부터 처리
 
-        self.log.info(f'수집 대상: {len(trading_dates)}일 ({trading_dates[0]} ~ {trading_dates[-1]})')
-        self.log.separator()
+        self.log.info(f'업종 데이터 저장 시작 (모드: {mode}, 대상: {len(trading_dates)}일)')
 
         total_saved = 0
         for idx, trade_date in enumerate(trading_dates, start=1):
@@ -86,7 +90,7 @@ class Command(BaseCommand):
                 self.log.info(f'{trade_date}: KOSPI {kospi_count}개, KOSDAQ {kosdaq_count}개')
 
         self.log.separator()
-        self.log.info(f'완료! 총 {total_saved}개 저장', success=True)
+        self.log.info(f'완료 | 총 {total_saved}개 저장', success=True)
 
     def fetch_and_save_market(self, token, mrkt_tp, market_name, trade_date, date_str):
         """Fetch and save sector data for a market"""

@@ -9,22 +9,37 @@ from stocks.logger import StockLogger
 
 class Command(BaseCommand):
     help = '''
-    종목-업종 매핑 데이터 저장 (업종별주가요청 - ka20002)
+종목-업종 매핑 데이터 저장 (키움 API ka20002)
 
-    ※ 동작 방식:
-    1. Sector 테이블에서 모든 고유한 (업종코드, 시장) 조합 가져오기
-    2. 각 업종별로 ka20002 API 호출
-    3. Info.sectors에 매핑 (ManyToMany 관계 연결)
+옵션:
+  --clear     (선택) 전체 종목-업종 매핑 삭제
+  --log-level (선택) debug / info / warning / error (기본값: info)
 
-    ※ 실행 순서:
-    1. python manage.py save_sector --mode all  (먼저 실행)
-    2. python manage.py save_stock_sector  (이 명령어)
-    '''
+예시:
+  python manage.py save_stock_sector
+  python manage.py save_stock_sector --clear
+
+선행 조건:
+  python manage.py save_sector --mode all  (먼저 실행)
+'''
 
     def add_arguments(self, parser):
+        parser.add_argument(
+            '--clear',
+            action='store_true',
+            help='전체 종목-업종 매핑 삭제'
+        )
         StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
+        # --clear 옵션 처리
+        if options.get('clear'):
+            # 모든 Info의 sectors M2M 관계 삭제
+            for info in Info.objects.all():
+                info.sectors.clear()
+            self.stdout.write(self.style.SUCCESS('모든 종목-업종 매핑 삭제 완료'))
+            return
+
         # 로거 초기화
         self.log = StockLogger(self.stdout, self.style, options, 'save_stock_sector')
 
@@ -48,8 +63,7 @@ class Command(BaseCommand):
         sectors = Sector.objects.values('code', 'market').distinct().order_by('code', 'market')
         sectors_list = list(sectors)
 
-        self.log.info(f'총 {len(sectors_list)}개 업종 발견')
-        self.log.separator()
+        self.log.info(f'종목-업종 매핑 시작 (대상: {len(sectors_list)}개 업종)')
 
         # 4. 각 업종에 대해 API 호출 및 매핑
         self.process_all_sectors(token, sectors_list)
@@ -123,9 +137,9 @@ class Command(BaseCommand):
         # 최종 결과
         self.log.separator()
         if total_added > 0:
-            self.log.info(f'처리 완료! 추가: {total_added}개, 변경없음: {total_unchanged}개', success=True)
+            self.log.info(f'완료 | 추가: {total_added}개, 변경없음: {total_unchanged}개', success=True)
         else:
-            self.log.info(f'처리 완료! 변경 없음 (총 {total_unchanged}개 종목)', success=True)
+            self.log.info(f'완료 | 변경없음: {total_unchanged}개', success=True)
 
     def map_stocks_to_sector(self, stock_list, sector):
         """종목 리스트와 업종을 매핑"""

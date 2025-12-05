@@ -8,7 +8,20 @@ from stocks.logger import StockLogger
 
 
 class Command(BaseCommand):
-    help = 'Market investor trading trend (Naver Finance)'
+    help = '''
+시장별 투자자 매매동향 저장 (네이버 금융)
+
+옵션:
+  --market    (선택) KOSPI / KOSDAQ / FUTURES / all (기본값: all)
+  --mode      (선택) all (60일) / last (10일, 기본값)
+  --clear     (선택) 전체 데이터 삭제
+  --log-level (선택) debug / info / warning / error (기본값: info)
+
+예시:
+  python manage.py save_market_trend
+  python manage.py save_market_trend --market KOSPI --mode all
+  python manage.py save_market_trend --clear
+'''
 
     # Market codes
     MARKET_CODES = {
@@ -27,13 +40,24 @@ class Command(BaseCommand):
         parser.add_argument(
             '--mode',
             type=str,
-            default='day',
-            choices=['all', 'day'],
-            help='all: 6 pages (60 days), day: 1 page (10 days) (default: day)'
+            default='last',
+            choices=['all', 'last'],
+            help='all: 6 pages (60 days), last: 1 page (10 days) (default: last)'
+        )
+        parser.add_argument(
+            '--clear',
+            action='store_true',
+            help='전체 데이터 삭제'
         )
         StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
+        # --clear 옵션 처리
+        if options.get('clear'):
+            deleted_count, _ = MarketTrend.objects.all().delete()
+            self.stdout.write(self.style.SUCCESS(f'MarketTrend 데이터 {deleted_count}건 삭제 완료'))
+            return
+
         self.log = StockLogger(self.stdout, self.style, options, 'save_market_trend')
 
         market = options['market'].upper()
@@ -49,18 +73,23 @@ class Command(BaseCommand):
             self.log.info(f'Supported: {", ".join(self.MARKET_CODES.keys())}')
             return
 
-        self.log.info(f'Market trend collection started (mode={mode}, max_page={max_page})')
+        self.log.info(f'시장 투자동향 저장 시작 (모드: {mode}, 대상: {", ".join(markets)})')
+
+        total_created = 0
+        total_updated = 0
 
         for market_name in markets:
-            self.process_market(market_name, max_page)
+            created, updated = self.process_market(market_name, max_page)
+            total_created += created
+            total_updated += updated
 
         self.log.separator()
-        self.log.info('Collection completed', success=True)
+        self.log.info(f'완료 | 신규: {total_created}개, 업데이트: {total_updated}개', success=True)
 
     def process_market(self, market_name, max_page):
-        """Collect data for each market"""
+        """Collect data for each market, return (created, updated)"""
         self.log.separator()
-        self.log.info(f'[{market_name}] Collection started')
+        self.log.info(f'[{market_name}] 처리 시작')
 
         sosok = self.MARKET_CODES[market_name]
         all_data = []
@@ -83,9 +112,10 @@ class Command(BaseCommand):
 
         # Save to DB
         if all_data:
-            self.save_to_db(market_name, all_data)
+            return self.save_to_db(market_name, all_data)
         else:
-            self.log.info(f'[{market_name}] No data to save')
+            self.log.info(f'[{market_name}] 데이터 없음')
+            return 0, 0
 
     def fetch_page(self, url):
         """Extract table data from page"""
@@ -147,7 +177,7 @@ class Command(BaseCommand):
             return []
 
     def save_to_db(self, market_name, data_list):
-        """Save data to DB"""
+        """Save data to DB, return (created, updated)"""
         created_count = 0
         updated_count = 0
 
@@ -179,9 +209,10 @@ class Command(BaseCommand):
                     updated_count += 1
 
             except Exception as e:
-                self.log.error(f'Save failed ({row["date"]}): {e}')
+                self.log.error(f'저장 실패 ({row["date"]}): {e}')
 
-        self.log.info(f'[{market_name}] Created: {created_count}, Updated: {updated_count}', success=True)
+        self.log.info(f'[{market_name}] 신규 {created_count}개, 업데이트 {updated_count}개')
+        return created_count, updated_count
 
     def parse_number(self, text):
         """Parse number string"""
