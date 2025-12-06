@@ -7,16 +7,23 @@
 <!-- 종목 헤더 -->
 <div class="d-flex justify-content-between align-items-start mb-3">
     <div>
-        <h4 class="mb-1">{{ stock.name }}</h4>
-        <span class="text-muted">{{ stock.code }}</span>
-        <span class="badge bg-secondary ms-1">{{ stock.market }}</span>
-        {% if stock.interest_level == 'super' %}
-        <span class="badge bg-danger ms-1">초관심</span>
-        {% elif stock.interest_level == 'normal' %}
-        <span class="badge bg-warning text-dark ms-1">관심</span>
-        {% elif stock.interest_level == 'incubator' %}
-        <span class="badge bg-info ms-1">인큐베이터</span>
-        {% endif %}
+        <h4 class="mb-2 d-flex align-items-center">
+            {{ stock.name }}
+            <small class="text-muted ms-2" style="font-size: 0.5em; font-weight: normal;">{{ stock.code }}</small>
+        </h4>
+        <div class="d-flex align-items-center gap-1">
+            <span class="badge {% if stock.market == 'KOSPI' %}bg-primary{% else %}bg-success{% endif %}">{{ stock.market }}</span>
+            {% if stock.is_holding %}
+            <span class="badge bg-success">보유</span>
+            {% endif %}
+            {% if stock.interest_level == 'super' %}
+            <span class="badge bg-danger">초관심</span>
+            {% elif stock.interest_level == 'normal' %}
+            <span class="badge bg-warning text-dark">관심</span>
+            {% elif stock.interest_level == 'incubator' %}
+            <span class="badge bg-info">인큐베이터</span>
+            {% endif %}
+        </div>
     </div>
     <div>
         <a href="{% url 'stocks:stock_edit' stock.code %}" class="btn btn-outline-primary btn-sm me-1">편집</a>
@@ -24,15 +31,35 @@
     </div>
 </div>
 
-<!-- 업종 -->
-{% if sectors %}
-<div class="mb-3">
-    <small class="text-muted me-2">업종</small>
-    {% for s in sectors %}
-    <span class="badge border border-secondary text-secondary me-1" style="background: transparent;">{{ s.name }}</span>
-    {% endfor %}
-</div>
-{% endif %}
+<!-- 테마 / 업종 정보 -->
+<table class="table table-borderless mb-3" style="width: auto;">
+    {% if stock.themes.all %}
+    <tr>
+        <td class="text-muted py-1 pe-3" style="white-space: nowrap; vertical-align: top;">테마</td>
+        <td class="py-1">
+            {% regroup stock.themes.all by category as theme_groups %}
+            {% for group in theme_groups %}
+            <div class="d-flex align-items-center flex-wrap mb-1">
+                <span class="badge bg-primary me-2">{{ group.grouper.name }}</span>
+                {% for theme in group.list %}
+                <span class="badge border border-primary text-primary me-1" style="background: transparent;">{{ theme.name }}</span>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </td>
+    </tr>
+    {% endif %}
+    {% if sectors %}
+    <tr>
+        <td class="text-muted py-1 pe-3" style="white-space: nowrap; vertical-align: top;">업종</td>
+        <td class="py-1">
+            {% for s in sectors %}
+            <span class="badge border border-secondary text-secondary me-1" style="background: transparent;">{{ s.name }}</span>
+            {% endfor %}
+        </td>
+    </tr>
+    {% endif %}
+</table>
 
 <!-- 가격 정보 카드 -->
 <div class="card mb-3">

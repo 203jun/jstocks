@@ -25,7 +25,7 @@ python manage.py save_monthly_chart --code 005930 --mode all --log-level debug
 
 | 옵션 | 필수 | 설명 |
 |------|------|------|
-| `--code` | O | 종목코드 또는 "all" (전체 종목, ETF 제외) |
+| `--code` | O | 종목코드 또는 "all" (전체 종목) |
 | `--mode` | O | `all` (6년 데이터) 또는 `last` (최근 1개월만) |
 | `--log-level` | X | 로그 레벨 (debug/info/warning/error, 기본: info) |
 
@@ -59,7 +59,7 @@ python manage.py save_monthly_chart --code 005930 --mode all --log-level debug
 
 ## 전체 종목 처리 시
 
-- ETF 제외, `is_active=True`인 종목만 처리
+- `is_active=True`인 종목만 처리
 - 요청 간격: 0.1초
 - 처리 완료 후 최종 리포트 출력 (성공/데이터없음/오류)
 
@@ -72,7 +72,7 @@ python manage.py save_monthly_chart --code 005930 --mode all --log-level debug
 저장 완료: 신규 72건, 업데이트 0건
 
 # 전체 종목
-월봉 차트 조회 시작 (최근 1개월만, 2714개 종목, ETF 제외)
+월봉 차트 조회 시작 (최근 1개월만, 2714개 종목)
 [1/2714] 005930 삼성전자: 신규 0, 업데이트 1
 [2/2714] 000660 SK하이닉스: 신규 1, 업데이트 0
 [3/2714] 373220 LG에너지솔루션: 데이터 없음

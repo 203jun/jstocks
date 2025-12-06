@@ -2,7 +2,7 @@
 
 주식 데이터 수집 및 저장을 위한 Django 관리 명령어 목록입니다.
 
-## 명령어 목록 (16개)
+## 명령어 목록 (17개)
 
 | 분류 | 명령어 | 저장 모델 | 데이터 소스 | 실행 주기 |
 |------|--------|-----------|-------------|-----------|
@@ -20,6 +20,7 @@
 | 종목 | `save_stock_list` | Info | 키움 API (ka10099) | 주 1회 |
 | 종목 | `save_stock_info` | Info | 키움 API (ka10001) | 일 1회 |
 | 종목 | `save_stock_sector` | Info.sectors (M2M) | 키움 API (ka20002) | 주 1회 |
+| ETF | `save_etf_chart` | DailyChartETF, WeeklyChartETF, MonthlyChartETF | 네이버 금융 | 일 1회 |
 | 재무 | `save_financial_naver` | Financial | 네이버 금융 | 주 1회 |
 | 재무 | `save_init_financial` | Financial | OpenDART (jemu 폴더) | 최초 1회 |
 
@@ -100,10 +101,13 @@ python manage.py save_monthly_chart --code all --mode last --log-level info
 python manage.py save_investor_trend --code all --mode last --log-level info
 python manage.py save_short_selling --code all --mode last --log-level info
 
-# 종목 뉴스
-python manage.py save_gongsi_stock --code all --log-level info
-python manage.py save_fnguide_report --code all --log-level info
-python manage.py save_nodaji_stock --code all --log-level info
+# 종목 뉴스 (관심 종목만)
+python manage.py save_gongsi_stock --code fav --log-level info
+python manage.py save_fnguide_report --code fav --log-level info
+python manage.py save_nodaji_stock --code fav --log-level info
+
+# ETF 차트
+python manage.py save_etf_chart --mode last --log-level info
 ```
 
 ### 주 1회
@@ -125,6 +129,22 @@ python manage.py save_financial_naver --code all --log-level info
 | `--log-level` | 로그 레벨 (debug/info/warning/error, 기본: info) |
 | `--clear` | 해당 모델 데이터 전체 삭제 |
 
+### --code 옵션 값
+
+일부 명령어는 `--code` 옵션에 특수 값을 지원합니다:
+
+| 값 | 설명 | 지원 명령어 |
+|----|------|-------------|
+| `all` | 전체 종목 | 대부분의 종목별 명령어 |
+| `fav` | 관심 종목만 (interest_level 설정된 종목) | `save_fnguide_report`, `save_nodaji_stock`, `save_gongsi_stock` |
+
+```bash
+# 관심 종목만 처리 (초관심/관심/인큐베이터)
+python manage.py save_fnguide_report --code fav
+python manage.py save_nodaji_stock --code fav
+python manage.py save_gongsi_stock --code fav
+```
+
 ## 데이터 삭제 (--clear)
 
 ```bash
@@ -140,6 +160,9 @@ python manage.py save_stock_sector --clear
 python manage.py save_daily_chart --clear
 python manage.py save_weekly_chart --clear
 python manage.py save_monthly_chart --clear
+
+# ETF 차트
+python manage.py save_etf_chart --clear
 
 # 수급
 python manage.py save_investor_trend --clear
@@ -175,6 +198,11 @@ python manage.py get_token
 - `save_investor_trend`, `save_short_selling`
 - `save_sector`, `save_stock_sector`
 - `save_stock_info`, `save_stock_list`
+
+토큰 불필요 (네이버 금융 API 사용):
+- `save_etf_chart`
+- `save_index_chart`, `save_market_trend`
+- `save_financial_naver`
 
 ---
 

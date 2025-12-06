@@ -19,7 +19,7 @@ python manage.py save_financial_naver --code 005930 --log-level debug
 
 | 옵션 | 필수 | 설명 |
 |------|------|------|
-| `--code` | O | 종목코드 또는 "all" (전체 종목, ETF 제외) |
+| `--code` | O | 종목코드 또는 "all" (전체 종목) |
 | `--log-level` | X | 로그 레벨 (debug/info/warning/error, 기본: info) |
 
 ## 데이터 소스

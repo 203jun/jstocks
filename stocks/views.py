@@ -14,9 +14,28 @@ from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Repo
 
 def index(request):
     """종목 대시보드 (관심종목)"""
-    super_stocks = Info.objects.filter(interest_level='super', is_active=True).order_by('-market_cap')
-    normal_stocks = Info.objects.filter(interest_level='normal', is_active=True).order_by('-market_cap')
-    incubator_stocks = Info.objects.filter(interest_level='incubator', is_active=True).order_by('-market_cap')
+    from django.db.models import Min
+
+    # 대분류명, 소분류명 순으로 정렬 (테마 없는 종목은 맨 뒤)
+    base_qs = Info.objects.filter(is_active=True).prefetch_related('themes__category')
+
+    def sort_by_theme(stocks):
+        """대분류, 소분류 순 정렬"""
+        result = []
+        for stock in stocks:
+            themes = list(stock.themes.all())
+            if themes:
+                # 첫 번째 테마 기준 정렬 키
+                first_theme = min(themes, key=lambda t: (t.category.name, t.name))
+                result.append((first_theme.category.name, first_theme.name, stock))
+            else:
+                result.append(('zzz', 'zzz', stock))  # 테마 없는 종목은 뒤로
+        result.sort(key=lambda x: (x[0], x[1]))
+        return [item[2] for item in result]
+
+    super_stocks = sort_by_theme(base_qs.filter(interest_level='super'))
+    normal_stocks = sort_by_theme(base_qs.filter(interest_level='normal'))
+    incubator_stocks = sort_by_theme(base_qs.filter(interest_level='incubator'))
 
     context = {
         'super_stocks': super_stocks,
@@ -35,7 +54,7 @@ def stock_list(request):
     # 정렬
     sort = request.GET.get('sort', '-market_cap')
 
-    stocks = Info.objects.filter(is_active=True).exclude(market='ETF')
+    stocks = Info.objects.filter(is_active=True)
 
     if query:
         stocks = stocks.filter(name__icontains=query) | stocks.filter(code__icontains=query)
@@ -56,7 +75,7 @@ def stock_list(request):
 
 def stock_detail(request, code):
     """종목 상세 페이지"""
-    stock = get_object_or_404(Info, code=code)
+    stock = get_object_or_404(Info.objects.prefetch_related('themes__category'), code=code)
 
     # 연간 재무 데이터 (최근 6년)
     annual_financials = list(Financial.objects.filter(
@@ -223,9 +242,17 @@ def stock_edit(request, code):
     if request.method == 'POST':
         interest_level = request.POST.get('interest_level', '')
         stock.interest_level = interest_level if interest_level else None
+        stock.is_holding = request.POST.get('is_holding') == 'on'
         stock.investment_point = request.POST.get('investment_point', '')
         stock.risk = request.POST.get('risk', '')
+        stock.analysis = request.POST.get('analysis', '')
         stock.save()
+
+        # 업종 저장 (ManyToMany)
+        from .models import Theme
+        theme_ids = request.POST.getlist('themes')
+        stock.themes.set(Theme.objects.filter(id__in=theme_ids))
+
         messages.success(request, f'{stock.name} 정보가 저장되었습니다.')
         return redirect('stocks:stock_edit', code=code)
 
@@ -324,9 +351,16 @@ def stock_edit(request, code):
     # 공매도 (최근 60일)
     short_sellings = ShortSelling.objects.filter(stock=stock).order_by('-date')[:60]
 
+    # 업종 (전체 및 현재 종목의 업종)
+    from .models import ThemeCategory
+    theme_categories = ThemeCategory.objects.prefetch_related('themes').all()
+    stock_theme_ids = list(stock.themes.values_list('id', flat=True))
+
     context = {
         'stock': stock,
         'interest_choices': interest_choices,
+        'theme_categories': theme_categories,
+        'stock_theme_ids': stock_theme_ids,
         'reports': reports,
         'price_chart_data': json.dumps(price_chart_data),
         'target_chart_data': json.dumps(target_chart_data),
@@ -534,6 +568,29 @@ def search_nodaji(request):
                         'date': date,
                         'link': link,
                     })
+
+            # 날짜순 정렬 (최신순)
+            def parse_date_for_sort(item):
+                date_str = item.get('date', '')
+                # "2024.12.06" 형식
+                if '.' in date_str and len(date_str) >= 10:
+                    try:
+                        return datetime.strptime(date_str[:10], '%Y.%m.%d')
+                    except ValueError:
+                        pass
+                # "12월 6일" 형식
+                if '월' in date_str and '일' in date_str:
+                    try:
+                        import re
+                        match = re.match(r'(\d+)월\s*(\d+)일', date_str)
+                        if match:
+                            month, day = int(match.group(1)), int(match.group(2))
+                            return datetime(datetime.now().year, month, day)
+                    except:
+                        pass
+                return datetime.min
+
+            results.sort(key=parse_date_for_sort, reverse=True)
 
         return JsonResponse({
             'success': True,
@@ -1019,3 +1076,644 @@ def sector_date_data(request):
     sector_name = data[0]['name'] if data else ''
 
     return JsonResponse({'success': True, 'data': data, 'name': sector_name})
+
+
+def settings(request):
+    """설정 페이지"""
+    from .models import ThemeCategory
+
+    categories = ThemeCategory.objects.prefetch_related('themes').all()
+
+    context = {
+        'categories': categories,
+    }
+    return render(request, 'stocks/settings.html', context)
+
+
+def etf(request):
+    """ETF 페이지"""
+    from .models import InfoETF
+
+    # 관심 ETF 목록 (is_active=True)
+    etfs = InfoETF.objects.filter(is_active=True).order_by('-market_cap')
+
+    context = {
+        'etfs': etfs,
+    }
+    return render(request, 'stocks/etf.html', context)
+
+
+def etf_detail(request, code):
+    """ETF 상세 페이지"""
+    from .models import InfoETF, DailyChartETF, WeeklyChartETF, MonthlyChartETF
+
+    etf = get_object_or_404(InfoETF, code=code)
+
+    # 일봉 차트 데이터 (최근 240일)
+    daily_charts = list(DailyChartETF.objects.filter(
+        etf=etf
+    ).order_by('-date')[:240])
+    daily_charts.reverse()
+
+    daily_candle_data = [
+        {
+            'time': d.date.strftime('%Y-%m-%d'),
+            'open': d.opening_price,
+            'high': d.high_price,
+            'low': d.low_price,
+            'close': d.closing_price,
+        }
+        for d in daily_charts
+    ]
+    daily_volume_data = [
+        {
+            'time': d.date.strftime('%Y-%m-%d'),
+            'value': d.trading_volume,
+            'color': '#ef5350' if d.closing_price >= d.opening_price else '#26a69a',
+        }
+        for d in daily_charts
+    ]
+
+    # 주봉 차트 데이터 (최근 104주 = 2년)
+    weekly_charts = list(WeeklyChartETF.objects.filter(
+        etf=etf
+    ).order_by('-date')[:104])
+    weekly_charts.reverse()
+
+    weekly_candle_data = [
+        {
+            'time': w.date.strftime('%Y-%m-%d'),
+            'open': w.opening_price,
+            'high': w.high_price,
+            'low': w.low_price,
+            'close': w.closing_price,
+        }
+        for w in weekly_charts
+    ]
+    weekly_volume_data = [
+        {
+            'time': w.date.strftime('%Y-%m-%d'),
+            'value': w.trading_volume,
+            'color': '#ef5350' if w.closing_price >= w.opening_price else '#26a69a',
+        }
+        for w in weekly_charts
+    ]
+
+    # 월봉 차트 데이터 (최근 72개월 = 6년)
+    monthly_charts = list(MonthlyChartETF.objects.filter(
+        etf=etf
+    ).order_by('-date')[:72])
+    monthly_charts.reverse()
+
+    monthly_candle_data = [
+        {
+            'time': m.date.strftime('%Y-%m-%d'),
+            'open': m.opening_price,
+            'high': m.high_price,
+            'low': m.low_price,
+            'close': m.closing_price,
+        }
+        for m in monthly_charts
+    ]
+    monthly_volume_data = [
+        {
+            'time': m.date.strftime('%Y-%m-%d'),
+            'value': m.trading_volume,
+            'color': '#ef5350' if m.closing_price >= m.opening_price else '#26a69a',
+        }
+        for m in monthly_charts
+    ]
+
+    context = {
+        'etf': etf,
+        'daily_candle_data': json.dumps(daily_candle_data),
+        'daily_volume_data': json.dumps(daily_volume_data),
+        'weekly_candle_data': json.dumps(weekly_candle_data),
+        'weekly_volume_data': json.dumps(weekly_volume_data),
+        'monthly_candle_data': json.dumps(monthly_candle_data),
+        'monthly_volume_data': json.dumps(monthly_volume_data),
+    }
+    return render(request, 'stocks/etf_detail.html', context)
+
+
+@require_POST
+def add_etf(request):
+    """ETF 추가 API - 네이버 금융에서 크롤링"""
+    import requests
+    from bs4 import BeautifulSoup
+
+    code = request.POST.get('code', '').strip()
+
+    if not code:
+        return JsonResponse({'error': '종목코드를 입력해주세요.'}, status=400)
+
+    # 6자리 숫자 검증
+    if not code.isdigit() or len(code) != 6:
+        return JsonResponse({'error': '종목코드는 6자리 숫자입니다.'}, status=400)
+
+    # 네이버 금융 크롤링
+    url = f'https://finance.naver.com/item/main.naver?code={code}'
+    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
+
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+    except Exception as e:
+        return JsonResponse({'error': f'네이버 금융 접속 실패: {str(e)}'}, status=500)
+
+    soup = BeautifulSoup(response.text, 'lxml')
+
+    # 종목명 추출
+    name_elem = soup.select_one('#middle > div.h_company > div.wrap_company > h2 > a')
+    if not name_elem:
+        return JsonResponse({'error': '종목 정보를 찾을 수 없습니다. ETF 코드를 확인해주세요.'}, status=400)
+
+    name = name_elem.get_text(strip=True)
+
+    # ETF인지 확인 (ETF 섹션이 있는지)
+    etf_section = soup.select_one('#content > div.section.etf_asset')
+    if not etf_section:
+        return JsonResponse({'error': f'{name}은(는) ETF가 아닙니다.'}, status=400)
+
+    # 현재가 추출
+    current_price = None
+    price_elem = soup.select_one('#chart_area > div.rate_info > div > p.no_today > em > span.blind')
+    if price_elem:
+        try:
+            current_price = int(price_elem.get_text(strip=True).replace(',', ''))
+        except:
+            pass
+
+    # 등락률 추출
+    change_rate = None
+    rate_elem = soup.select_one('#chart_area > div.rate_info > div > p.no_exday > em:nth-child(4) > span.blind')
+    if rate_elem:
+        try:
+            rate_text = rate_elem.get_text(strip=True).replace('%', '')
+            change_rate = float(rate_text)
+            # 하락인지 확인
+            down_elem = soup.select_one('#chart_area > div.rate_info > div > p.no_exday > em.no_down')
+            if down_elem:
+                change_rate = -abs(change_rate)
+        except:
+            pass
+
+    # NAV 추출 (사용자 제공 셀렉터: #on_board_last_nav)
+    nav = None
+    nav_elem = soup.select_one('#on_board_last_nav')
+    if nav_elem:
+        try:
+            nav = int(nav_elem.get_text(strip=True).replace(',', ''))
+        except:
+            pass
+
+    # 시가총액 추출 ("시가총액" th를 찾아서 옆 td 값 가져오기)
+    # "1조 6,296억원" -> 16296, "2,345억원" -> 2345 (억원 단위)
+    market_cap = None
+    tab_con1 = soup.select_one('#tab_con1')
+    if tab_con1:
+        for th in tab_con1.find_all('th'):
+            if '시가총액' in th.get_text():
+                td = th.find_next_sibling('td')
+                if td:
+                    import re
+                    text = td.get_text(strip=True)
+                    total = 0
+                    # 조 단위 추출 (1조 = 10000억)
+                    jo_match = re.search(r'(\d+)조', text.replace(',', ''))
+                    if jo_match:
+                        total += int(jo_match.group(1)) * 10000
+                    # 억 단위 추출
+                    eok_match = re.search(r'(\d+)억', text.replace(',', ''))
+                    if eok_match:
+                        total += int(eok_match.group(1))
+                    market_cap = total if total > 0 else None
+                break
+
+    # 구성종목 추출 (td.per 클래스로 구성비중 찾기)
+    holdings = []
+    holdings_rows = soup.select('#content > div.section.etf_asset > table > tbody > tr')
+    for row in holdings_rows:
+        name_elem = row.select_one('td:first-child')
+        ratio_elem = row.select_one('td.per')
+        if name_elem and ratio_elem:
+            holding_name = name_elem.get_text(strip=True)
+            holding_ratio = ratio_elem.get_text(strip=True)
+            if holding_name and holding_name != '합계':
+                holdings.append({'name': holding_name, 'ratio': holding_ratio})
+        if len(holdings) >= 10:
+            break
+
+    # 저장하지 않고 데이터만 반환
+    return JsonResponse({
+        'success': True,
+        'code': code,
+        'name': name,
+        'current_price': current_price,
+        'change_rate': change_rate,
+        'nav': nav,
+        'market_cap': market_cap,
+        'holdings': holdings,
+    })
+
+
+def fetch_etf_chart(etf, timeframe, mode='all'):
+    """
+    ETF 차트 데이터 조회 및 저장 (네이버 API)
+
+    Args:
+        etf: InfoETF 객체
+        timeframe: 'day', 'week', 'month'
+        mode: 'all' or 'last'
+
+    Returns:
+        (created_count, updated_count)
+    """
+    import requests as http_requests
+    from .models import DailyChartETF, WeeklyChartETF, MonthlyChartETF
+
+    # 기간 계산
+    today = datetime.now()
+    if mode == 'all':
+        if timeframe == 'day':
+            start_date = today - timedelta(days=730)  # 2년
+        elif timeframe == 'week':
+            start_date = today - timedelta(days=1460)  # 4년
+        else:  # month
+            start_date = today - timedelta(days=2190)  # 6년
+    else:  # last
+        if timeframe == 'day':
+            start_date = today - timedelta(days=30)
+        elif timeframe == 'week':
+            start_date = today - timedelta(weeks=12)
+        else:  # month
+            start_date = today - timedelta(days=365)
+
+    start_str = start_date.strftime('%Y%m%d')
+    end_str = today.strftime('%Y%m%d')
+
+    # 네이버 API 호출
+    url = 'https://api.finance.naver.com/siseJson.naver'
+    params = {
+        'symbol': etf.code,
+        'requestType': '1',
+        'startTime': start_str,
+        'endTime': end_str,
+        'timeframe': timeframe,
+    }
+    headers = {'User-Agent': 'Mozilla/5.0'}
+
+    try:
+        response = http_requests.get(url, params=params, headers=headers, timeout=10)
+        response.raise_for_status()
+    except Exception:
+        return (0, 0)
+
+    # JSON 파싱 (네이버 응답은 전처리 필요)
+    try:
+        text = response.text.strip()
+        text = text.replace("'", '"')
+        text = text.replace('\n', '').replace('\t', '')
+        text = text.replace(',]', ']')
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        return (0, 0)
+
+    if not data or len(data) < 2:
+        return (0, 0)
+
+    chart_data = data[1:]  # 헤더 제외
+
+    # 모델 선택
+    if timeframe == 'day':
+        ChartModel = DailyChartETF
+    elif timeframe == 'week':
+        ChartModel = WeeklyChartETF
+    else:
+        ChartModel = MonthlyChartETF
+
+    # DB 저장
+    created_count = 0
+    updated_count = 0
+
+    for row in chart_data:
+        if len(row) < 6:
+            continue
+
+        try:
+            date_str = str(row[0])
+            date = datetime.strptime(date_str, '%Y%m%d').date()
+
+            _, created = ChartModel.objects.update_or_create(
+                etf=etf,
+                date=date,
+                defaults={
+                    'opening_price': int(row[1]),
+                    'high_price': int(row[2]),
+                    'low_price': int(row[3]),
+                    'closing_price': int(row[4]),
+                    'trading_volume': int(row[5]),
+                }
+            )
+
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
+
+        except Exception:
+            pass
+
+    return (created_count, updated_count)
+
+
+@require_POST
+def save_etf(request):
+    """ETF 관심종목 저장 API"""
+    from .models import InfoETF
+
+    code = request.POST.get('code', '').strip()
+    name = request.POST.get('name', '').strip()
+    current_price = request.POST.get('current_price')
+    change_rate = request.POST.get('change_rate')
+    nav = request.POST.get('nav')
+    market_cap = request.POST.get('market_cap')
+    holdings = request.POST.get('holdings', '[]')
+
+    if not code or not name:
+        return JsonResponse({'error': '종목코드와 종목명이 필요합니다.'}, status=400)
+
+    # JSON 파싱
+    import json
+    try:
+        holdings_list = json.loads(holdings)
+    except:
+        holdings_list = []
+
+    # 숫자 변환
+    try:
+        current_price = int(current_price) if current_price else None
+    except:
+        current_price = None
+
+    try:
+        change_rate = float(change_rate) if change_rate else None
+    except:
+        change_rate = None
+
+    try:
+        nav = int(nav) if nav else None
+    except:
+        nav = None
+
+    try:
+        market_cap = int(market_cap) if market_cap else None
+    except:
+        market_cap = None
+
+    # InfoETF 저장 (있으면 업데이트, 없으면 생성)
+    etf, created = InfoETF.objects.update_or_create(
+        code=code,
+        defaults={
+            'name': name,
+            'current_price': current_price,
+            'change_rate': change_rate,
+            'nav': nav,
+            'market_cap': market_cap,
+            'holdings': holdings_list,
+            'is_active': True,
+        }
+    )
+
+    # 새로 생성된 ETF인 경우 차트 데이터도 저장 (mode=all)
+    chart_result = None
+    if created:
+        daily = fetch_etf_chart(etf, 'day', 'all')
+        weekly = fetch_etf_chart(etf, 'week', 'all')
+        monthly = fetch_etf_chart(etf, 'month', 'all')
+        chart_result = {
+            'daily': f'+{daily[0]}/={daily[1]}',
+            'weekly': f'+{weekly[0]}/={weekly[1]}',
+            'monthly': f'+{monthly[0]}/={monthly[1]}',
+        }
+
+    return JsonResponse({
+        'success': True,
+        'created': created,
+        'code': etf.code,
+        'name': etf.name,
+        'chart': chart_result,
+    })
+
+
+@require_POST
+def category_add(request):
+    """대분류 추가 API"""
+    from .models import ThemeCategory
+
+    name = request.POST.get('name', '').strip()
+
+    if not name:
+        return JsonResponse({'error': '대분류명을 입력해주세요.'}, status=400)
+
+    if len(name) > 20:
+        return JsonResponse({'error': '대분류명은 20자 이하로 입력해주세요.'}, status=400)
+
+    if ThemeCategory.objects.filter(name=name).exists():
+        return JsonResponse({'error': '이미 존재하는 대분류입니다.'}, status=400)
+
+    category = ThemeCategory.objects.create(name=name)
+
+    return JsonResponse({
+        'success': True,
+        'id': category.id,
+        'name': category.name,
+    })
+
+
+@require_POST
+def category_delete(request, category_id):
+    """대분류 삭제 API"""
+    from .models import ThemeCategory
+
+    category = get_object_or_404(ThemeCategory, id=category_id)
+    category.delete()
+
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def theme_add(request):
+    """소분류 추가 API"""
+    from .models import Theme, ThemeCategory
+
+    category_id = request.POST.get('category_id', '')
+    name = request.POST.get('name', '').strip()
+
+    if not category_id:
+        return JsonResponse({'error': '대분류를 선택해주세요.'}, status=400)
+
+    if not name:
+        return JsonResponse({'error': '소분류명을 입력해주세요.'}, status=400)
+
+    if len(name) > 20:
+        return JsonResponse({'error': '소분류명은 20자 이하로 입력해주세요.'}, status=400)
+
+    category = get_object_or_404(ThemeCategory, id=category_id)
+
+    if Theme.objects.filter(category=category, name=name).exists():
+        return JsonResponse({'error': '같은 대분류에 이미 존재하는 소분류입니다.'}, status=400)
+
+    theme = Theme.objects.create(category=category, name=name)
+
+    return JsonResponse({
+        'success': True,
+        'id': theme.id,
+        'category_id': category.id,
+        'name': theme.name,
+    })
+
+
+@require_POST
+def theme_delete(request, theme_id):
+    """소분류 삭제 API"""
+    from .models import Theme
+
+    theme = get_object_or_404(Theme, id=theme_id)
+    theme.delete()
+
+    return JsonResponse({'success': True})
+
+
+@require_GET
+def search_google_news(request):
+    """Google News 검색 API - Playwright 사용"""
+    from urllib.parse import quote
+
+    keyword = request.GET.get('keyword', '')
+
+    if not keyword:
+        return JsonResponse({'error': '검색어가 필요합니다.'}, status=400)
+
+    url = f'https://news.google.com/search?q={quote(keyword)}&hl=ko&gl=KR&ceid=KR%3Ako'
+
+    try:
+        from playwright.sync_api import sync_playwright
+        from bs4 import BeautifulSoup
+
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.goto(url, wait_until='networkidle', timeout=30000)
+
+            # 충분히 대기
+            page.wait_for_timeout(3000)
+
+            html = page.content()
+            browser.close()
+
+            soup = BeautifulSoup(html, 'html.parser')
+            results = []
+
+            # Google News: div.UW0SDc 내에서 기사 링크 찾기
+            container = soup.select_one('div.UW0SDc')
+            if not container:
+                container = soup
+
+            # 모든 기사 링크 찾기 (./articles/ 또는 ./read/로 시작하는 링크)
+            all_links = container.find_all('a', href=True)
+            seen_titles = set()
+
+            for a in all_links:
+                href = a.get('href', '')
+                text = a.get_text(strip=True)
+
+                # 기사 링크만 처리
+                if not (href.startswith('./articles/') or href.startswith('./read/')):
+                    continue
+                if len(text) < 10:  # 제목은 최소 10자
+                    continue
+                if text in seen_titles:  # 중복 제거
+                    continue
+
+                seen_titles.add(text)
+                title = text
+                link = 'https://news.google.com' + href[1:]
+
+                # 상위 요소들에서 출처와 시간 찾기
+                source = ''
+                date = ''
+
+                # 여러 단계의 부모 요소 탐색
+                current = a
+                for _ in range(10):
+                    current = current.find_parent()
+                    if not current:
+                        break
+
+                    # 시간 찾기
+                    if not date:
+                        time_el = current.find('time')
+                        if time_el:
+                            datetime_attr = time_el.get('datetime', '')
+                            if datetime_attr:
+                                try:
+                                    dt = datetime.fromisoformat(datetime_attr.replace('Z', '+00:00'))
+                                    date = dt.strftime('%Y-%m-%d %H:%M')
+                                except:
+                                    date = time_el.get_text(strip=True)
+                            else:
+                                date = time_el.get_text(strip=True)
+
+                    # 출처 찾기 (보통 이미지 옆에 있거나 별도 div에 있음)
+                    if not source:
+                        for el in current.find_all(['div', 'span', 'a'], recursive=False):
+                            el_text = el.get_text(strip=True)
+                            # '더보기' 제거
+                            el_text = el_text.replace('더보기', '').strip()
+                            if el_text and 2 <= len(el_text) <= 20 and el_text != title:
+                                if not any(x in el_text for x in ['시간', '분 전', '일 전', '주 전', '검색', '관련']):
+                                    # 제목의 일부가 아닌지 확인
+                                    if el_text not in title:
+                                        source = el_text
+                                        break
+
+                    # 둘 다 찾았으면 종료
+                    if date and source:
+                        break
+
+                results.append({
+                    'title': title,
+                    'source': source,
+                    'date': date,
+                    'link': link,
+                })
+
+                if len(results) >= 15:
+                    break
+
+            # 날짜순 정렬 (최신순)
+            def parse_news_date(item):
+                date_str = item.get('date', '')
+                if not date_str:
+                    return datetime.min
+                try:
+                    if '-' in date_str and ':' in date_str:
+                        return datetime.strptime(date_str[:16], '%Y-%m-%d %H:%M')
+                    if '-' in date_str:
+                        return datetime.strptime(date_str[:10], '%Y-%m-%d')
+                except:
+                    pass
+                return datetime.min
+
+            results.sort(key=parse_news_date, reverse=True)
+
+        return JsonResponse({
+            'success': True,
+            'keyword': keyword,
+            'results': results,
+        })
+
+    except Exception as e:
+        import traceback
+        return JsonResponse({'error': str(e), 'trace': traceback.format_exc()}, status=500)

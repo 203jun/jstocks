@@ -22,7 +22,7 @@ class Command(BaseCommand):
 재무제표 데이터 크롤링 및 저장 (네이버 금융)
 
 옵션:
-  --code      (필수*) 종목코드 또는 "all" (전체 종목, ETF 제외)
+  --code      (필수*) 종목코드 또는 "all" (전체 종목)
   --clear     (선택) 전체 데이터 삭제
   --log-level (선택) debug / info / warning / error (기본값: info)
 
@@ -87,7 +87,7 @@ class Command(BaseCommand):
 
     def process_all_stocks(self):
         """전체 종목 처리"""
-        stocks = Info.objects.filter(is_active=True).exclude(market='ETF').values_list('code', 'name')
+        stocks = Info.objects.filter(is_active=True).values_list('code', 'name')
         total = len(stocks)
 
         self.log.info(f'재무제표 저장 시작 (대상: {total}개 종목)')

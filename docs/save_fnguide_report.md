@@ -11,6 +11,9 @@ python manage.py save_fnguide_report --code 005930
 # 전체 종목 (정기 업데이트용)
 python manage.py save_fnguide_report --code all
 
+# 관심 종목만 (interest_level 설정된 종목)
+python manage.py save_fnguide_report --code fav
+
 # 디버그 모드
 python manage.py save_fnguide_report --code 005930 --log-level debug
 ```
@@ -19,8 +22,17 @@ python manage.py save_fnguide_report --code 005930 --log-level debug
 
 | 옵션 | 필수 | 설명 |
 |------|------|------|
-| `--code` | O | 종목코드 또는 "all" (전체 종목, ETF 제외) |
-| `--log-level` | X | 로그 레벨 (debug/info/error, 기본: debug) |
+| `--code` | O | 종목코드 또는 `all` / `fav` |
+| `--log-level` | X | 로그 레벨 (debug/info/error, 기본: info) |
+| `--clear` | X | 전체 데이터 삭제 |
+
+### --code 옵션 값
+
+| 값 | 설명 |
+|----|------|
+| `종목코드` | 특정 종목만 처리 (예: 005930) |
+| `all` | 전체 종목 처리 (is_active=True) |
+| `fav` | 관심 종목만 처리 (interest_level이 설정된 종목: 초관심/관심/인큐베이터) |
 
 ## 데이터 소스
 
@@ -52,7 +64,7 @@ python manage.py save_fnguide_report --code 005930 --log-level debug
 
 ## 전체 종목 처리 시
 
-- ETF 제외, `is_active=True`인 종목만 처리
+- `is_active=True`인 종목만 처리
 - 요청 간격: 0.2초
 - 처리 완료 후 최종 리포트 출력 (성공/데이터없음/오류)
 
@@ -70,7 +82,7 @@ python manage.py save_fnguide_report --code 005930 --log-level debug
 신규 0, 스킵 20
 
 # 전체 종목
-리포트 조회 시작 (2714개 종목, ETF 제외)
+리포트 조회 시작 (2714개 종목)
 [1/2714] 005930 삼성전자: 신규 0, 스킵 20
 [2/2714] 000660 SK하이닉스: 신규 5, 스킵 15
 [3/2714] 373220 LG에너지솔루션: 데이터 없음

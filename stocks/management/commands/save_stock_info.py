@@ -17,7 +17,7 @@ class Command(BaseCommand):
 종목 기본정보 조회 및 저장 (키움 API ka10001)
 
 옵션:
-  --code      (필수) 종목코드 또는 "all" (전체 종목, ETF 제외)
+  --code      (필수) 종목코드 또는 "all" (전체 종목)
   --min-cap   (선택) 최소 시가총액 (억 단위, 기본값: {DEFAULT_MIN_CAP}억) - 미만은 is_active=False
   --log-level (선택) debug / info / warning / error (기본값: info)
 
@@ -31,7 +31,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--code',
             type=str,
-            help='종목코드 또는 "all" (전체 종목, ETF 제외)'
+            help='종목코드 또는 "all" (전체 종목)'
         )
         parser.add_argument(
             '--min-cap',
@@ -87,11 +87,8 @@ class Command(BaseCommand):
             self.log.error('API 호출 실패')
 
     def process_all_stocks(self, token, min_cap_억):
-        """전체 종목 일괄 처리 (ETF 제외)"""
-        # 전체 종목 조회 (ETF 제외, is_active 관계없이)
-        stocks = Info.objects.exclude(
-            market='ETF'
-        ).values_list('code', 'name')
+        """전체 종목 일괄 처리"""
+        stocks = Info.objects.all().values_list('code', 'name', 'market')
 
         total_count = stocks.count()
         self.log.info(f'종목정보 저장 시작 (대상: {total_count}개 종목, 시가총액 {min_cap_억}억 기준)')
@@ -101,7 +98,7 @@ class Command(BaseCommand):
         updated_count = 0
         error_count = 0
 
-        for idx, (code, name) in enumerate(stocks, 1):
+        for idx, (code, name, market) in enumerate(stocks, 1):
             try:
                 response_data = self.call_api(token, code)
 

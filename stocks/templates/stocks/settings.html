@@ -1,0 +1,374 @@
+{% extends 'stocks/base.html' %}
+
+{% block title %}설정 - JStocks{% endblock %}
+
+{% block content %}
+<h4 class="mb-3">설정</h4>
+
+<!-- 탭 네비게이션 -->
+<ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="theme-tab" data-bs-toggle="tab" data-bs-target="#theme-panel" type="button" role="tab">업종</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="prompt-tab" data-bs-toggle="tab" data-bs-target="#prompt-panel" type="button" role="tab">프롬프트</button>
+    </li>
+</ul>
+
+<!-- 탭 콘텐츠 -->
+<div class="tab-content">
+    <!-- 업종 탭 -->
+    <div class="tab-pane fade show active" id="theme-panel" role="tabpanel">
+        <!-- 업종 관리 (2단계) -->
+        <div class="card">
+    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+        <strong>업종 관리</strong>
+        <div>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddCategory">대분류 추가</button>
+            <button type="button" class="btn btn-sm btn-primary" id="btnAddTheme">소분류 추가</button>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <!-- 대분류 추가 폼 -->
+        <div id="categoryAddForm" class="border-bottom p-3 d-none bg-light">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-8">
+                    <label class="form-label small fw-bold">대분류 추가 (최대 20자)</label>
+                    <input type="text" class="form-control form-control-sm" id="categoryAddName" placeholder="건설/플랜트, 바이오/제약 등" maxlength="20">
+                </div>
+                <div class="col-md-4">
+                    <button type="button" id="btnSaveCategory" class="btn btn-sm btn-outline-primary w-100">저장</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 소분류 추가 폼 -->
+        <div id="themeAddForm" class="border-bottom p-3 d-none bg-light">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">대분류 선택</label>
+                    <select class="form-select form-select-sm" id="themeAddCategory">
+                        <option value="">대분류 선택</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label small fw-bold">소분류명 (최대 20자)</label>
+                    <input type="text" class="form-control form-control-sm" id="themeAddName" placeholder="도시정비/원전/SMR 등" maxlength="20">
+                </div>
+                <div class="col-md-3">
+                    <button type="button" id="btnSaveTheme" class="btn btn-sm btn-primary w-100">저장</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 업종 목록 (아코디언) -->
+        <div class="accordion accordion-flush" id="themeAccordion">
+            {% for category in categories %}
+            <div class="accordion-item" data-category-id="{{ category.id }}">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ category.id }}">
+                        <strong>{{ category.name }}</strong>
+                        <span class="badge bg-secondary ms-2">{{ category.themes.count }}</span>
+                    </button>
+                </h2>
+                <div id="collapse{{ category.id }}" class="accordion-collapse collapse" data-bs-parent="#themeAccordion">
+                    <div class="accordion-body py-2 px-3">
+                        <div class="d-flex flex-wrap gap-2 mb-2 theme-list" data-category-id="{{ category.id }}">
+                            {% for theme in category.themes.all %}
+                            <span class="badge bg-light text-dark border d-flex align-items-center" data-theme-id="{{ theme.id }}">
+                                {{ theme.name }}
+                                <button type="button" class="btn-close btn-close-sm ms-1 btn-delete-theme" data-id="{{ theme.id }}" data-name="{{ theme.name }}" style="font-size: 0.6rem;"></button>
+                            </span>
+                            {% empty %}
+                            <span class="text-muted small theme-empty">소분류가 없습니다.</span>
+                            {% endfor %}
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-category" data-id="{{ category.id }}" data-name="{{ category.name }}">대분류 삭제</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center text-muted py-4" id="emptyMessage">
+                등록된 업종이 없습니다. 대분류를 먼저 추가하세요.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+        <div class="mt-3 small text-muted">
+            <strong>사용법:</strong> 대분류(건설/플랜트, 바이오/제약 등)를 먼저 추가한 후, 소분류(도시정비/원전, P-CAB/GLP-1 등)를 추가하세요.
+        </div>
+    </div>
+
+    <!-- 프롬프트 탭 -->
+    <div class="tab-pane fade" id="prompt-panel" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2">
+                <strong>프롬프트 관리</strong>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">분석 프롬프트</label>
+                    <textarea class="form-control" id="promptAnalysis" rows="6" placeholder="종목 분석 시 사용할 프롬프트를 입력하세요..."></textarea>
+                    <small class="text-muted">종목 분석 시 AI에게 전달할 기본 프롬프트입니다.</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">요약 프롬프트</label>
+                    <textarea class="form-control" id="promptSummary" rows="6" placeholder="요약 생성 시 사용할 프롬프트를 입력하세요..."></textarea>
+                    <small class="text-muted">뉴스/리포트 요약 시 사용할 프롬프트입니다.</small>
+                </div>
+                <div class="text-end">
+                    <button type="button" class="btn btn-primary" id="btnSavePrompt">저장</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// === 대분류 관리 ===
+const btnAddCategory = document.getElementById('btnAddCategory');
+const categoryAddForm = document.getElementById('categoryAddForm');
+const categoryAddName = document.getElementById('categoryAddName');
+const btnSaveCategory = document.getElementById('btnSaveCategory');
+
+btnAddCategory.addEventListener('click', () => {
+    categoryAddForm.classList.toggle('d-none');
+    themeAddForm.classList.add('d-none');
+    if (!categoryAddForm.classList.contains('d-none')) {
+        categoryAddName.focus();
+    }
+});
+
+btnSaveCategory.addEventListener('click', async () => {
+    const name = categoryAddName.value.trim();
+    if (!name) {
+        alert('대분류명을 입력해주세요.');
+        return;
+    }
+
+    btnSaveCategory.disabled = true;
+
+    try {
+        const formData = new FormData();
+        formData.append('name', name);
+
+        const response = await fetch('/api/category/add/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': getCsrfToken() }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // 페이지 새로고침 (아코디언 구조 복잡)
+            location.reload();
+        } else {
+            alert(data.error || '저장에 실패했습니다.');
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+    } finally {
+        btnSaveCategory.disabled = false;
+    }
+});
+
+categoryAddName.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') btnSaveCategory.click();
+});
+
+// 대분류 삭제
+document.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-delete-category')) return;
+
+    const categoryId = e.target.dataset.id;
+    const categoryName = e.target.dataset.name;
+
+    if (!confirm(`"${categoryName}" 대분류와 모든 소분류를 삭제하시겠습니까?`)) return;
+
+    e.target.disabled = true;
+
+    try {
+        const response = await fetch(`/api/category/${categoryId}/delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrfToken() }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || '삭제에 실패했습니다.');
+            e.target.disabled = false;
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        e.target.disabled = false;
+    }
+});
+
+// === 소분류 관리 ===
+const btnAddTheme = document.getElementById('btnAddTheme');
+const themeAddForm = document.getElementById('themeAddForm');
+const themeAddCategory = document.getElementById('themeAddCategory');
+const themeAddName = document.getElementById('themeAddName');
+const btnSaveTheme = document.getElementById('btnSaveTheme');
+
+btnAddTheme.addEventListener('click', () => {
+    themeAddForm.classList.toggle('d-none');
+    categoryAddForm.classList.add('d-none');
+    if (!themeAddForm.classList.contains('d-none')) {
+        themeAddCategory.focus();
+    }
+});
+
+btnSaveTheme.addEventListener('click', async () => {
+    const categoryId = themeAddCategory.value;
+    const name = themeAddName.value.trim();
+
+    if (!categoryId) {
+        alert('대분류를 선택해주세요.');
+        return;
+    }
+    if (!name) {
+        alert('소분류명을 입력해주세요.');
+        return;
+    }
+
+    btnSaveTheme.disabled = true;
+
+    try {
+        const formData = new FormData();
+        formData.append('category_id', categoryId);
+        formData.append('name', name);
+
+        const response = await fetch('/api/theme/add/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': getCsrfToken() }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // 해당 대분류의 소분류 목록에 추가
+            const themeList = document.querySelector(`.theme-list[data-category-id="${categoryId}"]`);
+            if (themeList) {
+                // 빈 메시지 제거
+                const emptyMsg = themeList.querySelector('.theme-empty');
+                if (emptyMsg) emptyMsg.remove();
+
+                // 새 뱃지 추가
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-light text-dark border d-flex align-items-center';
+                badge.dataset.themeId = data.id;
+                badge.innerHTML = `
+                    ${escapeHtml(data.name)}
+                    <button type="button" class="btn-close btn-close-sm ms-1 btn-delete-theme" data-id="${data.id}" data-name="${escapeHtml(data.name)}" style="font-size: 0.6rem;"></button>
+                `;
+                themeList.appendChild(badge);
+
+                // 카운트 업데이트
+                const accordion = document.querySelector(`.accordion-item[data-category-id="${categoryId}"]`);
+                if (accordion) {
+                    const countBadge = accordion.querySelector('.badge');
+                    if (countBadge) {
+                        countBadge.textContent = parseInt(countBadge.textContent) + 1;
+                    }
+                }
+            }
+
+            themeAddName.value = '';
+            themeAddName.focus();
+        } else {
+            alert(data.error || '저장에 실패했습니다.');
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+    } finally {
+        btnSaveTheme.disabled = false;
+    }
+});
+
+themeAddName.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') btnSaveTheme.click();
+});
+
+// 소분류 삭제
+document.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-delete-theme')) return;
+
+    const themeId = e.target.dataset.id;
+    const themeName = e.target.dataset.name;
+
+    if (!confirm(`"${themeName}" 소분류를 삭제하시겠습니까?`)) return;
+
+    e.target.disabled = true;
+
+    try {
+        const response = await fetch(`/api/theme/${themeId}/delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrfToken() }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            const badge = e.target.closest('[data-theme-id]');
+            const themeList = badge.closest('.theme-list');
+            const categoryId = themeList.dataset.categoryId;
+
+            badge.remove();
+
+            // 카운트 업데이트
+            const accordion = document.querySelector(`.accordion-item[data-category-id="${categoryId}"]`);
+            if (accordion) {
+                const countBadge = accordion.querySelector('.badge');
+                if (countBadge) {
+                    const newCount = parseInt(countBadge.textContent) - 1;
+                    countBadge.textContent = newCount;
+
+                    // 0개면 빈 메시지 표시
+                    if (newCount === 0) {
+                        themeList.innerHTML = '<span class="text-muted small theme-empty">소분류가 없습니다.</span>';
+                    }
+                }
+            }
+        } else {
+            alert(data.error || '삭제에 실패했습니다.');
+            e.target.disabled = false;
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        e.target.disabled = false;
+    }
+});
+
+// 공통 함수
+function getCsrfToken() {
+    const name = 'csrftoken';
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [key, value] = cookie.trim().split('=');
+        if (key === name) return value;
+    }
+    return '';
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

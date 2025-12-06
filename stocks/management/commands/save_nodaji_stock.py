@@ -11,7 +11,9 @@ class Command(BaseCommand):
 노다지 IR노트 기사 조회 및 저장 (네이버 프리미엄 콘텐츠)
 
 옵션:
-  --code      (필수*) 종목코드 또는 "all" (전체 종목, ETF 제외)
+  --code      (필수*) 종목코드 또는 "all" / "fav"
+              - all: 전체 종목
+              - fav: 관심 종목만 (interest_level 설정된 종목)
   --clear     (선택) 전체 데이터 삭제
   --log-level (선택) debug / info / warning / error (기본값: info)
 
@@ -20,6 +22,7 @@ class Command(BaseCommand):
 예시:
   python manage.py save_nodaji_stock --code 005930
   python manage.py save_nodaji_stock --code all --log-level info
+  python manage.py save_nodaji_stock --code fav
   python manage.py save_nodaji_stock --clear
 '''
 
@@ -27,7 +30,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--code',
             type=str,
-            help='종목코드 또는 "all" (전체 종목, ETF 제외)'
+            help='종목코드 또는 "all" (전체 종목)'
         )
         parser.add_argument(
             '--clear',
@@ -55,13 +58,14 @@ class Command(BaseCommand):
         import sys
         sys.stdout.reconfigure(line_buffering=True)
 
-        code = options['code']
-        process_all = code.lower() == 'all'
+        code = options['code'].lower()
 
-        if process_all:
-            self.process_all_stocks()
+        if code == 'all':
+            self.process_stocks(fav_only=False)
+        elif code == 'fav':
+            self.process_stocks(fav_only=True)
         else:
-            self.process_single_stock(code)
+            self.process_single_stock(options['code'])
 
     def process_single_stock(self, stock_code):
         """단일 종목 처리"""
@@ -80,16 +84,19 @@ class Command(BaseCommand):
         else:
             self.log.info('완료 | 데이터 없음', success=True)
 
-    def process_all_stocks(self):
-        """전체 종목 처리 (ETF 제외, is_active=True)"""
-        stocks = Info.objects.filter(
-            is_active=True
-        ).exclude(
-            market='ETF'
-        ).values_list('code', 'name')
+    def process_stocks(self, fav_only=False):
+        """종목 처리"""
+        stocks = Info.objects.filter(is_active=True)
 
+        if fav_only:
+            stocks = stocks.filter(interest_level__isnull=False)
+            mode = '관심 종목'
+        else:
+            mode = '전체 종목'
+
+        stocks = stocks.values_list('code', 'name')
         total_count = stocks.count()
-        self.log.info(f'노다지 기사 저장 시작 (대상: {total_count}개 종목)')
+        self.log.info(f'노다지 기사 저장 시작 (대상: {mode} {total_count}개)')
 
         success_count = 0
         no_data_list = []

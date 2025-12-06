@@ -13,7 +13,7 @@ class Command(BaseCommand):
 공매도 추이 저장 (키움 API ka10014)
 
 옵션:
-  --code      (필수*) 종목코드 또는 "all" (전체 종목, ETF 제외)
+  --code      (필수*) 종목코드 또는 "all" (전체 종목)
   --mode      (필수*) all (60일) / last (최근 1일)
   --clear     (선택) 전체 데이터 삭제
   --log-level (선택) debug / info / warning / error (기본값: info)
@@ -30,7 +30,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--code',
             type=str,
-            help='종목코드 또는 "all" (전체 종목, ETF 제외)'
+            help='종목코드 또는 "all" (전체 종목)'
         )
         parser.add_argument(
             '--mode',
@@ -70,7 +70,7 @@ class Command(BaseCommand):
 
         # 전체 종목 처리
         if code.lower() == 'all':
-            stocks = Info.objects.filter(is_active=True).exclude(market='ETF').order_by('code')
+            stocks = Info.objects.filter(is_active=True).order_by('code')
             total = stocks.count()
 
             self.log.info(f'공매도 추이 저장 시작 (모드: {mode}, 대상: {total}개 종목)')

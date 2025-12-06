@@ -6,9 +6,9 @@ from stocks.utils import get_valid_token
 from stocks.logger import StockLogger
 
 
-# 시장구분 코드 (ETF 먼저 처리해야 KOSPI/KOSDAQ에서 중복 제외 가능)
+# 시장구분 코드
 MARKET_CODES = [
-    ('ETF', '8'),
+    ('ETF', '8'),      # ETF 코드 수집 (KOSPI/KOSDAQ에서 제외용, DB 저장 안함)
     ('KOSPI', '0'),
     ('KOSDAQ', '10'),
 ]
@@ -17,6 +17,9 @@ MARKET_CODES = [
 class Command(BaseCommand):
     help = '''
 상장 종목 목록 동기화 (키움 API ka10099)
+
+- KOSPI, KOSDAQ 종목만 저장
+- ETF는 별도 모델(InfoETF)에서 관리
 
 옵션:
   --clear     (선택) Info 테이블 전체 삭제 (연결된 모든 데이터 함께 삭제됨)
@@ -64,25 +67,25 @@ class Command(BaseCommand):
             self.log.error('토큰이 없습니다.')
             return
 
-        # ETF 코드 수집 (KOSPI/KOSDAQ에서 제외용)
         etf_codes = set()
 
-        self.log.info(f'종목목록 저장 시작 (대상: ETF, KOSPI, KOSDAQ)')
+        self.log.info(f'종목목록 저장 시작 (대상: KOSPI, KOSDAQ)')
 
-        # ETF → KOSPI → KOSDAQ 순서로 처리
         for market, market_code in MARKET_CODES:
-
             response_data, response_headers = self.call_api(token, market_code)
 
             if response_data and 'list' in response_data:
                 stock_list = response_data['list']
 
                 if market == 'ETF':
-                    # ETF 코드 저장
+                    # ETF 코드 수집 (KOSPI/KOSDAQ 응답에서 제외용, DB 저장 안함)
                     etf_codes = {item.get('code') for item in stock_list}
-                elif market in ['KOSPI', 'KOSDAQ']:
+                    self.log.info(f'[ETF] {len(etf_codes)}개 코드 수집 (제외용)')
+                    continue
+
+                if market in ['KOSPI', 'KOSDAQ']:
                     original_count = len(stock_list)
-                    # kind='A'(일반주식)만 필터링 + ETF 코드 제외 + 스팩 제외
+                    # kind='A'(일반주식)만 필터링 + ETF/스팩 제외
                     stock_list = [
                         item for item in stock_list
                         if item.get('kind') == 'A'
@@ -93,7 +96,7 @@ class Command(BaseCommand):
                     if filtered_count > 0:
                         self.log.info(f'ETN/ETF/스팩 등 {filtered_count}개 제외')
 
-                self.sync_stocks(market, stock_list)
+                    self.sync_stocks(market, stock_list)
 
     def sync_stocks(self, market, stock_list):
         """종목 목록 동기화 (INSERT/UPDATE/상폐 체크)"""

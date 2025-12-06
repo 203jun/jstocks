@@ -42,6 +42,8 @@
                 <thead class="table-light">
                     <tr>
                         <th>종목명</th>
+                        <th class="hide-mobile">대분류</th>
+                        <th class="hide-mobile">소분류</th>
                         <th class="text-end">현재가</th>
                         <th class="text-end">등락율</th>
                         <th class="text-end hide-mobile">시가총액</th>
@@ -54,6 +56,8 @@
                             <strong>{{ stock.name }}</strong>
                             <small class="text-muted ms-1">{{ stock.code }}</small>
                         </td>
+                        <td class="hide-mobile small text-muted">{% for theme in stock.themes.all %}{% if forloop.first %}{{ theme.category.name }}{% endif %}{% empty %}-{% endfor %}</td>
+                        <td class="hide-mobile small">{% for theme in stock.themes.all %}{{ theme.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td>
                         <td class="text-end">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</td>
                         <td class="text-end {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}">
                             {% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}
@@ -79,6 +83,8 @@
                 <thead class="table-light">
                     <tr>
                         <th>종목명</th>
+                        <th class="hide-mobile">대분류</th>
+                        <th class="hide-mobile">소분류</th>
                         <th class="text-end">현재가</th>
                         <th class="text-end">등락율</th>
                         <th class="text-end hide-mobile">시가총액</th>
@@ -91,6 +97,8 @@
                             <strong>{{ stock.name }}</strong>
                             <small class="text-muted ms-1">{{ stock.code }}</small>
                         </td>
+                        <td class="hide-mobile small text-muted">{% for theme in stock.themes.all %}{% if forloop.first %}{{ theme.category.name }}{% endif %}{% empty %}-{% endfor %}</td>
+                        <td class="hide-mobile small">{% for theme in stock.themes.all %}{{ theme.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td>
                         <td class="text-end">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</td>
                         <td class="text-end {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}">
                             {% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}
@@ -116,6 +124,8 @@
                 <thead class="table-light">
                     <tr>
                         <th>종목명</th>
+                        <th class="hide-mobile">대분류</th>
+                        <th class="hide-mobile">소분류</th>
                         <th class="text-end">현재가</th>
                         <th class="text-end">등락율</th>
                         <th class="text-end hide-mobile">시가총액</th>
@@ -128,6 +138,8 @@
                             <strong>{{ stock.name }}</strong>
                             <small class="text-muted ms-1">{{ stock.code }}</small>
                         </td>
+                        <td class="hide-mobile small text-muted">{% for theme in stock.themes.all %}{% if forloop.first %}{{ theme.category.name }}{% endif %}{% empty %}-{% endfor %}</td>
+                        <td class="hide-mobile small">{% for theme in stock.themes.all %}{{ theme.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td>
                         <td class="text-end">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</td>
                         <td class="text-end {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}">
                             {% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}

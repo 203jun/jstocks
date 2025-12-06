@@ -11,7 +11,7 @@ class Command(BaseCommand):
 주식 일봉 차트 조회 및 저장 (키움 API ka10081)
 
 옵션:
-  --code      (필수*) 종목코드 또는 "all" (전체 종목, ETF 제외)
+  --code      (필수*) 종목코드 또는 "all" (전체 종목)
   --mode      (필수*) all (2년 데이터) / last (최근 1일)
   --clear     (선택) 전체 데이터 삭제
   --log-level (선택) debug / info / warning / error (기본값: info)
@@ -28,7 +28,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--code',
             type=str,
-            help='종목코드 또는 "all" (전체 종목, ETF 제외)'
+            help='종목코드 또는 "all" (전체 종목)'
         )
         parser.add_argument(
             '--mode',
@@ -93,13 +93,11 @@ class Command(BaseCommand):
             self.fetch_two_years(token, stock_code)
 
     def process_all_stocks(self, token, mode):
-        """전체 종목 처리 (ETF 제외, is_active=True)"""
+        """전체 종목 처리"""
         import time
 
         stocks = Info.objects.filter(
             is_active=True
-        ).exclude(
-            market='ETF'
         ).values_list('code', 'name')
 
         total = stocks.count()

@@ -35,6 +35,9 @@
         <button class="nav-link" id="telegram-tab" data-bs-toggle="tab" data-bs-target="#telegram-content" type="button" role="tab">텔레그램</button>
     </li>
     <li class="nav-item" role="presentation">
+        <button class="nav-link" id="news-tab" data-bs-toggle="tab" data-bs-target="#news-content" type="button" role="tab">뉴스</button>
+    </li>
+    <li class="nav-item" role="presentation">
         <button class="nav-link" id="nodaji-tab" data-bs-toggle="tab" data-bs-target="#nodaji-content" type="button" role="tab">노다지</button>
     </li>
 </ul>
@@ -60,7 +63,62 @@
                             </select>
                             <small class="text-muted">초관심 > 관심 > 인큐베이터 순으로 중요도가 높습니다.</small>
                         </div>
+                        <div class="col-md-6">
+                            <div class="form-check mt-2">
+                                <input type="checkbox" class="form-check-input" id="is_holding" name="is_holding" {% if stock.is_holding %}checked{% endif %}>
+                                <label class="form-check-label" for="is_holding">
+                                    <strong>보유중</strong>
+                                    <small class="text-muted ms-1">현재 이 종목을 보유하고 있음</small>
+                                </label>
+                            </div>
+                        </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header py-2">
+                    <strong>업종</strong>
+                    <a href="{% url 'stocks:settings' %}" class="text-muted small ms-2" target="_blank">관리</a>
+                </div>
+                <div class="card-body py-2">
+                    {% if theme_categories %}
+                    <!-- 선택된 테마 표시 -->
+                    <div id="selectedThemes" class="d-flex flex-wrap gap-1 mb-2">
+                        {% for theme in stock.themes.all %}
+                        <span class="badge bg-primary d-flex align-items-center selected-theme" data-id="{{ theme.id }}">
+                            {{ theme.category.name }} &gt; {{ theme.name }}
+                            <button type="button" class="btn-close btn-close-white ms-1 btn-remove-theme" style="font-size: 0.5rem;"></button>
+                        </span>
+                        {% empty %}
+                        <span class="text-muted small" id="noThemeMsg">선택된 업종이 없습니다.</span>
+                        {% endfor %}
+                    </div>
+                    <!-- 테마 추가 드롭다운 -->
+                    <div class="d-flex gap-2 align-items-center">
+                        <select id="themeSelect" class="form-select form-select-sm" style="max-width: 300px;">
+                            <option value="">업종 선택...</option>
+                            {% for category in theme_categories %}
+                            <optgroup label="{{ category.name }}">
+                                {% for theme in category.themes.all %}
+                                <option value="{{ theme.id }}" data-category="{{ category.name }}" data-name="{{ theme.name }}">{{ theme.name }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endfor %}
+                        </select>
+                        <button type="button" id="btnAddThemeToStock" class="btn btn-sm btn-outline-primary">추가</button>
+                    </div>
+                    <!-- hidden inputs -->
+                    <div id="themeInputs">
+                        {% for theme in stock.themes.all %}
+                        <input type="hidden" name="themes" value="{{ theme.id }}">
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-muted small">
+                        등록된 업종이 없습니다. <a href="{% url 'stocks:settings' %}" target="_blank">설정</a>에서 업종을 추가하세요.
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -138,6 +196,16 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header py-2">
+                    <strong>기업분석</strong>
+                </div>
+                <div class="card-body p-0">
+                    <div id="analysisEditor" style="min-height: 300px;">{{ stock.analysis|safe }}</div>
+                    <input type="hidden" name="analysis" id="analysisInput">
                 </div>
             </div>
 
@@ -449,6 +517,30 @@
         </div>
     </div>
 
+    <!-- 뉴스 탭 -->
+    <div class="tab-pane fade" id="news-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>Google 뉴스</strong>
+                    <small class="text-muted ms-2">"{{ stock.name }}" 검색</small>
+                </div>
+                <button type="button" id="btnSearchNews" class="btn btn-sm btn-outline-info">
+                    검색
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="newsLoading" class="text-center py-3 d-none">
+                    <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+                    <span class="ms-2">검색 중... (5~10초 소요)</span>
+                </div>
+                <div id="newsResult">
+                    <div class="text-muted">버튼을 클릭하면 "{{ stock.name }}" 관련 최신 뉴스를 검색합니다.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 노다지 탭 -->
     <div class="tab-pane fade" id="nodaji-content" role="tabpanel">
         <div class="card">
@@ -648,11 +740,13 @@ const quillOptions = {
 
 const investmentPointEditor = new Quill('#investmentPointEditor', quillOptions);
 const riskEditor = new Quill('#riskEditor', quillOptions);
+const analysisEditor = new Quill('#analysisEditor', quillOptions);
 
 // 폼 제출 시 에디터 내용을 hidden input에 복사
 document.querySelector('form').addEventListener('submit', function(e) {
     document.getElementById('investmentPointInput').value = investmentPointEditor.root.innerHTML;
     document.getElementById('riskInput').value = riskEditor.root.innerHTML;
+    document.getElementById('analysisInput').value = analysisEditor.root.innerHTML;
 });
 
 // ============ 일정 관리 ============
@@ -1076,9 +1170,16 @@ btnNodaji.addEventListener('click', async () => {
         } else if (data.results.length === 0) {
             nodajiResult.innerHTML = '<div class="text-muted">검색 결과가 없습니다.</div>';
         } else {
+            // 날짜순 정렬 (최신순)
+            const sortedResults = [...data.results].sort((a, b) => {
+                const dateA = parseDateString(a.date);
+                const dateB = parseDateString(b.date);
+                return dateB - dateA;
+            });
+
             let html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0">';
             html += '<thead class="table-light"><tr><th class="ps-3" style="width:100px;">날짜</th><th>제목</th></tr></thead><tbody>';
-            data.results.forEach(item => {
+            sortedResults.forEach(item => {
                 html += `<tr>`;
                 html += `<td class="text-muted small ps-3">${item.date}</td>`;
                 html += `<td><a href="${item.link}" target="_blank" class="text-decoration-none">${item.title}</a></td>`;
@@ -1140,6 +1241,71 @@ btnDart.addEventListener('click', async () => {
     }
 });
 
+// ============ 업종 선택 ============
+const themeSelect = document.getElementById('themeSelect');
+const btnAddThemeToStock = document.getElementById('btnAddThemeToStock');
+const selectedThemes = document.getElementById('selectedThemes');
+const themeInputs = document.getElementById('themeInputs');
+
+if (btnAddThemeToStock) {
+    btnAddThemeToStock.addEventListener('click', () => {
+        const select = themeSelect;
+        const themeId = select.value;
+        if (!themeId) return;
+
+        // 이미 선택된 테마인지 확인
+        if (themeInputs.querySelector(`input[value="${themeId}"]`)) {
+            alert('이미 선택된 업종입니다.');
+            return;
+        }
+
+        const option = select.options[select.selectedIndex];
+        const categoryName = option.dataset.category;
+        const themeName = option.dataset.name;
+
+        // "선택된 업종이 없습니다" 메시지 제거
+        const noMsg = document.getElementById('noThemeMsg');
+        if (noMsg) noMsg.remove();
+
+        // 뱃지 추가
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-primary d-flex align-items-center selected-theme';
+        badge.dataset.id = themeId;
+        badge.innerHTML = `${categoryName} &gt; ${themeName}<button type="button" class="btn-close btn-close-white ms-1 btn-remove-theme" style="font-size: 0.5rem;"></button>`;
+        selectedThemes.appendChild(badge);
+
+        // hidden input 추가
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'themes';
+        input.value = themeId;
+        themeInputs.appendChild(input);
+
+        // 선택 초기화
+        select.value = '';
+    });
+
+    // 테마 삭제 (이벤트 위임)
+    selectedThemes.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('btn-remove-theme')) return;
+
+        const badge = e.target.closest('.selected-theme');
+        const themeId = badge.dataset.id;
+
+        // 뱃지 제거
+        badge.remove();
+
+        // hidden input 제거
+        const input = themeInputs.querySelector(`input[value="${themeId}"]`);
+        if (input) input.remove();
+
+        // 남은 테마가 없으면 메시지 표시
+        if (selectedThemes.querySelectorAll('.selected-theme').length === 0) {
+            selectedThemes.innerHTML = '<span class="text-muted small" id="noThemeMsg">선택된 업종이 없습니다.</span>';
+        }
+    });
+}
+
 // 공통 함수
 function linkify(text) {
     const urlRegex = /(https?:\/\/[^\s<]+)/g;
@@ -1150,6 +1316,28 @@ function highlightKeyword(text, keyword) {
     if (!keyword) return text;
     const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     return text.replace(regex, '<span class="highlight">$1</span>');
+}
+
+// 날짜 문자열 파싱 (정렬용)
+function parseDateString(dateStr) {
+    if (!dateStr) return new Date(0);
+
+    // "2024.12.06" 형식
+    if (dateStr.includes('.') && dateStr.length >= 10) {
+        const match = dateStr.match(/(\d{4})\.(\d{1,2})\.(\d{1,2})/);
+        if (match) {
+            return new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
+        }
+    }
+
+    // "12월 6일" 형식
+    const monthDayMatch = dateStr.match(/(\d+)월\s*(\d+)일/);
+    if (monthDayMatch) {
+        const year = new Date().getFullYear();
+        return new Date(year, parseInt(monthDayMatch[1]) - 1, parseInt(monthDayMatch[2]));
+    }
+
+    return new Date(0);
 }
 
 // ============ 텔레그램 공시 검색 ============
@@ -1325,6 +1513,46 @@ btnTelegram.addEventListener('click', async () => {
     } finally {
         btnTelegram.disabled = false;
         telegramLoading.classList.add('d-none');
+    }
+});
+
+// ============ Google 뉴스 검색 ============
+const btnNews = document.getElementById('btnSearchNews');
+const newsLoading = document.getElementById('newsLoading');
+const newsResult = document.getElementById('newsResult');
+
+btnNews.addEventListener('click', async () => {
+    btnNews.disabled = true;
+    newsLoading.classList.remove('d-none');
+    newsResult.innerHTML = '';
+
+    try {
+        const response = await fetch(`/api/news/search/?keyword=${encodeURIComponent(stockName)}`);
+        const data = await response.json();
+
+        if (data.error) {
+            newsResult.innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
+        } else if (data.results.length === 0) {
+            newsResult.innerHTML = '<div class="text-muted">검색 결과가 없습니다.</div>';
+        } else {
+            let html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0">';
+            html += '<thead class="table-light"><tr><th class="ps-3" style="width:130px;">날짜</th><th>제목</th><th style="width:150px;" class="d-none d-md-table-cell">출처</th></tr></thead><tbody>';
+            data.results.forEach(item => {
+                html += `<tr>`;
+                html += `<td class="text-muted ps-3" style="font-size:0.75rem;">${item.date || '-'}</td>`;
+                html += `<td><a href="${item.link}" target="_blank" class="text-decoration-none">${item.title}</a></td>`;
+                html += `<td class="text-muted d-none d-md-table-cell" style="font-size:0.75rem;">${item.source || ''}</td>`;
+                html += `</tr>`;
+            });
+            html += '</tbody></table></div>';
+            newsResult.innerHTML = html;
+        }
+
+    } catch (err) {
+        newsResult.innerHTML = `<div class="alert alert-danger mb-0">오류: ${err.message}</div>`;
+    } finally {
+        btnNews.disabled = false;
+        newsLoading.classList.add('d-none');
     }
 });
 </script>

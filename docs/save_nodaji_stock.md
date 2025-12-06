@@ -12,8 +12,11 @@
 # 특정 종목
 python manage.py save_nodaji_stock --code 005930
 
-# 전체 종목 (ETF 제외)
+# 전체 종목
 python manage.py save_nodaji_stock --code all
+
+# 관심 종목만 (interest_level 설정된 종목)
+python manage.py save_nodaji_stock --code fav
 
 # 디버그 모드
 python manage.py save_nodaji_stock --code 005930 --log-level debug
@@ -23,8 +26,17 @@ python manage.py save_nodaji_stock --code 005930 --log-level debug
 
 | 옵션 | 필수 | 설명 |
 |------|------|------|
-| `--code` | O | 종목코드 또는 `all` (전체 종목, ETF 제외) |
+| `--code` | O | 종목코드 또는 `all` / `fav` |
 | `--log-level` | X | 로그 레벨 (debug/info/warning/error, 기본: info) |
+| `--clear` | X | 전체 데이터 삭제 |
+
+### --code 옵션 값
+
+| 값 | 설명 |
+|----|------|
+| `종목코드` | 특정 종목만 처리 (예: 005930) |
+| `all` | 전체 종목 처리 (is_active=True) |
+| `fav` | 관심 종목만 처리 (interest_level이 설정된 종목: 초관심/관심/인큐베이터) |
 
 ## 데이터 소스
 
@@ -51,7 +63,7 @@ python manage.py save_nodaji_stock --code 005930 --log-level debug
 
 - Playwright 설치 필요: `pip install playwright && playwright install chromium`
 - 전체 종목 처리 시 종목당 1초 대기 (API 제한 방지)
-- ETF는 처리 대상에서 제외
+- `is_active=True`인 종목만 처리
 
 ## 실행 주기
 

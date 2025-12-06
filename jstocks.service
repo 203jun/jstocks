@@ -1,0 +1,16 @@
+[Unit]
+Description=JStocks Django Application
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/home/stock
+Environment="PATH=/home/stock/venv/bin"
+EnvironmentFile=/home/stock/.env
+ExecStart=/home/stock/venv/bin/gunicorn --bind 0.0.0.0:8000 --workers 1 jstocks.wsgi:application
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

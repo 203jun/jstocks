@@ -1,6 +1,67 @@
 from django.db import models
 
 
+class ThemeCategory(models.Model):
+    """
+    업종 대분류
+
+    예: 건설/플랜트, 금융/증권, 바이오/제약 등
+    """
+    name = models.CharField(
+        max_length=20,
+        unique=True,
+        verbose_name='대분류명',
+        help_text='업종 대분류 이름 (최대 20자)'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+
+    class Meta:
+        db_table = 'theme_category'
+        verbose_name = '업종 대분류'
+        verbose_name_plural = '업종 대분류'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class Theme(models.Model):
+    """
+    업종 소분류 (테마)
+
+    예: 도시정비/원전/SMR, 증권사, P-CAB/GLP-1 등
+    """
+    category = models.ForeignKey(
+        ThemeCategory,
+        on_delete=models.CASCADE,
+        related_name='themes',
+        verbose_name='대분류',
+        help_text='소속 대분류'
+    )
+    name = models.CharField(
+        max_length=20,
+        verbose_name='소분류명',
+        help_text='업종 소분류 이름 (최대 20자)'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+
+    class Meta:
+        db_table = 'theme'
+        verbose_name = '업종 소분류'
+        verbose_name_plural = '업종 소분류'
+        ordering = ['category__name', 'name']
+        unique_together = [('category', 'name')]
+
+    def __str__(self):
+        return f"{self.category.name} > {self.name}"
+
+
 class Info(models.Model):
     """
     종목 기본 정보
@@ -79,10 +140,27 @@ class Info(models.Model):
             ('normal', '관심'),
             ('incubator', '인큐베이터'),
         ],
+        
         null=True,
         blank=True,
         verbose_name='관심단계',
         help_text='투자 관심 단계 (초관심 > 관심 > 인큐베이터)'
+    )
+
+    # === 보유 여부 ===
+    is_holding = models.BooleanField(
+        default=False,
+        verbose_name='보유중',
+        help_text='현재 보유 중인 종목 여부'
+    )
+
+    # === 사용자 정의 업종 ===
+    themes = models.ManyToManyField(
+        'Theme',
+        related_name='stocks',
+        blank=True,
+        verbose_name='업종',
+        help_text='사용자 정의 업종 (반도체, 전기전력 등)'
     )
 
     # === 투자 메모 ===
@@ -98,6 +176,12 @@ class Info(models.Model):
         verbose_name='리스크',
         help_text='리스크 (HTML 형식)'
     )
+    analysis = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='기업분석',
+        help_text='기업분석 (HTML 형식)'
+    )
 
     class Meta:
         db_table = 'info'
@@ -107,6 +191,215 @@ class Info(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.code})"
+
+
+class InfoETF(models.Model):
+    """
+    ETF 종목 정보
+
+    네이버 금융에서 크롤링한 ETF 데이터 저장
+    일반 종목(Info)과 분리하여 ETF 전용 필드 관리
+    """
+
+    # === 기본 정보 ===
+    code = models.CharField(
+        max_length=10,
+        primary_key=True,
+        verbose_name='종목코드',
+        help_text='ETF 종목코드 (6자리)'
+    )
+    name = models.CharField(
+        max_length=100,
+        verbose_name='종목명',
+        help_text='ETF 종목명'
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='활성화',
+        help_text='활성 상태 여부'
+    )
+
+    # === 가격 정보 (네이버 크롤링) ===
+    current_price = models.BigIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='현재가',
+        help_text='현재가 (원)'
+    )
+    change_rate = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='등락률',
+        help_text='전일대비 등락률 (%)'
+    )
+    nav = models.BigIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='NAV',
+        help_text='순자산가치 (원)'
+    )
+    market_cap = models.BigIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='시가총액',
+        help_text='시가총액 (억원 단위)'
+    )
+
+    # === ETF 특성 ===
+    management_fee = models.DecimalField(
+        max_digits=5,
+        decimal_places=3,
+        null=True,
+        blank=True,
+        verbose_name='총보수',
+        help_text='총보수 (%, 예: 0.150)'
+    )
+
+    # === 구성종목 (JSON) ===
+    holdings = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='구성종목',
+        help_text='구성종목 리스트 [{name, ratio}, ...]'
+    )
+
+    # === 메타 정보 ===
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='수정일시'
+    )
+
+    class Meta:
+        db_table = 'info_etf'
+        verbose_name = 'ETF 종목정보'
+        verbose_name_plural = 'ETF 종목정보'
+        ordering = ['-market_cap', 'code']
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+
+class DailyChartETF(models.Model):
+    """
+    ETF 일봉 차트 데이터
+
+    네이버 금융 API에서 크롤링한 ETF 일봉 데이터 저장
+    """
+
+    etf = models.ForeignKey(
+        InfoETF,
+        on_delete=models.CASCADE,
+        verbose_name='ETF',
+        db_index=True
+    )
+    date = models.DateField(
+        verbose_name='일자',
+        db_index=True
+    )
+    opening_price = models.BigIntegerField(verbose_name='시가')
+    high_price = models.BigIntegerField(verbose_name='고가')
+    low_price = models.BigIntegerField(verbose_name='저가')
+    closing_price = models.BigIntegerField(verbose_name='종가')
+    trading_volume = models.BigIntegerField(verbose_name='거래량')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+
+    class Meta:
+        db_table = 'daily_chart_etf'
+        verbose_name = 'ETF 일봉차트'
+        verbose_name_plural = 'ETF 일봉차트'
+        ordering = ['-date', 'etf']
+        unique_together = [('etf', 'date')]
+        indexes = [
+            models.Index(fields=['etf', '-date']),
+            models.Index(fields=['-date']),
+        ]
+
+    def __str__(self):
+        return f"{self.etf.name} - {self.date}"
+
+
+class WeeklyChartETF(models.Model):
+    """
+    ETF 주봉 차트 데이터
+
+    네이버 금융 API에서 크롤링한 ETF 주봉 데이터 저장
+    """
+
+    etf = models.ForeignKey(
+        InfoETF,
+        on_delete=models.CASCADE,
+        verbose_name='ETF',
+        db_index=True
+    )
+    date = models.DateField(
+        verbose_name='일자',
+        db_index=True
+    )
+    opening_price = models.BigIntegerField(verbose_name='시가')
+    high_price = models.BigIntegerField(verbose_name='고가')
+    low_price = models.BigIntegerField(verbose_name='저가')
+    closing_price = models.BigIntegerField(verbose_name='종가')
+    trading_volume = models.BigIntegerField(verbose_name='거래량')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+
+    class Meta:
+        db_table = 'weekly_chart_etf'
+        verbose_name = 'ETF 주봉차트'
+        verbose_name_plural = 'ETF 주봉차트'
+        ordering = ['-date', 'etf']
+        unique_together = [('etf', 'date')]
+        indexes = [
+            models.Index(fields=['etf', '-date']),
+            models.Index(fields=['-date']),
+        ]
+
+    def __str__(self):
+        return f"{self.etf.name} - {self.date}"
+
+
+class MonthlyChartETF(models.Model):
+    """
+    ETF 월봉 차트 데이터
+
+    네이버 금융 API에서 크롤링한 ETF 월봉 데이터 저장
+    """
+
+    etf = models.ForeignKey(
+        InfoETF,
+        on_delete=models.CASCADE,
+        verbose_name='ETF',
+        db_index=True
+    )
+    date = models.DateField(
+        verbose_name='일자',
+        db_index=True
+    )
+    opening_price = models.BigIntegerField(verbose_name='시가')
+    high_price = models.BigIntegerField(verbose_name='고가')
+    low_price = models.BigIntegerField(verbose_name='저가')
+    closing_price = models.BigIntegerField(verbose_name='종가')
+    trading_volume = models.BigIntegerField(verbose_name='거래량')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+
+    class Meta:
+        db_table = 'monthly_chart_etf'
+        verbose_name = 'ETF 월봉차트'
+        verbose_name_plural = 'ETF 월봉차트'
+        ordering = ['-date', 'etf']
+        unique_together = [('etf', 'date')]
+        indexes = [
+            models.Index(fields=['etf', '-date']),
+            models.Index(fields=['-date']),
+        ]
+
+    def __str__(self):
+        return f"{self.etf.name} - {self.date}"
 
 
 class Financial(models.Model):

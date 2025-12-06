@@ -38,7 +38,7 @@ class Command(BaseCommand):
 재무제표 초기 데이터 로드 (jemu 폴더 txt 파일) - 최초 1회 실행
 
 옵션:
-  --code      (필수*) 종목코드 또는 "all" (전체 종목, ETF 제외)
+  --code      (필수*) 종목코드 또는 "all" (전체 종목)
   --mode      (선택) annual / quarterly / all (기본값: all)
   --clear     (선택) 기존 Financial 데이터 전체 삭제
   --log-level (선택) debug / info / warning / error (기본값: info)
@@ -56,7 +56,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--code',
             type=str,
-            help='종목코드 또는 "all" (전체 종목, ETF 제외)'
+            help='종목코드 또는 "all" (전체 종목)'
         )
         # 데이터 유형 (--mode: annual/quarterly/all)
         parser.add_argument(
@@ -114,7 +114,6 @@ class Command(BaseCommand):
         ])
 
         if process_all:
-            # 전체 종목 처리 (ETF 제외)
             self.process_all_stocks(jemu_path, comprehensive_files, do_annual, do_quarterly)
         else:
             # 단일 종목 처리
@@ -145,13 +144,8 @@ class Command(BaseCommand):
             self.save_to_db(stock_code, quarterly_data, is_annual=False)
 
     def process_all_stocks(self, jemu_path, comprehensive_files, do_annual, do_quarterly):
-        """전체 종목 일괄 처리 (ETF 제외)"""
-        # KOSPI, KOSDAQ만 조회 (ETF 제외)
-        stocks = Info.objects.filter(
-            is_active=True
-        ).exclude(
-            market='ETF'
-        ).values_list('code', 'name', 'market')
+        """전체 종목 일괄 처리"""
+        stocks = Info.objects.filter(is_active=True).values_list('code', 'name', 'market')
 
         total_count = stocks.count()
         data_types = []
@@ -159,7 +153,7 @@ class Command(BaseCommand):
             data_types.append('연간')
         if do_quarterly:
             data_types.append('분기')
-        self.log.info(f'재무제표 초기 데이터 로드 시작 ({"/".join(data_types)}, {total_count}개 종목, ETF 제외)')
+        self.log.info(f'재무제표 초기 데이터 로드 시작 ({"/".join(data_types)}, {total_count}개 종목)')
 
         success_count = 0
         no_data_count = 0

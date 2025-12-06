@@ -1,0 +1,210 @@
+{% extends 'stocks/base.html' %}
+{% load humanize %}
+
+{% block title %}ETF - JStocks{% endblock %}
+
+{% block content %}
+<h4 class="mb-3">ETF</h4>
+
+<!-- ETF 추가 폼 -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form id="add-etf-form" class="d-flex align-items-center gap-2">
+            {% csrf_token %}
+            <label for="etf-code" class="form-label mb-0 text-nowrap">종목코드</label>
+            <input type="text" class="form-control form-control-sm" id="etf-code" placeholder="예: 069500" style="max-width: 120px;">
+            <button type="submit" class="btn btn-primary btn-sm" id="add-etf-btn">조회</button>
+            <span id="add-etf-result" class="ms-2 small"></span>
+        </form>
+    </div>
+</div>
+
+<!-- 관심 ETF 목록 -->
+{% if etfs %}
+<div class="table-responsive mb-3">
+    <table class="table table-hover stock-table mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>종목명</th>
+                <th class="text-end">현재가</th>
+                <th class="text-end">등락률</th>
+                <th class="text-end hide-mobile">시가총액</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for etf in etfs %}
+            <tr style="cursor:pointer;" onclick="location.href='{% url 'stocks:etf_detail' etf.code %}'">
+                <td>
+                    <strong>{{ etf.name }}</strong>
+                    <small class="text-muted ms-1">{{ etf.code }}</small>
+                </td>
+                <td class="text-end">{% if etf.current_price %}{{ etf.current_price|intcomma }}{% else %}-{% endif %}</td>
+                <td class="text-end {% if etf.change_rate > 0 %}text-up{% elif etf.change_rate < 0 %}text-down{% endif %}">
+                    {% if etf.change_rate %}{% if etf.change_rate > 0 %}+{% endif %}{{ etf.change_rate }}%{% else %}-{% endif %}
+                </td>
+                <td class="text-end hide-mobile">{% if etf.market_cap %}{{ etf.market_cap|intcomma }}억{% else %}-{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- 조회 결과 -->
+<div id="etf-data" class="card d-none">
+    <div class="card-body">
+        <h5 id="etf-name" class="mb-3"></h5>
+        <table class="table table-sm mb-3">
+            <tbody>
+                <tr><th style="width:100px">종목코드</th><td id="etf-code-result"></td></tr>
+                <tr><th>현재가</th><td id="etf-price"></td></tr>
+                <tr><th>등락률</th><td id="etf-rate"></td></tr>
+                <tr><th>NAV</th><td id="etf-nav"></td></tr>
+                <tr><th>시가총액</th><td id="etf-market-cap"></td></tr>
+            </tbody>
+        </table>
+        <h6>구성종목</h6>
+        <table class="table table-sm">
+            <thead><tr><th>종목</th><th class="text-end">비중</th></tr></thead>
+            <tbody id="etf-holdings"></tbody>
+        </table>
+        <div class="mt-3 d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-success btn-sm" id="save-etf-btn">관심종목 저장</button>
+            <span id="save-etf-result" class="small"></span>
+        </div>
+    </div>
+</div>
+
+<script>
+// 현재 조회된 ETF 데이터 저장
+let currentETFData = null;
+
+document.getElementById('add-etf-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const code = document.getElementById('etf-code').value.trim();
+    const resultSpan = document.getElementById('add-etf-result');
+    const submitBtn = document.getElementById('add-etf-btn');
+    const dataCard = document.getElementById('etf-data');
+    const saveResultSpan = document.getElementById('save-etf-result');
+
+    if (!code) {
+        resultSpan.innerHTML = '<span class="text-danger">종목코드를 입력해주세요.</span>';
+        return;
+    }
+
+    // 로딩 상태
+    submitBtn.disabled = true;
+    submitBtn.textContent = '조회 중...';
+    resultSpan.innerHTML = '<span class="text-muted">네이버에서 정보를 가져오는 중...</span>';
+    dataCard.classList.add('d-none');
+    saveResultSpan.innerHTML = '';
+    currentETFData = null;
+
+    try {
+        const formData = new FormData();
+        formData.append('code', code);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        const response = await fetch('{% url "stocks:add_etf" %}', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            resultSpan.innerHTML = '<span class="text-success">조회 완료</span>';
+
+            // 데이터 저장
+            currentETFData = data;
+
+            // 데이터 표시
+            document.getElementById('etf-name').textContent = data.name;
+            document.getElementById('etf-code-result').textContent = data.code;
+            document.getElementById('etf-price').textContent = data.current_price ? data.current_price.toLocaleString() + '원' : '-';
+
+            const rateEl = document.getElementById('etf-rate');
+            if (data.change_rate !== null) {
+                const sign = data.change_rate > 0 ? '+' : '';
+                rateEl.textContent = sign + data.change_rate.toFixed(2) + '%';
+                rateEl.className = data.change_rate > 0 ? 'text-up' : (data.change_rate < 0 ? 'text-down' : '');
+            } else {
+                rateEl.textContent = '-';
+            }
+
+            document.getElementById('etf-nav').textContent = data.nav ? data.nav.toLocaleString() + '원' : '-';
+            document.getElementById('etf-market-cap').textContent = data.market_cap ? data.market_cap.toLocaleString() + '억원' : '-';
+
+            // 구성종목
+            const holdingsBody = document.getElementById('etf-holdings');
+            holdingsBody.innerHTML = '';
+            if (data.holdings && data.holdings.length > 0) {
+                data.holdings.forEach(h => {
+                    holdingsBody.innerHTML += `<tr><td>${h.name}</td><td class="text-end">${h.ratio}</td></tr>`;
+                });
+            } else {
+                holdingsBody.innerHTML = '<tr><td colspan="2" class="text-muted">구성종목 정보 없음</td></tr>';
+            }
+
+            dataCard.classList.remove('d-none');
+        } else {
+            resultSpan.innerHTML = `<span class="text-danger">${data.error}</span>`;
+        }
+    } catch (error) {
+        resultSpan.innerHTML = `<span class="text-danger">오류: ${error.message}</span>`;
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '조회';
+    }
+});
+
+// 관심종목 저장 버튼
+document.getElementById('save-etf-btn').addEventListener('click', async function() {
+    if (!currentETFData) {
+        return;
+    }
+
+    const saveBtn = this;
+    const saveResultSpan = document.getElementById('save-etf-result');
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = '저장 중...';
+    saveResultSpan.innerHTML = '<span class="text-muted">차트 데이터 저장 중... (최대 30초)</span>';
+
+    try {
+        const formData = new FormData();
+        formData.append('code', currentETFData.code);
+        formData.append('name', currentETFData.name);
+        formData.append('current_price', currentETFData.current_price || '');
+        formData.append('change_rate', currentETFData.change_rate || '');
+        formData.append('nav', currentETFData.nav || '');
+        formData.append('market_cap', currentETFData.market_cap || '');
+        formData.append('holdings', JSON.stringify(currentETFData.holdings || []));
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        const response = await fetch('{% url "stocks:save_etf" %}', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            let msg = data.created ? '관심종목에 추가되었습니다.' : '정보가 업데이트되었습니다.';
+            if (data.chart) {
+                msg += ` (일봉 ${data.chart.daily}, 주봉 ${data.chart.weekly}, 월봉 ${data.chart.monthly})`;
+            }
+            saveResultSpan.innerHTML = `<span class="text-success">${msg}</span>`;
+        } else {
+            saveResultSpan.innerHTML = `<span class="text-danger">${data.error}</span>`;
+        }
+    } catch (error) {
+        saveResultSpan.innerHTML = `<span class="text-danger">오류: ${error.message}</span>`;
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '관심종목 저장';
+    }
+});
+</script>
+{% endblock %}

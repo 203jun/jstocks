@@ -32,7 +32,7 @@ python manage.py init_financial --code all --log-level info
 | 옵션 | 설명 | 기본값 |
 |------|------|--------|
 | `--clear` | 기존 Financial 데이터 전체 삭제 | - |
-| `--code` | 종목코드 또는 `all` (전체 종목, ETF 제외) | - |
+| `--code` | 종목코드 또는 `all` (전체 종목) | - |
 | `--mode` | 데이터 유형 (annual/quarterly/all) | all |
 | `--log-level` | 로그 레벨 (debug/info/error) | debug |
 
@@ -70,7 +70,7 @@ python manage.py init_financial --code all --log-level info
 ## 출력 결과 해석
 
 ```
-재무제표 초기 데이터 로드 시작 (연간, 1467개 종목, ETF 제외)
+재무제표 초기 데이터 로드 시작 (연간, 1467개 종목)
 [1/1467] 000020 동화약품: 연간 5건
 [2/1467] 000050 경방: 연간 5건
 [3/1467] 000070 삼양홀딩스: 데이터 없음
@@ -107,7 +107,6 @@ python manage.py init_financial --code all --log-level info
 
 ## 주의사항
 
-- ETF는 처리 대상에서 **제외**됩니다
 - `is_active=True`인 종목만 처리됩니다
 - 최초 1회 실행용 (이후 업데이트는 별도 명령어 사용)
 
