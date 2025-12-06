@@ -12,3 +12,4 @@ sqlparse==0.5.4
 typing_extensions==4.15.0
 urllib3==2.5.0
 gunicorn==23.0.0
+telethon==1.42.0
