@@ -235,13 +235,53 @@ def stock_detail(request, code):
     return render(request, 'stocks/stock_detail.html', context)
 
 
+def run_fav_commands(stock_code, action):
+    """관심 종목 변경 시 명령어 백그라운드 실행"""
+    import threading
+    from django.core.management import call_command
+
+    def run():
+        try:
+            if action == 'add':
+                # 데이터 수집 (전체 기간)
+                call_command('save_investor_trend', code=stock_code, mode='all')
+                call_command('save_short_selling', code=stock_code, mode='all')
+                call_command('save_gongsi_stock', code=stock_code)
+                call_command('save_fnguide_report', code=stock_code)
+                call_command('save_nodaji_stock', code=stock_code)
+            else:  # remove
+                # 데이터 삭제
+                call_command('save_investor_trend', clear=True, code=stock_code)
+                call_command('save_short_selling', clear=True, code=stock_code)
+                call_command('save_gongsi_stock', clear=True, code=stock_code)
+                call_command('save_fnguide_report', clear=True, code=stock_code)
+                call_command('save_nodaji_stock', clear=True, code=stock_code)
+        finally:
+            # 완료 시 상태 업데이트
+            from django.db import connection
+            connection.close()  # 스레드에서 DB 연결 재설정
+            stock = Info.objects.get(code=stock_code)
+            if action == 'add':
+                stock.fav_sync_status = 'completed'
+            else:
+                stock.fav_sync_status = None  # 삭제 완료 시 상태 초기화
+            stock.save(update_fields=['fav_sync_status'])
+
+    thread = threading.Thread(target=run)
+    thread.daemon = True
+    thread.start()
+
+
 def stock_edit(request, code):
     """종목 편집 페이지"""
     stock = get_object_or_404(Info, code=code)
 
     if request.method == 'POST':
+        old_interest_level = stock.interest_level  # 변경 전 값 저장
+
         interest_level = request.POST.get('interest_level', '')
-        stock.interest_level = interest_level if interest_level else None
+        new_interest_level = interest_level if interest_level else None
+        stock.interest_level = new_interest_level
         stock.is_holding = request.POST.get('is_holding') == 'on'
         stock.investment_point = request.POST.get('investment_point', '')
         stock.risk = request.POST.get('risk', '')
@@ -253,7 +293,22 @@ def stock_edit(request, code):
         theme_ids = request.POST.getlist('themes')
         stock.themes.set(Theme.objects.filter(id__in=theme_ids))
 
-        messages.success(request, f'{stock.name} 정보가 저장되었습니다.')
+        # 관심 종목 변경 시 데이터 수집/삭제
+        if old_interest_level is None and new_interest_level is not None:
+            # 관심 등록: 데이터 수집
+            stock.fav_sync_status = 'syncing'
+            stock.save(update_fields=['fav_sync_status'])
+            run_fav_commands(code, 'add')
+            messages.success(request, f'{stock.name} 정보가 저장되었습니다. (데이터 수집 중...)')
+        elif old_interest_level is not None and new_interest_level is None:
+            # 관심 해제: 데이터 삭제
+            stock.fav_sync_status = 'deleting'
+            stock.save(update_fields=['fav_sync_status'])
+            run_fav_commands(code, 'remove')
+            messages.success(request, f'{stock.name} 정보가 저장되었습니다. (데이터 삭제 중...)')
+        else:
+            messages.success(request, f'{stock.name} 정보가 저장되었습니다.')
+
         return redirect('stocks:stock_edit', code=code)
 
     # 관심 단계 선택지
@@ -1080,12 +1135,14 @@ def sector_date_data(request):
 
 def settings(request):
     """설정 페이지"""
-    from .models import ThemeCategory
+    from .models import ThemeCategory, CronJob
 
     categories = ThemeCategory.objects.prefetch_related('themes').all()
+    cron_jobs = CronJob.objects.all()
 
     context = {
         'categories': categories,
+        'cron_jobs': cron_jobs,
     }
     return render(request, 'stocks/settings.html', context)
 
@@ -1717,3 +1774,79 @@ def search_google_news(request):
     except Exception as e:
         import traceback
         return JsonResponse({'error': str(e), 'trace': traceback.format_exc()}, status=500)
+
+
+@require_POST
+def cronjob_save(request):
+    """크론잡 저장 API (추가/수정)"""
+    from .models import CronJob
+    from datetime import datetime
+
+    job_id = request.POST.get('id', '')
+    command = request.POST.get('command', '').strip()
+    run_time = request.POST.get('run_time', '').strip()
+    weekdays = request.POST.get('weekdays', '1,2,3,4,5').strip()
+
+    if not command:
+        return JsonResponse({'error': '명령어를 선택해주세요.'}, status=400)
+    if not run_time:
+        return JsonResponse({'error': '실행시간을 입력해주세요.'}, status=400)
+
+    # command에서 name 자동 생성 (첫 번째 단어)
+    name = command.split()[0] if command else ''
+
+    # 시간 파싱
+    try:
+        time_obj = datetime.strptime(run_time, '%H:%M').time()
+    except ValueError:
+        return JsonResponse({'error': '시간 형식이 올바르지 않습니다.'}, status=400)
+
+    if job_id:
+        # 수정
+        job = get_object_or_404(CronJob, id=job_id)
+        job.name = name
+        job.command = command
+        job.run_time = time_obj
+        job.weekdays = weekdays
+        job.save()
+    else:
+        # 추가
+        job = CronJob.objects.create(
+            name=name,
+            command=command,
+            run_time=time_obj,
+            weekdays=weekdays,
+        )
+
+    return JsonResponse({
+        'success': True,
+        'id': job.id,
+        'name': job.name,
+    })
+
+
+@require_POST
+def cronjob_delete(request, job_id):
+    """크론잡 삭제 API"""
+    from .models import CronJob
+
+    job = get_object_or_404(CronJob, id=job_id)
+    job.delete()
+
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def cronjob_toggle(request, job_id):
+    """크론잡 활성화 토글 API"""
+    from .models import CronJob
+
+    job = get_object_or_404(CronJob, id=job_id)
+    is_active = request.POST.get('is_active', 'false')
+    job.is_active = is_active.lower() in ('true', '1', 'on')
+    job.save()
+
+    return JsonResponse({
+        'success': True,
+        'is_active': job.is_active,
+    })

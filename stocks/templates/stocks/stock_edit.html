@@ -61,7 +61,25 @@
                                 <option value="{{ value }}" {% if stock.interest_level == value %}selected{% endif %}>{{ label }}</option>
                                 {% endfor %}
                             </select>
-                            <small class="text-muted">초관심 > 관심 > 인큐베이터 순으로 중요도가 높습니다.</small>
+                            <div class="mt-2">
+                                {% if stock.fav_sync_status == 'syncing' %}
+                                <span class="badge bg-warning text-dark">
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    데이터 수집 중...
+                                </span>
+                                <small class="text-muted ms-2">페이지를 새로고침하여 완료 여부를 확인하세요.</small>
+                                {% elif stock.fav_sync_status == 'deleting' %}
+                                <span class="badge bg-danger">
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    데이터 삭제 중...
+                                </span>
+                                <small class="text-muted ms-2">페이지를 새로고침하여 완료 여부를 확인하세요.</small>
+                                {% elif stock.fav_sync_status == 'completed' %}
+                                <span class="badge bg-success">데이터 수집 완료</span>
+                                {% else %}
+                                <small class="text-muted">초관심 > 관심 > 인큐베이터 순으로 중요도가 높습니다.</small>
+                                {% endif %}
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-check mt-2">
@@ -221,11 +239,13 @@
         <!-- 누적 순매수 차트 -->
         {% if investor_trends %}
         <div class="card mb-3">
-            <div class="card-header py-2">
+            <div class="card-header py-2 d-flex align-items-center justify-content-between">
                 <strong>누적 순매수</strong>
-                <span class="badge text-bg-warning text-dark ms-2" style="font-size: 0.65rem;">개인</span>
-                <span class="badge text-bg-success ms-1" style="font-size: 0.65rem;">외국인</span>
-                <span class="badge text-bg-danger ms-1" style="font-size: 0.65rem;">기관</span>
+                <div class="d-flex gap-1">
+                    <span class="badge text-bg-warning text-dark" style="font-size: 0.65rem;">개인</span>
+                    <span class="badge text-bg-success" style="font-size: 0.65rem;">외국인</span>
+                    <span class="badge text-bg-danger" style="font-size: 0.65rem;">기관</span>
+                </div>
             </div>
             <div class="card-body p-2">
                 <div style="height: 280px;">

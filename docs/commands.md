@@ -66,13 +66,6 @@ python manage.py save_sector --mode all --log-level info
 python manage.py save_stock_sector --log-level info
 ```
 
-### 6. 종목 수급 (전체)
-
-```bash
-python manage.py save_investor_trend --code all --mode all --log-level info
-python manage.py save_short_selling --code all --mode all --log-level info
-```
-
 ---
 
 ## 정기 업데이트
@@ -97,9 +90,9 @@ python manage.py save_daily_chart --code all --mode last --log-level info
 python manage.py save_weekly_chart --code all --mode last --log-level info
 python manage.py save_monthly_chart --code all --mode last --log-level info
 
-# 종목 수급
-python manage.py save_investor_trend --code all --mode last --log-level info
-python manage.py save_short_selling --code all --mode last --log-level info
+# 종목 수급 (관심 종목만)
+python manage.py save_investor_trend --code fav --mode last --log-level info
+python manage.py save_short_selling --code fav --mode last --log-level info
 
 # 종목 뉴스 (관심 종목만)
 python manage.py save_gongsi_stock --code fav --log-level info
@@ -127,7 +120,7 @@ python manage.py save_financial_naver --code all --log-level info
 | 옵션 | 설명 |
 |------|------|
 | `--log-level` | 로그 레벨 (debug/info/warning/error, 기본: info) |
-| `--clear` | 해당 모델 데이터 전체 삭제 |
+| `--clear` | 데이터 삭제 (단독: 전체, `--code`와 조합: 해당 종목만) |
 
 ### --code 옵션 값
 
@@ -136,14 +129,53 @@ python manage.py save_financial_naver --code all --log-level info
 | 값 | 설명 | 지원 명령어 |
 |----|------|-------------|
 | `all` | 전체 종목 | 대부분의 종목별 명령어 |
-| `fav` | 관심 종목만 (interest_level 설정된 종목) | `save_fnguide_report`, `save_nodaji_stock`, `save_gongsi_stock` |
+| `fav` | 관심 종목만 (interest_level 설정된 종목) | `save_investor_trend`, `save_short_selling`, `save_gongsi_stock`, `save_fnguide_report`, `save_nodaji_stock` |
 
 ```bash
 # 관심 종목만 처리 (초관심/관심/인큐베이터)
+python manage.py save_investor_trend --code fav --mode last
+python manage.py save_short_selling --code fav --mode last
+python manage.py save_gongsi_stock --code fav
 python manage.py save_fnguide_report --code fav
 python manage.py save_nodaji_stock --code fav
-python manage.py save_gongsi_stock --code fav
 ```
+
+---
+
+## 관심 종목 변경 시
+
+### 새 관심 종목 등록
+
+종목을 관심으로 등록한 후 초기 데이터를 수집합니다:
+
+```bash
+# 예시: 005930 종목을 관심으로 등록한 경우
+
+# 수급 데이터 (전체 기간)
+python manage.py save_investor_trend --code 005930 --mode all --log-level info
+python manage.py save_short_selling --code 005930 --mode all --log-level info
+
+# 뉴스/공시/리포트
+python manage.py save_gongsi_stock --code 005930 --log-level info
+python manage.py save_fnguide_report --code 005930 --log-level info
+python manage.py save_nodaji_stock --code 005930 --log-level info
+```
+
+### 관심 종목 해제
+
+종목을 관심에서 해제한 후 데이터를 삭제합니다:
+
+```bash
+# 예시: 005930 종목을 관심에서 해제한 경우
+
+python manage.py save_investor_trend --clear --code 005930
+python manage.py save_short_selling --clear --code 005930
+python manage.py save_gongsi_stock --clear --code 005930
+python manage.py save_fnguide_report --clear --code 005930
+python manage.py save_nodaji_stock --clear --code 005930
+```
+
+---
 
 ## 데이터 삭제 (--clear)
 

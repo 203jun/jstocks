@@ -140,11 +140,21 @@ class Info(models.Model):
             ('normal', '관심'),
             ('incubator', '인큐베이터'),
         ],
-        
         null=True,
         blank=True,
         verbose_name='관심단계',
         help_text='투자 관심 단계 (초관심 > 관심 > 인큐베이터)'
+    )
+    fav_sync_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('syncing', '동기화 중'),
+            ('completed', '완료'),
+            ('deleting', '삭제 중'),
+        ],
+        null=True,
+        blank=True,
+        verbose_name='관심종목 동기화 상태',
     )
 
     # === 보유 여부 ===
@@ -1581,3 +1591,92 @@ class MarketTrend(models.Model):
 
     def __str__(self):
         return f"{self.market} - {self.date} (개인: {self.individual:,}, 외국인: {self.foreign:,})"
+
+
+class CronJob(models.Model):
+    """
+    크론잡 스케줄 설정
+
+    웹 UI에서 관리하는 자동 실행 작업 스케줄
+    매분 실행되는 스크립트가 이 테이블을 확인하여 작업 실행
+
+    ※ 사용 예시:
+    - 15:40에 save_daily_chart 실행
+    - 16:00에 save_investor_trend 실행
+    """
+
+    # === 작업 정보 ===
+    name = models.CharField(
+        max_length=100,
+        verbose_name='작업명',
+        help_text='표시용 작업 이름 (예: 일봉 데이터 수집)'
+    )
+    command = models.CharField(
+        max_length=200,
+        verbose_name='명령어',
+        help_text='실행할 management command (예: save_daily_chart --code all --mode today)'
+    )
+
+    # === 스케줄 설정 ===
+    run_time = models.TimeField(
+        verbose_name='실행시간',
+        help_text='실행 시간 (HH:MM)'
+    )
+    weekdays = models.CharField(
+        max_length=20,
+        default='1,2,3,4,5',
+        verbose_name='실행요일',
+        help_text='실행할 요일 (1=월, 2=화, ..., 7=일) 콤마로 구분'
+    )
+
+    # === 상태 ===
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='활성화',
+        help_text='활성화 여부'
+    )
+    last_run = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='마지막실행',
+        help_text='마지막 실행 일시'
+    )
+    last_result = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        choices=[
+            ('success', '성공'),
+            ('failure', '실패'),
+            ('running', '실행중'),
+        ],
+        verbose_name='실행결과',
+        help_text='마지막 실행 결과'
+    )
+
+    # === 메타 정보 ===
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='수정일시'
+    )
+
+    class Meta:
+        db_table = 'cron_job'
+        verbose_name = '크론잡'
+        verbose_name_plural = '크론잡'
+        ordering = ['run_time', 'name']
+
+    def __str__(self):
+        status = '활성' if self.is_active else '비활성'
+        return f"[{status}] {self.name} - {self.run_time.strftime('%H:%M')}"
+
+    @property
+    def weekdays_display(self):
+        """요일을 한글로 표시"""
+        day_names = {'1': '월', '2': '화', '3': '수', '4': '목', '5': '금', '6': '토', '7': '일'}
+        days = self.weekdays.split(',')
+        return ' '.join(day_names.get(d.strip(), '') for d in days if d.strip())

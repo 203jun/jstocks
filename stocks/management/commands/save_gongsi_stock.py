@@ -14,16 +14,18 @@ DART 공시 조회 및 저장
   --code      (필수*) 종목코드 또는 "all" / "fav"
               - all: 전체 종목
               - fav: 관심 종목만 (interest_level 설정된 종목)
-  --clear     (선택) 전체 데이터 삭제
+  --clear     (선택) 데이터 삭제 (--code 없으면 전체, 있으면 해당 종목만)
   --log-level (선택) debug / info / warning / error (기본값: info)
 
-  * --clear 사용 시 --code 불필요
+  * --clear 단독 사용 시 전체 삭제
+  * --clear --code 조합 시 해당 종목만 삭제
 
 예시:
   python manage.py save_gongsi_stock --code 005930
   python manage.py save_gongsi_stock --code all --log-level info
   python manage.py save_gongsi_stock --code fav
   python manage.py save_gongsi_stock --clear
+  python manage.py save_gongsi_stock --clear --code 005930
 '''
 
     def add_arguments(self, parser):
@@ -42,8 +44,19 @@ DART 공시 조회 및 저장
     def handle(self, *args, **options):
         # --clear 옵션 처리
         if options.get('clear'):
-            deleted_count, _ = Gongsi.objects.all().delete()
-            self.stdout.write(self.style.SUCCESS(f'Gongsi 데이터 {deleted_count}건 삭제 완료'))
+            code = options.get('code')
+            if code:
+                # 특정 종목만 삭제
+                try:
+                    stock = Info.objects.get(code=code)
+                    deleted_count, _ = Gongsi.objects.filter(stock=stock).delete()
+                    self.stdout.write(self.style.SUCCESS(f'{stock.name}({code}) Gongsi 데이터 {deleted_count}건 삭제 완료'))
+                except Info.DoesNotExist:
+                    self.stdout.write(self.style.ERROR(f'종목 정보 없음: {code}'))
+            else:
+                # 전체 삭제
+                deleted_count, _ = Gongsi.objects.all().delete()
+                self.stdout.write(self.style.SUCCESS(f'Gongsi 데이터 {deleted_count}건 삭제 완료'))
             return
 
         # 필수 옵션 체크

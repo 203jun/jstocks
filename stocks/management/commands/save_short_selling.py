@@ -13,17 +13,22 @@ class Command(BaseCommand):
 공매도 추이 저장 (키움 API ka10014)
 
 옵션:
-  --code      (필수*) 종목코드 또는 "all" (전체 종목)
+  --code      (필수*) 종목코드 또는 "all" / "fav"
+              - all: 전체 종목
+              - fav: 관심 종목만 (interest_level 설정된 종목)
   --mode      (필수*) all (60일) / last (최근 1일)
-  --clear     (선택) 전체 데이터 삭제
+  --clear     (선택) 데이터 삭제 (--code 없으면 전체, 있으면 해당 종목만)
   --log-level (선택) debug / info / warning / error (기본값: info)
 
-  * --clear 사용 시 --code, --mode 불필요
+  * --clear 단독 사용 시 전체 삭제
+  * --clear --code 조합 시 해당 종목만 삭제
 
 예시:
   python manage.py save_short_selling --code 005930 --mode all
   python manage.py save_short_selling --code all --mode last --log-level info
+  python manage.py save_short_selling --code fav --mode last --log-level info
   python manage.py save_short_selling --clear
+  python manage.py save_short_selling --clear --code 005930
 '''
 
     def add_arguments(self, parser):
@@ -48,8 +53,19 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         # --clear 옵션 처리
         if options.get('clear'):
-            deleted_count, _ = ShortSelling.objects.all().delete()
-            self.stdout.write(self.style.SUCCESS(f'ShortSelling 데이터 {deleted_count}건 삭제 완료'))
+            code = options.get('code')
+            if code:
+                # 특정 종목만 삭제
+                try:
+                    stock = Info.objects.get(code=code)
+                    deleted_count, _ = ShortSelling.objects.filter(stock=stock).delete()
+                    self.stdout.write(self.style.SUCCESS(f'{stock.name}({code}) ShortSelling 데이터 {deleted_count}건 삭제 완료'))
+                except Info.DoesNotExist:
+                    self.stdout.write(self.style.ERROR(f'종목 정보 없음: {code}'))
+            else:
+                # 전체 삭제
+                deleted_count, _ = ShortSelling.objects.all().delete()
+                self.stdout.write(self.style.SUCCESS(f'ShortSelling 데이터 {deleted_count}건 삭제 완료'))
             return
 
         # 필수 옵션 체크
@@ -68,12 +84,20 @@ class Command(BaseCommand):
         code = options['code']
         mode = options['mode']
 
-        # 전체 종목 처리
-        if code.lower() == 'all':
-            stocks = Info.objects.filter(is_active=True).order_by('code')
+        # 전체/관심 종목 처리
+        if code.lower() in ['all', 'fav']:
+            stocks = Info.objects.filter(is_active=True)
+
+            if code.lower() == 'fav':
+                stocks = stocks.filter(interest_level__isnull=False)
+                target_name = '관심 종목'
+            else:
+                target_name = '전체 종목'
+
+            stocks = stocks.order_by('code')
             total = stocks.count()
 
-            self.log.info(f'공매도 추이 저장 시작 (모드: {mode}, 대상: {total}개 종목)')
+            self.log.info(f'공매도 추이 저장 시작 (모드: {mode}, 대상: {target_name} {total}개)')
 
             total_created = 0
             total_updated = 0

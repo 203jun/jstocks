@@ -272,11 +272,17 @@
 
 <!-- 일봉 차트 -->
 <div class="card mb-3">
-    <div class="card-header py-2">
-        <strong>일봉</strong>
-        <small class="text-muted ms-2">최근 240일</small>
-        <span class="badge bg-warning text-dark ms-2" style="font-size: 0.65rem;">MA20</span>
-        <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">MA60</span>
+    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+        <div>
+            <strong>일봉</strong>
+            <small class="text-muted ms-2">최근 240일</small>
+        </div>
+        <div class="d-flex gap-1">
+            <span class="badge ma-toggle active" data-ma="10" style="background-color: #ff9800; cursor: pointer;">10</span>
+            <span class="badge ma-toggle active" data-ma="20" style="background-color: #2196f3; cursor: pointer;">20</span>
+            <span class="badge ma-toggle active" data-ma="60" style="background-color: #4caf50; cursor: pointer;">60</span>
+            <span class="badge ma-toggle active" data-ma="120" style="background-color: #9c27b0; cursor: pointer;">120</span>
+        </div>
     </div>
     <div class="card-body py-2">
         <div id="dailyChart" style="height: 400px;"></div>
@@ -314,9 +320,33 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+.ma-toggle { opacity: 1; transition: opacity 0.2s; }
+.ma-toggle:not(.active) { opacity: 0.3; }
+</style>
 <script>
-// 캔들스틱 차트 생성 함수
-function createCandleChart(containerId, candleData, volumeData, emptyMessage, ma20Data, ma60Data) {
+// 이동평균 계산 함수
+function calculateMA(data, period) {
+    const result = [];
+    for (let i = 0; i < data.length; i++) {
+        if (i < period - 1) continue;
+        let sum = 0;
+        for (let j = 0; j < period; j++) {
+            sum += data[i - j].close;
+        }
+        result.push({
+            time: data[i].time,
+            value: Math.round(sum / period)
+        });
+    }
+    return result;
+}
+
+// 이평선 시리즈 저장
+const maSeries = {};
+
+// 일봉 차트 생성 (이평선 토글 포함)
+function createDailyChartWithMA(containerId, candleData, volumeData, emptyMessage) {
     const container = document.getElementById(containerId);
 
     if (candleData.length === 0) {
@@ -360,26 +390,23 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage, ma
     });
     candleSeries.setData(candleData);
 
-    // 이동평균선 (MA20 - 노란색)
-    if (ma20Data && ma20Data.length > 0) {
-        const ma20Series = chart.addLineSeries({
-            color: '#ffc107',
-            lineWidth: 1,
-            priceLineVisible: false,
-            lastValueVisible: false,
-        });
-        ma20Series.setData(ma20Data);
-    }
+    // 이동평균선 (10, 20, 60, 120)
+    const maConfig = {
+        10: '#ff9800',
+        20: '#2196f3',
+        60: '#4caf50',
+        120: '#9c27b0'
+    };
 
-    // 이동평균선 (MA60 - 파란색)
-    if (ma60Data && ma60Data.length > 0) {
-        const ma60Series = chart.addLineSeries({
-            color: '#0d6efd',
+    for (const [period, color] of Object.entries(maConfig)) {
+        const series = chart.addLineSeries({
+            color: color,
             lineWidth: 1,
             priceLineVisible: false,
             lastValueVisible: false,
         });
-        ma60Series.setData(ma60Data);
+        series.setData(calculateMA(candleData, parseInt(period)));
+        maSeries[period] = series;
     }
 
     // 거래량 시리즈
@@ -402,14 +429,73 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage, ma
     }).observe(container);
 }
 
+// 캔들스틱 차트 생성 함수 (이평선 없음)
+function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
+    const container = document.getElementById(containerId);
+
+    if (candleData.length === 0) {
+        container.innerHTML = `<div class="text-muted text-center py-5">${emptyMessage}</div>`;
+        return;
+    }
+
+    const chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth,
+        height: 400,
+        layout: {
+            backgroundColor: '#ffffff',
+            textColor: '#333',
+        },
+        grid: {
+            vertLines: { color: '#f0f0f0' },
+            horzLines: { color: '#f0f0f0' },
+        },
+        crosshair: {
+            mode: LightweightCharts.CrosshairMode.Normal,
+        },
+        rightPriceScale: {
+            borderColor: '#ddd',
+        },
+        timeScale: {
+            borderColor: '#ddd',
+            timeVisible: true,
+            fixLeftEdge: true,
+            fixRightEdge: true,
+        },
+    });
+
+    const candleSeries = chart.addCandlestickSeries({
+        upColor: '#ef5350',
+        downColor: '#26a69a',
+        borderUpColor: '#ef5350',
+        borderDownColor: '#26a69a',
+        wickUpColor: '#ef5350',
+        wickDownColor: '#26a69a',
+    });
+    candleSeries.setData(candleData);
+
+    const volumeSeries = chart.addHistogramSeries({
+        color: '#26a69a',
+        priceFormat: { type: 'volume' },
+        priceScaleId: '',
+        scaleMargins: { top: 0.8, bottom: 0 },
+    });
+    volumeSeries.setData(volumeData);
+
+    chart.timeScale().fitContent();
+
+    new ResizeObserver(entries => {
+        if (entries.length > 0) {
+            chart.applyOptions({ width: entries[0].contentRect.width });
+        }
+    }).observe(container);
+}
+
 // 일봉 차트 (이평선 포함)
-createCandleChart(
+createDailyChartWithMA(
     'dailyChart',
     {{ daily_candle_data|safe }},
     {{ daily_volume_data|safe }},
-    '일봉 데이터가 없습니다.',
-    {{ daily_ma20_data|safe }},
-    {{ daily_ma60_data|safe }}
+    '일봉 데이터가 없습니다.'
 );
 
 // 주봉 차트
@@ -427,6 +513,18 @@ createCandleChart(
     {{ monthly_volume_data|safe }},
     '월봉 데이터가 없습니다.'
 );
+
+// 이평선 토글 이벤트
+document.querySelectorAll('.ma-toggle').forEach(badge => {
+    badge.addEventListener('click', function() {
+        const period = this.dataset.ma;
+        const series = maSeries[period];
+        if (!series) return;
+
+        const isActive = this.classList.toggle('active');
+        series.applyOptions({ visible: isActive });
+    });
+});
 </script>
 <script>
 const chartOptions = {

@@ -60,10 +60,14 @@
 <div class="row mb-3">
     <div class="col-md-6 mb-3 mb-md-0">
         <div class="card h-100">
-            <div class="card-header py-2">
+            <div class="card-header py-2 d-flex align-items-center justify-content-between">
                 <strong>KOSPI</strong>
-                <span class="badge bg-warning text-dark ms-2" style="font-size: 0.65rem;">MA20</span>
-                <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">MA60</span>
+                <div class="d-flex gap-1">
+                    <span class="badge ma-toggle active" data-ma="10" data-chart="kospi" style="background-color: #ff9800; cursor: pointer;">10</span>
+                    <span class="badge ma-toggle active" data-ma="20" data-chart="kospi" style="background-color: #2196f3; cursor: pointer;">20</span>
+                    <span class="badge ma-toggle active" data-ma="60" data-chart="kospi" style="background-color: #4caf50; cursor: pointer;">60</span>
+                    <span class="badge ma-toggle active" data-ma="120" data-chart="kospi" style="background-color: #9c27b0; cursor: pointer;">120</span>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div id="kospiChart" style="height: 300px;"></div>
@@ -72,10 +76,14 @@
     </div>
     <div class="col-md-6">
         <div class="card h-100">
-            <div class="card-header py-2">
+            <div class="card-header py-2 d-flex align-items-center justify-content-between">
                 <strong>KOSDAQ</strong>
-                <span class="badge bg-warning text-dark ms-2" style="font-size: 0.65rem;">MA20</span>
-                <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">MA60</span>
+                <div class="d-flex gap-1">
+                    <span class="badge ma-toggle active" data-ma="10" data-chart="kosdaq" style="background-color: #ff9800; cursor: pointer;">10</span>
+                    <span class="badge ma-toggle active" data-ma="20" data-chart="kosdaq" style="background-color: #2196f3; cursor: pointer;">20</span>
+                    <span class="badge ma-toggle active" data-ma="60" data-chart="kosdaq" style="background-color: #4caf50; cursor: pointer;">60</span>
+                    <span class="badge ma-toggle active" data-ma="120" data-chart="kosdaq" style="background-color: #9c27b0; cursor: pointer;">120</span>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div id="kosdaqChart" style="height: 300px;"></div>
@@ -114,11 +122,13 @@
             <!-- KOSPI -->
             <div class="tab-pane fade show active" id="kospi-trend" role="tabpanel">
                 <div class="card mb-3">
-                    <div class="card-header py-2">
+                    <div class="card-header py-2 d-flex align-items-center justify-content-between">
                         <strong>120일 누적 순매수</strong>
-                        <span class="badge text-bg-warning text-dark ms-2" style="font-size: 0.65rem;">개인</span>
-                        <span class="badge text-bg-success ms-1" style="font-size: 0.65rem;">외국인</span>
-                        <span class="badge text-bg-danger ms-1" style="font-size: 0.65rem;">기관</span>
+                        <div class="d-flex gap-1">
+                            <span class="badge text-bg-warning text-dark" style="font-size: 0.65rem;">개인</span>
+                            <span class="badge text-bg-success" style="font-size: 0.65rem;">외국인</span>
+                            <span class="badge text-bg-danger" style="font-size: 0.65rem;">기관</span>
+                        </div>
                     </div>
                     <div class="card-body p-0">
                         <div id="kospiCumulativeChart" style="height: 250px;"></div>
@@ -170,11 +180,13 @@
             <!-- KOSDAQ -->
             <div class="tab-pane fade" id="kosdaq-trend" role="tabpanel">
                 <div class="card mb-3">
-                    <div class="card-header py-2">
+                    <div class="card-header py-2 d-flex align-items-center justify-content-between">
                         <strong>120일 누적 순매수</strong>
-                        <span class="badge text-bg-warning text-dark ms-2" style="font-size: 0.65rem;">개인</span>
-                        <span class="badge text-bg-success ms-1" style="font-size: 0.65rem;">외국인</span>
-                        <span class="badge text-bg-danger ms-1" style="font-size: 0.65rem;">기관</span>
+                        <div class="d-flex gap-1">
+                            <span class="badge text-bg-warning text-dark" style="font-size: 0.65rem;">개인</span>
+                            <span class="badge text-bg-success" style="font-size: 0.65rem;">외국인</span>
+                            <span class="badge text-bg-danger" style="font-size: 0.65rem;">기관</span>
+                        </div>
                     </div>
                     <div class="card-body p-0">
                         <div id="kosdaqCumulativeChart" style="height: 250px;"></div>
@@ -226,11 +238,13 @@
             <!-- FUTURES -->
             <div class="tab-pane fade" id="futures-trend" role="tabpanel">
                 <div class="card mb-3">
-                    <div class="card-header py-2">
+                    <div class="card-header py-2 d-flex align-items-center justify-content-between">
                         <strong>120일 누적 순매수</strong>
-                        <span class="badge text-bg-warning text-dark ms-2" style="font-size: 0.65rem;">개인</span>
-                        <span class="badge text-bg-success ms-1" style="font-size: 0.65rem;">외국인</span>
-                        <span class="badge text-bg-danger ms-1" style="font-size: 0.65rem;">기관</span>
+                        <div class="d-flex gap-1">
+                            <span class="badge text-bg-warning text-dark" style="font-size: 0.65rem;">개인</span>
+                            <span class="badge text-bg-success" style="font-size: 0.65rem;">외국인</span>
+                            <span class="badge text-bg-danger" style="font-size: 0.65rem;">기관</span>
+                        </div>
                     </div>
                     <div class="card-body p-0">
                         <div id="futuresCumulativeChart" style="height: 250px;"></div>
@@ -309,6 +323,10 @@
 
 {% block extra_js %}
 <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+.ma-toggle { opacity: 1; transition: opacity 0.2s; }
+.ma-toggle:not(.active) { opacity: 0.3; }
+</style>
 <script>
 // 차트 데이터
 const kospiCandleData = {{ kospi_candle_data|safe }};
@@ -346,9 +364,7 @@ const chartOptions = {
 function calculateMA(data, period) {
     const result = [];
     for (let i = 0; i < data.length; i++) {
-        if (i < period - 1) {
-            continue;
-        }
+        if (i < period - 1) continue;
         let sum = 0;
         for (let j = 0; j < period; j++) {
             sum += data[i - j].close;
@@ -360,6 +376,17 @@ function calculateMA(data, period) {
     }
     return result;
 }
+
+// 이평선 설정
+const maConfig = {
+    10: '#ff9800',
+    20: '#2196f3',
+    60: '#4caf50',
+    120: '#9c27b0'
+};
+
+// 이평선 시리즈 저장
+const maSeries = { kospi: {}, kosdaq: {} };
 
 // KOSPI 차트
 function initKospiChart() {
@@ -381,23 +408,17 @@ function initKospiChart() {
     });
     candleSeries.setData(kospiCandleData);
 
-    // 이동평균선 (MA20 - 노란색)
-    const ma20Series = chart.addLineSeries({
-        color: '#ffc107',
-        lineWidth: 1,
-        priceLineVisible: false,
-        lastValueVisible: false,
-    });
-    ma20Series.setData(calculateMA(kospiCandleData, 20));
-
-    // 이동평균선 (MA60 - 파란색)
-    const ma60Series = chart.addLineSeries({
-        color: '#0d6efd',
-        lineWidth: 1,
-        priceLineVisible: false,
-        lastValueVisible: false,
-    });
-    ma60Series.setData(calculateMA(kospiCandleData, 60));
+    // 이동평균선 (10, 20, 60, 120)
+    for (const [period, color] of Object.entries(maConfig)) {
+        const series = chart.addLineSeries({
+            color: color,
+            lineWidth: 1,
+            priceLineVisible: false,
+            lastValueVisible: false,
+        });
+        series.setData(calculateMA(kospiCandleData, parseInt(period)));
+        maSeries.kospi[period] = series;
+    }
 
     const volumeSeries = chart.addHistogramSeries({
         priceFormat: { type: 'volume' },
@@ -408,7 +429,6 @@ function initKospiChart() {
 
     chart.timeScale().fitContent();
 
-    // 날짜 범위 제한 (데이터 범위 내로)
     if (kospiCandleData.length > 0) {
         chart.timeScale().setVisibleRange({
             from: kospiCandleData[0].time,
@@ -437,23 +457,17 @@ function initKosdaqChart() {
     });
     candleSeries.setData(kosdaqCandleData);
 
-    // 이동평균선 (MA20 - 노란색)
-    const ma20Series = chart.addLineSeries({
-        color: '#ffc107',
-        lineWidth: 1,
-        priceLineVisible: false,
-        lastValueVisible: false,
-    });
-    ma20Series.setData(calculateMA(kosdaqCandleData, 20));
-
-    // 이동평균선 (MA60 - 파란색)
-    const ma60Series = chart.addLineSeries({
-        color: '#0d6efd',
-        lineWidth: 1,
-        priceLineVisible: false,
-        lastValueVisible: false,
-    });
-    ma60Series.setData(calculateMA(kosdaqCandleData, 60));
+    // 이동평균선 (10, 20, 60, 120)
+    for (const [period, color] of Object.entries(maConfig)) {
+        const series = chart.addLineSeries({
+            color: color,
+            lineWidth: 1,
+            priceLineVisible: false,
+            lastValueVisible: false,
+        });
+        series.setData(calculateMA(kosdaqCandleData, parseInt(period)));
+        maSeries.kosdaq[period] = series;
+    }
 
     const volumeSeries = chart.addHistogramSeries({
         priceFormat: { type: 'volume' },
@@ -464,7 +478,6 @@ function initKosdaqChart() {
 
     chart.timeScale().fitContent();
 
-    // 날짜 범위 제한 (데이터 범위 내로)
     if (kosdaqCandleData.length > 0) {
         chart.timeScale().setVisibleRange({
             from: kosdaqCandleData[0].time,
@@ -543,6 +556,19 @@ function initCumulativeChart(containerId, data) {
 initKospiChart();
 initKosdaqChart();
 initCumulativeChart('kospiCumulativeChart', kospiCumulativeData);
+
+// 이평선 토글 이벤트
+document.querySelectorAll('.ma-toggle').forEach(badge => {
+    badge.addEventListener('click', function() {
+        const period = this.dataset.ma;
+        const chartName = this.dataset.chart;
+        const series = maSeries[chartName][period];
+        if (!series) return;
+
+        const isActive = this.classList.toggle('active');
+        series.applyOptions({ visible: isActive });
+    });
+});
 
 // 탭 전환 시 차트 초기화 (숨겨진 탭의 차트는 처음에 렌더링되지 않음)
 let kosdaqCumulativeChartInit = false;

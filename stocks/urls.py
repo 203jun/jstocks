@@ -30,4 +30,7 @@ urlpatterns = [
     path('api/theme/add/', views.theme_add, name='theme_add'),
     path('api/theme/<int:theme_id>/delete/', views.theme_delete, name='theme_delete'),
     path('api/news/search/', views.search_google_news, name='search_google_news'),
+    path('api/cronjob/save/', views.cronjob_save, name='cronjob_save'),
+    path('api/cronjob/<int:job_id>/delete/', views.cronjob_delete, name='cronjob_delete'),
+    path('api/cronjob/<int:job_id>/toggle/', views.cronjob_toggle, name='cronjob_toggle'),
 ]
