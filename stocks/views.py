@@ -1579,6 +1579,24 @@ def save_etf(request):
 
 
 @require_POST
+def delete_etf(request, code):
+    """ETF 관심종목 삭제 API"""
+    from .models import InfoETF, DailyChartETF, WeeklyChartETF, MonthlyChartETF
+
+    etf = get_object_or_404(InfoETF, code=code)
+
+    # 차트 데이터 삭제
+    DailyChartETF.objects.filter(etf=etf).delete()
+    WeeklyChartETF.objects.filter(etf=etf).delete()
+    MonthlyChartETF.objects.filter(etf=etf).delete()
+
+    # ETF 삭제
+    etf.delete()
+
+    return JsonResponse({'success': True})
+
+
+@require_POST
 def category_add(request):
     """대분류 추가 API"""
     from .models import ThemeCategory

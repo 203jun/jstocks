@@ -15,10 +15,45 @@
             <span class="badge bg-info">ETF</span>
         </div>
     </div>
-    <div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-danger btn-sm" id="delete-etf-btn">삭제</button>
         <a href="{% url 'stocks:etf' %}" class="btn btn-outline-secondary btn-sm">목록</a>
     </div>
 </div>
+
+<script>
+document.getElementById('delete-etf-btn').addEventListener('click', async function() {
+    if (!confirm('이 ETF를 관심종목에서 삭제하시겠습니까?')) return;
+
+    const btn = this;
+    btn.disabled = true;
+    btn.textContent = '삭제 중...';
+
+    try {
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        const response = await fetch('{% url "stocks:delete_etf" etf.code %}', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            location.href = '{% url "stocks:etf" %}';
+        } else {
+            alert(data.error || '삭제 실패');
+            btn.disabled = false;
+            btn.textContent = '삭제';
+        }
+    } catch (error) {
+        alert('오류: ' + error.message);
+        btn.disabled = false;
+        btn.textContent = '삭제';
+    }
+});
+</script>
 
 <!-- 가격 정보 카드 -->
 <div class="card mb-3">

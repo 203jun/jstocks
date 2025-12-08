@@ -14,6 +14,7 @@ urlpatterns = [
     path('etf/<str:code>/', views.etf_detail, name='etf_detail'),
     path('api/etf/add/', views.add_etf, name='add_etf'),
     path('api/etf/save/', views.save_etf, name='save_etf'),
+    path('api/etf/<str:code>/delete/', views.delete_etf, name='delete_etf'),
     path('nodaji/<int:nodaji_id>/summary/', views.nodaji_summary, name='nodaji_summary'),
     path('api/telegram/search/', views.search_telegram, name='search_telegram'),
     path('api/disclosure/search/', views.search_disclosure, name='search_disclosure'),
