@@ -191,10 +191,7 @@ document.getElementById('save-etf-btn').addEventListener('click', async function
         const data = await response.json();
 
         if (data.success) {
-            let msg = data.created ? '관심종목에 추가되었습니다.' : '정보가 업데이트되었습니다.';
-            if (data.chart) {
-                msg += ` (일봉 ${data.chart.daily}, 주봉 ${data.chart.weekly}, 월봉 ${data.chart.monthly})`;
-            }
+            const msg = data.created ? '관심종목에 추가되었습니다.' : '정보가 업데이트되었습니다.';
             saveResultSpan.innerHTML = `<span class="text-success">${msg}</span>`;
         } else {
             saveResultSpan.innerHTML = `<span class="text-danger">${data.error}</span>`;

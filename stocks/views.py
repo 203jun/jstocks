@@ -238,16 +238,25 @@ def stock_detail(request, code):
 def run_fav_commands(stock_code, action):
     """관심 종목 변경 시 명령어 백그라운드 실행"""
     import threading
+    import logging
     from django.core.management import call_command
 
+    logger = logging.getLogger(__name__)
+
     def run():
+        logger.info(f'[FAV] {stock_code} 동기화 시작 (action={action})')
         try:
             if action == 'add':
                 # 데이터 수집 (전체 기간)
+                logger.info(f'[FAV] {stock_code} save_investor_trend 시작')
                 call_command('save_investor_trend', code=stock_code, mode='all')
+                logger.info(f'[FAV] {stock_code} save_short_selling 시작')
                 call_command('save_short_selling', code=stock_code, mode='all')
+                logger.info(f'[FAV] {stock_code} save_gongsi_stock 시작')
                 call_command('save_gongsi_stock', code=stock_code)
+                logger.info(f'[FAV] {stock_code} save_fnguide_report 시작')
                 call_command('save_fnguide_report', code=stock_code)
+                logger.info(f'[FAV] {stock_code} save_nodaji_stock 시작')
                 call_command('save_nodaji_stock', code=stock_code)
             else:  # remove
                 # 데이터 삭제
@@ -256,16 +265,22 @@ def run_fav_commands(stock_code, action):
                 call_command('save_gongsi_stock', clear=True, code=stock_code)
                 call_command('save_fnguide_report', clear=True, code=stock_code)
                 call_command('save_nodaji_stock', clear=True, code=stock_code)
+            logger.info(f'[FAV] {stock_code} 동기화 완료')
+        except Exception as e:
+            logger.error(f'[FAV] {stock_code} 동기화 오류: {e}', exc_info=True)
         finally:
             # 완료 시 상태 업데이트
-            from django.db import connection
-            connection.close()  # 스레드에서 DB 연결 재설정
-            stock = Info.objects.get(code=stock_code)
-            if action == 'add':
-                stock.fav_sync_status = 'completed'
-            else:
-                stock.fav_sync_status = None  # 삭제 완료 시 상태 초기화
-            stock.save(update_fields=['fav_sync_status'])
+            try:
+                from django.db import connection
+                connection.close()  # 스레드에서 DB 연결 재설정
+                stock = Info.objects.get(code=stock_code)
+                if action == 'add':
+                    stock.fav_sync_status = 'completed'
+                else:
+                    stock.fav_sync_status = None  # 삭제 완료 시 상태 초기화
+                stock.save(update_fields=['fav_sync_status'])
+            except Exception as e:
+                logger.error(f'[FAV] {stock_code} 상태 업데이트 오류: {e}', exc_info=True)
 
     thread = threading.Thread(target=run)
     thread.daemon = True
@@ -1264,9 +1279,9 @@ def add_etf(request):
     if not code:
         return JsonResponse({'error': '종목코드를 입력해주세요.'}, status=400)
 
-    # 6자리 숫자 검증
-    if not code.isdigit() or len(code) != 6:
-        return JsonResponse({'error': '종목코드는 6자리 숫자입니다.'}, status=400)
+    # 6자리 영숫자 검증
+    if not code.isalnum() or len(code) != 6:
+        return JsonResponse({'error': '종목코드는 6자리입니다.'}, status=400)
 
     # 네이버 금융 크롤링
     url = f'https://finance.naver.com/item/main.naver?code={code}'
