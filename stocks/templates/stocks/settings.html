@@ -14,6 +14,9 @@
         <button class="nav-link" id="schedule-tab" data-bs-toggle="tab" data-bs-target="#schedule-panel" type="button" role="tab">스케줄</button>
     </li>
     <li class="nav-item" role="presentation">
+        <button class="nav-link" id="youtube-tab" data-bs-toggle="tab" data-bs-target="#youtube-panel" type="button" role="tab">유튜브</button>
+    </li>
+    <li class="nav-item" role="presentation">
         <button class="nav-link" id="prompt-tab" data-bs-toggle="tab" data-bs-target="#prompt-panel" type="button" role="tab">프롬프트</button>
     </li>
 </ul>
@@ -222,6 +225,77 @@
         <div class="mt-3 small text-muted">
             <strong>참고:</strong> 스케줄이 작동하려면 서버에서 crontab 설정이 필요합니다.<br>
             <code>* * * * * cd /home/stock/jstocks && /home/stock/jstocks/venv/bin/python manage.py run_cron >> /home/stock/jstocks/logs/cron.log 2>&1</code>
+        </div>
+    </div>
+
+    <!-- 유튜브 탭 -->
+    <div class="tab-pane fade" id="youtube-panel" role="tabpanel">
+        <!-- 제외 채널 -->
+        <div class="card mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>제외 채널 목록</strong>
+                <span class="badge bg-secondary">{{ excluded_channels|length }}개</span>
+            </div>
+            <div class="card-body">
+                <!-- 채널 추가 폼 -->
+                <div class="row g-2 mb-3">
+                    <div class="col">
+                        <input type="text" class="form-control form-control-sm" id="excludeChannelName" placeholder="제외할 채널명 입력">
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-sm btn-danger" id="btnAddExcludeChannel">추가</button>
+                    </div>
+                </div>
+
+                <!-- 채널 목록 -->
+                <div id="excludeChannelList" class="d-flex flex-wrap gap-2">
+                    {% for channel in excluded_channels %}
+                    <span class="badge bg-light text-dark border d-flex align-items-center" data-id="{{ channel.id }}">
+                        {{ channel.name }}
+                        <button type="button" class="btn-close btn-close-sm ms-1 btn-delete-channel" data-id="{{ channel.id }}" style="font-size: 0.6rem;"></button>
+                    </span>
+                    {% empty %}
+                    <span class="text-muted small" id="noChannelMsg">등록된 제외 채널이 없습니다.</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 선호 채널 -->
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>선호 채널 목록</strong>
+                <span class="badge bg-primary">{{ preferred_channels|length }}개</span>
+            </div>
+            <div class="card-body">
+                <!-- 채널 추가 폼 -->
+                <div class="row g-2 mb-3">
+                    <div class="col">
+                        <input type="text" class="form-control form-control-sm" id="preferredChannelName" placeholder="선호할 채널명 입력">
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-sm btn-primary" id="btnAddPreferredChannel">추가</button>
+                    </div>
+                </div>
+
+                <!-- 채널 목록 -->
+                <div id="preferredChannelList" class="d-flex flex-wrap gap-2">
+                    {% for channel in preferred_channels %}
+                    <span class="badge bg-primary-subtle text-dark border d-flex align-items-center" data-id="{{ channel.id }}">
+                        {{ channel.name }}
+                        <button type="button" class="btn-close btn-close-sm ms-1 btn-delete-preferred" data-id="{{ channel.id }}" style="font-size: 0.6rem;"></button>
+                    </span>
+                    {% empty %}
+                    <span class="text-muted small" id="noPreferredMsg">등록된 선호 채널이 없습니다.</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3 small text-muted">
+            <strong>사용법:</strong><br>
+            - <strong>제외 채널:</strong> 일반 검색에서 제외할 채널명을 등록하세요.<br>
+            - <strong>선호 채널:</strong> 선호 모드로 검색 시, 등록된 채널에서만 검색합니다. 채널명은 정확히 일치해야 합니다.
         </div>
     </div>
 
@@ -601,6 +675,186 @@ document.addEventListener('change', async (e) => {
     } catch (err) {
         e.target.checked = !isActive;
         alert('오류: ' + err.message);
+    }
+});
+
+// === 유튜브 제외 채널 관리 ===
+const excludeChannelName = document.getElementById('excludeChannelName');
+const btnAddExcludeChannel = document.getElementById('btnAddExcludeChannel');
+const excludeChannelList = document.getElementById('excludeChannelList');
+
+btnAddExcludeChannel.addEventListener('click', async () => {
+    const name = excludeChannelName.value.trim();
+    if (!name) {
+        alert('채널명을 입력해주세요.');
+        return;
+    }
+
+    btnAddExcludeChannel.disabled = true;
+
+    try {
+        const formData = new FormData();
+        formData.append('name', name);
+
+        const response = await fetch('/api/youtube/channel/add/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': getCsrfToken() }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // 빈 메시지 제거
+            const noMsg = document.getElementById('noChannelMsg');
+            if (noMsg) noMsg.remove();
+
+            // 새 뱃지 추가
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-light text-dark border d-flex align-items-center';
+            badge.dataset.id = data.id;
+            badge.innerHTML = `
+                ${escapeHtml(data.name)}
+                <button type="button" class="btn-close btn-close-sm ms-1 btn-delete-channel" data-id="${data.id}" style="font-size: 0.6rem;"></button>
+            `;
+            excludeChannelList.appendChild(badge);
+
+            excludeChannelName.value = '';
+            excludeChannelName.focus();
+        } else {
+            alert(data.error || '저장에 실패했습니다.');
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+    } finally {
+        btnAddExcludeChannel.disabled = false;
+    }
+});
+
+excludeChannelName.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') btnAddExcludeChannel.click();
+});
+
+// 채널 삭제
+document.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-delete-channel')) return;
+
+    const channelId = e.target.dataset.id;
+    e.target.disabled = true;
+
+    try {
+        const response = await fetch(`/api/youtube/channel/${channelId}/delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrfToken() }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            const badge = e.target.closest('[data-id]');
+            badge.remove();
+
+            // 목록이 비었으면 메시지 표시
+            if (excludeChannelList.children.length === 0) {
+                excludeChannelList.innerHTML = '<span class="text-muted small" id="noChannelMsg">등록된 제외 채널이 없습니다.</span>';
+            }
+        } else {
+            alert(data.error || '삭제에 실패했습니다.');
+            e.target.disabled = false;
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        e.target.disabled = false;
+    }
+});
+
+// === 유튜브 선호 채널 관리 ===
+const preferredChannelName = document.getElementById('preferredChannelName');
+const btnAddPreferredChannel = document.getElementById('btnAddPreferredChannel');
+const preferredChannelList = document.getElementById('preferredChannelList');
+
+btnAddPreferredChannel.addEventListener('click', async () => {
+    const name = preferredChannelName.value.trim();
+    if (!name) {
+        alert('채널명을 입력해주세요.');
+        return;
+    }
+
+    btnAddPreferredChannel.disabled = true;
+
+    try {
+        const formData = new FormData();
+        formData.append('name', name);
+
+        const response = await fetch('/api/youtube/preferred/add/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': getCsrfToken() }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // 빈 메시지 제거
+            const noMsg = document.getElementById('noPreferredMsg');
+            if (noMsg) noMsg.remove();
+
+            // 새 뱃지 추가
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-primary-subtle text-dark border d-flex align-items-center';
+            badge.dataset.id = data.id;
+            badge.innerHTML = `
+                ${escapeHtml(data.name)}
+                <button type="button" class="btn-close btn-close-sm ms-1 btn-delete-preferred" data-id="${data.id}" style="font-size: 0.6rem;"></button>
+            `;
+            preferredChannelList.appendChild(badge);
+
+            preferredChannelName.value = '';
+            preferredChannelName.focus();
+        } else {
+            alert(data.error || '저장에 실패했습니다.');
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+    } finally {
+        btnAddPreferredChannel.disabled = false;
+    }
+});
+
+preferredChannelName.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') btnAddPreferredChannel.click();
+});
+
+// 선호 채널 삭제
+document.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-delete-preferred')) return;
+
+    const channelId = e.target.dataset.id;
+    e.target.disabled = true;
+
+    try {
+        const response = await fetch(`/api/youtube/preferred/${channelId}/delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrfToken() }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            const badge = e.target.closest('[data-id]');
+            badge.remove();
+
+            // 목록이 비었으면 메시지 표시
+            if (preferredChannelList.children.length === 0) {
+                preferredChannelList.innerHTML = '<span class="text-muted small" id="noPreferredMsg">등록된 선호 채널이 없습니다.</span>';
+            }
+        } else {
+            alert(data.error || '삭제에 실패했습니다.');
+            e.target.disabled = false;
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        e.target.disabled = false;
     }
 });
 </script>

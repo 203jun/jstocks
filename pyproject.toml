@@ -18,6 +18,7 @@ openpyxl = "^3.1.5"
 telethon = "^1.42.0"
 playwright = "^1.56.0"
 gunicorn = "^23.0.0"
+youtube-search-python = "^1.6.6"
 
 [tool.poetry.group.dev.dependencies]
 

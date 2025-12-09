@@ -422,9 +422,12 @@ def stock_edit(request, code):
     short_sellings = ShortSelling.objects.filter(stock=stock).order_by('-date')[:60]
 
     # 업종 (전체 및 현재 종목의 업종)
-    from .models import ThemeCategory
+    from .models import ThemeCategory, YoutubeVideo
     theme_categories = ThemeCategory.objects.prefetch_related('themes').all()
     stock_theme_ids = list(stock.themes.values_list('id', flat=True))
+
+    # 저장된 유튜브 영상
+    youtube_videos = YoutubeVideo.objects.filter(stock=stock)
 
     context = {
         'stock': stock,
@@ -441,6 +444,7 @@ def stock_edit(request, code):
         'investor_trends': investor_trends,
         'investor_chart_data': json.dumps(investor_chart_data),
         'short_sellings': short_sellings,
+        'youtube_videos': youtube_videos,
     }
     return render(request, 'stocks/stock_edit.html', context)
 
@@ -939,6 +943,23 @@ def nodaji_summary(request, nodaji_id):
     })
 
 
+def youtube_summary(request, video_id):
+    """유튜브 영상 요약 편집 페이지"""
+    from .models import YoutubeVideo
+    video = get_object_or_404(YoutubeVideo, id=video_id)
+
+    if request.method == 'POST':
+        summary = request.POST.get('summary', '')
+        video.summary = summary
+        video.save()
+        messages.success(request, '요약이 저장되었습니다.')
+        return redirect('stocks:youtube_summary', video_id=video_id)
+
+    return render(request, 'stocks/youtube_summary.html', {
+        'video': video,
+    })
+
+
 @require_GET
 def fetch_dart(request, code):
     """DART 공시 조회 API"""
@@ -1150,14 +1171,18 @@ def sector_date_data(request):
 
 def settings(request):
     """설정 페이지"""
-    from .models import ThemeCategory, CronJob
+    from .models import ThemeCategory, CronJob, ExcludedYoutubeChannel, PreferredYoutubeChannel
 
     categories = ThemeCategory.objects.prefetch_related('themes').all()
     cron_jobs = CronJob.objects.all()
+    excluded_channels = ExcludedYoutubeChannel.objects.all()
+    preferred_channels = PreferredYoutubeChannel.objects.all()
 
     context = {
         'categories': categories,
         'cron_jobs': cron_jobs,
+        'excluded_channels': excluded_channels,
+        'preferred_channels': preferred_channels,
     }
     return render(request, 'stocks/settings.html', context)
 
@@ -1883,3 +1908,419 @@ def cronjob_toggle(request, job_id):
         'success': True,
         'is_active': job.is_active,
     })
+
+
+@require_GET
+def search_youtube(request):
+    """유튜브 검색 API"""
+    import requests as http_requests
+    import re
+    from .models import ExcludedYoutubeChannel
+
+    keyword = request.GET.get('keyword', '')
+    limit = int(request.GET.get('limit', 10))
+    min_views = int(request.GET.get('min_views', 1000))
+
+    if not keyword:
+        return JsonResponse({'error': '검색어가 필요합니다.'}, status=400)
+
+    # 제외 채널 목록 가져오기
+    excluded_channels = set(ExcludedYoutubeChannel.objects.values_list('name', flat=True))
+
+    def parse_views(views_text):
+        """조회수 텍스트를 숫자로 변환 (예: '조회수 1.2만회' -> 12000)"""
+        if not views_text:
+            return 0
+        # 숫자와 단위 추출
+        match = re.search(r'([\d,.]+)\s*(만|천)?', views_text)
+        if not match:
+            return 0
+        num_str = match.group(1).replace(',', '')
+        try:
+            num = float(num_str)
+            unit = match.group(2)
+            if unit == '만':
+                num *= 10000
+            elif unit == '천':
+                num *= 1000
+            return int(num)
+        except:
+            return 0
+
+    try:
+        from urllib.parse import quote
+        # sp=CAI%253D: 업로드 날짜순 정렬 (최신순)
+        url = f'https://www.youtube.com/results?search_query={quote(keyword)}&sp=CAI%253D'
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'ko-KR,ko;q=0.9',
+        }
+
+        response = http_requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+
+        # ytInitialData JSON 추출
+        import json
+        data = None
+
+        # var ytInitialData = { 시작점 찾기
+        start_marker = 'var ytInitialData = '
+        start_idx = response.text.find(start_marker)
+        if start_idx != -1:
+            start_idx += len(start_marker)
+            # JSON 끝점 찾기 (중첩 괄호 처리)
+            brace_count = 0
+            end_idx = start_idx
+            for i, char in enumerate(response.text[start_idx:], start_idx):
+                if char == '{':
+                    brace_count += 1
+                elif char == '}':
+                    brace_count -= 1
+                    if brace_count == 0:
+                        end_idx = i + 1
+                        break
+
+            if end_idx > start_idx:
+                try:
+                    json_str = response.text[start_idx:end_idx]
+                    data = json.loads(json_str)
+                except json.JSONDecodeError:
+                    pass
+
+        if not data:
+            return JsonResponse({'error': 'YouTube 데이터를 파싱할 수 없습니다.'}, status=500)
+
+        # 비디오 정보 추출
+        videos = []
+        try:
+            contents = data['contents']['twoColumnSearchResultsRenderer']['primaryContents']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents']
+
+            for item in contents:
+                if 'videoRenderer' not in item:
+                    continue
+
+                video = item['videoRenderer']
+                video_id = video.get('videoId', '')
+                title = video.get('title', {}).get('runs', [{}])[0].get('text', '')
+                channel = video.get('ownerText', {}).get('runs', [{}])[0].get('text', '')
+                views_text = video.get('viewCountText', {}).get('simpleText', '') or video.get('viewCountText', {}).get('runs', [{}])[0].get('text', '')
+                published = video.get('publishedTimeText', {}).get('simpleText', '')
+                duration = video.get('lengthText', {}).get('simpleText', '')
+                thumbnail = video.get('thumbnail', {}).get('thumbnails', [{}])[-1].get('url', '')
+
+                # 조회수 파싱 및 필터링
+                views_num = parse_views(views_text)
+                if views_num < min_views:
+                    continue
+
+                # 제외 채널 필터링
+                if channel in excluded_channels:
+                    continue
+
+                if video_id and title:
+                    videos.append({
+                        'title': title,
+                        'link': f'https://www.youtube.com/watch?v={video_id}',
+                        'channel': channel,
+                        'duration': duration,
+                        'views': views_text,
+                        'views_num': views_num,
+                        'published': published,
+                        'thumbnail': thumbnail,
+                    })
+
+        except (KeyError, IndexError):
+            pass
+
+        return JsonResponse({
+            'success': True,
+            'keyword': keyword,
+            'min_views': min_views,
+            'results': videos,
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_POST
+def youtube_channel_add(request):
+    """유튜브 제외 채널 추가 API"""
+    from .models import ExcludedYoutubeChannel
+
+    name = request.POST.get('name', '').strip()
+
+    if not name:
+        return JsonResponse({'error': '채널명을 입력해주세요.'}, status=400)
+
+    if len(name) > 100:
+        return JsonResponse({'error': '채널명은 100자 이하로 입력해주세요.'}, status=400)
+
+    if ExcludedYoutubeChannel.objects.filter(name=name).exists():
+        return JsonResponse({'error': '이미 등록된 채널입니다.'}, status=400)
+
+    channel = ExcludedYoutubeChannel.objects.create(name=name)
+
+    return JsonResponse({
+        'success': True,
+        'id': channel.id,
+        'name': channel.name,
+    })
+
+
+@require_POST
+def youtube_channel_delete(request, channel_id):
+    """유튜브 제외 채널 삭제 API"""
+    from .models import ExcludedYoutubeChannel
+
+    channel = get_object_or_404(ExcludedYoutubeChannel, id=channel_id)
+    channel.delete()
+
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def preferred_channel_add(request):
+    """유튜브 선호 채널 추가 API"""
+    from .models import PreferredYoutubeChannel
+
+    name = request.POST.get('name', '').strip()
+
+    if not name:
+        return JsonResponse({'error': '채널명을 입력해주세요.'}, status=400)
+
+    if len(name) > 100:
+        return JsonResponse({'error': '채널명은 100자 이하로 입력해주세요.'}, status=400)
+
+    if PreferredYoutubeChannel.objects.filter(name=name).exists():
+        return JsonResponse({'error': '이미 등록된 채널입니다.'}, status=400)
+
+    channel = PreferredYoutubeChannel.objects.create(name=name)
+
+    return JsonResponse({
+        'success': True,
+        'id': channel.id,
+        'name': channel.name,
+    })
+
+
+@require_POST
+def preferred_channel_delete(request, channel_id):
+    """유튜브 선호 채널 삭제 API"""
+    from .models import PreferredYoutubeChannel
+
+    channel = get_object_or_404(PreferredYoutubeChannel, id=channel_id)
+    channel.delete()
+
+    return JsonResponse({'success': True})
+
+
+@require_GET
+def search_youtube_preferred(request):
+    """유튜브 선호 채널 검색 API - 각 선호 채널별로 검색"""
+    import requests as http_requests
+    import re
+    from .models import PreferredYoutubeChannel
+
+    keyword = request.GET.get('keyword', '')
+    min_views = int(request.GET.get('min_views', 1000))
+
+    if not keyword:
+        return JsonResponse({'error': '검색어가 필요합니다.'}, status=400)
+
+    # 선호 채널 목록 가져오기
+    preferred_channels = list(PreferredYoutubeChannel.objects.values_list('name', flat=True))
+
+    if not preferred_channels:
+        return JsonResponse({
+            'success': True,
+            'keyword': keyword,
+            'results': [],
+            'message': '선호 채널이 등록되어 있지 않습니다. 설정에서 선호 채널을 추가해주세요.'
+        })
+
+    def parse_views(views_text):
+        """조회수 텍스트를 숫자로 변환 (예: '조회수 1.2만회' -> 12000)"""
+        if not views_text:
+            return 0
+        match = re.search(r'([\d,.]+)\s*(만|천)?', views_text)
+        if not match:
+            return 0
+        num_str = match.group(1).replace(',', '')
+        try:
+            num = float(num_str)
+            unit = match.group(2)
+            if unit == '만':
+                num *= 10000
+            elif unit == '천':
+                num *= 1000
+            return int(num)
+        except:
+            return 0
+
+    all_videos = []
+    from urllib.parse import quote
+    import json
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'ko-KR,ko;q=0.9',
+    }
+
+    # 각 선호 채널별로 검색
+    for channel_name in preferred_channels:
+        try:
+            search_query = f'{keyword} {channel_name}'
+            # sp=CAI%253D: 업로드 날짜순 정렬 (최신순)
+            url = f'https://www.youtube.com/results?search_query={quote(search_query)}&sp=CAI%253D'
+
+            response = http_requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+
+            # ytInitialData JSON 추출
+            data = None
+            start_marker = 'var ytInitialData = '
+            start_idx = response.text.find(start_marker)
+            if start_idx != -1:
+                start_idx += len(start_marker)
+                brace_count = 0
+                end_idx = start_idx
+                for i, char in enumerate(response.text[start_idx:], start_idx):
+                    if char == '{':
+                        brace_count += 1
+                    elif char == '}':
+                        brace_count -= 1
+                        if brace_count == 0:
+                            end_idx = i + 1
+                            break
+
+                if end_idx > start_idx:
+                    try:
+                        json_str = response.text[start_idx:end_idx]
+                        data = json.loads(json_str)
+                    except json.JSONDecodeError:
+                        pass
+
+            if not data:
+                continue
+
+            # 비디오 정보 추출
+            try:
+                contents = data['contents']['twoColumnSearchResultsRenderer']['primaryContents']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents']
+
+                for item in contents:
+                    if 'videoRenderer' not in item:
+                        continue
+
+                    video = item['videoRenderer']
+                    video_id = video.get('videoId', '')
+                    title = video.get('title', {}).get('runs', [{}])[0].get('text', '')
+                    channel = video.get('ownerText', {}).get('runs', [{}])[0].get('text', '')
+                    views_text = video.get('viewCountText', {}).get('simpleText', '') or video.get('viewCountText', {}).get('runs', [{}])[0].get('text', '')
+                    published = video.get('publishedTimeText', {}).get('simpleText', '')
+                    duration = video.get('lengthText', {}).get('simpleText', '')
+                    thumbnail = video.get('thumbnail', {}).get('thumbnails', [{}])[-1].get('url', '')
+
+                    # 조회수 파싱 및 필터링
+                    views_num = parse_views(views_text)
+                    if views_num < min_views:
+                        continue
+
+                    if video_id and title:
+                        # 중복 체크 (같은 video_id가 이미 있으면 스킵)
+                        if not any(v['link'].endswith(video_id) for v in all_videos):
+                            all_videos.append({
+                                'title': title,
+                                'link': f'https://www.youtube.com/watch?v={video_id}',
+                                'channel': channel,
+                                'duration': duration,
+                                'views': views_text,
+                                'views_num': views_num,
+                                'published': published,
+                                'thumbnail': thumbnail,
+                            })
+
+            except (KeyError, IndexError):
+                pass
+
+        except Exception:
+            continue
+
+    # 날짜 파싱 함수 (정렬용)
+    def parse_published(text):
+        """업로드 시간 텍스트를 정렬용 숫자로 변환"""
+        if not text:
+            return float('inf')
+        # "1시간 전", "2일 전", "3주 전", "1개월 전", "1년 전" 형식 처리
+        import re
+        match = re.search(r'(\d+)\s*(분|시간|일|주|개월|년)\s*전', text)
+        if not match:
+            return float('inf')
+        num = int(match.group(1))
+        unit = match.group(2)
+        multipliers = {'분': 1, '시간': 60, '일': 1440, '주': 10080, '개월': 43200, '년': 525600}
+        return num * multipliers.get(unit, float('inf'))
+
+    # 최신순으로 정렬
+    all_videos.sort(key=lambda x: parse_published(x['published']))
+
+    return JsonResponse({
+        'success': True,
+        'keyword': keyword,
+        'min_views': min_views,
+        'channels_searched': preferred_channels,
+        'results': all_videos,
+    })
+
+
+@require_POST
+def youtube_video_save(request):
+    """유튜브 영상 저장 API"""
+    from .models import YoutubeVideo, Info
+
+    stock_code = request.POST.get('stock_code', '').strip()
+    video_id = request.POST.get('video_id', '').strip()
+    title = request.POST.get('title', '').strip()
+    channel = request.POST.get('channel', '').strip()
+    thumbnail = request.POST.get('thumbnail', '').strip()
+    duration = request.POST.get('duration', '').strip()
+    views = request.POST.get('views', '').strip()
+    published = request.POST.get('published', '').strip()
+
+    if not stock_code or not video_id or not title:
+        return JsonResponse({'error': '필수 정보가 누락되었습니다.'}, status=400)
+
+    stock = get_object_or_404(Info, code=stock_code)
+
+    # 이미 저장된 영상인지 확인
+    if YoutubeVideo.objects.filter(stock=stock, video_id=video_id).exists():
+        return JsonResponse({'error': '이미 저장된 영상입니다.'}, status=400)
+
+    video = YoutubeVideo.objects.create(
+        stock=stock,
+        video_id=video_id,
+        title=title,
+        channel=channel,
+        thumbnail=thumbnail,
+        duration=duration,
+        views=views,
+        published=published,
+    )
+
+    return JsonResponse({
+        'success': True,
+        'id': video.id,
+        'video_id': video.video_id,
+        'title': video.title,
+    })
+
+
+@require_POST
+def youtube_video_delete(request, video_id):
+    """유튜브 영상 삭제 API"""
+    from .models import YoutubeVideo
+
+    video = get_object_or_404(YoutubeVideo, id=video_id)
+    video.delete()
+
+    return JsonResponse({'success': True})

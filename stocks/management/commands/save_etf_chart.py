@@ -129,21 +129,25 @@ ETF 차트 조회 및 저장 (네이버 금융 API)
 
     def fetch_and_save(self, etf, mode, silent=False):
         """ETF 차트 데이터 조회 및 저장 (일봉, 주봉, 월봉)"""
-        results = []
-
         # 일봉
-        daily_result = self.fetch_chart(etf, 'day', mode, silent)
-        results.append(f'일봉 {daily_result}')
+        daily_new, daily_upd = self.fetch_chart(etf, 'day', mode, silent)
 
         # 주봉
-        weekly_result = self.fetch_chart(etf, 'week', mode, silent)
-        results.append(f'주봉 {weekly_result}')
+        weekly_new, weekly_upd = self.fetch_chart(etf, 'week', mode, silent)
 
         # 월봉
-        monthly_result = self.fetch_chart(etf, 'month', mode, silent)
-        results.append(f'월봉 {monthly_result}')
+        monthly_new, monthly_upd = self.fetch_chart(etf, 'month', mode, silent)
 
-        return ', '.join(results)
+        def fmt(new, upd):
+            if new > 0 and upd > 0:
+                return f'신규 {new}, 업데이트 {upd}'
+            elif new > 0:
+                return f'신규 {new}'
+            elif upd > 0:
+                return f'업데이트 {upd}'
+            return '0'
+
+        return f'일봉({fmt(daily_new, daily_upd)}), 주봉({fmt(weekly_new, weekly_upd)}), 월봉({fmt(monthly_new, monthly_upd)})'
 
     def fetch_chart(self, etf, timeframe, mode, silent=False):
         """
@@ -192,7 +196,7 @@ ETF 차트 조회 및 저장 (네이버 금융 API)
         except Exception as e:
             if not silent:
                 self.log.error(f'API 호출 실패: {str(e)}')
-            return '0'
+            return (0, 0)
 
         # JSON 파싱 (네이버 응답은 전처리 필요)
         try:
@@ -207,10 +211,10 @@ ETF 차트 조회 및 저장 (네이버 금융 API)
         except json.JSONDecodeError as e:
             if not silent:
                 self.log.error(f'JSON 파싱 실패: {str(e)}')
-            return '0'
+            return (0, 0)
 
         if not data or len(data) < 2:
-            return '0'
+            return (0, 0)
 
         # 첫 번째 행은 헤더, 나머지가 데이터
         # ['날짜', '시가', '고가', '저가', '종가', '거래량', '외국인소진율']
@@ -257,4 +261,4 @@ ETF 차트 조회 및 저장 (네이버 금융 API)
                 if not silent:
                     self.log.debug(f'저장 실패 ({row}): {str(e)}')
 
-        return f'+{created_count}/={updated_count}'
+        return (created_count, updated_count)

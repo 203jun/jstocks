@@ -40,6 +40,9 @@
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="nodaji-tab" data-bs-toggle="tab" data-bs-target="#nodaji-content" type="button" role="tab">노다지</button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="youtube-tab" data-bs-toggle="tab" data-bs-target="#youtube-content" type="button" role="tab">유튜브</button>
+    </li>
 </ul>
 
 <div class="tab-content" id="mainTabContent">
@@ -616,6 +619,74 @@
                     </div>
                     <div id="nodajiResult" class="d-none"></div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 유튜브 탭 -->
+    <div class="tab-pane fade" id="youtube-content" role="tabpanel">
+        <!-- 저장된 영상 -->
+        <div class="card mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>저장된 영상</strong>
+                <span class="badge bg-primary" id="savedVideoCount">{{ youtube_videos|length }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div id="savedVideoList" class="list-group list-group-flush">
+                    {% for video in youtube_videos %}
+                    <div class="list-group-item d-flex gap-3 py-2" data-id="{{ video.id }}">
+                        {% if video.thumbnail %}
+                        <a href="{{ video.link }}" target="_blank">
+                            <img src="{{ video.thumbnail }}" alt="" style="width:120px; height:68px; object-fit:cover; border-radius:4px;">
+                        </a>
+                        {% endif %}
+                        <div class="flex-grow-1 overflow-hidden">
+                            <a href="{{ video.link }}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">{{ video.title }}</a>
+                            <small class="text-muted">{{ video.channel }}</small>
+                            <small class="text-muted ms-2">{{ video.views }}</small>
+                            <small class="text-muted ms-2">{{ video.published }}</small>
+                        </div>
+                        <div class="d-flex gap-2 align-self-center">
+                            <a href="{% url 'stocks:youtube_summary' video.id %}" class="text-decoration-none" title="요약">
+                                {% if video.summary %}
+                                <span class="badge bg-success">요약</span>
+                                {% else %}
+                                <span class="badge bg-secondary">요약</span>
+                                {% endif %}
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-video" data-id="{{ video.id }}">삭제</button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-3" id="noSavedVideo">저장된 영상이 없습니다.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 검색 -->
+        <div class="card">
+            <div class="card-header py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <strong>검색</strong>
+                    <div class="d-flex gap-2">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" id="btnYoutubeGeneral" class="btn btn-outline-secondary active">일반</button>
+                            <button type="button" id="btnYoutubePreferred" class="btn btn-outline-secondary">선호</button>
+                        </div>
+                        <button type="button" id="btnSearchYoutube" class="btn btn-sm btn-danger">검색</button>
+                    </div>
+                </div>
+                <div class="mt-1">
+                    <small class="text-muted" id="youtubeSearchInfo">"{{ stock.name }} 주식" 검색 · 조회수 1,000회 이상 · 최신순</small>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="youtubeLoading" class="text-center py-3 d-none">
+                    <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
+                    <span class="ms-2" id="youtubeLoadingText">검색 중...</span>
+                </div>
+                <div id="youtubeResult"></div>
             </div>
         </div>
     </div>
@@ -1216,6 +1287,258 @@ btnNodaji.addEventListener('click', async () => {
     } finally {
         btnNodaji.disabled = false;
         nodajiLoading.classList.add('d-none');
+    }
+});
+
+// ============ 유튜브 검색 ============
+const btnYoutube = document.getElementById('btnSearchYoutube');
+const youtubeLoading = document.getElementById('youtubeLoading');
+const youtubeResult = document.getElementById('youtubeResult');
+const btnYoutubeGeneral = document.getElementById('btnYoutubeGeneral');
+const btnYoutubePreferred = document.getElementById('btnYoutubePreferred');
+const youtubeSearchInfo = document.getElementById('youtubeSearchInfo');
+
+let youtubeSearchMode = 'general'; // 'general' or 'preferred'
+
+// 모드 전환 버튼
+btnYoutubeGeneral.addEventListener('click', () => {
+    youtubeSearchMode = 'general';
+    btnYoutubeGeneral.classList.add('active');
+    btnYoutubePreferred.classList.remove('active');
+    youtubeSearchInfo.textContent = `"${stockName} 주식" 검색 · 조회수 1,000회 이상 · 최신순`;
+});
+
+btnYoutubePreferred.addEventListener('click', () => {
+    youtubeSearchMode = 'preferred';
+    btnYoutubePreferred.classList.add('active');
+    btnYoutubeGeneral.classList.remove('active');
+    youtubeSearchInfo.textContent = `선호 채널에서 "${stockName}" 검색 · 조회수 1,000회 이상 · 최신순`;
+});
+
+// 저장된 video_id 목록 (중복 체크용)
+let savedVideoIds = new Set([
+    {% for video in youtube_videos %}'{{ video.video_id }}',{% endfor %}
+]);
+
+// video_id 추출 함수
+function extractVideoId(link) {
+    const match = link.match(/[?&]v=([^&]+)/);
+    return match ? match[1] : '';
+}
+
+// 검색 결과 렌더링 함수
+function renderYoutubeResults(data) {
+    if (data.error) {
+        return `<div class="alert alert-danger mb-0">${data.error}</div>`;
+    }
+
+    if (data.message && data.results.length === 0) {
+        return `<div class="alert alert-warning mb-0">${data.message}</div>`;
+    }
+
+    if (data.results.length === 0) {
+        return '<div class="text-muted">검색 결과가 없습니다.</div>';
+    }
+
+    let html = '';
+
+    // 선호 모드면 검색된 채널 목록 표시
+    if (data.channels_searched && data.channels_searched.length > 0) {
+        html += `<div class="small text-muted mb-2">검색 채널: ${data.channels_searched.join(', ')}</div>`;
+    }
+
+    html += '<div class="list-group list-group-flush">';
+    data.results.forEach(video => {
+        const videoId = extractVideoId(video.link);
+        const isSaved = savedVideoIds.has(videoId);
+
+        html += `<div class="list-group-item d-flex gap-3 py-2">`;
+        if (video.thumbnail) {
+            html += `<a href="${video.link}" target="_blank"><img src="${video.thumbnail}" alt="" style="width:120px; height:68px; object-fit:cover; border-radius:4px;"></a>`;
+        }
+        html += `<div class="flex-grow-1 overflow-hidden">`;
+        html += `<a href="${video.link}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">${video.title}</a>`;
+        html += `<small class="text-muted">${video.channel}</small>`;
+        html += `<small class="text-muted ms-2">${video.views || ''}</small>`;
+        html += `<small class="text-muted ms-2">${video.published || ''}</small>`;
+        html += `</div>`;
+
+        if (isSaved) {
+            html += `<span class="badge bg-success align-self-center" style="white-space:nowrap;">저장됨</span>`;
+        } else {
+            html += `<button type="button" class="btn btn-sm btn-outline-primary align-self-center btn-save-video" style="white-space:nowrap;"
+                data-video-id="${videoId}"
+                data-title="${video.title.replace(/"/g, '&quot;')}"
+                data-channel="${video.channel.replace(/"/g, '&quot;')}"
+                data-thumbnail="${video.thumbnail || ''}"
+                data-duration="${video.duration || ''}"
+                data-views="${video.views || ''}"
+                data-published="${video.published || ''}">저장</button>`;
+        }
+
+        html += `</div>`;
+    });
+    html += '</div>';
+    return html;
+}
+
+const youtubeLoadingText = document.getElementById('youtubeLoadingText');
+
+btnYoutube.addEventListener('click', async () => {
+    btnYoutube.disabled = true;
+    youtubeLoading.classList.remove('d-none');
+    youtubeResult.innerHTML = '';
+
+    try {
+        let url;
+        if (youtubeSearchMode === 'preferred') {
+            youtubeLoadingText.textContent = '선호 채널 검색 중... (채널 수에 따라 20~40초 소요)';
+            url = `/api/youtube/search/preferred/?keyword=${encodeURIComponent(stockName)}&min_views=1000`;
+        } else {
+            youtubeLoadingText.textContent = '검색 중...';
+            url = `/api/youtube/search/?keyword=${encodeURIComponent(stockName + ' 주식')}&min_views=1000`;
+        }
+
+        const response = await fetch(url);
+        const data = await response.json();
+        youtubeResult.innerHTML = renderYoutubeResults(data);
+
+    } catch (err) {
+        youtubeResult.innerHTML = `<div class="alert alert-danger mb-0">오류: ${err.message}</div>`;
+    } finally {
+        btnYoutube.disabled = false;
+        youtubeLoading.classList.add('d-none');
+    }
+});
+
+// ============ 유튜브 영상 저장/삭제 ============
+const savedVideoList = document.getElementById('savedVideoList');
+const savedVideoCount = document.getElementById('savedVideoCount');
+
+function updateSavedVideoCount() {
+    const count = savedVideoList.querySelectorAll('.list-group-item[data-id]').length;
+    savedVideoCount.textContent = count;
+}
+
+// 저장 버튼 클릭 (이벤트 위임)
+document.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-save-video')) return;
+
+    const btn = e.target;
+    btn.disabled = true;
+    btn.textContent = '저장 중...';
+
+    const videoId = btn.dataset.videoId;
+    const title = btn.dataset.title;
+    const channel = btn.dataset.channel;
+    const thumbnail = btn.dataset.thumbnail;
+    const duration = btn.dataset.duration;
+    const views = btn.dataset.views;
+    const published = btn.dataset.published;
+
+    try {
+        const formData = new FormData();
+        formData.append('stock_code', stockCode);
+        formData.append('video_id', videoId);
+        formData.append('title', title);
+        formData.append('channel', channel);
+        formData.append('thumbnail', thumbnail);
+        formData.append('duration', duration);
+        formData.append('views', views);
+        formData.append('published', published);
+
+        const response = await fetch('/api/youtube/video/save/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // 저장된 영상 목록에 추가
+            const noSavedVideo = document.getElementById('noSavedVideo');
+            if (noSavedVideo) noSavedVideo.remove();
+
+            const newItem = document.createElement('div');
+            newItem.className = 'list-group-item d-flex gap-3 py-2';
+            newItem.dataset.id = data.id;
+            newItem.innerHTML = `
+                ${thumbnail ? `<a href="https://www.youtube.com/watch?v=${videoId}" target="_blank"><img src="${thumbnail}" alt="" style="width:120px; height:68px; object-fit:cover; border-radius:4px;"></a>` : ''}
+                <div class="flex-grow-1 overflow-hidden">
+                    <a href="https://www.youtube.com/watch?v=${videoId}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">${title}</a>
+                    <small class="text-muted">${channel}</small>
+                    <small class="text-muted ms-2">${views}</small>
+                    <small class="text-muted ms-2">${published}</small>
+                </div>
+                <div class="d-flex gap-2 align-self-center">
+                    <a href="/youtube/${data.id}/summary/" class="text-decoration-none" title="요약">
+                        <span class="badge bg-secondary">요약</span>
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-video" data-id="${data.id}">삭제</button>
+                </div>
+            `;
+            savedVideoList.insertBefore(newItem, savedVideoList.firstChild);
+            updateSavedVideoCount();
+
+            // savedVideoIds에 추가
+            savedVideoIds.add(videoId);
+
+            // 버튼을 "저장됨" 뱃지로 교체
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-success align-self-center';
+            badge.textContent = '저장됨';
+            btn.replaceWith(badge);
+        } else {
+            alert(data.error || '저장에 실패했습니다.');
+            btn.disabled = false;
+            btn.textContent = '저장';
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = '저장';
+    }
+});
+
+// 삭제 버튼 클릭 (이벤트 위임)
+document.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-delete-video')) return;
+
+    const btn = e.target;
+    const videoId = btn.dataset.id;
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(`/api/youtube/video/${videoId}/delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            const item = btn.closest('.list-group-item');
+            // video_id 찾기 (삭제 시 savedVideoIds에서 제거)
+            const link = item.querySelector('a[href*="youtube.com"]');
+            if (link) {
+                const vid = extractVideoId(link.href);
+                savedVideoIds.delete(vid);
+            }
+            item.remove();
+            updateSavedVideoCount();
+
+            // 목록이 비었으면 메시지 표시
+            if (savedVideoList.querySelectorAll('.list-group-item[data-id]').length === 0) {
+                savedVideoList.innerHTML = '<div class="text-center text-muted py-3" id="noSavedVideo">저장된 영상이 없습니다.</div>';
+            }
+        } else {
+            alert(data.error || '삭제에 실패했습니다.');
+            btn.disabled = false;
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        btn.disabled = false;
     }
 });
 

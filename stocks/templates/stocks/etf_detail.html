@@ -236,6 +236,9 @@ function createDailyChartWithMA(containerId, candleData, volumeData, emptyMessag
             fixLeftEdge: true,
             fixRightEdge: true,
         },
+        handleScale: {
+            axisPressedMouseMove: { price: false },
+        },
     });
 
     // 캔들스틱 시리즈
@@ -335,6 +338,9 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
             timeVisible: true,
             fixLeftEdge: true,
             fixRightEdge: true,
+        },
+        handleScale: {
+            axisPressedMouseMove: { price: false },
         },
     });
 

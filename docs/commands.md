@@ -79,9 +79,6 @@ python manage.py save_stock_sector --log-level info
 python manage.py save_index_chart --mode last --log-level info
 python manage.py save_market_trend --mode last --log-level info
 
-# 업종
-python manage.py save_sector --mode last --log-level info
-
 # 종목 기본정보
 python manage.py save_stock_info --code all --log-level info
 
@@ -89,6 +86,9 @@ python manage.py save_stock_info --code all --log-level info
 python manage.py save_daily_chart --code all --mode last --log-level info
 python manage.py save_weekly_chart --code all --mode last --log-level info
 python manage.py save_monthly_chart --code all --mode last --log-level info
+
+# 업종
+python manage.py save_sector --mode last --log-level info
 
 # 종목 수급 (관심 종목만)
 python manage.py save_investor_trend --code fav --mode last --log-level info
