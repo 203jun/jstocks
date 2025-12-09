@@ -30,6 +30,12 @@
 
 처음 데이터를 구축할 때 실행합니다.
 
+### 0. 토큰 발급 (필수)
+
+```bash
+python manage.py get_token
+```
+
 ### 1. 종목 기본 정보
 
 ```bash
@@ -72,9 +78,12 @@ python manage.py save_stock_sector --log-level info
 
 ### 일 1회
 
-장 마감 후 실행합니다.
+장 마감 후 실행합니다. (`daily_update.sh` 스크립트 사용)
 
 ```bash
+# 토큰 발급 (키움 API 사용 전 필수)
+python manage.py get_token
+
 # 시황
 python manage.py save_index_chart --mode last --log-level info
 python manage.py save_market_trend --mode last --log-level info
@@ -87,7 +96,7 @@ python manage.py save_daily_chart --code all --mode last --log-level info
 python manage.py save_weekly_chart --code all --mode last --log-level info
 python manage.py save_monthly_chart --code all --mode last --log-level info
 
-# 업종
+# 업종 (일봉 차트 이후 실행)
 python manage.py save_sector --mode last --log-level info
 
 # 종목 수급 (관심 종목만)
@@ -108,6 +117,9 @@ python manage.py save_etf_chart --mode last --log-level info
 주말에 실행합니다.
 
 ```bash
+# 토큰 발급 (키움 API 사용 전 필수)
+python manage.py get_token
+
 python manage.py save_stock_list --log-level info
 python manage.py save_stock_sector --log-level info
 python manage.py save_financial_naver --code all --log-level info
