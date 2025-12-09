@@ -28,6 +28,8 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='', cast=Csv())
 
+# HTTP 환경에서 COOP 헤더 경고 비활성화
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 
 # Application definition
 
