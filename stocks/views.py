@@ -1171,16 +1171,14 @@ def sector_date_data(request):
 
 def settings(request):
     """설정 페이지"""
-    from .models import ThemeCategory, CronJob, ExcludedYoutubeChannel, PreferredYoutubeChannel
+    from .models import ThemeCategory, ExcludedYoutubeChannel, PreferredYoutubeChannel
 
     categories = ThemeCategory.objects.prefetch_related('themes').all()
-    cron_jobs = CronJob.objects.all()
     excluded_channels = ExcludedYoutubeChannel.objects.all()
     preferred_channels = PreferredYoutubeChannel.objects.all()
 
     context = {
         'categories': categories,
-        'cron_jobs': cron_jobs,
         'excluded_channels': excluded_channels,
         'preferred_channels': preferred_channels,
     }
@@ -1832,85 +1830,6 @@ def search_google_news(request):
     except Exception as e:
         import traceback
         return JsonResponse({'error': str(e), 'trace': traceback.format_exc()}, status=500)
-
-
-@require_POST
-def cronjob_save(request):
-    """크론잡 저장 API (추가/수정)"""
-    from .models import CronJob
-    from datetime import datetime
-
-    job_id = request.POST.get('id', '')
-    command_type = request.POST.get('command_type', 'command').strip()
-    command = request.POST.get('command', '').strip()
-    run_time = request.POST.get('run_time', '').strip()
-    weekdays = request.POST.get('weekdays', '1,2,3,4,5').strip()
-
-    if not command:
-        return JsonResponse({'error': '명령어를 선택해주세요.'}, status=400)
-    if not run_time:
-        return JsonResponse({'error': '실행시간을 입력해주세요.'}, status=400)
-
-    # command에서 name 자동 생성 (첫 번째 단어, .sh 제거)
-    name = command.split()[0].replace('.sh', '') if command else ''
-
-    # 시간 파싱
-    try:
-        time_obj = datetime.strptime(run_time, '%H:%M').time()
-    except ValueError:
-        return JsonResponse({'error': '시간 형식이 올바르지 않습니다.'}, status=400)
-
-    if job_id:
-        # 수정
-        job = get_object_or_404(CronJob, id=job_id)
-        job.name = name
-        job.command_type = command_type
-        job.command = command
-        job.run_time = time_obj
-        job.weekdays = weekdays
-        job.save()
-    else:
-        # 추가
-        job = CronJob.objects.create(
-            name=name,
-            command_type=command_type,
-            command=command,
-            run_time=time_obj,
-            weekdays=weekdays,
-        )
-
-    return JsonResponse({
-        'success': True,
-        'id': job.id,
-        'name': job.name,
-    })
-
-
-@require_POST
-def cronjob_delete(request, job_id):
-    """크론잡 삭제 API"""
-    from .models import CronJob
-
-    job = get_object_or_404(CronJob, id=job_id)
-    job.delete()
-
-    return JsonResponse({'success': True})
-
-
-@require_POST
-def cronjob_toggle(request, job_id):
-    """크론잡 활성화 토글 API"""
-    from .models import CronJob
-
-    job = get_object_or_404(CronJob, id=job_id)
-    is_active = request.POST.get('is_active', 'false')
-    job.is_active = is_active.lower() in ('true', '1', 'on')
-    job.save()
-
-    return JsonResponse({
-        'success': True,
-        'is_active': job.is_active,
-    })
 
 
 @require_GET
