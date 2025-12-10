@@ -256,8 +256,8 @@ class Command(BaseCommand):
         result = 'created' if created else 'updated'
         if info.market_cap is not None:
             if info.market_cap < self.min_cap:
-                # 시가총액 미달 → 비활성화
-                if info.is_active:
+                # 시가총액 미달 → 비활성화 (단, 관심종목은 제외)
+                if info.is_active and not info.interest_level:
                     info.is_active = False
                     result = 'deactivated'
             else:
