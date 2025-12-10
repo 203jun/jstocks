@@ -10,10 +10,12 @@ crontab 설정:
   * * * * * cd /home/stock/jstocks && /home/stock/jstocks/venv/bin/python manage.py run_cron >> /home/stock/jstocks/logs/cron.log 2>&1
 """
 
+import os
 import subprocess
 import sys
 from datetime import datetime
 from django.core.management.base import BaseCommand
+from django.conf import settings
 from django.utils import timezone
 
 
@@ -44,7 +46,7 @@ class Command(BaseCommand):
         """작업 실행"""
         from stocks.models import CronJob
 
-        self.stdout.write(f'  실행: {job.name} ({job.command})')
+        self.stdout.write(f'  실행: {job.name} ({job.command_type}: {job.command})')
 
         # 실행 상태 업데이트
         job.last_run = timezone.now()
@@ -52,14 +54,25 @@ class Command(BaseCommand):
         job.save()
 
         try:
-            # management command 실행
-            cmd = [sys.executable, 'manage.py'] + job.command.split()
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=3600,  # 1시간 타임아웃
-            )
+            if job.command_type == 'script':
+                # 쉘 스크립트 실행
+                script_path = os.path.join(settings.BASE_DIR, job.command)
+                result = subprocess.run(
+                    ['bash', script_path],
+                    capture_output=True,
+                    text=True,
+                    timeout=7200,  # 2시간 타임아웃 (스크립트는 오래 걸릴 수 있음)
+                    cwd=settings.BASE_DIR,
+                )
+            else:
+                # Django management command 실행
+                cmd = [sys.executable, 'manage.py'] + job.command.split()
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=3600,  # 1시간 타임아웃
+                )
 
             if result.returncode == 0:
                 job.last_result = 'success'

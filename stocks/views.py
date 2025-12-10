@@ -1841,6 +1841,7 @@ def cronjob_save(request):
     from datetime import datetime
 
     job_id = request.POST.get('id', '')
+    command_type = request.POST.get('command_type', 'command').strip()
     command = request.POST.get('command', '').strip()
     run_time = request.POST.get('run_time', '').strip()
     weekdays = request.POST.get('weekdays', '1,2,3,4,5').strip()
@@ -1850,8 +1851,8 @@ def cronjob_save(request):
     if not run_time:
         return JsonResponse({'error': '실행시간을 입력해주세요.'}, status=400)
 
-    # command에서 name 자동 생성 (첫 번째 단어)
-    name = command.split()[0] if command else ''
+    # command에서 name 자동 생성 (첫 번째 단어, .sh 제거)
+    name = command.split()[0].replace('.sh', '') if command else ''
 
     # 시간 파싱
     try:
@@ -1863,6 +1864,7 @@ def cronjob_save(request):
         # 수정
         job = get_object_or_404(CronJob, id=job_id)
         job.name = name
+        job.command_type = command_type
         job.command = command
         job.run_time = time_obj
         job.weekdays = weekdays
@@ -1871,6 +1873,7 @@ def cronjob_save(request):
         # 추가
         job = CronJob.objects.create(
             name=name,
+            command_type=command_type,
             command=command,
             run_time=time_obj,
             weekdays=weekdays,

@@ -125,34 +125,38 @@
                     <input type="hidden" id="cronJobId">
                     <div class="row g-2">
                         <div class="col-md-5">
-                            <label class="form-label small fw-bold">명령어</label>
+                            <label class="form-label small fw-bold">명령어/스크립트</label>
                             <select class="form-select form-select-sm" id="cronJobCommand">
                                 <option value="">선택하세요</option>
-                                <optgroup label="일 1회 (장 마감 후)">
-                                    <option value="save_index_chart --mode last">지수차트 (save_index_chart)</option>
-                                    <option value="save_market_trend --mode last">시장동향 (save_market_trend)</option>
-                                    <option value="save_sector --mode last">업종 (save_sector)</option>
-                                    <option value="save_stock_info --code all">종목정보 (save_stock_info)</option>
-                                    <option value="save_daily_chart --code all --mode last">일봉 (save_daily_chart)</option>
-                                    <option value="save_weekly_chart --code all --mode last">주봉 (save_weekly_chart)</option>
-                                    <option value="save_monthly_chart --code all --mode last">월봉 (save_monthly_chart)</option>
-                                    <option value="save_investor_trend --code all --mode last">투자자동향 (save_investor_trend)</option>
-                                    <option value="save_short_selling --code all --mode last">공매도 (save_short_selling)</option>
-                                    <option value="save_gongsi_stock --code fav">공시 (save_gongsi_stock)</option>
-                                    <option value="save_fnguide_report --code fav">리포트 (save_fnguide_report)</option>
-                                    <option value="save_nodaji_stock --code fav">노다지 (save_nodaji_stock)</option>
-                                    <option value="save_etf_chart --mode last">ETF차트 (save_etf_chart)</option>
+                                <optgroup label="스크립트" id="cronJobScriptOptions">
+                                    <option value="daily_update.sh" data-type="script">일일 업데이트 (daily_update.sh)</option>
+                                    <option value="weekly_update.sh" data-type="script">주간 업데이트 (weekly_update.sh)</option>
                                 </optgroup>
-                                <optgroup label="주 1회 (주말)">
-                                    <option value="save_stock_list">종목목록 (save_stock_list)</option>
-                                    <option value="save_stock_sector">종목업종 (save_stock_sector)</option>
-                                    <option value="save_financial_naver --code all">재무제표 (save_financial_naver)</option>
+                                <optgroup label="개별 명령어 - 일 1회" id="cronJobCommandOptions1">
+                                    <option value="save_index_chart --mode last" data-type="command">지수차트 (save_index_chart)</option>
+                                    <option value="save_market_trend --mode last" data-type="command">시장동향 (save_market_trend)</option>
+                                    <option value="save_sector --mode last" data-type="command">업종 (save_sector)</option>
+                                    <option value="save_stock_info --code all" data-type="command">종목정보 (save_stock_info)</option>
+                                    <option value="save_daily_chart --code all --mode last" data-type="command">일봉 (save_daily_chart)</option>
+                                    <option value="save_weekly_chart --code all --mode last" data-type="command">주봉 (save_weekly_chart)</option>
+                                    <option value="save_monthly_chart --code all --mode last" data-type="command">월봉 (save_monthly_chart)</option>
+                                    <option value="save_investor_trend --code fav --mode last" data-type="command">투자자동향 (save_investor_trend)</option>
+                                    <option value="save_short_selling --code fav --mode last" data-type="command">공매도 (save_short_selling)</option>
+                                    <option value="save_gongsi_stock --code fav" data-type="command">공시 (save_gongsi_stock)</option>
+                                    <option value="save_fnguide_report --code fav" data-type="command">리포트 (save_fnguide_report)</option>
+                                    <option value="save_nodaji_stock --code fav" data-type="command">노다지 (save_nodaji_stock)</option>
+                                    <option value="save_etf_chart --mode last" data-type="command">ETF차트 (save_etf_chart)</option>
+                                </optgroup>
+                                <optgroup label="개별 명령어 - 주 1회" id="cronJobCommandOptions2">
+                                    <option value="save_stock_list" data-type="command">종목목록 (save_stock_list)</option>
+                                    <option value="save_stock_sector" data-type="command">종목업종 (save_stock_sector)</option>
+                                    <option value="save_financial_naver --code all" data-type="command">재무제표 (save_financial_naver)</option>
                                 </optgroup>
                             </select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label small fw-bold">실행시간</label>
-                            <input type="time" class="form-control form-control-sm" id="cronJobTime" value="15:40">
+                            <input type="time" class="form-control form-control-sm" id="cronJobTime" value="16:00">
                         </div>
                         <div class="col-md-5">
                             <label class="form-label small fw-bold">실행요일</label>
@@ -179,6 +183,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="ps-3" style="width:60px;">활성</th>
+                                <th style="width:70px;">유형</th>
                                 <th>명령어</th>
                                 <th style="width:70px;">시간</th>
                                 <th style="width:100px;">요일</th>
@@ -194,6 +199,7 @@
                                         <input class="form-check-input cronJobToggle" type="checkbox" {% if job.is_active %}checked{% endif %} data-id="{{ job.id }}">
                                     </div>
                                 </td>
+                                <td><span class="badge {% if job.command_type == 'script' %}bg-primary{% else %}bg-secondary{% endif %}">{% if job.command_type == 'script' %}스크립트{% else %}명령어{% endif %}</span></td>
                                 <td><code class="small">{{ job.command }}</code></td>
                                 <td>{{ job.run_time|time:"H:i" }}</td>
                                 <td class="small">{{ job.weekdays_display }}</td>
@@ -207,13 +213,13 @@
                                     {% else %}-{% endif %}
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-secondary btnEditCronJob" data-id="{{ job.id }}" data-command="{{ job.command }}" data-time="{{ job.run_time|time:'H:i' }}" data-weekdays="{{ job.weekdays }}">수정</button>
+                                    <button class="btn btn-sm btn-outline-secondary btnEditCronJob" data-id="{{ job.id }}" data-type="{{ job.command_type }}" data-command="{{ job.command }}" data-time="{{ job.run_time|time:'H:i' }}" data-weekdays="{{ job.weekdays }}">수정</button>
                                     <button class="btn btn-sm btn-outline-danger btnDeleteCronJob" data-id="{{ job.id }}">삭제</button>
                                 </td>
                             </tr>
                             {% empty %}
                             <tr id="cronJobEmpty">
-                                <td colspan="6" class="text-center text-muted py-3">등록된 스케줄이 없습니다.</td>
+                                <td colspan="7" class="text-center text-muted py-3">등록된 스케줄이 없습니다.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -571,11 +577,17 @@ const cronJobCommand = document.getElementById('cronJobCommand');
 const cronJobTime = document.getElementById('cronJobTime');
 const cronJobWeekdays = document.querySelectorAll('.cronJobWeekday');
 
+// 선택된 옵션에서 command_type 가져오기
+function getCommandType() {
+    const selectedOption = cronJobCommand.options[cronJobCommand.selectedIndex];
+    return selectedOption?.dataset.type || 'command';
+}
+
 document.getElementById('btnAddCronJob').addEventListener('click', () => {
     cronJobForm.classList.remove('d-none');
     cronJobId.value = '';
     cronJobCommand.value = '';
-    cronJobTime.value = '15:40';
+    cronJobTime.value = '16:00';
     cronJobWeekdays.forEach(cb => cb.checked = [1,2,3,4,5].includes(parseInt(cb.value)));
     cronJobCommand.focus();
 });
@@ -587,6 +599,7 @@ document.getElementById('btnCancelCronJob').addEventListener('click', () => {
 document.getElementById('btnSaveCronJob').addEventListener('click', async () => {
     const id = cronJobId.value;
     const command = cronJobCommand.value;
+    const commandType = getCommandType();
     const time = cronJobTime.value;
     const weekdays = Array.from(cronJobWeekdays).filter(cb => cb.checked).map(cb => cb.value).join(',');
 
@@ -596,6 +609,7 @@ document.getElementById('btnSaveCronJob').addEventListener('click', async () => 
     }
 
     const formData = new FormData();
+    formData.append('command_type', commandType);
     formData.append('command', command);
     formData.append('run_time', time);
     formData.append('weekdays', weekdays);

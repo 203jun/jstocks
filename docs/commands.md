@@ -114,7 +114,7 @@ python manage.py save_etf_chart --mode last --log-level info
 
 ### 주 1회
 
-주말에 실행합니다.
+주말에 실행합니다. (`weekly_update.sh` 스크립트 사용)
 
 ```bash
 # 토큰 발급 (키움 API 사용 전 필수)
@@ -123,6 +123,39 @@ python manage.py get_token
 python manage.py save_stock_list --log-level info
 python manage.py save_stock_sector --log-level info
 python manage.py save_financial_naver --code all --log-level info
+```
+
+---
+
+## 크론잡 설정
+
+웹 UI 설정 페이지에서 크론잡을 등록하거나, 시스템 crontab을 사용합니다.
+
+### Django 크론잡 (권장)
+
+설정 페이지에서 등록 후, 서버 crontab에 아래 추가:
+
+```bash
+# 매분 실행 - Django 크론잡 스케줄러
+* * * * * cd /home/stock/jstocks && /home/stock/jstocks/venv/bin/python manage.py run_cron >> /home/stock/jstocks/logs/cron.log 2>&1
+```
+
+**예시 설정:**
+
+| 작업명 | 유형 | 명령어 | 시간 | 요일 |
+|--------|------|--------|------|------|
+| 일일 업데이트 | 스크립트 | `daily_update.sh` | 16:00 | 월~금 |
+| 수급 추가 수집 | 명령어 | `save_investor_trend --code fav --mode last` | 19:00 | 월~금 |
+| 주간 업데이트 | 스크립트 | `weekly_update.sh` | 10:00 | 토 |
+
+### 시스템 crontab 직접 사용
+
+```bash
+# 일일 업데이트 (평일 16:00)
+0 16 * * 1-5 /home/stock/jstocks/daily_update.sh >> /home/stock/jstocks/logs/daily_update.log 2>&1
+
+# 주간 업데이트 (토요일 10:00)
+0 10 * * 6 /home/stock/jstocks/weekly_update.sh >> /home/stock/jstocks/logs/weekly_update.log 2>&1
 ```
 
 ---

@@ -1601,9 +1601,15 @@ class CronJob(models.Model):
     매분 실행되는 스크립트가 이 테이블을 확인하여 작업 실행
 
     ※ 사용 예시:
-    - 15:40에 save_daily_chart 실행
-    - 16:00에 save_investor_trend 실행
+    - 16:00에 daily_update.sh 실행 (스크립트)
+    - 19:00에 save_investor_trend 실행 (커맨드)
+    - 토요일 10:00에 weekly_update.sh 실행 (스크립트)
     """
+
+    COMMAND_TYPE_CHOICES = [
+        ('command', 'Django 명령어'),
+        ('script', '쉘 스크립트'),
+    ]
 
     # === 작업 정보 ===
     name = models.CharField(
@@ -1611,10 +1617,17 @@ class CronJob(models.Model):
         verbose_name='작업명',
         help_text='표시용 작업 이름 (예: 일봉 데이터 수집)'
     )
+    command_type = models.CharField(
+        max_length=10,
+        choices=COMMAND_TYPE_CHOICES,
+        default='command',
+        verbose_name='작업유형',
+        help_text='command: Django 명령어, script: 쉘 스크립트'
+    )
     command = models.CharField(
         max_length=200,
         verbose_name='명령어',
-        help_text='실행할 management command (예: save_daily_chart --code all --mode today)'
+        help_text='Django 명령어 또는 스크립트 파일명 (예: save_daily_chart --code all 또는 daily_update.sh)'
     )
 
     # === 스케줄 설정 ===
