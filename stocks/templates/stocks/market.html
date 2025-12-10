@@ -123,7 +123,10 @@
             <div class="tab-pane fade show active" id="kospi-trend" role="tabpanel">
                 <div class="card mb-3">
                     <div class="card-header py-2 d-flex align-items-center justify-content-between">
-                        <strong>120일 누적 순매수</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <strong>120일 누적 순매수</strong>
+                            <button type="button" class="btn btn-sm btn-refresh-trend" data-market="KOSPI" title="새로고침" style="padding: 0; border: none; background: none; font-size: 1rem; line-height: 1; cursor: pointer;">🔄</button>
+                        </div>
                         <div class="d-flex gap-1">
                             <span class="badge text-bg-warning text-dark" style="font-size: 0.65rem;">개인</span>
                             <span class="badge text-bg-success" style="font-size: 0.65rem;">외국인</span>
@@ -137,7 +140,7 @@
                 <div class="card">
                     <div class="card-body p-0">
                         <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0">
+                            <table class="table table-sm table-hover mb-0" id="kospiTrendTable">
                                 <thead class="table-light">
                                     <tr class="small">
                                         <th class="ps-3">날짜</th>
@@ -181,7 +184,10 @@
             <div class="tab-pane fade" id="kosdaq-trend" role="tabpanel">
                 <div class="card mb-3">
                     <div class="card-header py-2 d-flex align-items-center justify-content-between">
-                        <strong>120일 누적 순매수</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <strong>120일 누적 순매수</strong>
+                            <button type="button" class="btn btn-sm btn-refresh-trend" data-market="KOSDAQ" title="새로고침" style="padding: 0; border: none; background: none; font-size: 1rem; line-height: 1; cursor: pointer;">🔄</button>
+                        </div>
                         <div class="d-flex gap-1">
                             <span class="badge text-bg-warning text-dark" style="font-size: 0.65rem;">개인</span>
                             <span class="badge text-bg-success" style="font-size: 0.65rem;">외국인</span>
@@ -195,7 +201,7 @@
                 <div class="card">
                     <div class="card-body p-0">
                         <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0">
+                            <table class="table table-sm table-hover mb-0" id="kosdaqTrendTable">
                                 <thead class="table-light">
                                     <tr class="small">
                                         <th class="ps-3">날짜</th>
@@ -239,7 +245,10 @@
             <div class="tab-pane fade" id="futures-trend" role="tabpanel">
                 <div class="card mb-3">
                     <div class="card-header py-2 d-flex align-items-center justify-content-between">
-                        <strong>120일 누적 순매수</strong>
+                        <div class="d-flex align-items-center gap-2">
+                            <strong>120일 누적 순매수</strong>
+                            <button type="button" class="btn btn-sm btn-refresh-trend" data-market="FUTURES" title="새로고침" style="padding: 0; border: none; background: none; font-size: 1rem; line-height: 1; cursor: pointer;">🔄</button>
+                        </div>
                         <div class="d-flex gap-1">
                             <span class="badge text-bg-warning text-dark" style="font-size: 0.65rem;">개인</span>
                             <span class="badge text-bg-success" style="font-size: 0.65rem;">외국인</span>
@@ -253,7 +262,7 @@
                 <div class="card">
                     <div class="card-body p-0">
                         <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0">
+                            <table class="table table-sm table-hover mb-0" id="futuresTrendTable">
                                 <thead class="table-light">
                                     <tr class="small">
                                         <th class="ps-3">날짜</th>
@@ -638,5 +647,165 @@ btnFetchBrief.addEventListener('click', async () => {
         briefLoading.classList.add('d-none');
     }
 });
+
+// 차트 인스턴스 저장
+const cumulativeCharts = {};
+
+// 시장 투자동향 새로고침
+document.querySelectorAll('.btn-refresh-trend').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const market = this.dataset.market;
+
+        // 버튼 비활성화 및 회전 애니메이션
+        this.disabled = true;
+        this.classList.add('spin');
+
+        try {
+            const response = await fetch(`/api/market/trend/${market}/refresh/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                // 테이블 업데이트
+                updateTrendTable(market, data.table_data);
+                // 차트 업데이트
+                updateCumulativeChart(market, data.chart_data);
+            } else {
+                alert(data.error || '업데이트 실패');
+            }
+        } catch (err) {
+            alert('오류: ' + err.message);
+        } finally {
+            this.disabled = false;
+            this.classList.remove('spin');
+        }
+    });
+});
+
+// 테이블 업데이트 함수
+function updateTrendTable(market, tableData) {
+    const tableId = `${market.toLowerCase()}TrendTable`;
+    const table = document.getElementById(tableId);
+    if (!table) return;
+
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+
+    // 숫자 포맷팅 함수
+    function formatNumber(num) {
+        return new Intl.NumberFormat('ko-KR').format(num);
+    }
+
+    // 색상 클래스 함수
+    function getColorClass(value) {
+        if (value > 0) return 'text-up';
+        if (value < 0) return 'text-down';
+        return '';
+    }
+
+    // tbody 내용 교체
+    tbody.innerHTML = tableData.map(t => `
+        <tr class="small">
+            <td class="ps-3 text-muted">${t.date}</td>
+            <td class="text-end ${getColorClass(t.individual)}">${formatNumber(t.individual)}</td>
+            <td class="text-end ${getColorClass(t.foreign)}">${formatNumber(t.foreign)}</td>
+            <td class="text-end ${getColorClass(t.institution)}">${formatNumber(t.institution)}</td>
+            <td class="text-end ${getColorClass(t.financial_investment)}">${formatNumber(t.financial_investment)}</td>
+            <td class="text-end ${getColorClass(t.insurance)}">${formatNumber(t.insurance)}</td>
+            <td class="text-end ${getColorClass(t.trust)}">${formatNumber(t.trust)}</td>
+            <td class="text-end ${getColorClass(t.bank)}">${formatNumber(t.bank)}</td>
+            <td class="text-end ${getColorClass(t.other_financial)}">${formatNumber(t.other_financial)}</td>
+            <td class="text-end ${getColorClass(t.pension_fund)}">${formatNumber(t.pension_fund)}</td>
+            <td class="text-end pe-3 ${getColorClass(t.other_corporation)}">${formatNumber(t.other_corporation)}</td>
+        </tr>
+    `).join('');
+}
+
+// 누적 차트 업데이트 함수
+function updateCumulativeChart(market, chartData) {
+    const containerId = `${market.toLowerCase()}CumulativeChart`;
+    const container = document.getElementById(containerId);
+    if (!container || chartData.length === 0) return;
+
+    // 기존 차트 제거
+    container.innerHTML = '';
+
+    // 새 차트 생성
+    const chart = LightweightCharts.createChart(container, {
+        layout: {
+            background: { color: '#ffffff' },
+            textColor: '#333',
+        },
+        grid: {
+            vertLines: { color: '#f0f0f0' },
+            horzLines: { color: '#f0f0f0' },
+        },
+        timeScale: {
+            timeVisible: false,
+            borderColor: '#ddd',
+            fixLeftEdge: true,
+            fixRightEdge: true,
+        },
+        rightPriceScale: {
+            borderColor: '#ddd',
+        },
+        handleScale: {
+            axisPressedMouseMove: { price: false },
+        },
+        height: 250,
+    });
+
+    // 개인 (노란색)
+    const individualSeries = chart.addLineSeries({
+        color: '#ffc107',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+    });
+    individualSeries.setData(chartData.map(d => ({
+        time: d.date,
+        value: d.individual,
+    })));
+
+    // 외국인 (녹색)
+    const foreignSeries = chart.addLineSeries({
+        color: '#198754',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+    });
+    foreignSeries.setData(chartData.map(d => ({
+        time: d.date,
+        value: d.foreign,
+    })));
+
+    // 기관 (빨간색)
+    const institutionSeries = chart.addLineSeries({
+        color: '#dc3545',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+    });
+    institutionSeries.setData(chartData.map(d => ({
+        time: d.date,
+        value: d.institution,
+    })));
+
+    chart.timeScale().fitContent();
+    cumulativeCharts[market] = chart;
+}
 </script>
+<style>
+.btn-refresh-trend.spin {
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+</style>
 {% endblock %}

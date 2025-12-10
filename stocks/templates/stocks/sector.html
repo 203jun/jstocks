@@ -38,13 +38,16 @@
             </div>
         </div>
         <div class="card">
-            <div class="card-header py-2">
-                <strong>업종별 순매수</strong>
-                {% if latest_kospi_date %}<small class="text-muted ms-2">{{ latest_kospi_date|date:"m.d" }} 기준</small>{% endif %}
+            <div class="card-header py-2 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <strong>업종별 순매수</strong>
+                    {% if latest_kospi_date %}<small class="text-muted" id="kospi-date">{{ latest_kospi_date|date:"m.d" }} 기준</small>{% endif %}
+                    <button type="button" class="btn btn-sm btn-refresh-sector" data-market="KOSPI" title="새로고침" style="padding: 0; border: none; background: none; font-size: 1rem; line-height: 1; cursor: pointer;">🔄</button>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                    <table class="table table-sm table-hover mb-0">
+                    <table class="table table-sm table-hover mb-0" id="kospiSectorTable">
                         <thead class="table-light sticky-top">
                             <tr class="small">
                                 <th class="ps-3">업종</th>
@@ -106,13 +109,16 @@
             </div>
         </div>
         <div class="card">
-            <div class="card-header py-2">
-                <strong>업종별 순매수</strong>
-                {% if latest_kosdaq_date %}<small class="text-muted ms-2">{{ latest_kosdaq_date|date:"m.d" }} 기준</small>{% endif %}
+            <div class="card-header py-2 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <strong>업종별 순매수</strong>
+                    {% if latest_kosdaq_date %}<small class="text-muted" id="kosdaq-date">{{ latest_kosdaq_date|date:"m.d" }} 기준</small>{% endif %}
+                    <button type="button" class="btn btn-sm btn-refresh-sector" data-market="KOSDAQ" title="새로고침" style="padding: 0; border: none; background: none; font-size: 1rem; line-height: 1; cursor: pointer;">🔄</button>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                    <table class="table table-sm table-hover mb-0">
+                    <table class="table table-sm table-hover mb-0" id="kosdaqSectorTable">
                         <thead class="table-light sticky-top">
                             <tr class="small">
                                 <th class="ps-3">업종</th>
@@ -224,5 +230,111 @@ document.querySelectorAll('.sector-row').forEach(row => {
         else kosdaqChart = newChart;
     });
 });
+
+// 업종별 순매수 새로고침
+document.querySelectorAll('.btn-refresh-sector').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const market = this.dataset.market;
+
+        this.disabled = true;
+        this.classList.add('spin');
+
+        try {
+            const response = await fetch(`/api/sector/${market}/refresh/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                updateSectorTable(market, data.table_data);
+                // 날짜 업데이트
+                const dateEl = document.getElementById(`${market.toLowerCase()}-date`);
+                if (dateEl) dateEl.textContent = data.date + ' 기준';
+            } else {
+                alert(data.error || '업데이트 실패');
+            }
+        } catch (err) {
+            alert('오류: ' + err.message);
+        } finally {
+            this.disabled = false;
+            this.classList.remove('spin');
+        }
+    });
+});
+
+function updateSectorTable(market, tableData) {
+    const tableId = `${market.toLowerCase()}SectorTable`;
+    const table = document.getElementById(tableId);
+    if (!table) return;
+
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+
+    function formatNumber(num) {
+        return new Intl.NumberFormat('ko-KR').format(num);
+    }
+
+    function getColorClass(value) {
+        if (value > 0) return 'text-up';
+        if (value < 0) return 'text-down';
+        return '';
+    }
+
+    tbody.innerHTML = tableData.map(s => `
+        <tr class="small sector-row" data-code="${s.code}" data-market="${market}" data-name="${s.name}" style="cursor: pointer;">
+            <td class="ps-3">${s.name}</td>
+            <td class="text-end ${getColorClass(s.individual_net_buying)}">${formatNumber(s.individual_net_buying)}</td>
+            <td class="text-end ${getColorClass(s.foreign_net_buying)}">${formatNumber(s.foreign_net_buying)}</td>
+            <td class="text-end ${getColorClass(s.institution_net_buying)}">${formatNumber(s.institution_net_buying)}</td>
+            <td class="text-end ${getColorClass(s.securities_net_buying)}">${formatNumber(s.securities_net_buying)}</td>
+            <td class="text-end ${getColorClass(s.insurance_net_buying)}">${formatNumber(s.insurance_net_buying)}</td>
+            <td class="text-end ${getColorClass(s.investment_trust_net_buying)}">${formatNumber(s.investment_trust_net_buying)}</td>
+            <td class="text-end ${getColorClass(s.bank_net_buying)}">${formatNumber(s.bank_net_buying)}</td>
+            <td class="text-end ${getColorClass(s.pension_fund_net_buying)}">${formatNumber(s.pension_fund_net_buying)}</td>
+            <td class="text-end ${getColorClass(s.private_fund_net_buying)}">${formatNumber(s.private_fund_net_buying)}</td>
+            <td class="text-end pe-3 ${getColorClass(s.other_corporation_net_buying)}">${formatNumber(s.other_corporation_net_buying)}</td>
+        </tr>
+    `).join('');
+
+    // 새로 추가된 행에 클릭 이벤트 다시 바인딩
+    tbody.querySelectorAll('.sector-row').forEach(row => {
+        row.addEventListener('click', function() {
+            const code = this.dataset.code;
+            const market = this.dataset.market;
+            const name = this.dataset.name;
+
+            this.closest('tbody').querySelectorAll('tr').forEach(tr => tr.classList.remove('table-active'));
+            this.classList.add('table-active');
+
+            const chartData = market === 'KOSPI' ? kospiChartData : kosdaqChartData;
+            const sectorData = chartData[code];
+            if (!sectorData || sectorData.data.length === 0) return;
+
+            const chartId = market === 'KOSPI' ? 'kospiSectorChart' : 'kosdaqSectorChart';
+            const nameId = market === 'KOSPI' ? 'kospi-chart-name' : 'kosdaq-chart-name';
+
+            document.getElementById(nameId).textContent = name;
+
+            if (market === 'KOSPI' && kospiChart) kospiChart.destroy();
+            else if (market === 'KOSDAQ' && kosdaqChart) kosdaqChart.destroy();
+
+            const newChart = createSectorChart(chartId, sectorData);
+            if (market === 'KOSPI') kospiChart = newChart;
+            else kosdaqChart = newChart;
+        });
+    });
+}
 </script>
+<style>
+.btn-refresh-sector.spin {
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+</style>
 {% endblock %}

@@ -304,7 +304,9 @@
                 {% else %}
                 <div class="text-center text-muted py-4">
                     수급 데이터가 없습니다.<br>
-                    <code class="small">python manage.py save_investor_trend --code {{ stock.code }} --mode all</code>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="btnFetchInvestorTrend" data-code="{{ stock.code }}">
+                        데이터 가져오기 (6개월)
+                    </button>
                 </div>
                 {% endif %}
             </div>
@@ -349,7 +351,9 @@
                 {% else %}
                 <div class="text-center text-muted py-4">
                     공매도 데이터가 없습니다.<br>
-                    <code class="small">python manage.py save_short_selling --code {{ stock.code }} --mode all</code>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="btnFetchShortSelling" data-code="{{ stock.code }}">
+                        데이터 가져오기 (60일)
+                    </button>
                 </div>
                 {% endif %}
             </div>
@@ -1898,5 +1902,65 @@ btnNews.addEventListener('click', async () => {
         newsLoading.classList.add('d-none');
     }
 });
+
+// 수급 데이터 가져오기
+const btnFetchInvestorTrend = document.getElementById('btnFetchInvestorTrend');
+if (btnFetchInvestorTrend) {
+    btnFetchInvestorTrend.addEventListener('click', async function() {
+        const code = this.dataset.code;
+        this.disabled = true;
+        this.textContent = '가져오는 중...';
+
+        try {
+            const response = await fetch(`/api/stock/${code}/investor-trend/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.error || '데이터 가져오기 실패');
+                this.disabled = false;
+                this.textContent = '데이터 가져오기 (6개월)';
+            }
+        } catch (err) {
+            alert('오류: ' + err.message);
+            this.disabled = false;
+            this.textContent = '데이터 가져오기 (6개월)';
+        }
+    });
+}
+
+// 공매도 데이터 가져오기
+const btnFetchShortSelling = document.getElementById('btnFetchShortSelling');
+if (btnFetchShortSelling) {
+    btnFetchShortSelling.addEventListener('click', async function() {
+        const code = this.dataset.code;
+        this.disabled = true;
+        this.textContent = '가져오는 중...';
+
+        try {
+            const response = await fetch(`/api/stock/${code}/short-selling/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.error || '데이터 가져오기 실패');
+                this.disabled = false;
+                this.textContent = '데이터 가져오기 (60일)';
+            }
+        } catch (err) {
+            alert('오류: ' + err.message);
+            this.disabled = false;
+            this.textContent = '데이터 가져오기 (60일)';
+        }
+    });
+}
 </script>
 {% endblock %}

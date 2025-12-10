@@ -2246,3 +2246,733 @@ def youtube_video_delete(request, video_id):
     video.delete()
 
     return JsonResponse({'success': True})
+
+
+@require_POST
+def refresh_market_trend(request, market):
+    """시장 투자동향 새로고침 API"""
+    import requests
+    from bs4 import BeautifulSoup
+
+    MARKET_CODES = {
+        'KOSPI': '01',
+        'KOSDAQ': '02',
+        'FUTURES': '03',
+    }
+
+    market = market.upper()
+    if market not in MARKET_CODES:
+        return JsonResponse({'error': f'지원하지 않는 시장: {market}'}, status=400)
+
+    sosok = MARKET_CODES[market]
+    bizdate = datetime.now().strftime('%Y%m%d')
+
+    def parse_number(text):
+        if not text:
+            return 0
+        cleaned = text.replace(',', '').replace('+', '').strip()
+        try:
+            return int(cleaned)
+        except ValueError:
+            return 0
+
+    def fetch_page(page):
+        url = f'https://finance.naver.com/sise/investorDealTrendDay.naver?bizdate={bizdate}&sosok={sosok}&page={page}'
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'euc-kr'
+
+            soup = BeautifulSoup(response.text, 'html.parser')
+            table = soup.select_one('table.type_1')
+            if not table:
+                return []
+
+            rows = []
+            tbody = table.select_one('tbody')
+            all_trs = tbody.select('tr') if tbody else table.select('tr')
+
+            for tr in all_trs:
+                tds = tr.select('td')
+                if len(tds) < 4:
+                    continue
+
+                date_text = tds[0].get_text(strip=True)
+                if not date_text or not date_text[0].isdigit():
+                    continue
+
+                rows.append({
+                    'date': date_text,
+                    'individual': parse_number(tds[1].get_text(strip=True)) if len(tds) > 1 else 0,
+                    'foreign': parse_number(tds[2].get_text(strip=True)) if len(tds) > 2 else 0,
+                    'institution': parse_number(tds[3].get_text(strip=True)) if len(tds) > 3 else 0,
+                    'financial_investment': parse_number(tds[4].get_text(strip=True)) if len(tds) > 4 else 0,
+                    'insurance': parse_number(tds[5].get_text(strip=True)) if len(tds) > 5 else 0,
+                    'trust': parse_number(tds[6].get_text(strip=True)) if len(tds) > 6 else 0,
+                    'bank': parse_number(tds[7].get_text(strip=True)) if len(tds) > 7 else 0,
+                    'other_financial': parse_number(tds[8].get_text(strip=True)) if len(tds) > 8 else 0,
+                    'pension_fund': parse_number(tds[9].get_text(strip=True)) if len(tds) > 9 else 0,
+                    'other_corporation': parse_number(tds[10].get_text(strip=True)) if len(tds) > 10 else 0,
+                })
+
+            return rows
+        except Exception:
+            return []
+
+    # 1페이지만 가져와서 최신 데이터 업데이트
+    all_data = fetch_page(1)
+
+    created_count = 0
+    updated_count = 0
+
+    for row in all_data:
+        try:
+            date = datetime.strptime(row['date'], '%y.%m.%d').date()
+
+            obj, created = MarketTrend.objects.update_or_create(
+                market=market,
+                date=date,
+                defaults={
+                    'individual': row['individual'],
+                    'foreign': row['foreign'],
+                    'institution': row['institution'],
+                    'financial_investment': row['financial_investment'],
+                    'insurance': row['insurance'],
+                    'trust': row['trust'],
+                    'bank': row['bank'],
+                    'other_financial': row['other_financial'],
+                    'pension_fund': row['pension_fund'],
+                    'other_corporation': row['other_corporation'],
+                }
+            )
+
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
+
+        except Exception:
+            pass
+
+    # 업데이트된 데이터 반환 (테이블용 20개, 차트용 120개)
+    trends = list(MarketTrend.objects.filter(market=market).order_by('-date')[:120])
+
+    # 테이블 데이터 (최근 20개)
+    table_data = [
+        {
+            'date': t.date.strftime('%m.%d'),
+            'individual': t.individual,
+            'foreign': t.foreign,
+            'institution': t.institution,
+            'financial_investment': t.financial_investment,
+            'insurance': t.insurance,
+            'trust': t.trust,
+            'bank': t.bank,
+            'other_financial': t.other_financial,
+            'pension_fund': t.pension_fund,
+            'other_corporation': t.other_corporation,
+        }
+        for t in trends[:20]
+    ]
+
+    # 누적 차트 데이터
+    trends.reverse()
+    cumulative_individual = 0
+    cumulative_foreign = 0
+    cumulative_institution = 0
+
+    chart_data = []
+    for t in trends:
+        cumulative_individual += t.individual
+        cumulative_foreign += t.foreign
+        cumulative_institution += t.institution
+        chart_data.append({
+            'date': t.date.strftime('%Y-%m-%d'),
+            'individual': cumulative_individual,
+            'foreign': cumulative_foreign,
+            'institution': cumulative_institution,
+        })
+
+    return JsonResponse({
+        'success': True,
+        'market': market,
+        'created': created_count,
+        'updated': updated_count,
+        'table_data': table_data,
+        'chart_data': chart_data,
+    })
+
+
+@require_POST
+def refresh_sector(request, market):
+    """업종별 순매수 새로고침 API (키움 API ka10051)"""
+    import requests
+    from .models import Sector, DailyChart
+    from .utils import get_valid_token
+
+    market = market.upper()
+    if market not in ['KOSPI', 'KOSDAQ']:
+        return JsonResponse({'error': f'지원하지 않는 시장: {market}'}, status=400)
+
+    # 토큰 가져오기 (없거나 만료시 자동 갱신)
+    token = get_valid_token()
+    if not token:
+        return JsonResponse({'error': '토큰 발급 실패. 키움 API 설정을 확인하세요.'}, status=400)
+
+    # 최근 거래일 가져오기
+    latest_date = DailyChart.objects.values_list('date', flat=True).order_by('-date').first()
+    if not latest_date:
+        return JsonResponse({'error': 'DailyChart 데이터가 없습니다.'}, status=400)
+
+    date_str = latest_date.strftime('%Y%m%d')
+    mrkt_tp = '0' if market == 'KOSPI' else '1'
+
+    # API 호출
+    url = 'https://api.kiwoom.com/api/dostk/sect'
+    headers = {
+        'Content-Type': 'application/json;charset=UTF-8',
+        'authorization': f'Bearer {token}',
+        'api-id': 'ka10051',
+    }
+    params = {
+        'mrkt_tp': mrkt_tp,
+        'amt_qty_tp': '0',
+        'base_dt': date_str,
+        'stex_tp': '1',
+    }
+
+    def parse_number(value):
+        if not value:
+            return 0
+        cleaned = str(value).strip().replace(',', '').replace('+', '')
+        try:
+            return int(cleaned)
+        except (ValueError, TypeError):
+            return 0
+
+    try:
+        response = requests.post(url, headers=headers, json=params, timeout=10)
+        if response.status_code != 200:
+            return JsonResponse({'error': f'API 오류: {response.status_code}'}, status=500)
+
+        response_data = response.json()
+
+        # 데이터 키 찾기
+        data_key = None
+        for key in ['inds_netprps', 'data', 'result', 'output']:
+            if key in response_data and isinstance(response_data[key], list):
+                data_key = key
+                break
+
+        if not data_key or not response_data[data_key]:
+            return JsonResponse({'error': '데이터가 없습니다.'}, status=400)
+
+        sector_list = response_data[data_key]
+        saved_count = 0
+
+        for item in sector_list:
+            Sector.objects.update_or_create(
+                code=item.get('inds_cd'),
+                date=latest_date,
+                market=market,
+                defaults={
+                    'name': item.get('inds_nm', ''),
+                    'individual_net_buying': parse_number(item.get('ind_netprps')),
+                    'foreign_net_buying': parse_number(item.get('frgnr_netprps')),
+                    'institution_net_buying': parse_number(item.get('orgn_netprps')),
+                    'securities_net_buying': parse_number(item.get('sc_netprps')),
+                    'insurance_net_buying': parse_number(item.get('insrnc_netprps')),
+                    'investment_trust_net_buying': parse_number(item.get('invtrt_netprps')),
+                    'bank_net_buying': parse_number(item.get('bank_netprps')),
+                    'pension_fund_net_buying': parse_number(item.get('jnsinkm_netprps')),
+                    'private_fund_net_buying': parse_number(item.get('samo_fund_netprps')),
+                    'other_corporation_net_buying': parse_number(item.get('etc_corp_netprps')),
+                }
+            )
+            saved_count += 1
+
+        # 업데이트된 데이터 반환
+        sectors = Sector.objects.filter(market=market, date=latest_date).order_by('code')
+        table_data = [
+            {
+                'code': s.code,
+                'name': s.name,
+                'individual_net_buying': s.individual_net_buying,
+                'foreign_net_buying': s.foreign_net_buying,
+                'institution_net_buying': s.institution_net_buying,
+                'securities_net_buying': s.securities_net_buying,
+                'insurance_net_buying': s.insurance_net_buying,
+                'investment_trust_net_buying': s.investment_trust_net_buying,
+                'bank_net_buying': s.bank_net_buying,
+                'pension_fund_net_buying': s.pension_fund_net_buying,
+                'private_fund_net_buying': s.private_fund_net_buying,
+                'other_corporation_net_buying': s.other_corporation_net_buying,
+            }
+            for s in sectors
+        ]
+
+        return JsonResponse({
+            'success': True,
+            'market': market,
+            'date': latest_date.strftime('%m.%d'),
+            'saved': saved_count,
+            'table_data': table_data,
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_POST
+def refresh_stock(request, code):
+    """종목 정보 새로고침 API (기본정보 + 수급 + 공매도)"""
+    import requests
+    from decimal import Decimal, InvalidOperation
+    from datetime import timedelta
+    from .models import Info, InvestorTrend, ShortSelling
+    from .utils import get_valid_token
+
+    try:
+        stock = Info.objects.get(code=code)
+    except Info.DoesNotExist:
+        return JsonResponse({'error': '종목을 찾을 수 없습니다.'}, status=404)
+
+    # 토큰 가져오기
+    token = get_valid_token()
+    if not token:
+        return JsonResponse({'error': '토큰 발급 실패. 키움 API 설정을 확인하세요.'}, status=400)
+
+    results = {}
+
+    def parse_int(value, absolute=False):
+        if not value:
+            return None
+        try:
+            result = int(str(value).replace(',', '').replace('+', ''))
+            return abs(result) if absolute else result
+        except (ValueError, AttributeError):
+            return None
+
+    def parse_decimal(value):
+        if not value:
+            return None
+        try:
+            return Decimal(str(value).replace(',', '').replace('+', ''))
+        except (InvalidOperation, AttributeError):
+            return None
+
+    # 1. 기본정보 (ka10001)
+    try:
+        url = 'https://api.kiwoom.com/api/dostk/stkinfo'
+        headers = {
+            'Content-Type': 'application/json;charset=UTF-8',
+            'authorization': f'Bearer {token}',
+            'cont-yn': 'N',
+            'next-key': '',
+            'api-id': 'ka10001',
+        }
+        params = {'stk_cd': code}
+
+        response = requests.post(url, headers=headers, json=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            stock.current_price = parse_int(data.get('cur_prc'), absolute=True)
+            stock.price_change = parse_int(data.get('pred_pre'))
+            stock.change_rate = parse_decimal(data.get('flu_rt'))
+            stock.volume = parse_int(data.get('trde_qty'))
+            stock.market_cap = parse_int(data.get('mac'))
+            stock.per = parse_decimal(data.get('per'))
+            stock.pbr = parse_decimal(data.get('pbr'))
+            stock.save()
+            results['info'] = 'success'
+        else:
+            results['info'] = f'error: {response.status_code}'
+    except Exception as e:
+        results['info'] = f'error: {str(e)}'
+
+    # 2. 투자자 매매동향 (ka10059)
+    try:
+        today = datetime.now().strftime('%Y%m%d')
+        url = 'https://api.kiwoom.com/api/dostk/stkinfo'
+        headers = {
+            'Content-Type': 'application/json;charset=UTF-8',
+            'authorization': f'Bearer {token}',
+            'cont-yn': 'N',
+            'next-key': '',
+            'api-id': 'ka10059',
+        }
+        params = {
+            'dt': today,
+            'stk_cd': code,
+            'amt_qty_tp': '1',
+            'trde_tp': '0',
+            'unit_tp': '1000',
+        }
+
+        response = requests.post(url, headers=headers, json=params, timeout=10)
+        if response.status_code == 200:
+            response_data = response.json()
+            data_key = None
+            for key in ['stk_invsr_orgn', 'invsr_stk_daly', 'stk_invsr_daly', 'data', 'result', 'output']:
+                if key in response_data and isinstance(response_data[key], list):
+                    data_key = key
+                    break
+
+            if data_key and response_data[data_key]:
+                all_data = response_data[data_key]
+                latest_date = max(item.get('dt', '') for item in all_data)
+                latest_data = [item for item in all_data if item.get('dt') == latest_date]
+
+                for item in latest_data:
+                    date = datetime.strptime(item['dt'], '%Y%m%d').date()
+                    InvestorTrend.objects.update_or_create(
+                        stock=stock,
+                        date=date,
+                        defaults={
+                            'individual': parse_int(item.get('ind_invsr')) or 0,
+                            'foreign': parse_int(item.get('frgnr_invsr')) or 0,
+                            'institution': parse_int(item.get('orgn')) or 0,
+                            'domestic_foreign': parse_int(item.get('natfor')) or 0,
+                            'financial': parse_int(item.get('fnnc_invt')) or 0,
+                            'insurance': parse_int(item.get('insrnc')) or 0,
+                            'investment_trust': parse_int(item.get('invtrt')) or 0,
+                            'other_finance': parse_int(item.get('etc_fnnc')) or 0,
+                            'bank': parse_int(item.get('bank')) or 0,
+                            'pension_fund': parse_int(item.get('penfnd_etc')) or 0,
+                            'private_fund': parse_int(item.get('samo_fund')) or 0,
+                            'other_corporation': parse_int(item.get('etc_corp')) or 0,
+                        }
+                    )
+                results['investor'] = 'success'
+            else:
+                results['investor'] = 'no data'
+        else:
+            results['investor'] = f'error: {response.status_code}'
+    except Exception as e:
+        results['investor'] = f'error: {str(e)}'
+
+    # 3. 공매도 (ka10014)
+    try:
+        today = datetime.now()
+        week_ago = today - timedelta(days=7)
+        url = 'https://api.kiwoom.com/api/dostk/shsa'
+        headers = {
+            'Content-Type': 'application/json;charset=UTF-8',
+            'authorization': f'Bearer {token}',
+            'cont-yn': 'N',
+            'next-key': '',
+            'api-id': 'ka10014',
+        }
+        params = {
+            'stk_cd': code,
+            'tm_tp': '1',
+            'strt_dt': week_ago.strftime('%Y%m%d'),
+            'end_dt': today.strftime('%Y%m%d'),
+        }
+
+        response = requests.post(url, headers=headers, json=params, timeout=10)
+        if response.status_code == 200:
+            response_data = response.json()
+            data_key = None
+            for key in ['shrts_trnsn', 'data', 'result', 'output']:
+                if key in response_data and isinstance(response_data[key], list):
+                    data_key = key
+                    break
+
+            if data_key and response_data[data_key]:
+                all_data = response_data[data_key]
+                dates = [item.get('dt', '') for item in all_data if item.get('dt')]
+                if dates:
+                    latest_date = max(dates)
+                    latest_data = [item for item in all_data if item.get('dt') == latest_date]
+
+                    for item in latest_data:
+                        date = datetime.strptime(item['dt'], '%Y%m%d').date()
+                        ShortSelling.objects.update_or_create(
+                            stock=stock,
+                            date=date,
+                            defaults={
+                                'trading_volume': parse_int(item.get('trde_qty')) or 0,
+                                'short_volume': parse_int(item.get('shrts_qty')) or 0,
+                                'cumulative_short_volume': parse_int(item.get('ovr_shrts_qty')) or 0,
+                                'trading_weight': parse_decimal(item.get('trde_wght')) or Decimal('0'),
+                                'short_trading_value': parse_int(item.get('shrts_trde_prica')) or 0,
+                                'short_average_price': parse_int(item.get('shrts_avg_pric')) or 0,
+                            }
+                        )
+                    results['short'] = 'success'
+                else:
+                    results['short'] = 'no data'
+            else:
+                results['short'] = 'no data'
+        else:
+            results['short'] = f'error: {response.status_code}'
+    except Exception as e:
+        results['short'] = f'error: {str(e)}'
+
+    # 업데이트된 데이터 반환
+    stock.refresh_from_db()
+
+    return JsonResponse({
+        'success': True,
+        'results': results,
+        'data': {
+            'current_price': stock.current_price,
+            'price_change': stock.price_change,
+            'change_rate': float(stock.change_rate) if stock.change_rate else None,
+            'volume': stock.volume,
+            'market_cap': stock.market_cap,
+            'per': float(stock.per) if stock.per else None,
+            'pbr': float(stock.pbr) if stock.pbr else None,
+        }
+    })
+
+
+@require_POST
+def fetch_investor_trend(request, code):
+    """수급 데이터 가져오기 API (6개월)"""
+    import requests
+    from datetime import timedelta
+    from .models import Info, InvestorTrend
+    from .utils import get_valid_token
+
+    try:
+        stock = Info.objects.get(code=code)
+    except Info.DoesNotExist:
+        return JsonResponse({'error': '종목을 찾을 수 없습니다.'}, status=404)
+
+    token = get_valid_token()
+    if not token:
+        return JsonResponse({'error': '토큰 발급 실패. 키움 API 설정을 확인하세요.'}, status=400)
+
+    def parse_int(value):
+        if not value:
+            return 0
+        try:
+            return int(str(value).strip().replace(',', '').replace('+', ''))
+        except (ValueError, AttributeError):
+            return 0
+
+    six_months_ago = datetime.now() - timedelta(days=180)
+    cutoff_date = six_months_ago.strftime('%Y%m%d')
+    today = datetime.now().strftime('%Y%m%d')
+
+    all_data = []
+    cont_yn = 'N'
+    next_key = ''
+
+    # 연속조회로 6개월 데이터 수집
+    for _ in range(10):  # 최대 10번 반복
+        url = 'https://api.kiwoom.com/api/dostk/stkinfo'
+        headers = {
+            'Content-Type': 'application/json;charset=UTF-8',
+            'authorization': f'Bearer {token}',
+            'cont-yn': cont_yn,
+            'next-key': next_key,
+            'api-id': 'ka10059',
+        }
+        params = {
+            'dt': today,
+            'stk_cd': code,
+            'amt_qty_tp': '1',
+            'trde_tp': '0',
+            'unit_tp': '1000',
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=params, timeout=10)
+            if response.status_code != 200:
+                break
+
+            response_data = response.json()
+            data_key = None
+            for key in ['stk_invsr_orgn', 'invsr_stk_daly', 'stk_invsr_daly', 'data', 'result', 'output']:
+                if key in response_data and isinstance(response_data[key], list):
+                    data_key = key
+                    break
+
+            if not data_key:
+                break
+
+            current_batch = response_data[data_key]
+            filtered = [item for item in current_batch if item.get('dt', '') >= cutoff_date]
+            all_data.extend(filtered)
+
+            # 가장 오래된 날짜 확인
+            if current_batch:
+                oldest_date = min(item.get('dt', '') for item in current_batch)
+                if oldest_date < cutoff_date:
+                    break
+
+            # 연속조회 확인
+            if response.headers.get('cont-yn') == 'Y' and response.headers.get('next-key'):
+                cont_yn = 'Y'
+                next_key = response.headers.get('next-key')
+            else:
+                break
+
+        except Exception:
+            break
+
+    # DB 저장
+    created_count = 0
+    updated_count = 0
+
+    for item in all_data:
+        try:
+            date = datetime.strptime(item['dt'], '%Y%m%d').date()
+            _, created = InvestorTrend.objects.update_or_create(
+                stock=stock,
+                date=date,
+                defaults={
+                    'individual': parse_int(item.get('ind_invsr')),
+                    'foreign': parse_int(item.get('frgnr_invsr')),
+                    'institution': parse_int(item.get('orgn')),
+                    'domestic_foreign': parse_int(item.get('natfor')),
+                    'financial': parse_int(item.get('fnnc_invt')),
+                    'insurance': parse_int(item.get('insrnc')),
+                    'investment_trust': parse_int(item.get('invtrt')),
+                    'other_finance': parse_int(item.get('etc_fnnc')),
+                    'bank': parse_int(item.get('bank')),
+                    'pension_fund': parse_int(item.get('penfnd_etc')),
+                    'private_fund': parse_int(item.get('samo_fund')),
+                    'other_corporation': parse_int(item.get('etc_corp')),
+                }
+            )
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
+        except Exception:
+            pass
+
+    return JsonResponse({
+        'success': True,
+        'created': created_count,
+        'updated': updated_count,
+        'total': len(all_data),
+    })
+
+
+@require_POST
+def fetch_short_selling(request, code):
+    """공매도 데이터 가져오기 API (60일)"""
+    import requests
+    from decimal import Decimal
+    from datetime import timedelta
+    from .models import Info, ShortSelling
+    from .utils import get_valid_token
+
+    try:
+        stock = Info.objects.get(code=code)
+    except Info.DoesNotExist:
+        return JsonResponse({'error': '종목을 찾을 수 없습니다.'}, status=404)
+
+    token = get_valid_token()
+    if not token:
+        return JsonResponse({'error': '토큰 발급 실패. 키움 API 설정을 확인하세요.'}, status=400)
+
+    def parse_int(value):
+        if not value:
+            return 0
+        try:
+            return int(str(value).strip().replace(',', '').replace('+', ''))
+        except (ValueError, AttributeError):
+            return 0
+
+    def parse_decimal(value):
+        if not value:
+            return Decimal('0')
+        try:
+            return Decimal(str(value).strip().replace(',', ''))
+        except Exception:
+            return Decimal('0')
+
+    sixty_days_ago = datetime.now() - timedelta(days=60)
+    cutoff_date = sixty_days_ago.strftime('%Y%m%d')
+    today = datetime.now().strftime('%Y%m%d')
+
+    all_data = []
+    cont_yn = 'N'
+    next_key = ''
+
+    # 연속조회로 60일 데이터 수집
+    for _ in range(5):  # 최대 5번 반복
+        url = 'https://api.kiwoom.com/api/dostk/shsa'
+        headers = {
+            'Content-Type': 'application/json;charset=UTF-8',
+            'authorization': f'Bearer {token}',
+            'cont-yn': cont_yn,
+            'next-key': next_key,
+            'api-id': 'ka10014',
+        }
+        params = {
+            'stk_cd': code,
+            'tm_tp': '1',
+            'strt_dt': cutoff_date,
+            'end_dt': today,
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=params, timeout=10)
+            if response.status_code != 200:
+                break
+
+            response_data = response.json()
+            data_key = None
+            for key in ['shrts_trnsn', 'data', 'result', 'output']:
+                if key in response_data and isinstance(response_data[key], list):
+                    data_key = key
+                    break
+
+            if not data_key:
+                break
+
+            current_batch = response_data[data_key]
+            filtered = [item for item in current_batch if item.get('dt', '') >= cutoff_date]
+            all_data.extend(filtered)
+
+            # 연속조회 확인
+            if response.headers.get('cont-yn') == 'Y' and response.headers.get('next-key'):
+                cont_yn = 'Y'
+                next_key = response.headers.get('next-key')
+            else:
+                break
+
+        except Exception:
+            break
+
+    # DB 저장
+    created_count = 0
+    updated_count = 0
+
+    for item in all_data:
+        try:
+            date = datetime.strptime(item['dt'], '%Y%m%d').date()
+            _, created = ShortSelling.objects.update_or_create(
+                stock=stock,
+                date=date,
+                defaults={
+                    'trading_volume': parse_int(item.get('trde_qty')),
+                    'short_volume': parse_int(item.get('shrts_qty')),
+                    'cumulative_short_volume': parse_int(item.get('ovr_shrts_qty')),
+                    'trading_weight': parse_decimal(item.get('trde_wght')),
+                    'short_trading_value': parse_int(item.get('shrts_trde_prica')),
+                    'short_average_price': parse_int(item.get('shrts_avg_pric')),
+                }
+            )
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
+        except Exception:
+            pass
+
+    return JsonResponse({
+        'success': True,
+        'created': created_count,
+        'updated': updated_count,
+        'total': len(all_data),
+    })

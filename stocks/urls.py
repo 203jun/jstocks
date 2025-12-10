@@ -40,4 +40,9 @@ urlpatterns = [
     path('api/youtube/preferred/<int:channel_id>/delete/', views.preferred_channel_delete, name='preferred_channel_delete'),
     path('api/youtube/video/save/', views.youtube_video_save, name='youtube_video_save'),
     path('api/youtube/video/<int:video_id>/delete/', views.youtube_video_delete, name='youtube_video_delete'),
+    path('api/market/trend/<str:market>/refresh/', views.refresh_market_trend, name='refresh_market_trend'),
+    path('api/sector/<str:market>/refresh/', views.refresh_sector, name='refresh_sector'),
+    path('api/stock/<str:code>/refresh/', views.refresh_stock, name='refresh_stock'),
+    path('api/stock/<str:code>/investor-trend/', views.fetch_investor_trend, name='fetch_investor_trend'),
+    path('api/stock/<str:code>/short-selling/', views.fetch_short_selling, name='fetch_short_selling'),
 ]
