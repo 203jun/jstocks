@@ -14,6 +14,49 @@
     </a>
 </div>
 
+<!-- 40일 최대 거래량 대시보드 -->
+<div class="card mb-4">
+    <div class="card-header py-2">
+        <strong>40일 최대 거래량</strong>
+        <small class="text-muted ms-2">관심종목 중 마지막 거래일 기준</small>
+    </div>
+    {% if volume_alert_stocks %}
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">종목명</th>
+                        <th class="text-end">종가변화</th>
+                        <th class="text-end pe-3">거래량 증가</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in volume_alert_stocks %}
+                    <tr onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                        <td class="ps-3">
+                            <strong>{{ item.stock.name }}</strong>
+                            <small class="text-muted ms-1">{{ item.stock.code }}</small>
+                        </td>
+                        <td class="text-end {% if item.price_change > 0 %}text-up{% elif item.price_change < 0 %}text-down{% endif %}">
+                            {% if item.price_change > 0 %}+{% endif %}{{ item.price_change_rate }}%
+                        </td>
+                        <td class="text-end pe-3">
+                            <span class="text-success fw-bold">+{{ item.volume_change }}%</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="card-body text-center text-muted py-3">
+        해당 종목이 없습니다.
+    </div>
+    {% endif %}
+</div>
+
 <!-- 관심단계 탭 -->
 <ul class="nav nav-pills mb-3" id="interestTabs" role="tablist">
     <li class="nav-item" role="presentation">

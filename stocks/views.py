@@ -14,7 +14,7 @@ from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Repo
 
 def index(request):
     """종목 대시보드 (관심종목)"""
-    from django.db.models import Min
+    from django.db.models import Max
 
     # 대분류명, 소분류명 순으로 정렬 (테마 없는 종목은 맨 뒤)
     base_qs = Info.objects.filter(is_active=True).prefetch_related('themes__category')
@@ -37,10 +37,56 @@ def index(request):
     normal_stocks = sort_by_theme(base_qs.filter(interest_level='normal'))
     incubator_stocks = sort_by_theme(base_qs.filter(interest_level='incubator'))
 
+    # 40일 최대 거래량 종목 (관심종목 대상)
+    volume_alert_stocks = []
+    fav_stocks = base_qs.filter(interest_level__isnull=False)
+
+    for stock in fav_stocks:
+        # 최근 40일 일봉 데이터
+        daily_data = list(DailyChart.objects.filter(
+            stock=stock
+        ).order_by('-date')[:40])
+
+        if len(daily_data) < 2:
+            continue
+
+        # 마지막 거래일 (가장 최근)
+        latest = daily_data[0]
+        prev = daily_data[1]
+
+        # 40일 중 최대 거래량
+        max_volume = max(d.trading_volume for d in daily_data)
+
+        # 마지막 거래일 거래량이 40일 최대값인 경우
+        if latest.trading_volume == max_volume and latest.trading_volume > 0:
+            # 전일 대비 거래량 증가율
+            volume_change = 0
+            if prev.trading_volume > 0:
+                volume_change = round((latest.trading_volume - prev.trading_volume) / prev.trading_volume * 100, 1)
+
+            # 전일 대비 종가 변화
+            price_change = latest.closing_price - prev.closing_price
+            price_change_rate = 0
+            if prev.closing_price > 0:
+                price_change_rate = round(price_change / prev.closing_price * 100, 2)
+
+            volume_alert_stocks.append({
+                'stock': stock,
+                'date': latest.date,
+                'volume': latest.trading_volume,
+                'volume_change': volume_change,
+                'price_change': price_change,
+                'price_change_rate': price_change_rate,
+            })
+
+    # 거래량 증가율 순으로 정렬
+    volume_alert_stocks.sort(key=lambda x: x['volume_change'], reverse=True)
+
     context = {
         'super_stocks': super_stocks,
         'normal_stocks': normal_stocks,
         'incubator_stocks': incubator_stocks,
+        'volume_alert_stocks': volume_alert_stocks,
     }
     return render(request, 'stocks/index.html', context)
 
