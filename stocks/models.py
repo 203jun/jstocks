@@ -192,6 +192,12 @@ class Info(models.Model):
         verbose_name='기업분석',
         help_text='기업분석 (HTML 형식)'
     )
+    memo = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='메모',
+        help_text='자유 메모 (HTML 형식)'
+    )
 
     class Meta:
         db_table = 'info'

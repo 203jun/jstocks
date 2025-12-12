@@ -230,6 +230,16 @@
                 </div>
             </div>
 
+            <div class="card mb-3">
+                <div class="card-header py-2">
+                    <strong>메모</strong>
+                </div>
+                <div class="card-body p-0">
+                    <div id="memoEditor" style="min-height: 150px;">{{ stock.memo|safe }}</div>
+                    <input type="hidden" name="memo" id="memoInput">
+                </div>
+            </div>
+
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary">저장</button>
                 <a href="{% url 'stocks:stock_detail' stock.code %}" class="btn btn-outline-secondary">취소</a>
@@ -836,12 +846,14 @@ const quillOptions = {
 const investmentPointEditor = new Quill('#investmentPointEditor', quillOptions);
 const riskEditor = new Quill('#riskEditor', quillOptions);
 const analysisEditor = new Quill('#analysisEditor', quillOptions);
+const memoEditor = new Quill('#memoEditor', quillOptions);
 
 // 폼 제출 시 에디터 내용을 hidden input에 복사
 document.querySelector('form').addEventListener('submit', function(e) {
     document.getElementById('investmentPointInput').value = investmentPointEditor.root.innerHTML;
     document.getElementById('riskInput').value = riskEditor.root.innerHTML;
     document.getElementById('analysisInput').value = analysisEditor.root.innerHTML;
+    document.getElementById('memoInput').value = memoEditor.root.innerHTML;
 });
 
 // ============ 일정 관리 ============

@@ -347,6 +347,7 @@ def stock_edit(request, code):
         stock.investment_point = request.POST.get('investment_point', '')
         stock.risk = request.POST.get('risk', '')
         stock.analysis = request.POST.get('analysis', '')
+        stock.memo = request.POST.get('memo', '')
         stock.save()
 
         # 업종 저장 (ManyToMany)
