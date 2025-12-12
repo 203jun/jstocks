@@ -14,8 +14,21 @@
     </a>
 </div>
 
+<!-- 대시보드 탭 -->
+<ul class="nav nav-pills mb-3" id="dashboardTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-filter="super" type="button">초관심</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-filter="normal" type="button">관심</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-filter="incubator" type="button">인큐베이터</button>
+    </li>
+</ul>
+
 <!-- 대시보드 카드 -->
-<div class="row mb-4">
+<div class="row mb-4" id="dashboardCards">
     <!-- 카드 A: 장기 급등 (60일 신고거래량) -->
     <div class="col-md-6 mb-3">
         <div class="card h-100">
@@ -38,7 +51,7 @@
                         </thead>
                         <tbody>
                             {% for item in card_a_stocks %}
-                            <tr onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
                                     <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
                                 </td>
@@ -84,7 +97,7 @@
                         </thead>
                         <tbody>
                             {% for item in card_b_stocks %}
-                            <tr onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
                                     <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
                                 </td>
@@ -109,7 +122,7 @@
     </div>
 
     <!-- 카드 D: 이평선 줍줍 -->
-    <div class="col-12 mb-3">
+    <div class="col-md-6 mb-3">
         <div class="card h-100">
             <div class="card-header py-2">
                 <strong>🧲 이평선 줍줍</strong>
@@ -131,12 +144,12 @@
                         </thead>
                         <tbody>
                             {% for item in card_d_stocks %}
-                            <tr onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
                                     <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
                                     {% if item.has_tail_badge %}<span class="ms-1" title="꼬리 지지">📍</span>{% endif %}
                                 </td>
-                                <td class="text-center px-3 py-2"><span class="badge {% if item.support_type == 'MA20' %}bg-success{% else %}bg-info{% endif %}">{{ item.support_type }}</span></td>
+                                <td class="text-center px-3 py-2"><span class="badge" style="background-color: {% if item.support_type == 'MA20' %}#2196f3{% else %}#4caf50{% endif %};">{{ item.support_type }}</span></td>
                                 <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
                                     {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
                                 </td>
@@ -158,7 +171,7 @@
     </div>
 
     <!-- 카드 C: 신호 추적 -->
-    <div class="col-12 mb-3">
+    <div class="col-md-6 mb-3">
         <div class="card h-100">
             <div class="card-header py-2">
                 <strong>📡 신호 추적</strong>
@@ -166,24 +179,35 @@
             </div>
             {% if card_c_stocks %}
             <div class="card-body p-0">
-                <div class="list-group list-group-flush">
-                    {% for item in card_c_stocks %}
-                    <a href="{% url 'stocks:stock_detail' item.stock.code %}" class="list-group-item list-group-item-action py-2">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong class="small">{{ item.stock.name }}</strong>
-                                <span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">{{ item.signal_type }} / {{ item.signal_days_ago }}일전</span>
-                            </div>
-                            <span class="badge {% if item.change_rate > 0 %}bg-danger{% elif item.change_rate < 0 %}bg-primary{% else %}bg-secondary{% endif %}">
-                                {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
-                            </span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mt-1">
-                            <small class="text-muted">고점대비 {{ item.high_position }}%</small>
-                            <canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas>
-                        </div>
-                    </a>
-                    {% endfor %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0 dashboard-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="px-3">종목명</th>
+                                <th class="text-center px-3">신호</th>
+                                <th class="text-center px-3">날짜</th>
+                                <th class="text-end px-3">양봉대비</th>
+                                <th class="text-end px-3">고점대비</th>
+                                <th class="text-end px-3">10일</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in card_c_stocks %}
+                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                                <td class="px-3 py-2">
+                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
+                                </td>
+                                <td class="text-center px-3 py-2"><span class="badge" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %};">{{ item.signal_type }}</span></td>
+                                <td class="text-center px-3 py-2 small">{{ item.signal_days_ago }}일전</td>
+                                <td class="text-end px-3 py-2 {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %}">
+                                    {% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%
+                                </td>
+                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</td>
+                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
             {% else %}
@@ -343,33 +367,88 @@
 {% block extra_js %}
 <script>
 // 스파크라인 그리기
-document.querySelectorAll('.sparkline').forEach(canvas => {
-    const values = canvas.dataset.values.split(',').map(Number);
-    if (values.length < 2) return;
+function drawSparklines() {
+    document.querySelectorAll('.sparkline').forEach(canvas => {
+        const values = canvas.dataset.values.split(',').map(Number);
+        if (values.length < 2) return;
 
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
 
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const range = max - min || 1;
+        // 캔버스 클리어
+        ctx.clearRect(0, 0, width, height);
 
-    // 시작점과 끝점 비교해서 색상 결정
-    const color = values[values.length - 1] >= values[0] ? '#ef5350' : '#2196f3';
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const range = max - min || 1;
 
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
+        // 시작점과 끝점 비교해서 색상 결정
+        const color = values[values.length - 1] >= values[0] ? '#ef5350' : '#2196f3';
 
-    values.forEach((val, i) => {
-        const x = (i / (values.length - 1)) * width;
-        const y = height - ((val - min) / range) * (height - 4) - 2;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+
+        values.forEach((val, i) => {
+            const x = (i / (values.length - 1)) * width;
+            const y = height - ((val - min) / range) * (height - 4) - 2;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+
+        ctx.stroke();
+    });
+}
+
+// 초기 스파크라인 그리기
+drawSparklines();
+
+// 초기 필터 적용 (초관심)
+function applyFilter(filter) {
+    document.querySelectorAll('.dashboard-row').forEach(row => {
+        if (row.dataset.level === filter) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
     });
 
-    ctx.stroke();
+    // 각 카드별로 보이는 행이 없으면 "해당 종목 없음" 표시
+    document.querySelectorAll('#dashboardCards .card').forEach(card => {
+        const tbody = card.querySelector('tbody');
+        const emptyMsg = card.querySelector('.empty-filter-msg');
+
+        if (tbody) {
+            const visibleRows = tbody.querySelectorAll('tr.dashboard-row:not([style*="display: none"])');
+
+            if (visibleRows.length === 0) {
+                if (!emptyMsg) {
+                    const msg = document.createElement('tr');
+                    msg.className = 'empty-filter-msg';
+                    msg.innerHTML = '<td colspan="10" class="text-center text-muted py-3"><small>해당 종목 없음</small></td>';
+                    tbody.appendChild(msg);
+                }
+            } else {
+                if (emptyMsg) emptyMsg.remove();
+            }
+        }
+    });
+}
+
+// 페이지 로드 시 초관심 필터 적용
+applyFilter('super');
+
+// 대시보드 탭 필터링
+document.querySelectorAll('#dashboardTabs button').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // 활성 탭 변경
+        document.querySelectorAll('#dashboardTabs button').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        applyFilter(this.dataset.filter);
+        drawSparklines();
+    });
 });
 </script>
 {% endblock %}

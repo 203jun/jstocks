@@ -38,8 +38,8 @@ def index(request):
     incubator_stocks = sort_by_theme(base_qs.filter(interest_level='incubator'))
 
     # ============ 대시보드 카드 ============
-    # 테스트용: 상위 1000개 종목 대상
-    target_stocks = list(base_qs.order_by('-market_cap')[:1000])
+    # 관심종목만 대상 (super, normal, incubator)
+    target_stocks = list(base_qs.filter(interest_level__in=['super', 'normal', 'incubator']))
 
     # 카드 A: 장기 급등 (60일 신고거래량)
     card_a_stocks = []
@@ -292,10 +292,10 @@ def index(request):
         if stock.code in card_abd_codes:
             continue
 
-        # 최근 65일 일봉 데이터 (5일 전 시점에서 60일 체크를 위해)
+        # 최근 125일 일봉 데이터 (5일 전 시점에서 60일 체크 + MA120 계산용)
         daily_data = list(DailyChart.objects.filter(
             stock=stock
-        ).order_by('-date')[:65])
+        ).order_by('-date')[:125])
 
         if len(daily_data) < 65:
             continue
@@ -349,10 +349,16 @@ def index(request):
         high_52w = stock.high_250 or stock.year_high
         high_position = 0
         if high_52w and high_52w > 0:
-            high_position = round((today.closing_price / high_52w) * 100, 1)
+            high_position = round((today.closing_price / high_52w - 1) * 100, 1)
 
-        # 등락률
-        change_rate = stock.change_rate or 0
+        # 양봉대비 (신호일 종가 대비 현재가 %)
+        signal_price_change = 0
+        if signal_day.closing_price > 0:
+            signal_price_change = round((today.closing_price / signal_day.closing_price - 1) * 100, 1)
+
+        # MA120 위 여부
+        ma120 = sum(d.closing_price for d in daily_data[:120]) / 120 if len(daily_data) >= 120 else 0
+        above_ma120 = today.closing_price > ma120 if ma120 else False
 
         # 10일 스파크라인 데이터 (종가)
         sparkline = [d.closing_price for d in daily_data[:10]]
@@ -363,15 +369,16 @@ def index(request):
 
         card_c_stocks.append({
             'stock': stock,
-            'change_rate': change_rate,
-            'high_position': high_position,
-            'sparkline': sparkline,
             'signal_type': signal_type,
             'signal_days_ago': signal_days_ago,
+            'signal_price_change': signal_price_change,
+            'high_position': high_position,
+            'sparkline': sparkline,
+            'above_ma120': above_ma120,
         })
 
-    # 등락률 순으로 정렬
-    card_c_stocks.sort(key=lambda x: x['change_rate'], reverse=True)
+    # 양봉대비 순으로 정렬 (하락폭 작은 순)
+    card_c_stocks.sort(key=lambda x: x['signal_price_change'], reverse=True)
 
     context = {
         'super_stocks': super_stocks,
