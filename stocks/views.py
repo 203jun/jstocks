@@ -37,56 +37,350 @@ def index(request):
     normal_stocks = sort_by_theme(base_qs.filter(interest_level='normal'))
     incubator_stocks = sort_by_theme(base_qs.filter(interest_level='incubator'))
 
-    # 40일 최대 거래량 종목 (관심종목 대상)
-    volume_alert_stocks = []
-    fav_stocks = base_qs.filter(interest_level__isnull=False)
+    # ============ 대시보드 카드 ============
+    # 테스트용: 상위 1000개 종목 대상
+    target_stocks = list(base_qs.order_by('-market_cap')[:1000])
 
-    for stock in fav_stocks:
-        # 최근 40일 일봉 데이터
+    # 카드 A: 장기 급등 (60일 신고거래량)
+    card_a_stocks = []
+
+    for stock in target_stocks:
+        # 최근 120일 일봉 데이터 (MA120 계산용)
         daily_data = list(DailyChart.objects.filter(
             stock=stock
-        ).order_by('-date')[:40])
+        ).order_by('-date')[:120])
 
-        if len(daily_data) < 2:
+        if len(daily_data) < 60:  # 최소 60일 필요
             continue
 
-        # 마지막 거래일 (가장 최근)
-        latest = daily_data[0]
-        prev = daily_data[1]
+        # 오늘 데이터
+        today = daily_data[0]
 
-        # 40일 중 최대 거래량
-        max_volume = max(d.trading_volume for d in daily_data)
+        # 60일 중 최대 거래량
+        max_volume_60 = max(d.trading_volume for d in daily_data[:60])
 
-        # 마지막 거래일 거래량이 40일 최대값인 경우
-        if latest.trading_volume == max_volume and latest.trading_volume > 0:
-            # 전일 대비 거래량 증가율
-            volume_change = 0
-            if prev.trading_volume > 0:
-                volume_change = round((latest.trading_volume - prev.trading_volume) / prev.trading_volume * 100, 1)
+        # 조건 1: 오늘 거래량 == 60일 최대 거래량
+        if today.trading_volume != max_volume_60 or today.trading_volume <= 0:
+            continue
 
-            # 전일 대비 종가 변화
-            price_change = latest.closing_price - prev.closing_price
-            price_change_rate = 0
-            if prev.closing_price > 0:
-                price_change_rate = round(price_change / prev.closing_price * 100, 2)
+        # 조건 2: 양봉 (종가 >= 시가)
+        if today.closing_price < today.opening_price:
+            continue
 
-            volume_alert_stocks.append({
-                'stock': stock,
-                'date': latest.date,
-                'volume': latest.trading_volume,
-                'volume_change': volume_change,
-                'price_change': price_change,
-                'price_change_rate': price_change_rate,
-            })
+        # 이평선 계산
+        ma10 = sum(d.closing_price for d in daily_data[:10]) / 10 if len(daily_data) >= 10 else 0
+        ma20 = sum(d.closing_price for d in daily_data[:20]) / 20 if len(daily_data) >= 20 else 0
+        ma60 = sum(d.closing_price for d in daily_data[:60]) / 60 if len(daily_data) >= 60 else 0
+        ma120 = sum(d.closing_price for d in daily_data[:120]) / 120 if len(daily_data) >= 120 else 0
 
-    # 거래량 증가율 순으로 정렬
-    volume_alert_stocks.sort(key=lambda x: x['volume_change'], reverse=True)
+        # 조건 3: 현재가 > MA20
+        if today.closing_price <= ma20:
+            continue
+
+        # MA120 위 여부 (정배열 체크)
+        above_ma120 = today.closing_price > ma120 if ma120 else False
+
+        # 52주(약 250일) 최고가 대비 위치 (마이너스 %)
+        high_52w = stock.high_250 or stock.year_high
+        high_position = 0
+        if high_52w and high_52w > 0:
+            high_position = round((today.closing_price / high_52w - 1) * 100, 1)
+
+        # 등락률
+        change_rate = stock.change_rate or 0
+
+        # 거래대금 (백만원 → 억원 변환)
+        trading_value = round(today.trading_value / 100) if today.trading_value else 0
+
+        # 10일 스파크라인 데이터 (종가)
+        sparkline = [d.closing_price for d in daily_data[:10]]
+        sparkline.reverse()  # 과거 → 현재 순서로
+
+        card_a_stocks.append({
+            'stock': stock,
+            'change_rate': change_rate,
+            'above_ma120': above_ma120,
+            'high_position': high_position,
+            'trading_value': trading_value,
+            'sparkline': sparkline,
+        })
+
+    # 등락률 순으로 정렬
+    card_a_stocks.sort(key=lambda x: x['change_rate'], reverse=True)
+
+    # 카드 A에 포함된 종목 코드 (중복 제거용)
+    card_a_codes = {item['stock'].code for item in card_a_stocks}
+
+    # 카드 B: 단기 급등 (20일 신고거래량)
+    card_b_stocks = []
+
+    for stock in target_stocks:
+        # 카드 A에 이미 있는 종목은 제외
+        if stock.code in card_a_codes:
+            continue
+
+        # 최근 120일 일봉 데이터 (MA120 계산용)
+        daily_data = list(DailyChart.objects.filter(
+            stock=stock
+        ).order_by('-date')[:120])
+
+        if len(daily_data) < 20:  # 최소 20일 필요
+            continue
+
+        # 오늘 데이터
+        today = daily_data[0]
+
+        # 20일 중 최대 거래량
+        recent_20 = daily_data[:20]
+        max_volume_20 = max(d.trading_volume for d in recent_20)
+
+        # 조건 1: 오늘 거래량 == 20일 최대 거래량
+        if today.trading_volume != max_volume_20 or today.trading_volume <= 0:
+            continue
+
+        # 조건 2: 양봉 (종가 >= 시가)
+        if today.closing_price < today.opening_price:
+            continue
+
+        # 이평선 계산
+        ma10 = sum(d.closing_price for d in daily_data[:10]) / 10 if len(daily_data) >= 10 else 0
+        ma20 = sum(d.closing_price for d in daily_data[:20]) / 20 if len(daily_data) >= 20 else 0
+        ma60 = sum(d.closing_price for d in daily_data[:60]) / 60 if len(daily_data) >= 60 else 0
+        ma120 = sum(d.closing_price for d in daily_data[:120]) / 120 if len(daily_data) >= 120 else 0
+
+        # 조건 3: 현재가 > MA20
+        if today.closing_price <= ma20:
+            continue
+
+        # MA120 위 여부 (정배열 체크)
+        above_ma120 = today.closing_price > ma120 if ma120 else False
+
+        # 52주(약 250일) 최고가 대비 위치 (마이너스 %)
+        high_52w = stock.high_250 or stock.year_high
+        high_position = 0
+        if high_52w and high_52w > 0:
+            high_position = round((today.closing_price / high_52w - 1) * 100, 1)
+
+        # 등락률
+        change_rate = stock.change_rate or 0
+
+        # 거래대금 (백만원 → 억원 변환)
+        trading_value = round(today.trading_value / 100) if today.trading_value else 0
+
+        # 10일 스파크라인 데이터 (종가)
+        sparkline = [d.closing_price for d in daily_data[:10]]
+        sparkline.reverse()  # 과거 → 현재 순서로
+
+        card_b_stocks.append({
+            'stock': stock,
+            'change_rate': change_rate,
+            'above_ma120': above_ma120,
+            'high_position': high_position,
+            'trading_value': trading_value,
+            'sparkline': sparkline,
+        })
+
+    # 등락률 순으로 정렬
+    card_b_stocks.sort(key=lambda x: x['change_rate'], reverse=True)
+
+    # 카드 A, B에 포함된 종목 코드 (중복 제거용)
+    card_ab_codes = card_a_codes | {item['stock'].code for item in card_b_stocks}
+
+    # 카드 D: 이평선 줍줍 (조용한 지지)
+    # 상승 추세 종목이 거래량 없이 지지선까지 내려왔을 때 포착
+    card_d_stocks = []
+
+    for stock in target_stocks:
+        # 카드 A, B에 이미 있는 종목은 제외
+        if stock.code in card_ab_codes:
+            continue
+
+        # 최근 60일 일봉 데이터
+        daily_data = list(DailyChart.objects.filter(
+            stock=stock
+        ).order_by('-date')[:60])
+
+        if len(daily_data) < 60:  # MA60 계산을 위해 60일 필요
+            continue
+
+        # 오늘 데이터
+        today = daily_data[0]
+
+        # MA20, MA60 계산
+        ma20 = sum(d.closing_price for d in daily_data[:20]) / 20
+        ma60 = sum(d.closing_price for d in daily_data[:60]) / 60
+
+        # 20일 평균 거래량 계산
+        avg_volume_20 = sum(d.trading_volume for d in daily_data[:20]) / 20
+
+        # === 필수 전제 조건 (AND) ===
+        # 조건 1: 추세 조건 - 현재가 > MA60
+        if today.closing_price <= ma60:
+            continue
+
+        # 조건 2: 거래량 조건 - 오늘 거래량 <= 20일 평균 거래량의 100%
+        if today.trading_volume > avg_volume_20:
+            continue
+
+        # === 지지 위치 조건 (OR) ===
+        support_type = None
+
+        # Type 1 (20일선 지지): MA20 <= 저가 <= MA20 * 1.02
+        if ma20 <= today.low_price <= ma20 * 1.02:
+            support_type = 'MA20'
+        # Type 2 (60일선 지지): MA60 <= 저가 <= MA60 * 1.03
+        elif ma60 <= today.low_price <= ma60 * 1.03:
+            support_type = 'MA60'
+        else:
+            continue
+
+        # === 꼬리 뱃지 조건 (보너스) ===
+        lower_tail = min(today.opening_price, today.closing_price) - today.low_price
+        body = abs(today.opening_price - today.closing_price)
+        has_tail_badge = (lower_tail > body) or (lower_tail > today.closing_price * 0.005)
+
+        # MA120 계산 및 위 여부
+        ma120 = sum(d.closing_price for d in daily_data[:60]) / 60  # 60일 데이터만 있으므로 근사치
+        if len(daily_data) >= 60:
+            # 120일 데이터 추가 조회
+            daily_data_120 = list(DailyChart.objects.filter(
+                stock=stock
+            ).order_by('-date')[:120])
+            if len(daily_data_120) >= 120:
+                ma120 = sum(d.closing_price for d in daily_data_120[:120]) / 120
+        above_ma120 = today.closing_price > ma120
+
+        # 52주(약 250일) 최고가 대비 위치 (마이너스 %)
+        high_52w = stock.high_250 or stock.year_high
+        high_position = 0
+        if high_52w and high_52w > 0:
+            high_position = round((today.closing_price / high_52w - 1) * 100, 1)
+
+        # 등락률
+        change_rate = stock.change_rate or 0
+
+        # 거래대금 (백만원 → 억원 변환)
+        trading_value = round(today.trading_value / 100) if today.trading_value else 0
+
+        # 10일 스파크라인 데이터 (종가)
+        sparkline = [d.closing_price for d in daily_data[:10]]
+        sparkline.reverse()  # 과거 → 현재 순서로
+
+        card_d_stocks.append({
+            'stock': stock,
+            'change_rate': change_rate,
+            'high_position': high_position,
+            'support_type': support_type,
+            'has_tail_badge': has_tail_badge,
+            'above_ma120': above_ma120,
+            'trading_value': trading_value,
+            'sparkline': sparkline,
+        })
+
+    # 등락률 순으로 정렬
+    card_d_stocks.sort(key=lambda x: x['change_rate'], reverse=True)
+
+    # 카드 A, B, D에 포함된 종목 코드 (중복 제거용)
+    card_abd_codes = card_ab_codes | {item['stock'].code for item in card_d_stocks}
+
+    # 카드 C: 신호 추적 (최근 5일 내 조건 충족)
+    # 조건: 최근 5일 내 60일 OR 20일 신고거래량 + 양봉 + MA20 위
+    card_c_stocks = []
+
+    for stock in target_stocks:
+        # 카드 A, B, D에 이미 있는 종목은 제외
+        if stock.code in card_abd_codes:
+            continue
+
+        # 최근 65일 일봉 데이터 (5일 전 시점에서 60일 체크를 위해)
+        daily_data = list(DailyChart.objects.filter(
+            stock=stock
+        ).order_by('-date')[:65])
+
+        if len(daily_data) < 65:
+            continue
+
+        signal_day = None
+        signal_type = None
+
+        # 최근 5일 체크 (인덱스 0=오늘, 1=어제, ..., 4=4일전)
+        for day_idx in range(5):
+            check_day = daily_data[day_idx]
+
+            # 조건 1: 양봉 (종가 >= 시가)
+            if check_day.closing_price < check_day.opening_price:
+                continue
+
+            # 해당 날짜 기준 MA20 계산
+            ma20_data = daily_data[day_idx:day_idx + 20]
+            if len(ma20_data) < 20:
+                continue
+            ma20 = sum(d.closing_price for d in ma20_data) / 20
+
+            # 조건 2: 현재가 > MA20
+            if check_day.closing_price <= ma20:
+                continue
+
+            # 60일 최대 거래량 체크
+            volume_60_data = daily_data[day_idx:day_idx + 60]
+            if len(volume_60_data) >= 60:
+                max_volume_60 = max(d.trading_volume for d in volume_60_data)
+                if check_day.trading_volume == max_volume_60 and check_day.trading_volume > 0:
+                    signal_day = check_day
+                    signal_type = '60일'
+                    break
+
+            # 20일 최대 거래량 체크
+            volume_20_data = daily_data[day_idx:day_idx + 20]
+            if len(volume_20_data) >= 20:
+                max_volume_20 = max(d.trading_volume for d in volume_20_data)
+                if check_day.trading_volume == max_volume_20 and check_day.trading_volume > 0:
+                    signal_day = check_day
+                    signal_type = '20일'
+                    break
+
+        if not signal_day:
+            continue
+
+        # 오늘 데이터
+        today = daily_data[0]
+
+        # 52주(약 250일) 최고가 대비 위치
+        high_52w = stock.high_250 or stock.year_high
+        high_position = 0
+        if high_52w and high_52w > 0:
+            high_position = round((today.closing_price / high_52w) * 100, 1)
+
+        # 등락률
+        change_rate = stock.change_rate or 0
+
+        # 10일 스파크라인 데이터 (종가)
+        sparkline = [d.closing_price for d in daily_data[:10]]
+        sparkline.reverse()  # 과거 → 현재 순서로
+
+        # 신호 발생일 (며칠 전)
+        signal_days_ago = (today.date - signal_day.date).days
+
+        card_c_stocks.append({
+            'stock': stock,
+            'change_rate': change_rate,
+            'high_position': high_position,
+            'sparkline': sparkline,
+            'signal_type': signal_type,
+            'signal_days_ago': signal_days_ago,
+        })
+
+    # 등락률 순으로 정렬
+    card_c_stocks.sort(key=lambda x: x['change_rate'], reverse=True)
 
     context = {
         'super_stocks': super_stocks,
         'normal_stocks': normal_stocks,
         'incubator_stocks': incubator_stocks,
-        'volume_alert_stocks': volume_alert_stocks,
+        'card_a_stocks': card_a_stocks,
+        'card_b_stocks': card_b_stocks,
+        'card_d_stocks': card_d_stocks,
+        'card_c_stocks': card_c_stocks,
     }
     return render(request, 'stocks/index.html', context)
 
