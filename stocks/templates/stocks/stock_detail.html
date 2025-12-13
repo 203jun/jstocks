@@ -112,80 +112,71 @@
     </div>
 </div>
 
-<!-- 투자포인트 / 리스크 -->
-<div class="row mb-3">
-    <div class="col-md-6 mb-3 mb-md-0">
-        <div class="card h-100">
-            <div class="card-header py-2">
-                <strong>투자포인트</strong>
-            </div>
-            <div class="card-body" id="investmentPointContent">
-                <div class="content">{{ stock.investment_point|default:"-"|safe }}</div>
-            </div>
-        </div>
+<!-- 투자포인트 -->
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>투자포인트</strong>
     </div>
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header py-2">
-                <strong>리스크</strong>
-            </div>
-            <div class="card-body" id="riskContent">
-                <div class="content">{{ stock.risk|default:"-"|safe }}</div>
-            </div>
-        </div>
+    <div class="card-body" id="investmentPointContent">
+        <div class="content markdown-content" id="investmentPointMarkdown"></div>
+        <script type="text/plain" id="investmentPointRaw">{{ stock.investment_point|default:"-"|safe }}</script>
     </div>
 </div>
 
-<!-- 일정 / 메모 -->
-<div class="row mb-3">
-    <div class="col-md-6 mb-3 mb-md-0">
-        <div class="card h-100">
-            <div class="card-header py-2">
-                <strong>일정</strong>
-            </div>
-            {% if schedules %}
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="ps-3" style="width:100px;">날짜</th>
-                                <th style="width:110px;">알림일자</th>
-                                <th>내용</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for schedule in schedules %}
-                            <tr>
-                                <td class="ps-3">{{ schedule.date_text }}</td>
-                                <td class="text-muted small">{{ schedule.date_sort|date:"Y-m-d"|default:"-" }}</td>
-                                <td>{{ schedule.content }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {% else %}
-            <div class="card-body">
-                <div class="text-muted">-</div>
-            </div>
-            {% endif %}
+<!-- 리스크 -->
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>리스크</strong>
+    </div>
+    <div class="card-body" id="riskContent">
+        <div class="content markdown-content" id="riskMarkdown"></div>
+        <script type="text/plain" id="riskRaw">{{ stock.risk|default:"-"|safe }}</script>
+    </div>
+</div>
+
+<!-- 일정 -->
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>일정</strong>
+    </div>
+    {% if schedules %}
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3" style="width:100px;">날짜</th>
+                        <th style="width:110px;">알림일자</th>
+                        <th>내용</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for schedule in schedules %}
+                    <tr>
+                        <td class="ps-3">{{ schedule.date_text }}</td>
+                        <td class="text-muted small">{{ schedule.date_sort|date:"Y-m-d"|default:"-" }}</td>
+                        <td>{{ schedule.content }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header py-2">
-                <strong>메모</strong>
-            </div>
-            <div class="card-body">
-                {% if stock.memo %}
-                <div class="content">{{ stock.memo|safe }}</div>
-                {% else %}
-                <div class="text-muted">-</div>
-                {% endif %}
-            </div>
-        </div>
+    {% else %}
+    <div class="card-body">
+        <div class="text-muted">-</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 메모 -->
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>메모</strong>
+    </div>
+    <div class="card-body">
+        <div class="content markdown-content" id="memoMarkdown"></div>
+        <script type="text/plain" id="memoRaw">{{ stock.memo|default:"-"|safe }}</script>
     </div>
 </div>
 
@@ -326,6 +317,17 @@
     </div>
 </div>
 
+<!-- 기업분석 -->
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>기업분석</strong>
+    </div>
+    <div class="card-body" id="analysisContent">
+        <div class="content markdown-content" id="analysisMarkdown"></div>
+        <script type="text/plain" id="analysisRaw">{{ stock.analysis|default:"-"|safe }}</script>
+    </div>
+</div>
+
 <!-- 업데이트 시간 -->
 <div class="text-muted text-end small">
     업데이트: {{ stock.updated_at|date:"Y-m-d H:i" }}
@@ -335,6 +337,59 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+// 콘텐츠 렌더링 함수 (HTML/마크다운 자동 감지, Gemini citation 제거)
+function renderContent(rawId, markdownId) {
+    const rawEl = document.getElementById(rawId);
+    const markdownEl = document.getElementById(markdownId);
+    if (rawEl && markdownEl) {
+        let content = rawEl.textContent;
+        // HTML 태그 제거 후 실제 텍스트가 있는지 확인
+        const textOnly = content.replace(/<[^>]*>/g, '').trim();
+        if (content && textOnly !== '-' && textOnly !== '') {
+            // Gemini citation 제거 ([cite_start], [cite: xxx] 등)
+            content = content.replace(/\[cite_start\]/g, '');
+            content = content.replace(/\[cite:\s*\d+\]/g, '');
+
+            // HTML 태그가 포함되어 있으면 HTML로 렌더링, 아니면 마크다운으로 렌더링
+            if (/<[a-z][\s\S]*>/i.test(content)) {
+                markdownEl.innerHTML = content;
+            } else {
+                markdownEl.innerHTML = marked.parse(content);
+            }
+        } else {
+            markdownEl.textContent = '-';
+        }
+    }
+}
+
+// 투자포인트, 리스크, 메모, 기업분석 렌더링
+renderContent('investmentPointRaw', 'investmentPointMarkdown');
+renderContent('riskRaw', 'riskMarkdown');
+renderContent('memoRaw', 'memoMarkdown');
+renderContent('analysisRaw', 'analysisMarkdown');
+</script>
+<style>
+/* 마크다운 콘텐츠 공통 스타일 */
+.markdown-content {
+    font-size: 0.85rem;
+    line-height: 1.6;
+}
+.markdown-content h1, .markdown-content h2, .markdown-content h3 {
+    font-size: 1rem;
+    font-weight: bold;
+    margin-top: 0.8rem;
+    margin-bottom: 0.4rem;
+}
+.markdown-content ul, .markdown-content ol {
+    padding-left: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+.markdown-content p {
+    margin-bottom: 0.5rem;
+}
+</style>
 <style>
 .ma-toggle { opacity: 1; transition: opacity 0.2s; }
 .ma-toggle:not(.active) { opacity: 0.3; }

@@ -146,20 +146,20 @@
             <div class="card mb-3">
                 <div class="card-header py-2">
                     <strong>투자포인트</strong>
+                    <small class="text-muted ms-2">(마크다운 지원)</small>
                 </div>
-                <div class="card-body p-0">
-                    <div id="investmentPointEditor" style="min-height: 150px;">{{ stock.investment_point|safe }}</div>
-                    <input type="hidden" name="investment_point" id="investmentPointInput">
+                <div class="card-body">
+                    <textarea class="form-control" name="investment_point" id="investmentPointInput" rows="6" placeholder="마크다운 형식으로 입력하세요...">{{ stock.investment_point }}</textarea>
                 </div>
             </div>
 
             <div class="card mb-3">
                 <div class="card-header py-2">
                     <strong>리스크</strong>
+                    <small class="text-muted ms-2">(마크다운 지원)</small>
                 </div>
-                <div class="card-body p-0">
-                    <div id="riskEditor" style="min-height: 150px;">{{ stock.risk|safe }}</div>
-                    <input type="hidden" name="risk" id="riskInput">
+                <div class="card-body">
+                    <textarea class="form-control" name="risk" id="riskInput" rows="6" placeholder="마크다운 형식으로 입력하세요...">{{ stock.risk }}</textarea>
                 </div>
             </div>
 
@@ -223,20 +223,20 @@
             <div class="card mb-3">
                 <div class="card-header py-2">
                     <strong>기업분석</strong>
+                    <small class="text-muted ms-2">(마크다운 지원)</small>
                 </div>
-                <div class="card-body p-0">
-                    <div id="analysisEditor" style="min-height: 300px;">{{ stock.analysis|safe }}</div>
-                    <input type="hidden" name="analysis" id="analysisInput">
+                <div class="card-body">
+                    <textarea class="form-control" name="analysis" id="analysisInput" rows="10" placeholder="마크다운 형식으로 입력하세요...">{{ stock.analysis }}</textarea>
                 </div>
             </div>
 
             <div class="card mb-3">
                 <div class="card-header py-2">
                     <strong>메모</strong>
+                    <small class="text-muted ms-2">(마크다운 지원)</small>
                 </div>
-                <div class="card-body p-0">
-                    <div id="memoEditor" style="min-height: 150px;">{{ stock.memo|safe }}</div>
-                    <input type="hidden" name="memo" id="memoInput">
+                <div class="card-body">
+                    <textarea class="form-control" name="memo" id="memoInput" rows="6" placeholder="마크다운 형식으로 입력하세요...">{{ stock.memo }}</textarea>
                 </div>
             </div>
 
@@ -709,15 +709,7 @@
 {% endblock %}
 
 {% block extra_css %}
-<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
 <style>
-/* Quill 에디터 스타일 */
-.ql-container {
-    font-size: 14px;
-}
-.ql-editor {
-    min-height: 120px;
-}
 .highlight {
     background-color: #fff3cd;
     padding: 0 2px;
@@ -791,7 +783,6 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <script>
 const stockName = "{{ stock.name }}";
 const stockCode = "{{ stock.code }}";
@@ -828,33 +819,6 @@ if (investorChartData && investorChartData.length > 0) {
         });
     }
 }
-
-// ============ Quill 에디터 초기화 ============
-const quillOptions = {
-    theme: 'snow',
-    modules: {
-        toolbar: [
-            ['bold', 'italic', 'underline', 'strike'],
-            [{ 'color': [] }, { 'background': [] }],
-            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-            ['link'],
-            ['clean']
-        ]
-    }
-};
-
-const investmentPointEditor = new Quill('#investmentPointEditor', quillOptions);
-const riskEditor = new Quill('#riskEditor', quillOptions);
-const analysisEditor = new Quill('#analysisEditor', quillOptions);
-const memoEditor = new Quill('#memoEditor', quillOptions);
-
-// 폼 제출 시 에디터 내용을 hidden input에 복사
-document.querySelector('form').addEventListener('submit', function(e) {
-    document.getElementById('investmentPointInput').value = investmentPointEditor.root.innerHTML;
-    document.getElementById('riskInput').value = riskEditor.root.innerHTML;
-    document.getElementById('analysisInput').value = analysisEditor.root.innerHTML;
-    document.getElementById('memoInput').value = memoEditor.root.innerHTML;
-});
 
 // ============ 일정 관리 ============
 const btnAddSchedule = document.getElementById('btnAddSchedule');
