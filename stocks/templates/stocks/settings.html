@@ -182,23 +182,72 @@
 
     <!-- 프롬프트 탭 -->
     <div class="tab-pane fade" id="prompt-panel" role="tabpanel">
-        <div class="card">
-            <div class="card-header py-2">
-                <strong>프롬프트 관리</strong>
+        <!-- 프롬프트 하위 탭 -->
+        <ul class="nav nav-pills mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="stock-classify-tab" data-bs-toggle="pill" data-bs-target="#stock-classify-panel" type="button" role="tab">종목분류</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="stock-analysis-tab" data-bs-toggle="pill" data-bs-target="#stock-analysis-panel" type="button" role="tab">종목 분석</button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- 종목분류 탭 -->
+            <div class="tab-pane fade show active" id="stock-classify-panel" role="tabpanel">
+                <!-- 프롬프트 영역 -->
+                <div class="card mb-3">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <strong>프롬프트</strong>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveClassifyPrompt">저장</button>
+                    </div>
+                    <div class="card-body py-2">
+                        <textarea class="form-control" id="stockClassifyPrompt" rows="6" placeholder="종목분류 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_classify }}</textarea>
+                        <small class="text-muted">AI에게 전달할 기본 프롬프트입니다. 수정 후 저장하세요.</small>
+                    </div>
+                </div>
+
+                <!-- 종목 분류 현황 -->
+                <div class="card mb-3">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <strong>종목 분류 현황</strong>
+                        <span class="badge bg-secondary">{{ stock_classify_lines_count }}개</span>
+                    </div>
+                    <div class="card-body py-2">
+                        <textarea class="form-control bg-light" id="stockClassifyList" rows="8" readonly>{{ stock_classify_text }}</textarea>
+                        <small class="text-muted">DB에서 자동 생성됩니다. (종목명 | 대분류 | 소분류)</small>
+                    </div>
+                </div>
+
+                <!-- 전체 복사 버튼 -->
+                <div class="d-grid">
+                    <button type="button" class="btn btn-outline-primary" id="btnCopyAll">
+                        전체 복사 (종목 리스트 + 프롬프트)
+                    </button>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">분석 프롬프트</label>
-                    <textarea class="form-control" id="promptAnalysis" rows="6" placeholder="종목 분석 시 사용할 프롬프트를 입력하세요..."></textarea>
-                    <small class="text-muted">종목 분석 시 AI에게 전달할 기본 프롬프트입니다.</small>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">요약 프롬프트</label>
-                    <textarea class="form-control" id="promptSummary" rows="6" placeholder="요약 생성 시 사용할 프롬프트를 입력하세요..."></textarea>
-                    <small class="text-muted">뉴스/리포트 요약 시 사용할 프롬프트입니다.</small>
-                </div>
-                <div class="text-end">
-                    <button type="button" class="btn btn-primary" id="btnSavePrompt">저장</button>
+
+            <!-- 종목 분석 탭 -->
+            <div class="tab-pane fade" id="stock-analysis-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header py-2">
+                        <strong>프롬프트 관리</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">분석 프롬프트</label>
+                            <textarea class="form-control" id="promptAnalysis" rows="6" placeholder="종목 분석 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_analysis }}</textarea>
+                            <small class="text-muted">종목 분석 시 AI에게 전달할 기본 프롬프트입니다.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">요약 프롬프트</label>
+                            <textarea class="form-control" id="promptSummary" rows="6" placeholder="요약 생성 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_summary }}</textarea>
+                            <small class="text-muted">뉴스/리포트 요약 시 사용할 프롬프트입니다.</small>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-primary" id="btnSavePrompt">저장</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -624,6 +673,97 @@ document.addEventListener('click', async (e) => {
         alert('오류: ' + err.message);
         e.target.disabled = false;
     }
+});
+
+// === 프롬프트 저장 ===
+async function savePrompt(key, value, button) {
+    button.disabled = true;
+    const originalText = button.textContent;
+    button.textContent = '저장 중...';
+
+    try {
+        const formData = new FormData();
+        formData.append('key', key);
+        formData.append('value', value);
+
+        const response = await fetch('/api/setting/save/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': getCsrfToken() }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            button.textContent = '저장됨';
+            setTimeout(() => {
+                button.textContent = originalText;
+            }, 1500);
+        } else {
+            alert(data.error || '저장에 실패했습니다.');
+            button.textContent = originalText;
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        button.textContent = originalText;
+    } finally {
+        button.disabled = false;
+    }
+}
+
+// 종목분류 프롬프트 저장
+document.getElementById('btnSaveClassifyPrompt').addEventListener('click', function() {
+    const value = document.getElementById('stockClassifyPrompt').value;
+    savePrompt('prompt_classify', value, this);
+});
+
+// 전체 복사 (종목 리스트 + 프롬프트)
+document.getElementById('btnCopyAll').addEventListener('click', async function() {
+    const prompt = document.getElementById('stockClassifyPrompt').value;
+    const list = document.getElementById('stockClassifyList').value;
+    const combined = list + '\n\n' + prompt;
+
+    try {
+        await navigator.clipboard.writeText(combined);
+        const originalText = this.textContent;
+        this.textContent = '복사됨!';
+        this.classList.remove('btn-outline-primary');
+        this.classList.add('btn-success');
+        setTimeout(() => {
+            this.textContent = originalText;
+            this.classList.remove('btn-success');
+            this.classList.add('btn-outline-primary');
+        }, 1500);
+    } catch (err) {
+        alert('복사에 실패했습니다: ' + err.message);
+    }
+});
+
+// 종목 분석 프롬프트 저장
+document.getElementById('btnSavePrompt').addEventListener('click', function() {
+    const analysisValue = document.getElementById('promptAnalysis').value;
+    const summaryValue = document.getElementById('promptSummary').value;
+
+    // 두 개 모두 저장
+    Promise.all([
+        fetch('/api/setting/save/', {
+            method: 'POST',
+            body: new URLSearchParams({ key: 'prompt_analysis', value: analysisValue }),
+            headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/x-www-form-urlencoded' }
+        }),
+        fetch('/api/setting/save/', {
+            method: 'POST',
+            body: new URLSearchParams({ key: 'prompt_summary', value: summaryValue }),
+            headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/x-www-form-urlencoded' }
+        })
+    ]).then(() => {
+        this.textContent = '저장됨';
+        setTimeout(() => {
+            this.textContent = '저장';
+        }, 1500);
+    }).catch(err => {
+        alert('오류: ' + err.message);
+    });
 });
 </script>
 {% endblock %}

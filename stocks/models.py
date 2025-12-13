@@ -1726,3 +1726,33 @@ class YoutubeVideo(models.Model):
     @property
     def link(self):
         return f'https://www.youtube.com/watch?v={self.video_id}'
+
+
+class SystemSetting(models.Model):
+    """
+    시스템 설정 (키-값 저장)
+
+    프롬프트, 설정값 등을 저장하는 범용 설정 테이블
+    """
+    key = models.CharField(
+        max_length=100,
+        unique=True,
+        primary_key=True,
+        verbose_name='설정키'
+    )
+    value = models.TextField(
+        blank=True,
+        verbose_name='설정값'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='수정일시'
+    )
+
+    class Meta:
+        db_table = 'system_setting'
+        verbose_name = '시스템 설정'
+        verbose_name_plural = '시스템 설정'
+
+    def __str__(self):
+        return self.key

@@ -1519,16 +1519,33 @@ def sector_date_data(request):
 
 def settings(request):
     """설정 페이지"""
-    from .models import ThemeCategory, ExcludedYoutubeChannel, PreferredYoutubeChannel
+    from .models import ThemeCategory, ExcludedYoutubeChannel, PreferredYoutubeChannel, Info, SystemSetting
 
     categories = ThemeCategory.objects.prefetch_related('themes').all()
     excluded_channels = ExcludedYoutubeChannel.objects.all()
     preferred_channels = PreferredYoutubeChannel.objects.all()
 
+    # 종목분류 프롬프트용 데이터 (종목 | 대분류 | 소분류)
+    stock_classify_lines = []
+    stocks_with_themes = Info.objects.filter(themes__isnull=False).prefetch_related('themes__category').distinct()
+    for stock in stocks_with_themes:
+        for theme in stock.themes.all():
+            stock_classify_lines.append(f"{stock.name} | {theme.category.name} | {theme.name}")
+    stock_classify_text = '\n'.join(stock_classify_lines)
+    stock_classify_lines_count = len(stock_classify_lines)
+
+    # 저장된 프롬프트 불러오기
+    saved_prompts = {}
+    for setting in SystemSetting.objects.filter(key__startswith='prompt_'):
+        saved_prompts[setting.key] = setting.value
+
     context = {
         'categories': categories,
         'excluded_channels': excluded_channels,
         'preferred_channels': preferred_channels,
+        'stock_classify_text': stock_classify_text,
+        'stock_classify_lines_count': stock_classify_lines_count,
+        'saved_prompts': saved_prompts,
     }
     return render(request, 'stocks/settings.html', context)
 
@@ -3324,3 +3341,22 @@ def fetch_short_selling(request, code):
         'updated': updated_count,
         'total': len(all_data),
     })
+
+
+@require_POST
+def save_setting(request):
+    """시스템 설정 저장"""
+    from .models import SystemSetting
+
+    key = request.POST.get('key')
+    value = request.POST.get('value', '')
+
+    if not key:
+        return JsonResponse({'success': False, 'error': '키가 필요합니다.'})
+
+    SystemSetting.objects.update_or_create(
+        key=key,
+        defaults={'value': value}
+    )
+
+    return JsonResponse({'success': True})
