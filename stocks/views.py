@@ -693,8 +693,10 @@ def stock_edit(request, code):
     # 관심 단계 선택지
     interest_choices = Info._meta.get_field('interest_level').choices
 
-    # 리포트 (최근 20개)
-    reports = list(Report.objects.filter(stock=stock).order_by('-date')[:20])
+    # 리포트 (최근 20개, 총 개수 포함)
+    reports_queryset = Report.objects.filter(stock=stock).order_by('-date')
+    total_reports = reports_queryset.count()
+    reports = list(reports_queryset[:20])
 
     # 목표가 차트 데이터 (리포트 날짜 범위의 주가 + 목표가)
     if reports:
@@ -749,17 +751,13 @@ def stock_edit(request, code):
         target_chart_data = []
         gap_chart_data = []
 
-    # 노다지 기사 (종목명 포함된 것만)
-    nodaji_with_summary = Nodaji.objects.filter(
+    # 노다지 기사 (종목명 포함된 것만, 최근 20개)
+    nodaji_queryset = Nodaji.objects.filter(
         stock=stock,
         title__contains=stock.name
-    ).exclude(summary__isnull=True).exclude(summary='').order_by('-date')[:20]
-
-    from django.db.models import Q
-    nodaji_without_summary = Nodaji.objects.filter(
-        stock=stock,
-        title__contains=stock.name
-    ).filter(Q(summary__isnull=True) | Q(summary='')).order_by('-date')[:20]
+    ).order_by('-date')
+    total_nodaji = nodaji_queryset.count()
+    nodaji_list = list(nodaji_queryset[:20])
 
     # 공시 (최근 20개)
     gongsi_list = Gongsi.objects.filter(stock=stock).order_by('-date')[:20]
@@ -810,11 +808,12 @@ def stock_edit(request, code):
         'theme_categories': theme_categories,
         'stock_theme_ids': stock_theme_ids,
         'reports': reports,
+        'total_reports': total_reports,
         'price_chart_data': json.dumps(price_chart_data),
         'target_chart_data': json.dumps(target_chart_data),
         'gap_chart_data': json.dumps(gap_chart_data),
-        'nodaji_with_summary': nodaji_with_summary,
-        'nodaji_without_summary': nodaji_without_summary,
+        'nodaji_list': nodaji_list,
+        'total_nodaji': total_nodaji,
         'gongsi_list': gongsi_list,
         'schedules': schedules,
         'investor_trends': investor_trends,
@@ -1337,6 +1336,101 @@ def nodaji_summary(request, nodaji_id):
 
     return render(request, 'stocks/nodaji_summary.html', {
         'nodaji': nodaji,
+    })
+
+
+def report_summary(request, report_id):
+    """리포트 요약 저장 API"""
+    report = get_object_or_404(Report, id=report_id)
+
+    if request.method == 'POST':
+        summary = request.POST.get('summary', '')
+        report.summary = summary
+        report.save()
+
+        # AJAX 요청이면 JSON 응답
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/x-www-form-urlencoded':
+            return JsonResponse({'success': True})
+
+        messages.success(request, '요약이 저장되었습니다.')
+        return redirect('stocks:stock_edit', code=report.stock.code)
+
+    return JsonResponse({'error': 'POST 요청만 가능합니다.'}, status=405)
+
+
+@require_GET
+def fetch_more_reports(request, code):
+    """리포트 더 가져오기 API"""
+    stock = get_object_or_404(Info, code=code)
+    offset = int(request.GET.get('offset', 20))
+    limit = int(request.GET.get('limit', 20))
+
+    reports = Report.objects.filter(stock=stock).order_by('-date')[offset:offset + limit]
+
+    # 괴리율 계산을 위한 일봉 데이터
+    report_dates = [r.date for r in reports]
+    if report_dates:
+        daily_prices = DailyChart.objects.filter(
+            stock=stock,
+            date__in=report_dates
+        ).values('date', 'closing_price')
+        price_by_date = {d['date']: d['closing_price'] for d in daily_prices}
+    else:
+        price_by_date = {}
+
+    result = []
+    for r in reports:
+        gap_rate = None
+        if r.target_price and r.date in price_by_date:
+            closing = price_by_date[r.date]
+            gap_rate = round((r.target_price / closing - 1) * 100, 1)
+
+        result.append({
+            'id': r.id,
+            'date': r.date.strftime('%y/%m/%d'),
+            'title': r.title,
+            'author': r.author,
+            'provider': r.provider,
+            'target_price': r.target_price,
+            'gap_rate': gap_rate,
+            'summary': r.summary or '',
+        })
+
+    return JsonResponse({
+        'success': True,
+        'reports': result,
+        'has_more': Report.objects.filter(stock=stock).count() > offset + limit
+    })
+
+
+@require_GET
+def fetch_more_nodaji(request, code):
+    """노다지 더 가져오기 API"""
+    stock = get_object_or_404(Info, code=code)
+    offset = int(request.GET.get('offset', 20))
+    limit = int(request.GET.get('limit', 20))
+
+    nodaji_list = Nodaji.objects.filter(
+        stock=stock,
+        title__contains=stock.name
+    ).order_by('-date')[offset:offset + limit]
+
+    result = []
+    for n in nodaji_list:
+        result.append({
+            'id': n.id,
+            'date': n.date.strftime('%y/%m/%d') if n.date else '-',
+            'title': n.title,
+            'link': n.link,
+            'summary': n.summary or '',
+        })
+
+    total = Nodaji.objects.filter(stock=stock, title__contains=stock.name).count()
+
+    return JsonResponse({
+        'success': True,
+        'nodaji': result,
+        'has_more': total > offset + limit
     })
 
 

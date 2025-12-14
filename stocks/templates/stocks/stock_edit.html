@@ -456,26 +456,27 @@
         <div class="card">
             <div class="card-header py-2">
                 <strong>애널리스트 리포트</strong>
-                <small class="text-muted ms-2">최근 20개</small>
+                <small class="text-muted ms-2">{{ reports|length }}개{% if total_reports > 20 %} / {{ total_reports }}개{% endif %}</small>
             </div>
-            <div class="card-body">
+            <div class="card-body {% if reports %}p-0{% endif %}">
                 {% if reports %}
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0">
+                    <table class="table table-sm table-hover mb-0" id="reportTable">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 80px;">일자</th>
+                                <th class="ps-3" style="width: 80px;">일자</th>
                                 <th>제목</th>
                                 <th style="width: 100px;" class="d-none d-md-table-cell">애널리스트</th>
                                 <th style="width: 90px;" class="d-none d-md-table-cell">증권사</th>
                                 <th style="width: 90px;" class="text-end">목표가</th>
-                                <th style="width: 70px;" class="text-end">괴리율</th>
+                                <th style="width: 70px;" class="text-end pe-3">괴리율</th>
+                                <th style="width: 50px;" class="text-center"></th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="reportTableBody">
                             {% for report in reports %}
                             <tr>
-                                <td class="text-muted small">{{ report.date|date:"y/m/d" }}</td>
+                                <td class="text-muted small ps-3">{{ report.date|date:"y/m/d" }}</td>
                                 <td class="text-truncate" style="max-width: 250px;" title="{{ report.title }}">
                                     <a href="#" class="text-decoration-none report-search-link" data-title="{{ report.title }}">{{ report.title }}</a>
                                 </td>
@@ -497,11 +498,41 @@
                                     <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm p-0 border-0 btn-toggle-report-summary" data-id="{{ report.id }}">
+                                        {% if report.summary %}
+                                        <span class="badge bg-success">O</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">-</span>
+                                        {% endif %}
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="report-summary-row d-none" data-id="{{ report.id }}">
+                                <td colspan="7" class="bg-light p-3">
+                                    <div class="report-summary-content mb-2" style="max-height: 300px; overflow-y: auto;">
+                                        <div class="markdown-content" data-raw="{{ report.summary|escapejs }}">{% if not report.summary %}<span class="text-muted">요약 없음</span>{% endif %}</div>
+                                    </div>
+                                    <div class="border-top pt-2">
+                                        <textarea class="form-control form-control-sm report-summary-textarea" rows="3" placeholder="마크다운 형식으로 입력...">{{ report.summary }}</textarea>
+                                        <div class="d-flex justify-content-between align-items-center mt-2">
+                                            <small class="text-muted">복사/붙여넣기 후 저장</small>
+                                            <button type="button" class="btn btn-primary btn-sm btn-save-report-summary" data-id="{{ report.id }}">저장</button>
+                                        </div>
+                                    </div>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                {% if total_reports > 20 %}
+                <div class="text-center py-3 border-top" id="reportLoadMore">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="btnLoadMoreReports" data-offset="20">
+                        더보기 ({{ total_reports|add:"-20" }}개 더)
+                    </button>
+                </div>
+                {% endif %}
                 {% else %}
                 <div class="text-muted p-3">리포트가 없습니다. <code>python manage.py save_fnguide_report --code {{ stock.code }}</code> 실행</div>
                 {% endif %}
@@ -583,16 +614,15 @@
 
     <!-- 노다지 탭 -->
     <div class="tab-pane fade" id="nodaji-content" role="tabpanel">
-        <!-- 요약 있는 기사 -->
-        {% if nodaji_with_summary %}
-        <div class="card mb-3">
+        <div class="card">
             <div class="card-header py-2">
-                <strong>요약 완료</strong>
-                <span class="badge bg-success ms-2">{{ nodaji_with_summary|length }}</span>
+                <strong>노다지 IR노트</strong>
+                <small class="text-muted ms-2">{{ nodaji_list|length }}개{% if total_nodaji > 20 %} / {{ total_nodaji }}개{% endif %}</small>
             </div>
-            <div class="card-body p-0">
+            <div class="card-body {% if nodaji_list %}p-0{% endif %}">
+                {% if nodaji_list %}
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0">
+                    <table class="table table-sm table-hover mb-0" id="nodajiTable">
                         <thead class="table-light">
                             <tr>
                                 <th class="ps-3" style="width:100px;">날짜</th>
@@ -600,21 +630,25 @@
                                 <th style="width:50px;" class="text-center"></th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for article in nodaji_with_summary %}
+                        <tbody id="nodajiTableBody">
+                            {% for article in nodaji_list %}
                             <tr>
-                                <td class="text-muted small ps-3">{{ article.date|date:"Y-m-d"|default:"-" }}</td>
+                                <td class="text-muted small ps-3">{{ article.date|date:"y/m/d"|default:"-" }}</td>
                                 <td><a href="{{ article.link }}" target="_blank" class="text-decoration-none">{{ article.title }}</a></td>
                                 <td class="text-center">
                                     <button type="button" class="btn btn-sm p-0 border-0 btn-toggle-summary" data-id="{{ article.id }}">
+                                        {% if article.summary %}
                                         <span class="badge bg-success">O</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">-</span>
+                                        {% endif %}
                                     </button>
                                 </td>
                             </tr>
                             <tr class="summary-row d-none" data-id="{{ article.id }}">
                                 <td colspan="3" class="bg-light p-3">
                                     <div class="summary-content mb-2" style="max-height: 300px; overflow-y: auto;">
-                                        <div class="markdown-content" data-raw="{{ article.summary|escapejs }}"></div>
+                                        <div class="markdown-content" data-raw="{{ article.summary|escapejs }}">{% if not article.summary %}<span class="text-muted">요약 없음</span>{% endif %}</div>
                                     </div>
                                     <div class="border-top pt-2">
                                         <textarea class="form-control form-control-sm summary-textarea" rows="3" placeholder="마크다운 형식으로 입력...">{{ article.summary }}</textarea>
@@ -629,62 +663,19 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- 요약 없는 기사 -->
-        <div class="card">
-            <div class="card-header py-2">
-                <strong>노다지 IR노트</strong>
-                <small class="text-muted ms-2">네이버 프리미엄 콘텐츠</small>
-            </div>
-            <div class="card-body {% if nodaji_without_summary %}p-0{% endif %}">
-                {% if nodaji_without_summary %}
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="ps-3" style="width:100px;">날짜</th>
-                                <th>제목</th>
-                                <th style="width:50px;" class="text-center"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for article in nodaji_without_summary %}
-                            <tr>
-                                <td class="text-muted small ps-3">{{ article.date|date:"Y-m-d"|default:"-" }}</td>
-                                <td><a href="{{ article.link }}" target="_blank" class="text-decoration-none">{{ article.title }}</a></td>
-                                <td class="text-center">
-                                    <button type="button" class="btn btn-sm p-0 border-0 btn-toggle-summary" data-id="{{ article.id }}">
-                                        <span class="badge bg-secondary">-</span>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr class="summary-row d-none" data-id="{{ article.id }}">
-                                <td colspan="3" class="bg-light p-3">
-                                    <div class="summary-content mb-2" style="max-height: 300px; overflow-y: auto;">
-                                        <div class="markdown-content" data-raw=""><span class="text-muted">요약 없음</span></div>
-                                    </div>
-                                    <div class="border-top pt-2">
-                                        <textarea class="form-control form-control-sm summary-textarea" rows="3" placeholder="마크다운 형식으로 입력..."></textarea>
-                                        <div class="d-flex justify-content-between align-items-center mt-2">
-                                            <small class="text-muted">복사/붙여넣기 후 저장</small>
-                                            <button type="button" class="btn btn-primary btn-sm btn-save-summary" data-id="{{ article.id }}">저장</button>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                {% if total_nodaji > 20 %}
+                <div class="text-center py-3 border-top" id="nodajiLoadMore">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="btnLoadMoreNodaji" data-offset="20">
+                        더보기 ({{ total_nodaji|add:"-20" }}개 더)
+                    </button>
                 </div>
+                {% endif %}
                 {% else %}
                 <div class="text-muted">노다지 기사가 없습니다.</div>
                 {% endif %}
 
                 <!-- 실시간 검색 -->
-                <div class="border-top mt-3 pt-3">
+                <div class="border-top mt-3 pt-3 px-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <small class="text-muted">실시간 검색 (저장 안됨)</small>
                         <button type="button" id="btnSearchNodaji" class="btn btn-sm btn-outline-success">
@@ -842,23 +833,30 @@
     background: #dc3545;
     border-color: #dc3545;
 }
-/* 노다지 요약 마크다운 스타일 */
-.summary-row .markdown-content {
+/* 노다지/리포트 요약 마크다운 스타일 */
+.summary-row .markdown-content,
+.report-summary-row .markdown-content {
     font-size: 0.75rem;
     line-height: 1.5;
 }
 .summary-row .markdown-content h1,
 .summary-row .markdown-content h2,
-.summary-row .markdown-content h3 {
+.summary-row .markdown-content h3,
+.report-summary-row .markdown-content h1,
+.report-summary-row .markdown-content h2,
+.report-summary-row .markdown-content h3 {
     font-size: 0.85rem;
     margin-top: 0.5rem;
     margin-bottom: 0.25rem;
 }
-.summary-row .markdown-content p {
+.summary-row .markdown-content p,
+.report-summary-row .markdown-content p {
     margin-bottom: 0.5rem;
 }
 .summary-row .markdown-content ul,
-.summary-row .markdown-content ol {
+.summary-row .markdown-content ol,
+.report-summary-row .markdown-content ul,
+.report-summary-row .markdown-content ol {
     padding-left: 1.2rem;
     margin-bottom: 0.5rem;
 }
@@ -1370,83 +1368,325 @@ function removeCitations(text) {
         .replace(/\[cite_end\]/g, '');
 }
 
-// 요약 토글
-document.querySelectorAll('.btn-toggle-summary').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const id = this.dataset.id;
-        const row = document.querySelector(`.summary-row[data-id="${id}"]`);
-        row.classList.toggle('d-none');
+// 노다지 요약 토글
+function initNodajiSummaryToggle() {
+    document.querySelectorAll('.btn-toggle-summary').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const row = document.querySelector(`.summary-row[data-id="${id}"]`);
+            row.classList.toggle('d-none');
 
-        // 마크다운 렌더링 (처음 열 때만)
-        const mdContent = row.querySelector('.markdown-content[data-raw]');
-        if (mdContent && !mdContent.dataset.rendered) {
-            let raw = mdContent.dataset.raw;
-            if (raw && typeof marked !== 'undefined') {
-                raw = decodeUnicode(raw);
-                raw = removeCitations(raw);
-                mdContent.innerHTML = marked.parse(raw);
+            // 마크다운 렌더링 (처음 열 때만)
+            const mdContent = row.querySelector('.markdown-content[data-raw]');
+            if (mdContent && !mdContent.dataset.rendered) {
+                let raw = mdContent.dataset.raw;
+                if (raw && typeof marked !== 'undefined') {
+                    raw = decodeUnicode(raw);
+                    raw = removeCitations(raw);
+                    mdContent.innerHTML = marked.parse(raw);
+                }
+                mdContent.dataset.rendered = 'true';
             }
-            mdContent.dataset.rendered = 'true';
-        }
+        });
     });
-});
+}
+initNodajiSummaryToggle();
 
-// 요약 저장
-document.querySelectorAll('.btn-save-summary').forEach(btn => {
-    btn.addEventListener('click', async function() {
-        const id = this.dataset.id;
-        const row = document.querySelector(`.summary-row[data-id="${id}"]`);
-        const textarea = row.querySelector('.summary-textarea');
-        const summary = textarea.value;
+// 노다지 요약 저장
+function initNodajiSummarySave() {
+    document.querySelectorAll('.btn-save-summary').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const id = this.dataset.id;
+            const row = document.querySelector(`.summary-row[data-id="${id}"]`);
+            const textarea = row.querySelector('.summary-textarea');
+            const summary = textarea.value;
 
+            this.disabled = true;
+            this.textContent = '저장 중...';
+
+            try {
+                const response = await fetch(`/nodaji/${id}/summary/`, {
+                    method: 'POST',
+                    body: new URLSearchParams({ summary: summary }),
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                if (response.ok) {
+                    // 마크다운 영역 업데이트
+                    const mdContent = row.querySelector('.markdown-content');
+                    if (summary) {
+                        const cleanSummary = removeCitations(summary);
+                        mdContent.innerHTML = typeof marked !== 'undefined' ? marked.parse(cleanSummary) : cleanSummary;
+                        mdContent.dataset.raw = summary;
+                    } else {
+                        mdContent.innerHTML = '<span class="text-muted">요약 없음</span>';
+                    }
+
+                    // 배지 업데이트
+                    const badge = document.querySelector(`.btn-toggle-summary[data-id="${id}"] .badge`);
+                    if (summary) {
+                        badge.className = 'badge bg-success';
+                        badge.textContent = 'O';
+                    } else {
+                        badge.className = 'badge bg-secondary';
+                        badge.textContent = '-';
+                    }
+
+                    this.textContent = '저장됨';
+                    setTimeout(() => { this.textContent = '저장'; }, 1500);
+                } else {
+                    alert('저장 실패');
+                    this.textContent = '저장';
+                }
+            } catch (err) {
+                alert('오류: ' + err.message);
+                this.textContent = '저장';
+            } finally {
+                this.disabled = false;
+            }
+        });
+    });
+}
+initNodajiSummarySave();
+
+// 노다지 더보기
+const btnLoadMoreNodaji = document.getElementById('btnLoadMoreNodaji');
+if (btnLoadMoreNodaji) {
+    btnLoadMoreNodaji.addEventListener('click', async function() {
+        const offset = parseInt(this.dataset.offset);
         this.disabled = true;
-        this.textContent = '저장 중...';
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>불러오는 중...';
 
         try {
-            const response = await fetch(`/nodaji/${id}/summary/`, {
-                method: 'POST',
-                body: new URLSearchParams({ summary: summary }),
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                }
-            });
+            const response = await fetch(`/api/nodaji/${stockCode}/more/?offset=${offset}`);
+            const data = await response.json();
 
-            if (response.ok) {
-                // 마크다운 영역 업데이트
-                const mdContent = row.querySelector('.markdown-content');
-                if (summary) {
-                    const cleanSummary = removeCitations(summary);
-                    mdContent.innerHTML = typeof marked !== 'undefined' ? marked.parse(cleanSummary) : cleanSummary;
-                    mdContent.dataset.raw = summary;
+            if (data.success) {
+                const tbody = document.getElementById('nodajiTableBody');
+
+                data.nodaji.forEach(article => {
+                    // 메인 행
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="text-muted small ps-3">${article.date}</td>
+                        <td><a href="${article.link}" target="_blank" class="text-decoration-none">${article.title}</a></td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm p-0 border-0 btn-toggle-summary" data-id="${article.id}">
+                                <span class="badge ${article.summary ? 'bg-success' : 'bg-secondary'}">${article.summary ? 'O' : '-'}</span>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+
+                    // 요약 행
+                    const summaryTr = document.createElement('tr');
+                    summaryTr.className = 'summary-row d-none';
+                    summaryTr.dataset.id = article.id;
+                    summaryTr.innerHTML = `
+                        <td colspan="3" class="bg-light p-3">
+                            <div class="summary-content mb-2" style="max-height: 300px; overflow-y: auto;">
+                                <div class="markdown-content" data-raw="${article.summary.replace(/"/g, '&quot;')}">${!article.summary ? '<span class="text-muted">요약 없음</span>' : ''}</div>
+                            </div>
+                            <div class="border-top pt-2">
+                                <textarea class="form-control form-control-sm summary-textarea" rows="3" placeholder="마크다운 형식으로 입력...">${article.summary}</textarea>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <small class="text-muted">복사/붙여넣기 후 저장</small>
+                                    <button type="button" class="btn btn-primary btn-sm btn-save-summary" data-id="${article.id}">저장</button>
+                                </div>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(summaryTr);
+                });
+
+                // 이벤트 다시 바인딩
+                initNodajiSummaryToggle();
+                initNodajiSummarySave();
+
+                // 더보기 버튼 업데이트
+                if (data.has_more) {
+                    this.dataset.offset = offset + 20;
+                    this.innerHTML = '더보기';
                 } else {
-                    mdContent.innerHTML = '<span class="text-muted">요약 없음</span>';
+                    document.getElementById('nodajiLoadMore').remove();
                 }
-
-                // 배지 업데이트
-                const badge = document.querySelector(`.btn-toggle-summary[data-id="${id}"] .badge`);
-                if (summary) {
-                    badge.className = 'badge bg-success';
-                    badge.textContent = 'O';
-                } else {
-                    badge.className = 'badge bg-secondary';
-                    badge.textContent = '-';
-                }
-
-                this.textContent = '저장됨';
-                setTimeout(() => { this.textContent = '저장'; }, 1500);
-            } else {
-                alert('저장 실패');
-                this.textContent = '저장';
             }
         } catch (err) {
             alert('오류: ' + err.message);
-            this.textContent = '저장';
         } finally {
             this.disabled = false;
         }
     });
-});
+}
+
+// ============ 리포트 요약 토글/저장/더보기 ============
+// 리포트 요약 토글
+function initReportSummaryToggle() {
+    document.querySelectorAll('.btn-toggle-report-summary').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const row = document.querySelector(`.report-summary-row[data-id="${id}"]`);
+            row.classList.toggle('d-none');
+
+            // 마크다운 렌더링 (처음 열 때만)
+            const mdContent = row.querySelector('.markdown-content[data-raw]');
+            if (mdContent && !mdContent.dataset.rendered) {
+                let raw = mdContent.dataset.raw;
+                if (raw && typeof marked !== 'undefined') {
+                    raw = decodeUnicode(raw);
+                    raw = removeCitations(raw);
+                    mdContent.innerHTML = marked.parse(raw);
+                }
+                mdContent.dataset.rendered = 'true';
+            }
+        });
+    });
+}
+initReportSummaryToggle();
+
+// 리포트 요약 저장
+function initReportSummarySave() {
+    document.querySelectorAll('.btn-save-report-summary').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const id = this.dataset.id;
+            const row = document.querySelector(`.report-summary-row[data-id="${id}"]`);
+            const textarea = row.querySelector('.report-summary-textarea');
+            const summary = textarea.value;
+
+            this.disabled = true;
+            this.textContent = '저장 중...';
+
+            try {
+                const response = await fetch(`/report/${id}/summary/`, {
+                    method: 'POST',
+                    body: new URLSearchParams({ summary: summary }),
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                if (response.ok) {
+                    // 마크다운 영역 업데이트
+                    const mdContent = row.querySelector('.markdown-content');
+                    if (summary) {
+                        const cleanSummary = removeCitations(summary);
+                        mdContent.innerHTML = typeof marked !== 'undefined' ? marked.parse(cleanSummary) : cleanSummary;
+                        mdContent.dataset.raw = summary;
+                    } else {
+                        mdContent.innerHTML = '<span class="text-muted">요약 없음</span>';
+                    }
+
+                    // 배지 업데이트
+                    const badge = document.querySelector(`.btn-toggle-report-summary[data-id="${id}"] .badge`);
+                    if (summary) {
+                        badge.className = 'badge bg-success';
+                        badge.textContent = 'O';
+                    } else {
+                        badge.className = 'badge bg-secondary';
+                        badge.textContent = '-';
+                    }
+
+                    this.textContent = '저장됨';
+                    setTimeout(() => { this.textContent = '저장'; }, 1500);
+                } else {
+                    alert('저장 실패');
+                    this.textContent = '저장';
+                }
+            } catch (err) {
+                alert('오류: ' + err.message);
+                this.textContent = '저장';
+            } finally {
+                this.disabled = false;
+            }
+        });
+    });
+}
+initReportSummarySave();
+
+// 리포트 더보기
+const btnLoadMoreReports = document.getElementById('btnLoadMoreReports');
+if (btnLoadMoreReports) {
+    btnLoadMoreReports.addEventListener('click', async function() {
+        const offset = parseInt(this.dataset.offset);
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>불러오는 중...';
+
+        try {
+            const response = await fetch(`/api/report/${stockCode}/more/?offset=${offset}`);
+            const data = await response.json();
+
+            if (data.success) {
+                const tbody = document.getElementById('reportTableBody');
+
+                data.reports.forEach(report => {
+                    // 메인 행
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="text-muted small ps-3">${report.date}</td>
+                        <td class="text-truncate" style="max-width: 250px;" title="${report.title}">
+                            <a href="#" class="text-decoration-none report-search-link" data-title="${report.title}">${report.title}</a>
+                        </td>
+                        <td class="small d-none d-md-table-cell">${report.author}</td>
+                        <td class="small d-none d-md-table-cell">${report.provider}</td>
+                        <td class="text-end">
+                            ${report.target_price ? `<strong class="text-danger">${report.target_price.toLocaleString('ko-KR')}원</strong>` : '<span class="text-muted">-</span>'}
+                        </td>
+                        <td class="text-end">
+                            ${report.gap_rate !== null ? `<span class="${report.gap_rate > 0 ? 'text-danger' : (report.gap_rate < 0 ? 'text-primary' : '')}">${report.gap_rate > 0 ? '+' : ''}${report.gap_rate}%</span>` : '<span class="text-muted">-</span>'}
+                        </td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm p-0 border-0 btn-toggle-report-summary" data-id="${report.id}">
+                                <span class="badge ${report.summary ? 'bg-success' : 'bg-secondary'}">${report.summary ? 'O' : '-'}</span>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+
+                    // 요약 행
+                    const summaryTr = document.createElement('tr');
+                    summaryTr.className = 'report-summary-row d-none';
+                    summaryTr.dataset.id = report.id;
+                    summaryTr.innerHTML = `
+                        <td colspan="7" class="bg-light p-3">
+                            <div class="report-summary-content mb-2" style="max-height: 300px; overflow-y: auto;">
+                                <div class="markdown-content" data-raw="${report.summary.replace(/"/g, '&quot;')}">${!report.summary ? '<span class="text-muted">요약 없음</span>' : ''}</div>
+                            </div>
+                            <div class="border-top pt-2">
+                                <textarea class="form-control form-control-sm report-summary-textarea" rows="3" placeholder="마크다운 형식으로 입력...">${report.summary}</textarea>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <small class="text-muted">복사/붙여넣기 후 저장</small>
+                                    <button type="button" class="btn btn-primary btn-sm btn-save-report-summary" data-id="${report.id}">저장</button>
+                                </div>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(summaryTr);
+                });
+
+                // 이벤트 다시 바인딩
+                initReportSummaryToggle();
+                initReportSummarySave();
+
+                // 더보기 버튼 업데이트
+                if (data.has_more) {
+                    this.dataset.offset = offset + 20;
+                    const remaining = data.has_more ? '더보기' : '';
+                    this.innerHTML = remaining;
+                } else {
+                    document.getElementById('reportLoadMore').remove();
+                }
+            }
+        } catch (err) {
+            alert('오류: ' + err.message);
+        } finally {
+            this.disabled = false;
+        }
+    });
+}
 
 // ============ 유튜브 검색 ============
 const btnYoutube = document.getElementById('btnSearchYoutube');

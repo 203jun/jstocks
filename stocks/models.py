@@ -1209,6 +1209,13 @@ class Report(models.Model):
         help_text='투자의견 (API: RECOMM) - BUY, HOLD, SELL 등'
     )
 
+    # === 요약 ===
+    summary = models.TextField(
+        blank=True,
+        verbose_name='요약',
+        help_text='리포트 요약 내용'
+    )
+
     # === 메타 정보 ===
     created_at = models.DateTimeField(
         auto_now_add=True,
