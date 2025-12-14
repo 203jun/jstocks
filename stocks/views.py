@@ -749,11 +749,17 @@ def stock_edit(request, code):
         target_chart_data = []
         gap_chart_data = []
 
-    # 노다지 기사 (종목명 포함된 것만, 최근 20개)
-    nodaji_articles = Nodaji.objects.filter(
+    # 노다지 기사 (종목명 포함된 것만)
+    nodaji_with_summary = Nodaji.objects.filter(
         stock=stock,
         title__contains=stock.name
-    ).order_by('-date')[:20]
+    ).exclude(summary__isnull=True).exclude(summary='').order_by('-date')[:20]
+
+    from django.db.models import Q
+    nodaji_without_summary = Nodaji.objects.filter(
+        stock=stock,
+        title__contains=stock.name
+    ).filter(Q(summary__isnull=True) | Q(summary='')).order_by('-date')[:20]
 
     # 공시 (최근 20개)
     gongsi_list = Gongsi.objects.filter(stock=stock).order_by('-date')[:20]
@@ -807,7 +813,8 @@ def stock_edit(request, code):
         'price_chart_data': json.dumps(price_chart_data),
         'target_chart_data': json.dumps(target_chart_data),
         'gap_chart_data': json.dumps(gap_chart_data),
-        'nodaji_articles': nodaji_articles,
+        'nodaji_with_summary': nodaji_with_summary,
+        'nodaji_without_summary': nodaji_without_summary,
         'gongsi_list': gongsi_list,
         'schedules': schedules,
         'investor_trends': investor_trends,

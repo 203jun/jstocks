@@ -583,46 +583,91 @@
 
     <!-- 노다지 탭 -->
     <div class="tab-pane fade" id="nodaji-content" role="tabpanel">
-        <div class="card">
+        <!-- 요약 있는 기사 -->
+        {% if nodaji_with_summary %}
+        <div class="card mb-3">
             <div class="card-header py-2">
-                <strong>노다지 IR노트</strong>
-                <small class="text-muted ms-2">네이버 프리미엄 콘텐츠</small>
+                <strong>요약 완료</strong>
+                <span class="badge bg-success ms-2">{{ nodaji_with_summary|length }}</span>
             </div>
-            <div class="card-body">
-                {% if nodaji_articles %}
+            <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-sm table-hover mb-0">
                         <thead class="table-light">
                             <tr>
                                 <th class="ps-3" style="width:100px;">날짜</th>
                                 <th>제목</th>
-                                <th style="width:60px;" class="text-center">요약</th>
+                                <th style="width:50px;" class="text-center"></th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for article in nodaji_articles %}
+                            {% for article in nodaji_with_summary %}
                             <tr>
                                 <td class="text-muted small ps-3">{{ article.date|date:"Y-m-d"|default:"-" }}</td>
                                 <td><a href="{{ article.link }}" target="_blank" class="text-decoration-none">{{ article.title }}</a></td>
                                 <td class="text-center">
                                     <button type="button" class="btn btn-sm p-0 border-0 btn-toggle-summary" data-id="{{ article.id }}">
-                                        {% if article.summary %}
                                         <span class="badge bg-success">O</span>
-                                        {% else %}
-                                        <span class="badge bg-secondary">-</span>
-                                        {% endif %}
                                     </button>
                                 </td>
                             </tr>
                             <tr class="summary-row d-none" data-id="{{ article.id }}">
                                 <td colspan="3" class="bg-light p-3">
                                     <div class="summary-content mb-2" style="max-height: 300px; overflow-y: auto;">
-                                        <div class="markdown-content" data-raw="{{ article.summary|escapejs }}">
-                                            {% if not article.summary %}<span class="text-muted">요약 없음</span>{% endif %}
-                                        </div>
+                                        <div class="markdown-content" data-raw="{{ article.summary|escapejs }}"></div>
                                     </div>
                                     <div class="border-top pt-2">
                                         <textarea class="form-control form-control-sm summary-textarea" rows="3" placeholder="마크다운 형식으로 입력...">{{ article.summary }}</textarea>
+                                        <div class="d-flex justify-content-between align-items-center mt-2">
+                                            <small class="text-muted">복사/붙여넣기 후 저장</small>
+                                            <button type="button" class="btn btn-primary btn-sm btn-save-summary" data-id="{{ article.id }}">저장</button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 요약 없는 기사 -->
+        <div class="card">
+            <div class="card-header py-2">
+                <strong>노다지 IR노트</strong>
+                <small class="text-muted ms-2">네이버 프리미엄 콘텐츠</small>
+            </div>
+            <div class="card-body {% if nodaji_without_summary %}p-0{% endif %}">
+                {% if nodaji_without_summary %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3" style="width:100px;">날짜</th>
+                                <th>제목</th>
+                                <th style="width:50px;" class="text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for article in nodaji_without_summary %}
+                            <tr>
+                                <td class="text-muted small ps-3">{{ article.date|date:"Y-m-d"|default:"-" }}</td>
+                                <td><a href="{{ article.link }}" target="_blank" class="text-decoration-none">{{ article.title }}</a></td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm p-0 border-0 btn-toggle-summary" data-id="{{ article.id }}">
+                                        <span class="badge bg-secondary">-</span>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="summary-row d-none" data-id="{{ article.id }}">
+                                <td colspan="3" class="bg-light p-3">
+                                    <div class="summary-content mb-2" style="max-height: 300px; overflow-y: auto;">
+                                        <div class="markdown-content" data-raw=""><span class="text-muted">요약 없음</span></div>
+                                    </div>
+                                    <div class="border-top pt-2">
+                                        <textarea class="form-control form-control-sm summary-textarea" rows="3" placeholder="마크다운 형식으로 입력..."></textarea>
                                         <div class="d-flex justify-content-between align-items-center mt-2">
                                             <small class="text-muted">복사/붙여넣기 후 저장</small>
                                             <button type="button" class="btn btn-primary btn-sm btn-save-summary" data-id="{{ article.id }}">저장</button>
