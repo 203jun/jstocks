@@ -237,21 +237,77 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold">기업분석 프롬프트</label>
                             <textarea class="form-control" id="promptAnalysis" rows="12" placeholder="종목 분석 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_analysis }}</textarea>
-                            <small class="text-muted">종목 분석 시 AI에게 전달할 기본 프롬프트입니다.</small>
                             <div class="alert alert-info mt-2 mb-0 py-2 small">
                                 <strong>권장:</strong> Gemini Deep Research + 사고모드 사용<br>
                                 <strong>소요시간:</strong> 10~30분 (HTML 형식으로 결과 생성)
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">요약 프롬프트</label>
-                            <textarea class="form-control" id="promptSummary" rows="12" placeholder="요약 생성 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_summary }}</textarea>
-                            <small class="text-muted">뉴스/리포트 요약 시 사용할 프롬프트입니다.</small>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-bold mb-0">투포,리스크,일정 프롬프트</label>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#stockDataModal">
+                                    종목 데이터 조회
+                                </button>
+                            </div>
+                            <textarea class="form-control" id="promptSummary" rows="12" placeholder="투자포인트, 리스크, 일정 생성 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_summary }}</textarea>
+                            <div class="alert alert-info mt-2 mb-0 py-2 small">
+                                <strong>권장:</strong> Gemini + 사고모드 사용<br>
+                                <strong>사용법:</strong> 프롬프트 + 종목데이터 조회 내용 복사/붙여넣기
+                            </div>
                         </div>
                         <div id="promptSaveAlert" class="alert alert-success py-2 d-none">저장되었습니다.</div>
                         <div class="text-end">
                             <button type="button" class="btn btn-primary" id="btnSavePrompt">저장</button>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 종목 데이터 조회 모달 -->
+<div class="modal fade" id="stockDataModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title">종목 데이터 조회</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- 종목 검색 -->
+                <div class="mb-3">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="stockSearchInput" placeholder="종목명 또는 코드 검색...">
+                        <button type="button" class="btn btn-outline-primary" id="btnStockSearch">검색</button>
+                    </div>
+                    <div id="stockSearchResults" class="list-group mt-2 d-none" style="max-height: 200px; overflow-y: auto;"></div>
+                </div>
+
+                <!-- 선택된 종목 정보 -->
+                <div id="selectedStockInfo" class="d-none">
+                    <div class="alert alert-info py-2 mb-3">
+                        <strong id="selectedStockName"></strong>
+                        <span class="text-muted ms-2" id="selectedStockCode"></span>
+                    </div>
+
+                    <!-- 데이터 로딩 -->
+                    <div id="stockDataLoading" class="text-center py-4 d-none">
+                        <div class="spinner-border text-primary"></div>
+                        <p class="mt-2 mb-0">데이터 불러오는 중...</p>
+                    </div>
+
+                    <!-- 데이터 결과 -->
+                    <div id="stockDataResult" class="d-none">
+                        <!-- 복사 버튼 -->
+                        <div class="d-flex justify-content-end mb-2">
+                            <button type="button" class="btn btn-sm btn-success" id="btnCopyStockData">
+                                전체 복사
+                            </button>
+                        </div>
+
+                        <!-- 데이터 내용 -->
+                        <div id="stockDataContent" class="border rounded p-3 bg-light" style="max-height: 400px; overflow-y: auto; font-size: 0.85rem; white-space: pre-wrap; font-family: monospace;"></div>
                     </div>
                 </div>
             </div>
@@ -796,6 +852,116 @@ document.getElementById('btnSavePrompt').addEventListener('click', function() {
     }).catch(err => {
         alert('오류: ' + err.message);
     });
+});
+
+// === 종목 데이터 조회 모달 ===
+const stockSearchInput = document.getElementById('stockSearchInput');
+const btnStockSearch = document.getElementById('btnStockSearch');
+const stockSearchResults = document.getElementById('stockSearchResults');
+const selectedStockInfo = document.getElementById('selectedStockInfo');
+const selectedStockName = document.getElementById('selectedStockName');
+const selectedStockCode = document.getElementById('selectedStockCode');
+const stockDataLoading = document.getElementById('stockDataLoading');
+const stockDataResult = document.getElementById('stockDataResult');
+const stockDataContent = document.getElementById('stockDataContent');
+const btnCopyStockData = document.getElementById('btnCopyStockData');
+
+// 종목 검색
+btnStockSearch.addEventListener('click', searchStock);
+stockSearchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') searchStock();
+});
+
+async function searchStock() {
+    const query = stockSearchInput.value.trim();
+    if (!query) return;
+
+    try {
+        const response = await fetch(`/api/stock/search/?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+
+        if (data.success && data.stocks.length > 0) {
+            stockSearchResults.innerHTML = data.stocks.map(s => `
+                <button type="button" class="list-group-item list-group-item-action" data-code="${s.code}" data-name="${s.name}">
+                    <strong>${s.name}</strong> <small class="text-muted">${s.code}</small>
+                </button>
+            `).join('');
+            stockSearchResults.classList.remove('d-none');
+        } else {
+            stockSearchResults.innerHTML = '<div class="list-group-item text-muted">검색 결과가 없습니다.</div>';
+            stockSearchResults.classList.remove('d-none');
+        }
+    } catch (err) {
+        alert('검색 오류: ' + err.message);
+    }
+}
+
+// 종목 선택
+stockSearchResults.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-code]');
+    if (!btn) return;
+
+    const code = btn.dataset.code;
+    const name = btn.dataset.name;
+
+    // UI 업데이트
+    selectedStockName.textContent = name;
+    selectedStockCode.textContent = code;
+    selectedStockInfo.classList.remove('d-none');
+    stockSearchResults.classList.add('d-none');
+    stockDataLoading.classList.remove('d-none');
+    stockDataResult.classList.add('d-none');
+
+    // 데이터 가져오기
+    try {
+        const response = await fetch(`/api/stock/${code}/prompt-data/`);
+        const data = await response.json();
+
+        if (data.success) {
+            stockDataContent.textContent = data.data;
+            stockDataLoading.classList.add('d-none');
+            stockDataResult.classList.remove('d-none');
+        } else {
+            alert('데이터 조회 실패');
+            stockDataLoading.classList.add('d-none');
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        stockDataLoading.classList.add('d-none');
+    }
+});
+
+// 복사
+btnCopyStockData.addEventListener('click', async () => {
+    const text = stockDataContent.textContent;
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+        } else {
+            // HTTP 환경 fallback
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        }
+        btnCopyStockData.textContent = '복사됨!';
+        setTimeout(() => { btnCopyStockData.textContent = '전체 복사'; }, 1500);
+    } catch (err) {
+        alert('복사 실패: ' + err.message);
+    }
+});
+
+// 모달 닫힐 때 초기화
+document.getElementById('stockDataModal').addEventListener('hidden.bs.modal', () => {
+    stockSearchInput.value = '';
+    stockSearchResults.classList.add('d-none');
+    selectedStockInfo.classList.add('d-none');
+    stockDataLoading.classList.add('d-none');
+    stockDataResult.classList.add('d-none');
 });
 </script>
 {% endblock %}

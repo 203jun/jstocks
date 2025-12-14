@@ -1434,6 +1434,95 @@ def fetch_more_nodaji(request, code):
     })
 
 
+@require_GET
+def search_stock(request):
+    """종목 검색 API"""
+    from django.db.models import Q
+
+    query = request.GET.get('q', '').strip()
+    if not query:
+        return JsonResponse({'success': False, 'error': '검색어를 입력하세요.'})
+
+    stocks = Info.objects.filter(
+        Q(name__icontains=query) | Q(code__icontains=query)
+    )[:10]
+
+    result = [{'code': s.code, 'name': s.name} for s in stocks]
+    return JsonResponse({'success': True, 'stocks': result})
+
+
+@require_GET
+def fetch_stock_prompt_data(request, code):
+    """종목 프롬프트 데이터 조회 API"""
+    from .models import YoutubeVideo
+
+    stock = get_object_or_404(Info, code=code)
+
+    # 리포트 최근 5개 (같은 날짜면 1개만)
+    all_reports = Report.objects.filter(stock=stock).order_by('-date')
+    seen_dates = set()
+    reports = []
+    for r in all_reports:
+        if r.date not in seen_dates:
+            reports.append(r)
+            seen_dates.add(r.date)
+            if len(reports) >= 5:
+                break
+
+    # 유튜브 저장된 영상 (최근 5개)
+    youtube_videos = YoutubeVideo.objects.filter(stock=stock).order_by('-id')[:5]
+
+    # 노다지 (요약 있는 것만, 최근 3개)
+    nodaji_list = Nodaji.objects.filter(
+        stock=stock,
+        title__contains=stock.name
+    ).exclude(summary__isnull=True).exclude(summary='').order_by('-date')[:3]
+
+    # 텍스트 형식으로 변환
+    lines = []
+    lines.append(f"=== {stock.name} ({stock.code}) 데이터 ===\n")
+
+    # 리포트
+    lines.append("## 리포트 (최근 5일)")
+    if reports:
+        for r in reports:
+            date_str = r.date.strftime('%Y-%m-%d') if r.date else '-'
+            lines.append(f"- [{date_str}] {r.title} / {r.author} / {r.provider}")
+    else:
+        lines.append("- 없음")
+    lines.append("")
+
+    # 유튜브
+    lines.append("## 유튜브 (최근 5개)")
+    if youtube_videos:
+        for v in youtube_videos:
+            lines.append(f"- {v.title}")
+            lines.append(f"  링크: {v.link}")
+            lines.append(f"  채널: {v.channel}, {v.published}")
+    else:
+        lines.append("- 없음")
+    lines.append("")
+
+    # 노다지
+    lines.append("## 노다지 IR노트 (최근 3개)")
+    if nodaji_list:
+        for n in nodaji_list:
+            date_str = n.date.strftime('%Y-%m-%d') if n.date else '-'
+            lines.append(f"- [{date_str}] {n.title}")
+            if n.summary:
+                # 요약 내용 전체 (줄바꿈 유지)
+                for sl in n.summary.strip().split('\n'):
+                    lines.append(f"  {sl}")
+            lines.append("")
+    else:
+        lines.append("- 없음")
+
+    return JsonResponse({
+        'success': True,
+        'data': '\n'.join(lines)
+    })
+
+
 def youtube_summary(request, video_id):
     """유튜브 영상 요약 편집 페이지"""
     from .models import YoutubeVideo
