@@ -236,18 +236,19 @@
                     <div class="card-body">
                         <div class="mb-3">
                             <label class="form-label fw-bold">기업분석 프롬프트</label>
-                            <textarea class="form-control" id="promptAnalysis" rows="6" placeholder="종목 분석 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_analysis }}</textarea>
+                            <textarea class="form-control" id="promptAnalysis" rows="12" placeholder="종목 분석 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_analysis }}</textarea>
                             <small class="text-muted">종목 분석 시 AI에게 전달할 기본 프롬프트입니다.</small>
                             <div class="alert alert-info mt-2 mb-0 py-2 small">
                                 <strong>권장:</strong> Gemini Deep Research + 사고모드 사용<br>
-                                <strong>소요시간:</strong> 약 10분 (HTML 형식으로 결과 생성)
+                                <strong>소요시간:</strong> 10~30분 (HTML 형식으로 결과 생성)
                             </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">요약 프롬프트</label>
-                            <textarea class="form-control" id="promptSummary" rows="6" placeholder="요약 생성 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_summary }}</textarea>
+                            <textarea class="form-control" id="promptSummary" rows="12" placeholder="요약 생성 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_summary }}</textarea>
                             <small class="text-muted">뉴스/리포트 요약 시 사용할 프롬프트입니다.</small>
                         </div>
+                        <div id="promptSaveAlert" class="alert alert-success py-2 d-none">저장되었습니다.</div>
                         <div class="text-end">
                             <button type="button" class="btn btn-primary" id="btnSavePrompt">저장</button>
                         </div>
@@ -787,10 +788,11 @@ document.getElementById('btnSavePrompt').addEventListener('click', function() {
             headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/x-www-form-urlencoded' }
         })
     ]).then(() => {
-        this.textContent = '저장됨';
+        const alert = document.getElementById('promptSaveAlert');
+        alert.classList.remove('d-none');
         setTimeout(() => {
-            this.textContent = '저장';
-        }, 1500);
+            alert.classList.add('d-none');
+        }, 2000);
     }).catch(err => {
         alert('오류: ' + err.message);
     });

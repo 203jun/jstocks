@@ -1320,6 +1320,11 @@ def nodaji_summary(request, nodaji_id):
         summary = request.POST.get('summary', '')
         nodaji.summary = summary
         nodaji.save()
+
+        # AJAX 요청이면 JSON 응답
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/x-www-form-urlencoded':
+            return JsonResponse({'success': True})
+
         messages.success(request, '요약이 저장되었습니다.')
         return redirect('stocks:nodaji_summary', nodaji_id=nodaji_id)
 
