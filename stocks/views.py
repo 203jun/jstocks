@@ -2,6 +2,8 @@ import json
 import asyncio
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from django.conf import settings as django_settings
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.http import JsonResponse
@@ -558,10 +560,15 @@ def stock_detail(request, code):
     # 섹터 (업종) - 고유한 이름만 추출
     sectors = stock.sectors.values('code', 'name').distinct().order_by('name')
 
+    # 기업분석 HTML 파일 확인
+    html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
+    analysis_html_exists = html_path.exists()
+
     context = {
         'stock': stock,
         'schedules': schedules,
         'sectors': sectors,
+        'analysis_html_exists': analysis_html_exists,
         'annual_labels': json.dumps(annual_labels),
         'annual_revenue': json.dumps(annual_revenue),
         'annual_op': json.dumps(annual_op),
@@ -647,9 +654,18 @@ def stock_edit(request, code):
         stock.is_holding = request.POST.get('is_holding') == 'on'
         stock.investment_point = request.POST.get('investment_point', '')
         stock.risk = request.POST.get('risk', '')
-        stock.analysis = request.POST.get('analysis', '')
         stock.memo = request.POST.get('memo', '')
         stock.save()
+
+        # 기업분석 HTML 파일 저장
+        analysis_html = request.POST.get('analysis_html', '').strip()
+        analysis_dir = Path(django_settings.MEDIA_ROOT) / 'analysis'
+        analysis_dir.mkdir(parents=True, exist_ok=True)
+        html_path = analysis_dir / f'{code}.html'
+        if analysis_html:
+            html_path.write_text(analysis_html, encoding='utf-8')
+        elif html_path.exists():
+            html_path.unlink()  # 빈 값이면 파일 삭제
 
         # 업종 저장 (ManyToMany)
         from .models import Theme
@@ -777,6 +793,11 @@ def stock_edit(request, code):
     # 저장된 유튜브 영상
     youtube_videos = YoutubeVideo.objects.filter(stock=stock)
 
+    # 기업분석 HTML 파일 확인
+    html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
+    analysis_html_exists = html_path.exists()
+    analysis_html_content = html_path.read_text(encoding='utf-8') if analysis_html_exists else ''
+
     context = {
         'stock': stock,
         'interest_choices': interest_choices,
@@ -793,8 +814,24 @@ def stock_edit(request, code):
         'investor_chart_data': json.dumps(investor_chart_data),
         'short_sellings': short_sellings,
         'youtube_videos': youtube_videos,
+        'analysis_html_exists': analysis_html_exists,
+        'analysis_html_content': analysis_html_content,
     }
     return render(request, 'stocks/stock_edit.html', context)
+
+
+from django.views.decorators.clickjacking import xframe_options_sameorigin
+
+@xframe_options_sameorigin
+def stock_analysis_html(request, code):
+    """기업분석 HTML 페이지"""
+    from django.http import HttpResponse, Http404
+    stock = get_object_or_404(Info, code=code)
+    html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
+    if not html_path.exists():
+        raise Http404("기업분석 HTML이 없습니다.")
+    html_content = html_path.read_text(encoding='utf-8')
+    return HttpResponse(html_content, content_type='text/html; charset=utf-8')
 
 
 # 텔레그램 채널 목록 (채널ID: 표시명)

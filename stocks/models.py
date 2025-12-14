@@ -186,12 +186,6 @@ class Info(models.Model):
         verbose_name='리스크',
         help_text='리스크 (HTML 형식)'
     )
-    analysis = models.TextField(
-        blank=True,
-        default='',
-        verbose_name='기업분석',
-        help_text='기업분석 (HTML 형식)'
-    )
     memo = models.TextField(
         blank=True,
         default='',

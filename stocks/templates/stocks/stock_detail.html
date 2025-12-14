@@ -318,15 +318,17 @@
 </div>
 
 <!-- 기업분석 -->
+{% if analysis_html_exists %}
 <div class="card mb-3">
-    <div class="card-header py-2">
+    <div class="card-header py-2 d-flex justify-content-between align-items-center">
         <strong>기업분석</strong>
+        <a href="{% url 'stocks:stock_analysis_html' stock.code %}" target="_blank" class="btn btn-outline-secondary btn-sm">새 탭에서 보기</a>
     </div>
-    <div class="card-body" id="analysisContent">
-        <div class="content markdown-content" id="analysisMarkdown"></div>
-        <script type="text/plain" id="analysisRaw">{{ stock.analysis|default:"-"|safe }}</script>
+    <div class="card-body p-0">
+        <iframe src="{% url 'stocks:stock_analysis_html' stock.code %}" style="width: 100%; height: 600px; border: none;"></iframe>
     </div>
 </div>
+{% endif %}
 
 <!-- 업데이트 시간 -->
 <div class="text-muted text-end small">
@@ -364,11 +366,10 @@ function renderContent(rawId, markdownId) {
     }
 }
 
-// 투자포인트, 리스크, 메모, 기업분석 렌더링
+// 투자포인트, 리스크, 메모 렌더링
 renderContent('investmentPointRaw', 'investmentPointMarkdown');
 renderContent('riskRaw', 'riskMarkdown');
 renderContent('memoRaw', 'memoMarkdown');
-renderContent('analysisRaw', 'analysisMarkdown');
 </script>
 <style>
 /* 마크다운 콘텐츠 공통 스타일 */
