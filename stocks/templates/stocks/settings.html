@@ -931,27 +931,22 @@ stockSearchResults.addEventListener('click', async (e) => {
     }
 });
 
-// 복사
+// 복사 (copyToClipboard 함수 사용)
 btnCopyStockData.addEventListener('click', async () => {
     const text = stockDataContent.textContent;
+
     try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(text);
-        } else {
-            // HTTP 환경 fallback
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed';
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-        }
+        await copyToClipboard(text);
         btnCopyStockData.textContent = '복사됨!';
-        setTimeout(() => { btnCopyStockData.textContent = '전체 복사'; }, 1500);
+        btnCopyStockData.classList.remove('btn-success');
+        btnCopyStockData.classList.add('btn-secondary');
+        setTimeout(() => {
+            btnCopyStockData.textContent = '전체 복사';
+            btnCopyStockData.classList.remove('btn-secondary');
+            btnCopyStockData.classList.add('btn-success');
+        }, 1500);
     } catch (err) {
-        alert('복사 실패: ' + err.message);
+        alert('복사에 실패했습니다: ' + err.message);
     }
 });
 

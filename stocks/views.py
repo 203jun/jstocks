@@ -1506,12 +1506,21 @@ def fetch_stock_prompt_data(request, code):
     # 노다지
     lines.append("## 노다지 IR노트 (최근 3개)")
     if nodaji_list:
+        import re
         for n in nodaji_list:
             date_str = n.date.strftime('%Y-%m-%d') if n.date else '-'
             lines.append(f"- [{date_str}] {n.title}")
             if n.summary:
+                # citation 제거 (모든 [cite...] 형식)
+                summary = n.summary
+                summary = re.sub(r'\[cite_start\]', '', summary)
+                summary = re.sub(r'\[cite_end\]', '', summary)
+                summary = re.sub(r'\[cite:\s*\d+\]', '', summary)
+                summary = re.sub(r'\[cite:\s*[\d,\s]+\]', '', summary)
+                summary = re.sub(r'\[citexx\]', '', summary)
+                summary = re.sub(r'\[/cite\]', '', summary)
                 # 요약 내용 전체 (줄바꿈 유지)
-                for sl in n.summary.strip().split('\n'):
+                for sl in summary.strip().split('\n'):
                     lines.append(f"  {sl}")
             lines.append("")
     else:
