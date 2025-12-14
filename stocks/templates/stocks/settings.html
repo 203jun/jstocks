@@ -188,7 +188,10 @@
                 <button class="nav-link active" id="stock-classify-tab" data-bs-toggle="pill" data-bs-target="#stock-classify-panel" type="button" role="tab">종목분류</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="stock-analysis-tab" data-bs-toggle="pill" data-bs-target="#stock-analysis-panel" type="button" role="tab">종목 분석</button>
+                <button class="nav-link" id="stock-analysis-tab" data-bs-toggle="pill" data-bs-target="#stock-analysis-panel" type="button" role="tab">기업분석</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="stock-summary-tab" data-bs-toggle="pill" data-bs-target="#stock-summary-panel" type="button" role="tab">투자포인트</button>
             </li>
         </ul>
 
@@ -227,37 +230,79 @@
                 </div>
             </div>
 
-            <!-- 종목 분석 탭 -->
+            <!-- 기업분석 탭 -->
             <div class="tab-pane fade" id="stock-analysis-panel" role="tabpanel">
-                <div class="card">
+                <!-- STEP 1: 리포트 만들기 -->
+                <div class="card mb-3">
                     <div class="card-header py-2">
-                        <strong>프롬프트 관리</strong>
+                        <span class="badge bg-primary me-2">STEP 1</span>
+                        <strong>리포트 만들기</strong>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">기업분석 프롬프트</label>
-                            <textarea class="form-control" id="promptAnalysis" rows="12" placeholder="종목 분석 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_analysis }}</textarea>
-                            <div class="alert alert-info mt-2 mb-0 py-2 small">
-                                <strong>권장:</strong> Gemini Deep Research + 사고모드 사용<br>
-                                <strong>소요시간:</strong> 10~30분 (HTML 형식으로 결과 생성)
-                            </div>
+                        <div class="alert alert-secondary py-2 mb-3">
+                            <small>
+                                <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
+                                <strong>소요:</strong> 10~30분<br>
+                                <strong>저장:</strong> 종목 편집 → 기업분석 → <code>리포트</code> 탭
+                            </small>
                         </div>
+
+                        <!-- 프롬프트 1: 리포트 생성 -->
                         <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label class="form-label fw-bold mb-0">투포,리스크,일정 프롬프트</label>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#stockDataModal">
-                                    종목 데이터 조회
-                                </button>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold small mb-0">1-1. 리포트 생성 프롬프트</label>
+                                <button type="button" class="btn btn-sm btn-primary" id="btnSaveAnalysisPrompt">저장</button>
                             </div>
-                            <textarea class="form-control" id="promptSummary" rows="12" placeholder="투자포인트, 리스크, 일정 생성 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_summary }}</textarea>
-                            <div class="alert alert-info mt-2 mb-0 py-2 small">
-                                <strong>권장:</strong> Gemini + 사고모드 사용<br>
-                                <strong>사용법:</strong> 프롬프트 + 종목데이터 조회 내용 복사/붙여넣기
-                            </div>
+                            <textarea class="form-control" id="promptAnalysis" rows="8" placeholder="Deep Research용 프롬프트...">{{ saved_prompts.prompt_analysis }}</textarea>
+                            <small class="text-muted">Deep Research에 입력할 프롬프트</small>
                         </div>
-                        <div id="promptSaveAlert" class="alert alert-success py-2 d-none">저장되었습니다.</div>
-                        <div class="text-end">
-                            <button type="button" class="btn btn-primary" id="btnSavePrompt">저장</button>
+
+                        <!-- 프롬프트 2: HTML 파일 만들기 -->
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold small mb-0">1-2. HTML 변환 프롬프트</label>
+                                <button type="button" class="btn btn-sm btn-primary" id="btnSaveAnalysisHtmlPrompt">저장</button>
+                            </div>
+                            <textarea class="form-control" id="promptAnalysisHtml" rows="8" placeholder="HTML 변환용 프롬프트...">{{ saved_prompts.prompt_analysis_html }}</textarea>
+                            <small class="text-muted">리포트 결과를 HTML 파일로 변환하는 프롬프트</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 2: 요약 만들기 -->
+                <div class="card">
+                    <div class="card-header py-2">
+                        <span class="badge bg-success me-2">STEP 2</span>
+                        <strong>요약 만들기</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info py-2 mb-0">
+                            <small>
+                                <strong>방법:</strong> Gemini 리포트 결과에서 <code>웹페이지 만들기</code> 클릭<br>
+                                <strong>저장:</strong> 생성된 HTML → 종목 편집 → 기업분석 → <code>요약</code> 탭
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 투자포인트 탭 -->
+            <div class="tab-pane fade" id="stock-summary-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <strong>투자포인트 프롬프트</strong>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="modal" data-bs-target="#stockDataModal">
+                                종목 데이터 조회
+                            </button>
+                            <button type="button" class="btn btn-sm btn-primary" id="btnSaveSummaryPrompt">저장</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <textarea class="form-control" id="promptSummary" rows="15" placeholder="투자포인트, 리스크, 일정 생성 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_summary }}</textarea>
+                        <div class="alert alert-info mt-2 mb-0 py-2 small">
+                            <strong>권장:</strong> Gemini + 사고모드 사용<br>
+                            <strong>사용법:</strong> 프롬프트 + 종목데이터 조회 내용 복사/붙여넣기
                         </div>
                     </div>
                 </div>
@@ -826,32 +871,22 @@ document.getElementById('btnCopyAll').addEventListener('click', async function()
     }
 });
 
-// 종목 분석 프롬프트 저장
-document.getElementById('btnSavePrompt').addEventListener('click', function() {
-    const analysisValue = document.getElementById('promptAnalysis').value;
-    const summaryValue = document.getElementById('promptSummary').value;
+// 기업분석 1-1: 리포트 생성 프롬프트 저장
+document.getElementById('btnSaveAnalysisPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptAnalysis').value;
+    savePrompt('prompt_analysis', value, this);
+});
 
-    // 두 개 모두 저장
-    Promise.all([
-        fetch('/api/setting/save/', {
-            method: 'POST',
-            body: new URLSearchParams({ key: 'prompt_analysis', value: analysisValue }),
-            headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/x-www-form-urlencoded' }
-        }),
-        fetch('/api/setting/save/', {
-            method: 'POST',
-            body: new URLSearchParams({ key: 'prompt_summary', value: summaryValue }),
-            headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/x-www-form-urlencoded' }
-        })
-    ]).then(() => {
-        const alert = document.getElementById('promptSaveAlert');
-        alert.classList.remove('d-none');
-        setTimeout(() => {
-            alert.classList.add('d-none');
-        }, 2000);
-    }).catch(err => {
-        alert('오류: ' + err.message);
-    });
+// 기업분석 1-2: HTML 변환 프롬프트 저장
+document.getElementById('btnSaveAnalysisHtmlPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptAnalysisHtml').value;
+    savePrompt('prompt_analysis_html', value, this);
+});
+
+// 투자포인트 프롬프트 저장
+document.getElementById('btnSaveSummaryPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptSummary').value;
+    savePrompt('prompt_summary', value, this);
 });
 
 // === 종목 데이터 조회 모달 ===

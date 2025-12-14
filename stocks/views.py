@@ -655,6 +655,7 @@ def stock_edit(request, code):
         stock.investment_point = request.POST.get('investment_point', '')
         stock.risk = request.POST.get('risk', '')
         stock.memo = request.POST.get('memo', '')
+        stock.analysis_text = request.POST.get('analysis_text', '')
         stock.save()
 
         # 기업분석 HTML 파일 저장
@@ -830,7 +831,7 @@ from django.views.decorators.clickjacking import xframe_options_sameorigin
 
 @xframe_options_sameorigin
 def stock_analysis_html(request, code):
-    """기업분석 HTML 페이지"""
+    """기업분석 리포트 HTML 페이지"""
     from django.http import HttpResponse, Http404
     stock = get_object_or_404(Info, code=code)
     html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
@@ -838,6 +839,16 @@ def stock_analysis_html(request, code):
         raise Http404("기업분석 HTML이 없습니다.")
     html_content = html_path.read_text(encoding='utf-8')
     return HttpResponse(html_content, content_type='text/html; charset=utf-8')
+
+
+@xframe_options_sameorigin
+def stock_analysis_summary_html(request, code):
+    """기업분석 요약 HTML 페이지"""
+    from django.http import HttpResponse, Http404
+    stock = get_object_or_404(Info, code=code)
+    if not stock.analysis_text:
+        raise Http404("기업분석 요약이 없습니다.")
+    return HttpResponse(stock.analysis_text, content_type='text/html; charset=utf-8')
 
 
 # 텔레그램 채널 목록 (채널ID: 표시명)

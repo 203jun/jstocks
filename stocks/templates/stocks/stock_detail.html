@@ -318,14 +318,37 @@
 </div>
 
 <!-- 기업분석 -->
-{% if analysis_html_exists %}
+{% if stock.analysis_text or analysis_html_exists %}
 <div class="card mb-3">
-    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+    <div class="card-header py-2">
         <strong>기업분석</strong>
-        <a href="{% url 'stocks:stock_analysis_html' stock.code %}" target="_blank" class="btn btn-outline-secondary btn-sm">새 탭에서 보기</a>
     </div>
     <div class="card-body p-0">
+        <!-- 탭 (둘 다 있을 때만 표시) -->
+        {% if stock.analysis_text and analysis_html_exists %}
+        <ul class="nav nav-tabs nav-tabs-sm px-3 pt-2" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="analysis-summary-view-tab" data-bs-toggle="tab" data-bs-target="#analysis-summary-view-panel" type="button" role="tab">요약</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="analysis-report-view-tab" data-bs-toggle="tab" data-bs-target="#analysis-report-view-panel" type="button" role="tab">리포트</button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="analysis-summary-view-panel" role="tabpanel">
+                <iframe src="{% url 'stocks:stock_analysis_summary_html' stock.code %}" style="width: 100%; height: 500px; border: none;"></iframe>
+            </div>
+            <div class="tab-pane fade" id="analysis-report-view-panel" role="tabpanel">
+                <iframe src="{% url 'stocks:stock_analysis_html' stock.code %}" style="width: 100%; height: 600px; border: none;"></iframe>
+            </div>
+        </div>
+        {% elif stock.analysis_text %}
+        <!-- 요약만 있을 때 -->
+        <iframe src="{% url 'stocks:stock_analysis_summary_html' stock.code %}" style="width: 100%; height: 500px; border: none;"></iframe>
+        {% else %}
+        <!-- 리포트만 있을 때 -->
         <iframe src="{% url 'stocks:stock_analysis_html' stock.code %}" style="width: 100%; height: 600px; border: none;"></iframe>
+        {% endif %}
     </div>
 </div>
 {% endif %}
@@ -341,6 +364,14 @@
 <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
+// marked.js 옵션 설정
+marked.setOptions({
+    breaks: true,      // 줄바꿈을 <br>로 변환
+    gfm: true,         // GitHub Flavored Markdown 활성화
+    headerIds: false,  // 헤더 ID 비활성화 (불필요한 속성 방지)
+    mangle: false      // 이메일 주소 난독화 비활성화
+});
+
 // 콘텐츠 렌더링 함수 (HTML/마크다운 자동 감지, Gemini citation 제거)
 function renderContent(rawId, markdownId) {
     const rawEl = document.getElementById(rawId);
@@ -352,7 +383,9 @@ function renderContent(rawId, markdownId) {
         if (content && textOnly !== '-' && textOnly !== '') {
             // Gemini citation 제거 ([cite_start], [cite: xxx] 등)
             content = content.replace(/\[cite_start\]/g, '');
-            content = content.replace(/\[cite:\s*\d+\]/g, '');
+            content = content.replace(/\[cite_end\]/g, '');
+            content = content.replace(/\[cite:\s*[\d,\s]+\]/g, '');
+            content = content.replace(/\[\/cite\]/g, '');
 
             // HTML 태그가 포함되어 있으면 HTML로 렌더링, 아니면 마크다운으로 렌더링
             if (/<[a-z][\s\S]*>/i.test(content)) {

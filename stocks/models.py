@@ -173,6 +173,14 @@ class Info(models.Model):
         help_text='사용자 정의 업종 (반도체, 전기전력 등)'
     )
 
+    # === 기업분석 ===
+    analysis_text = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='기업분석(텍스트)',
+        help_text='기업분석 내용 (마크다운 형식)'
+    )
+
     # === 투자 메모 ===
     investment_point = models.TextField(
         blank=True,
