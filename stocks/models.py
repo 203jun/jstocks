@@ -180,6 +180,12 @@ class Info(models.Model):
         verbose_name='기업분석(텍스트)',
         help_text='기업분석 내용 (마크다운 형식)'
     )
+    analysis_updated_at = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='기업분석 업데이트일',
+        help_text='기업분석 마지막 수정일'
+    )
 
     # === 인사이트 (투자포인트/리스크/일정 통합) ===
     insight_summary_html = models.TextField(
@@ -194,11 +200,23 @@ class Info(models.Model):
         verbose_name='인사이트(리포트)',
         help_text='투자포인트/리스크/일정 상세 리포트 (HTML 형식)'
     )
+    insight_updated_at = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='인사이트 업데이트일',
+        help_text='인사이트 마지막 수정일'
+    )
     memo = models.TextField(
         blank=True,
         default='',
         verbose_name='메모',
         help_text='자유 메모 (HTML 형식)'
+    )
+    memo_updated_at = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='메모 업데이트일',
+        help_text='메모 마지막 수정일'
     )
 
     class Meta:

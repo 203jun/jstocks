@@ -648,21 +648,46 @@ def stock_edit(request, code):
         new_interest_level = interest_level if interest_level else None
         stock.interest_level = new_interest_level
         stock.is_holding = request.POST.get('is_holding') == 'on'
-        stock.insight_summary_html = request.POST.get('insight_summary_html', '')
-        stock.insight_report_html = request.POST.get('insight_report_html', '')
-        stock.memo = request.POST.get('memo', '')
-        stock.analysis_text = request.POST.get('analysis_text', '')
+
+        # 인사이트 저장 (변경 시 날짜 업데이트)
+        new_insight_summary = request.POST.get('insight_summary_html', '')
+        new_insight_report = request.POST.get('insight_report_html', '')
+        if new_insight_summary != stock.insight_summary_html or new_insight_report != stock.insight_report_html:
+            stock.insight_summary_html = new_insight_summary
+            stock.insight_report_html = new_insight_report
+            from datetime import date
+            stock.insight_updated_at = date.today()
+
+        # 메모 저장 (변경 시 날짜 업데이트)
+        new_memo = request.POST.get('memo', '')
+        if new_memo != stock.memo:
+            stock.memo = new_memo
+            from datetime import date
+            stock.memo_updated_at = date.today()
+
+        # 기업분석 저장 (변경 시 날짜 업데이트)
+        new_analysis_text = request.POST.get('analysis_text', '')
+        if new_analysis_text != stock.analysis_text:
+            stock.analysis_text = new_analysis_text
+            from datetime import date
+            stock.analysis_updated_at = date.today()
+
         stock.save()
 
-        # 기업분석 HTML 파일 저장
+        # 기업분석 HTML 파일 저장 (변경 시 날짜 업데이트)
         analysis_html = request.POST.get('analysis_html', '').strip()
         analysis_dir = Path(django_settings.MEDIA_ROOT) / 'analysis'
         analysis_dir.mkdir(parents=True, exist_ok=True)
         html_path = analysis_dir / f'{code}.html'
-        if analysis_html:
-            html_path.write_text(analysis_html, encoding='utf-8')
-        elif html_path.exists():
-            html_path.unlink()  # 빈 값이면 파일 삭제
+        old_analysis_html = html_path.read_text(encoding='utf-8') if html_path.exists() else ''
+        if analysis_html != old_analysis_html:
+            if analysis_html:
+                html_path.write_text(analysis_html, encoding='utf-8')
+            elif html_path.exists():
+                html_path.unlink()  # 빈 값이면 파일 삭제
+            from datetime import date
+            stock.analysis_updated_at = date.today()
+            stock.save(update_fields=['analysis_updated_at'])
 
         # 업종 저장 (ManyToMany)
         from .models import Theme

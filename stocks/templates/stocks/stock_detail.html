@@ -115,8 +115,9 @@
 <!-- 인사이트 (투자포인트/리스크/일정 통합) -->
 {% if stock.insight_summary_html or stock.insight_report_html %}
 <div class="card mb-3">
-    <div class="card-header py-2">
+    <div class="card-header py-2 d-flex justify-content-between align-items-center">
         <strong>인사이트</strong>
+        {% if stock.insight_updated_at %}<small class="text-muted">update: {{ stock.insight_updated_at|date:"Y-m-d" }}</small>{% endif %}
     </div>
     <div class="card-body p-0">
         <!-- 탭 (둘 다 있을 때만 표시) -->
@@ -150,8 +151,9 @@
 
 <!-- 메모 -->
 <div class="card mb-3">
-    <div class="card-header py-2">
+    <div class="card-header py-2 d-flex justify-content-between align-items-center">
         <strong>메모</strong>
+        {% if stock.memo_updated_at %}<small class="text-muted">update: {{ stock.memo_updated_at|date:"Y-m-d" }}</small>{% endif %}
     </div>
     <div class="card-body">
         <div class="content markdown-content" id="memoMarkdown"></div>
@@ -299,8 +301,9 @@
 <!-- 기업분석 -->
 {% if stock.analysis_text or analysis_html_exists %}
 <div class="card mb-3">
-    <div class="card-header py-2">
+    <div class="card-header py-2 d-flex justify-content-between align-items-center">
         <strong>기업분석</strong>
+        {% if stock.analysis_updated_at %}<small class="text-muted">update: {{ stock.analysis_updated_at|date:"Y-m-d" }}</small>{% endif %}
     </div>
     <div class="card-body p-0">
         <!-- 탭 (둘 다 있을 때만 표시) -->
