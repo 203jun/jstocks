@@ -193,6 +193,9 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="stock-summary-tab" data-bs-toggle="pill" data-bs-target="#stock-summary-panel" type="button" role="tab">투자포인트</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="nodaji-tab" data-bs-toggle="pill" data-bs-target="#nodaji-panel" type="button" role="tab">노다지</button>
+            </li>
         </ul>
 
         <div class="tab-content">
@@ -308,6 +311,22 @@
                         <div class="alert alert-info mt-2 mb-0 py-2 small">
                             <strong>권장:</strong> Gemini + 사고모드 사용<br>
                             <strong>사용법:</strong> 프롬프트 + 종목데이터 조회 내용 복사/붙여넣기
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 노다지 탭 -->
+            <div class="tab-pane fade" id="nodaji-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <strong>노다지 프롬프트</strong>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveNodajiPrompt">저장</button>
+                    </div>
+                    <div class="card-body">
+                        <textarea class="form-control" id="promptNodaji" rows="15" placeholder="노다지 분석 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_nodaji }}</textarea>
+                        <div class="alert alert-danger mt-3 mb-0 py-2">
+                            <strong>⚠️ 중요:</strong> 반드시 <strong>노다지 PDF 파일</strong>을 첨부하여 사용하세요!
                         </div>
                     </div>
                 </div>
@@ -892,6 +911,12 @@ document.getElementById('btnSaveAnalysisHtmlPrompt').addEventListener('click', f
 document.getElementById('btnSaveSummaryPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptSummary').value;
     savePrompt('prompt_summary', value, this);
+});
+
+// 노다지 프롬프트 저장
+document.getElementById('btnSaveNodajiPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptNodaji').value;
+    savePrompt('prompt_nodaji', value, this);
 });
 
 // === 종목 데이터 조회 모달 ===
