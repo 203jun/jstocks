@@ -230,7 +230,8 @@
                 <small class="text-muted d-block">최근 5일 내 조건 충족</small>
             </div>
             {% if card_c_stocks %}
-            <div class="card-body p-0">
+            <!-- PC: 테이블 -->
+            <div class="card-body p-0 d-none d-md-block">
                 <div class="table-responsive">
                     <table class="table table-hover table-sm mb-0 dashboard-table">
                         <thead class="table-light">
@@ -261,6 +262,23 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+            <!-- 모바일: 카드 리스트 -->
+            <div class="card-body p-2 d-md-none">
+                {% for item in card_c_stocks %}
+                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>
+                            <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
+                            <span class="badge ms-1" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %}; font-size: 0.7em;">{{ item.signal_type }}</span>
+                        </span>
+                        <span class="{% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %} fw-bold">{% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
+                        <span>{{ item.signal_days_ago }}일전 · 고점 <span class="{% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
             {% else %}
             <div class="card-body text-center text-muted py-4">
