@@ -901,22 +901,31 @@ def signal_chart_data(request, code):
     # 최근 120일 (약 6개월) 일봉 데이터
     daily_charts = DailyChart.objects.filter(stock=stock).order_by('-date')[:120]
 
-    candle_data = [
-        {
-            'time': d.date.strftime('%Y-%m-%d'),
+    candle_data = []
+    volume_data = []
+    for d in reversed(daily_charts):
+        time_str = d.date.strftime('%Y-%m-%d')
+        candle_data.append({
+            'time': time_str,
             'open': d.opening_price,
             'high': d.high_price,
             'low': d.low_price,
             'close': d.closing_price,
-        }
-        for d in reversed(daily_charts)
-    ]
+        })
+        # 거래량 색상: 상승(빨강), 하락(파랑)
+        volume_color = '#ef535080' if d.closing_price >= d.opening_price else '#2196f380'
+        volume_data.append({
+            'time': time_str,
+            'value': d.trading_volume,
+            'color': volume_color,
+        })
 
     return JsonResponse({
         'success': True,
         'stock_name': stock.name,
         'current_price': stock.current_price,
         'candle_data': candle_data,
+        'volume_data': volume_data,
     })
 
 

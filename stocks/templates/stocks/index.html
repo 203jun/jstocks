@@ -255,9 +255,7 @@
                                 <td class="text-end px-3 py-2 signal-chart-btn {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %}"
                                     data-code="{{ item.stock.code }}"
                                     data-name="{{ item.stock.name }}"
-                                    data-signal-date="{{ item.signal_date }}"
-                                    data-signal-high="{{ item.signal_high }}"
-                                    data-signal-low="{{ item.signal_low }}"
+                                    data-signal-open="{{ item.signal_open }}"
                                     data-signal-close="{{ item.signal_close }}"
                                     data-current-price="{{ item.current_price }}"
                                     style="text-decoration: underline; cursor: pointer;">
@@ -283,9 +281,7 @@
                         <span class="signal-chart-btn {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %} fw-bold"
                             data-code="{{ item.stock.code }}"
                             data-name="{{ item.stock.name }}"
-                            data-signal-date="{{ item.signal_date }}"
-                            data-signal-high="{{ item.signal_high }}"
-                            data-signal-low="{{ item.signal_low }}"
+                            data-signal-open="{{ item.signal_open }}"
                             data-signal-close="{{ item.signal_close }}"
                             data-current-price="{{ item.current_price }}"
                             style="text-decoration: underline;">{% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%</span>
@@ -392,9 +388,8 @@
             <div class="modal-body p-2">
                 <div id="signalChartContainer" style="height: 400px;"></div>
                 <div class="mt-2 small text-muted">
-                    <span class="me-3"><span style="color: #26a69a;">━</span> 신호일 고가</span>
-                    <span class="me-3"><span style="color: #ef5350;">━</span> 신호일 저가</span>
-                    <span class="me-3"><span style="color: #ff9800;">━</span> 신호일 종가</span>
+                    <span class="me-3"><span style="color: #ef5350;">━</span> 봉 하단</span>
+                    <span class="me-3"><span style="color: #ff9800;">━</span> 봉 상단</span>
                     <span><span style="color: #2196f3; font-weight: bold;">━</span> 현재가</span>
                 </div>
             </div>
@@ -533,12 +528,17 @@ document.querySelectorAll('#dashboardTabs button').forEach(btn => {
 // 신호 차트 팝업
 let signalChart = null;
 let signalCandleSeries = null;
+let signalVolumeSeries = null;
 let pendingChartData = null;
 
 function renderSignalChart() {
     if (!pendingChartData) return;
 
-    const { signalHigh, signalLow, signalClose, currentPrice, candleData } = pendingChartData;
+    const { signalOpen, signalClose, currentPrice, candleData, volumeData } = pendingChartData;
+
+    // 봉 몸통 범위 계산 (양봉/음봉 상관없이 몸통의 상단/하단)
+    const bodyLow = Math.min(signalOpen, signalClose);
+    const bodyHigh = Math.max(signalOpen, signalClose);
     const container = document.getElementById('signalChartContainer');
     container.innerHTML = '';
 
@@ -566,6 +566,19 @@ function renderSignalChart() {
         timeScale: {
             borderColor: '#ddd',
             timeVisible: false,
+            rightOffset: 0,
+            lockVisibleTimeRangeOnResize: true,
+        },
+        handleScroll: {
+            mouseWheel: true,
+            pressedMouseMove: true,
+            horzTouchDrag: true,
+            vertTouchDrag: false,
+        },
+        handleScale: {
+            axisPressedMouseMove: true,
+            mouseWheel: true,
+            pinch: true,
         },
     });
 
@@ -581,39 +594,41 @@ function renderSignalChart() {
 
     signalCandleSeries.setData(candleData);
 
-    // 가격 라인 추가 (신호일 고가)
-    if (signalHigh) {
-        signalCandleSeries.createPriceLine({
-            price: signalHigh,
-            color: '#26a69a',
-            lineWidth: 2,
-            lineStyle: LightweightCharts.LineStyle.Solid,
-            axisLabelVisible: true,
-            title: '고가',
-        });
-    }
+    // 거래량 시리즈 추가
+    signalVolumeSeries = signalChart.addHistogramSeries({
+        priceFormat: {
+            type: 'volume',
+        },
+        priceScaleId: '',
+        scaleMargins: {
+            top: 0.8,
+            bottom: 0,
+        },
+    });
 
-    // 신호일 저가
-    if (signalLow) {
+    signalVolumeSeries.setData(volumeData);
+
+    // 봉 몸통 하단
+    if (bodyLow) {
         signalCandleSeries.createPriceLine({
-            price: signalLow,
+            price: bodyLow,
             color: '#ef5350',
             lineWidth: 2,
             lineStyle: LightweightCharts.LineStyle.Solid,
             axisLabelVisible: true,
-            title: '저가',
+            title: '하단',
         });
     }
 
-    // 신호일 종가
-    if (signalClose) {
+    // 봉 몸통 상단
+    if (bodyHigh) {
         signalCandleSeries.createPriceLine({
-            price: signalClose,
+            price: bodyHigh,
             color: '#ff9800',
             lineWidth: 2,
             lineStyle: LightweightCharts.LineStyle.Solid,
             axisLabelVisible: true,
-            title: '종가',
+            title: '상단',
         });
     }
 
@@ -629,7 +644,14 @@ function renderSignalChart() {
         });
     }
 
-    signalChart.timeScale().fitContent();
+    // 데이터 범위 설정 (날짜 범위 벗어나지 않게)
+    if (candleData.length > 0) {
+        signalChart.timeScale().setVisibleRange({
+            from: candleData[0].time,
+            to: candleData[candleData.length - 1].time,
+        });
+    }
+
     pendingChartData = null;
 }
 
@@ -646,8 +668,7 @@ document.addEventListener('click', function(e) {
 
     const code = btn.dataset.code;
     const name = btn.dataset.name;
-    const signalHigh = parseFloat(btn.dataset.signalHigh) || 0;
-    const signalLow = parseFloat(btn.dataset.signalLow) || 0;
+    const signalOpen = parseFloat(btn.dataset.signalOpen) || 0;
     const signalClose = parseFloat(btn.dataset.signalClose) || 0;
     const currentPrice = parseFloat(btn.dataset.currentPrice) || 0;
 
@@ -672,11 +693,11 @@ document.addEventListener('click', function(e) {
 
             // 데이터 저장 (모달이 열린 후 렌더링)
             pendingChartData = {
-                signalHigh,
-                signalLow,
+                signalOpen,
                 signalClose,
                 currentPrice,
                 candleData: data.candle_data,
+                volumeData: data.volume_data,
             };
 
             // 모달이 이미 열려 있으면 바로 렌더링
@@ -697,6 +718,7 @@ document.getElementById('signalChartModal').addEventListener('hidden.bs.modal', 
         signalChart.remove();
         signalChart = null;
         signalCandleSeries = null;
+        signalVolumeSeries = null;
     }
 });
 
