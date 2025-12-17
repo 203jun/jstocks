@@ -652,8 +652,8 @@ def stock_edit(request, code):
         new_interest_level = interest_level if interest_level else None
         stock.interest_level = new_interest_level
         stock.is_holding = request.POST.get('is_holding') == 'on'
-        stock.investment_point = request.POST.get('investment_point', '')
-        stock.risk = request.POST.get('risk', '')
+        stock.insight_summary_html = request.POST.get('insight_summary_html', '')
+        stock.insight_report_html = request.POST.get('insight_report_html', '')
         stock.memo = request.POST.get('memo', '')
         stock.analysis_text = request.POST.get('analysis_text', '')
         stock.save()
@@ -849,6 +849,26 @@ def stock_analysis_summary_html(request, code):
     if not stock.analysis_text:
         raise Http404("기업분석 요약이 없습니다.")
     return HttpResponse(stock.analysis_text, content_type='text/html; charset=utf-8')
+
+
+@xframe_options_sameorigin
+def stock_insight_summary_html(request, code):
+    """인사이트 요약 HTML 페이지"""
+    from django.http import HttpResponse, Http404
+    stock = get_object_or_404(Info, code=code)
+    if not stock.insight_summary_html:
+        raise Http404("인사이트 요약이 없습니다.")
+    return HttpResponse(stock.insight_summary_html, content_type='text/html; charset=utf-8')
+
+
+@xframe_options_sameorigin
+def stock_insight_report_html(request, code):
+    """인사이트 리포트 HTML 페이지"""
+    from django.http import HttpResponse, Http404
+    stock = get_object_or_404(Info, code=code)
+    if not stock.insight_report_html:
+        raise Http404("인사이트 리포트가 없습니다.")
+    return HttpResponse(stock.insight_report_html, content_type='text/html; charset=utf-8')
 
 
 # 텔레그램 채널 목록 (채널ID: 표시명)

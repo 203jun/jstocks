@@ -112,62 +112,41 @@
     </div>
 </div>
 
-<!-- 투자포인트 -->
+<!-- 인사이트 (투자포인트/리스크/일정 통합) -->
+{% if stock.insight_summary_html or stock.insight_report_html %}
 <div class="card mb-3">
     <div class="card-header py-2">
-        <strong>투자포인트</strong>
+        <strong>인사이트</strong>
     </div>
-    <div class="card-body" id="investmentPointContent">
-        <div class="content markdown-content" id="investmentPointMarkdown"></div>
-        <script type="text/plain" id="investmentPointRaw">{{ stock.investment_point|default:"-"|safe }}</script>
-    </div>
-</div>
-
-<!-- 리스크 -->
-<div class="card mb-3">
-    <div class="card-header py-2">
-        <strong>리스크</strong>
-    </div>
-    <div class="card-body" id="riskContent">
-        <div class="content markdown-content" id="riskMarkdown"></div>
-        <script type="text/plain" id="riskRaw">{{ stock.risk|default:"-"|safe }}</script>
-    </div>
-</div>
-
-<!-- 일정 -->
-<div class="card mb-3">
-    <div class="card-header py-2">
-        <strong>일정</strong>
-    </div>
-    {% if schedules %}
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-3" style="width:100px;">날짜</th>
-                        <th style="width:110px;">알림일자</th>
-                        <th>내용</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for schedule in schedules %}
-                    <tr>
-                        <td class="ps-3">{{ schedule.date_text }}</td>
-                        <td class="text-muted small">{{ schedule.date_sort|date:"Y-m-d"|default:"-" }}</td>
-                        <td>{{ schedule.content }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <!-- 탭 (둘 다 있을 때만 표시) -->
+        {% if stock.insight_summary_html and stock.insight_report_html %}
+        <ul class="nav nav-tabs nav-tabs-sm px-3 pt-2" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="insight-summary-tab" data-bs-toggle="tab" data-bs-target="#insight-summary-panel" type="button" role="tab">요약</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="insight-report-tab" data-bs-toggle="tab" data-bs-target="#insight-report-panel" type="button" role="tab">리포트</button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="insight-summary-panel" role="tabpanel">
+                <iframe src="{% url 'stocks:stock_insight_summary_html' stock.code %}" style="width: 100%; height: 500px; border: none;"></iframe>
+            </div>
+            <div class="tab-pane fade" id="insight-report-panel" role="tabpanel">
+                <iframe src="{% url 'stocks:stock_insight_report_html' stock.code %}" style="width: 100%; height: 600px; border: none;"></iframe>
+            </div>
         </div>
+        {% elif stock.insight_summary_html %}
+        <!-- 요약만 있을 때 -->
+        <iframe src="{% url 'stocks:stock_insight_summary_html' stock.code %}" style="width: 100%; height: 500px; border: none;"></iframe>
+        {% else %}
+        <!-- 리포트만 있을 때 -->
+        <iframe src="{% url 'stocks:stock_insight_report_html' stock.code %}" style="width: 100%; height: 600px; border: none;"></iframe>
+        {% endif %}
     </div>
-    {% else %}
-    <div class="card-body">
-        <div class="text-muted">-</div>
-    </div>
-    {% endif %}
 </div>
+{% endif %}
 
 <!-- 메모 -->
 <div class="card mb-3">
@@ -399,9 +378,7 @@ function renderContent(rawId, markdownId) {
     }
 }
 
-// 투자포인트, 리스크, 메모 렌더링
-renderContent('investmentPointRaw', 'investmentPointMarkdown');
-renderContent('riskRaw', 'riskMarkdown');
+// 메모 렌더링
 renderContent('memoRaw', 'memoMarkdown');
 </script>
 <style>

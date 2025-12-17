@@ -181,18 +181,18 @@ class Info(models.Model):
         help_text='기업분석 내용 (마크다운 형식)'
     )
 
-    # === 투자 메모 ===
-    investment_point = models.TextField(
+    # === 인사이트 (투자포인트/리스크/일정 통합) ===
+    insight_summary_html = models.TextField(
         blank=True,
         default='',
-        verbose_name='투자포인트',
-        help_text='투자포인트 (HTML 형식)'
+        verbose_name='인사이트(요약)',
+        help_text='투자포인트/리스크/일정 요약 (HTML 형식)'
     )
-    risk = models.TextField(
+    insight_report_html = models.TextField(
         blank=True,
         default='',
-        verbose_name='리스크',
-        help_text='리스크 (HTML 형식)'
+        verbose_name='인사이트(리포트)',
+        help_text='투자포인트/리스크/일정 상세 리포트 (HTML 형식)'
     )
     memo = models.TextField(
         blank=True,

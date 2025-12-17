@@ -145,21 +145,31 @@
 
             <div class="card mb-3">
                 <div class="card-header py-2">
-                    <strong>투자포인트</strong>
-                    <small class="text-muted ms-2">(마크다운 지원)</small>
+                    <strong>인사이트</strong>
+                    <small class="text-muted ms-2">(투자포인트/리스크/일정 통합)</small>
                 </div>
                 <div class="card-body">
-                    <textarea class="form-control" name="investment_point" id="investmentPointInput" rows="6" placeholder="마크다운 형식으로 입력하세요...">{{ stock.investment_point }}</textarea>
-                </div>
-            </div>
-
-            <div class="card mb-3">
-                <div class="card-header py-2">
-                    <strong>리스크</strong>
-                    <small class="text-muted ms-2">(마크다운 지원)</small>
-                </div>
-                <div class="card-body">
-                    <textarea class="form-control" name="risk" id="riskInput" rows="6" placeholder="마크다운 형식으로 입력하세요...">{{ stock.risk }}</textarea>
+                    <!-- 인사이트 탭 -->
+                    <ul class="nav nav-tabs nav-tabs-sm mb-3" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="insight-summary-tab" data-bs-toggle="tab" data-bs-target="#insight-summary-panel" type="button" role="tab">요약</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="insight-report-tab" data-bs-toggle="tab" data-bs-target="#insight-report-panel" type="button" role="tab">리포트</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <!-- 요약 탭 -->
+                        <div class="tab-pane fade show active" id="insight-summary-panel" role="tabpanel">
+                            <textarea class="form-control font-monospace" name="insight_summary_html" id="insightSummaryInput" rows="10" style="font-size: 0.85em;" placeholder="요약 HTML 코드를 붙여넣으세요...">{{ stock.insight_summary_html }}</textarea>
+                            <small class="text-muted">HTML 코드를 붙여넣으면 요약으로 저장됩니다.</small>
+                        </div>
+                        <!-- 리포트 탭 -->
+                        <div class="tab-pane fade" id="insight-report-panel" role="tabpanel">
+                            <textarea class="form-control font-monospace" name="insight_report_html" id="insightReportInput" rows="10" style="font-size: 0.85em;" placeholder="리포트 HTML 코드를 붙여넣으세요...">{{ stock.insight_report_html }}</textarea>
+                            <small class="text-muted">HTML 코드를 붙여넣으면 리포트로 저장됩니다.</small>
+                        </div>
+                    </div>
                 </div>
             </div>
 
