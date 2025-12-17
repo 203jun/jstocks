@@ -246,17 +246,25 @@
                         </thead>
                         <tbody>
                             {% for item in card_c_stocks %}
-                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
-                                <td class="px-3 py-2">
+                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" style="cursor:pointer;">
+                                <td class="px-3 py-2" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
                                     <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
                                 </td>
-                                <td class="text-center px-3 py-2"><span class="badge" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %};">{{ item.signal_type }}</span></td>
-                                <td class="text-center px-3 py-2 small">{{ item.signal_days_ago }}일전</td>
-                                <td class="text-end px-3 py-2 {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %}">
+                                <td class="text-center px-3 py-2" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'"><span class="badge" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %};">{{ item.signal_type }}</span></td>
+                                <td class="text-center px-3 py-2 small" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">{{ item.signal_days_ago }}일전</td>
+                                <td class="text-end px-3 py-2 signal-chart-btn {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %}"
+                                    data-code="{{ item.stock.code }}"
+                                    data-name="{{ item.stock.name }}"
+                                    data-signal-date="{{ item.signal_date }}"
+                                    data-signal-high="{{ item.signal_high }}"
+                                    data-signal-low="{{ item.signal_low }}"
+                                    data-signal-close="{{ item.signal_close }}"
+                                    data-current-price="{{ item.current_price }}"
+                                    style="text-decoration: underline; cursor: pointer;">
                                     {% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%
                                 </td>
-                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</td>
-                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</td>
+                                <td class="text-end px-3 py-2" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -266,15 +274,23 @@
             <!-- 모바일: 카드 리스트 -->
             <div class="card-body p-2 d-md-none">
                 {% for item in card_c_stocks %}
-                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
-                        <span>
+                        <span onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
                             <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
                             <span class="badge ms-1" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %}; font-size: 0.7em;">{{ item.signal_type }}</span>
                         </span>
-                        <span class="{% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %} fw-bold">{% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%</span>
+                        <span class="signal-chart-btn {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %} fw-bold"
+                            data-code="{{ item.stock.code }}"
+                            data-name="{{ item.stock.name }}"
+                            data-signal-date="{{ item.signal_date }}"
+                            data-signal-high="{{ item.signal_high }}"
+                            data-signal-low="{{ item.signal_low }}"
+                            data-signal-close="{{ item.signal_close }}"
+                            data-current-price="{{ item.current_price }}"
+                            style="text-decoration: underline;">{% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%</span>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
+                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
                         <span>{{ item.signal_days_ago }}일전 · 고점 <span class="{% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
                     </div>
                 </div>
@@ -364,6 +380,27 @@
     border-bottom: none !important;
 }
 </style>
+
+<!-- 신호 차트 모달 -->
+<div class="modal fade" id="signalChartModal" tabindex="-1" aria-labelledby="signalChartModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title" id="signalChartModalLabel">신호 차트</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-2">
+                <div id="signalChartContainer" style="height: 400px;"></div>
+                <div class="mt-2 small text-muted">
+                    <span class="me-3"><span style="color: #26a69a;">━</span> 신호일 고가</span>
+                    <span class="me-3"><span style="color: #ef5350;">━</span> 신호일 저가</span>
+                    <span class="me-3"><span style="color: #ff9800;">━</span> 신호일 종가</span>
+                    <span><span style="color: #2196f3; font-weight: bold;">━</span> 현재가</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -491,6 +528,142 @@ document.querySelectorAll('#dashboardTabs button').forEach(btn => {
         applyFilter(this.dataset.filter);
         drawSparklines();
     });
+});
+
+// 신호 차트 팝업
+let signalChart = null;
+let signalCandleSeries = null;
+
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.signal-chart-btn');
+    if (!btn) return;
+
+    e.stopPropagation();
+
+    const code = btn.dataset.code;
+    const name = btn.dataset.name;
+    const signalHigh = parseFloat(btn.dataset.signalHigh);
+    const signalLow = parseFloat(btn.dataset.signalLow);
+    const signalClose = parseFloat(btn.dataset.signalClose);
+    const currentPrice = parseFloat(btn.dataset.currentPrice);
+
+    // 모달 타이틀 설정
+    document.getElementById('signalChartModalLabel').textContent = `${name} 신호 차트`;
+
+    // 모달 열기
+    const modal = new bootstrap.Modal(document.getElementById('signalChartModal'));
+    modal.show();
+
+    // 차트 데이터 가져오기
+    fetch(`/stocks/api/stock/${code}/signal-chart/`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('차트 데이터 로드 실패');
+                return;
+            }
+
+            const container = document.getElementById('signalChartContainer');
+            container.innerHTML = '';
+
+            // Lightweight Charts 생성
+            signalChart = LightweightCharts.createChart(container, {
+                width: container.clientWidth,
+                height: 400,
+                layout: {
+                    background: { type: 'solid', color: '#ffffff' },
+                    textColor: '#333',
+                },
+                grid: {
+                    vertLines: { color: '#f0f0f0' },
+                    horzLines: { color: '#f0f0f0' },
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                },
+                rightPriceScale: {
+                    borderColor: '#ddd',
+                },
+                timeScale: {
+                    borderColor: '#ddd',
+                    timeVisible: false,
+                },
+            });
+
+            // 캔들스틱 시리즈 추가
+            signalCandleSeries = signalChart.addCandlestickSeries({
+                upColor: '#ef5350',
+                downColor: '#2196f3',
+                borderUpColor: '#ef5350',
+                borderDownColor: '#2196f3',
+                wickUpColor: '#ef5350',
+                wickDownColor: '#2196f3',
+            });
+
+            signalCandleSeries.setData(data.candle_data);
+
+            // 가격 라인 추가 (신호일 고가)
+            signalCandleSeries.createPriceLine({
+                price: signalHigh,
+                color: '#26a69a',
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Solid,
+                axisLabelVisible: true,
+                title: '고가',
+            });
+
+            // 신호일 저가
+            signalCandleSeries.createPriceLine({
+                price: signalLow,
+                color: '#ef5350',
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Solid,
+                axisLabelVisible: true,
+                title: '저가',
+            });
+
+            // 신호일 종가
+            signalCandleSeries.createPriceLine({
+                price: signalClose,
+                color: '#ff9800',
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Solid,
+                axisLabelVisible: true,
+                title: '종가',
+            });
+
+            // 현재가
+            signalCandleSeries.createPriceLine({
+                price: currentPrice,
+                color: '#2196f3',
+                lineWidth: 3,
+                lineStyle: LightweightCharts.LineStyle.Solid,
+                axisLabelVisible: true,
+                title: '현재',
+            });
+
+            signalChart.timeScale().fitContent();
+        })
+        .catch(err => {
+            console.error('차트 로드 에러:', err);
+        });
+});
+
+// 모달 닫힐 때 차트 정리
+document.getElementById('signalChartModal').addEventListener('hidden.bs.modal', function() {
+    if (signalChart) {
+        signalChart.remove();
+        signalChart = null;
+        signalCandleSeries = null;
+    }
+});
+
+// 창 크기 변경 시 차트 리사이즈
+window.addEventListener('resize', function() {
+    if (signalChart) {
+        const container = document.getElementById('signalChartContainer');
+        signalChart.applyOptions({ width: container.clientWidth });
+    }
 });
 </script>
 {% endblock %}

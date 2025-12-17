@@ -377,6 +377,12 @@ def index(request):
             'high_position': high_position,
             'sparkline': sparkline,
             'above_ma120': above_ma120,
+            'signal_date': signal_day.date.strftime('%Y-%m-%d'),
+            'signal_open': signal_day.opening_price,
+            'signal_high': signal_day.high_price,
+            'signal_low': signal_day.low_price,
+            'signal_close': signal_day.closing_price,
+            'current_price': stock.current_price,
         })
 
     # 양봉대비 순으로 정렬 (하락폭 작은 순)
@@ -886,6 +892,32 @@ def stock_insight_report_html(request, code):
     if not stock.insight_report_html:
         raise Http404("인사이트 리포트가 없습니다.")
     return HttpResponse(stock.insight_report_html, content_type='text/html; charset=utf-8')
+
+
+def signal_chart_data(request, code):
+    """신호 차트 데이터 API (최근 6개월 일봉)"""
+    stock = get_object_or_404(Info, code=code)
+
+    # 최근 120일 (약 6개월) 일봉 데이터
+    daily_charts = DailyChart.objects.filter(stock=stock).order_by('-date')[:120]
+
+    candle_data = [
+        {
+            'time': d.date.strftime('%Y-%m-%d'),
+            'open': d.opening_price,
+            'high': d.high_price,
+            'low': d.low_price,
+            'close': d.closing_price,
+        }
+        for d in reversed(daily_charts)
+    ]
+
+    return JsonResponse({
+        'success': True,
+        'stock_name': stock.name,
+        'current_price': stock.current_price,
+        'candle_data': candle_data,
+    })
 
 
 # 텔레그램 채널 목록 (채널ID: 표시명)
