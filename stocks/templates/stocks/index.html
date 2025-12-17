@@ -533,6 +533,110 @@ document.querySelectorAll('#dashboardTabs button').forEach(btn => {
 // 신호 차트 팝업
 let signalChart = null;
 let signalCandleSeries = null;
+let pendingChartData = null;
+
+function renderSignalChart() {
+    if (!pendingChartData) return;
+
+    const { signalHigh, signalLow, signalClose, currentPrice, candleData } = pendingChartData;
+    const container = document.getElementById('signalChartContainer');
+    container.innerHTML = '';
+
+    // 컨테이너 너비 확인
+    const containerWidth = container.clientWidth || 750;
+
+    // Lightweight Charts 생성
+    signalChart = LightweightCharts.createChart(container, {
+        width: containerWidth,
+        height: 400,
+        layout: {
+            background: { type: 'solid', color: '#ffffff' },
+            textColor: '#333',
+        },
+        grid: {
+            vertLines: { color: '#f0f0f0' },
+            horzLines: { color: '#f0f0f0' },
+        },
+        crosshair: {
+            mode: LightweightCharts.CrosshairMode.Normal,
+        },
+        rightPriceScale: {
+            borderColor: '#ddd',
+        },
+        timeScale: {
+            borderColor: '#ddd',
+            timeVisible: false,
+        },
+    });
+
+    // 캔들스틱 시리즈 추가
+    signalCandleSeries = signalChart.addCandlestickSeries({
+        upColor: '#ef5350',
+        downColor: '#2196f3',
+        borderUpColor: '#ef5350',
+        borderDownColor: '#2196f3',
+        wickUpColor: '#ef5350',
+        wickDownColor: '#2196f3',
+    });
+
+    signalCandleSeries.setData(candleData);
+
+    // 가격 라인 추가 (신호일 고가)
+    if (signalHigh) {
+        signalCandleSeries.createPriceLine({
+            price: signalHigh,
+            color: '#26a69a',
+            lineWidth: 2,
+            lineStyle: LightweightCharts.LineStyle.Solid,
+            axisLabelVisible: true,
+            title: '고가',
+        });
+    }
+
+    // 신호일 저가
+    if (signalLow) {
+        signalCandleSeries.createPriceLine({
+            price: signalLow,
+            color: '#ef5350',
+            lineWidth: 2,
+            lineStyle: LightweightCharts.LineStyle.Solid,
+            axisLabelVisible: true,
+            title: '저가',
+        });
+    }
+
+    // 신호일 종가
+    if (signalClose) {
+        signalCandleSeries.createPriceLine({
+            price: signalClose,
+            color: '#ff9800',
+            lineWidth: 2,
+            lineStyle: LightweightCharts.LineStyle.Solid,
+            axisLabelVisible: true,
+            title: '종가',
+        });
+    }
+
+    // 현재가
+    if (currentPrice) {
+        signalCandleSeries.createPriceLine({
+            price: currentPrice,
+            color: '#2196f3',
+            lineWidth: 3,
+            lineStyle: LightweightCharts.LineStyle.Solid,
+            axisLabelVisible: true,
+            title: '현재',
+        });
+    }
+
+    signalChart.timeScale().fitContent();
+    pendingChartData = null;
+}
+
+// 모달이 완전히 표시된 후 차트 렌더링
+document.getElementById('signalChartModal').addEventListener('shown.bs.modal', function() {
+    renderSignalChart();
+});
 
 document.addEventListener('click', function(e) {
     const btn = e.target.closest('.signal-chart-btn');
@@ -542,110 +646,48 @@ document.addEventListener('click', function(e) {
 
     const code = btn.dataset.code;
     const name = btn.dataset.name;
-    const signalHigh = parseFloat(btn.dataset.signalHigh);
-    const signalLow = parseFloat(btn.dataset.signalLow);
-    const signalClose = parseFloat(btn.dataset.signalClose);
-    const currentPrice = parseFloat(btn.dataset.currentPrice);
+    const signalHigh = parseFloat(btn.dataset.signalHigh) || 0;
+    const signalLow = parseFloat(btn.dataset.signalLow) || 0;
+    const signalClose = parseFloat(btn.dataset.signalClose) || 0;
+    const currentPrice = parseFloat(btn.dataset.currentPrice) || 0;
 
     // 모달 타이틀 설정
     document.getElementById('signalChartModalLabel').textContent = `${name} 신호 차트`;
+
+    // 로딩 표시
+    document.getElementById('signalChartContainer').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">차트 로딩 중...</p></div>';
 
     // 모달 열기
     const modal = new bootstrap.Modal(document.getElementById('signalChartModal'));
     modal.show();
 
     // 차트 데이터 가져오기
-    fetch(`/stocks/api/stock/${code}/signal-chart/`)
+    fetch(`/api/stock/${code}/signal-chart/`)
         .then(res => res.json())
         .then(data => {
             if (!data.success) {
-                console.error('차트 데이터 로드 실패');
+                document.getElementById('signalChartContainer').innerHTML = '<div class="text-center py-5 text-muted">차트 데이터를 불러올 수 없습니다.</div>';
                 return;
             }
 
-            const container = document.getElementById('signalChartContainer');
-            container.innerHTML = '';
+            // 데이터 저장 (모달이 열린 후 렌더링)
+            pendingChartData = {
+                signalHigh,
+                signalLow,
+                signalClose,
+                currentPrice,
+                candleData: data.candle_data,
+            };
 
-            // Lightweight Charts 생성
-            signalChart = LightweightCharts.createChart(container, {
-                width: container.clientWidth,
-                height: 400,
-                layout: {
-                    background: { type: 'solid', color: '#ffffff' },
-                    textColor: '#333',
-                },
-                grid: {
-                    vertLines: { color: '#f0f0f0' },
-                    horzLines: { color: '#f0f0f0' },
-                },
-                crosshair: {
-                    mode: LightweightCharts.CrosshairMode.Normal,
-                },
-                rightPriceScale: {
-                    borderColor: '#ddd',
-                },
-                timeScale: {
-                    borderColor: '#ddd',
-                    timeVisible: false,
-                },
-            });
-
-            // 캔들스틱 시리즈 추가
-            signalCandleSeries = signalChart.addCandlestickSeries({
-                upColor: '#ef5350',
-                downColor: '#2196f3',
-                borderUpColor: '#ef5350',
-                borderDownColor: '#2196f3',
-                wickUpColor: '#ef5350',
-                wickDownColor: '#2196f3',
-            });
-
-            signalCandleSeries.setData(data.candle_data);
-
-            // 가격 라인 추가 (신호일 고가)
-            signalCandleSeries.createPriceLine({
-                price: signalHigh,
-                color: '#26a69a',
-                lineWidth: 2,
-                lineStyle: LightweightCharts.LineStyle.Solid,
-                axisLabelVisible: true,
-                title: '고가',
-            });
-
-            // 신호일 저가
-            signalCandleSeries.createPriceLine({
-                price: signalLow,
-                color: '#ef5350',
-                lineWidth: 2,
-                lineStyle: LightweightCharts.LineStyle.Solid,
-                axisLabelVisible: true,
-                title: '저가',
-            });
-
-            // 신호일 종가
-            signalCandleSeries.createPriceLine({
-                price: signalClose,
-                color: '#ff9800',
-                lineWidth: 2,
-                lineStyle: LightweightCharts.LineStyle.Solid,
-                axisLabelVisible: true,
-                title: '종가',
-            });
-
-            // 현재가
-            signalCandleSeries.createPriceLine({
-                price: currentPrice,
-                color: '#2196f3',
-                lineWidth: 3,
-                lineStyle: LightweightCharts.LineStyle.Solid,
-                axisLabelVisible: true,
-                title: '현재',
-            });
-
-            signalChart.timeScale().fitContent();
+            // 모달이 이미 열려 있으면 바로 렌더링
+            const modalEl = document.getElementById('signalChartModal');
+            if (modalEl.classList.contains('show')) {
+                renderSignalChart();
+            }
         })
         .catch(err => {
             console.error('차트 로드 에러:', err);
+            document.getElementById('signalChartContainer').innerHTML = '<div class="text-center py-5 text-danger">차트 로드 에러</div>';
         });
 });
 
