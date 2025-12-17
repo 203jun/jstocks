@@ -255,6 +255,7 @@
                                 <td class="text-end px-3 py-2 signal-chart-btn {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %}"
                                     data-code="{{ item.stock.code }}"
                                     data-name="{{ item.stock.name }}"
+                                    data-signal-date="{{ item.signal_date }}"
                                     data-signal-open="{{ item.signal_open }}"
                                     data-signal-close="{{ item.signal_close }}"
                                     data-current-price="{{ item.current_price }}"
@@ -281,6 +282,7 @@
                         <span class="signal-chart-btn {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %} fw-bold"
                             data-code="{{ item.stock.code }}"
                             data-name="{{ item.stock.name }}"
+                            data-signal-date="{{ item.signal_date }}"
                             data-signal-open="{{ item.signal_open }}"
                             data-signal-close="{{ item.signal_close }}"
                             data-current-price="{{ item.current_price }}"
@@ -533,11 +535,24 @@ let pendingChartData = null;
 function renderSignalChart() {
     if (!pendingChartData) return;
 
-    const { signalOpen, signalClose, currentPrice, candleData, volumeData } = pendingChartData;
+    const { signalDate, signalOpen, signalClose, currentPrice, candleData, volumeData } = pendingChartData;
 
     // 봉 몸통 범위 계산 (양봉/음봉 상관없이 몸통의 상단/하단)
     const bodyLow = Math.min(signalOpen, signalClose);
     const bodyHigh = Math.max(signalOpen, signalClose);
+
+    // 신호 발생일 봉을 검정색으로 변경
+    const styledCandleData = candleData.map(candle => {
+        if (candle.time === signalDate) {
+            return {
+                ...candle,
+                color: '#000000',
+                borderColor: '#000000',
+                wickColor: '#000000',
+            };
+        }
+        return candle;
+    });
     const container = document.getElementById('signalChartContainer');
     container.innerHTML = '';
 
@@ -593,7 +608,7 @@ function renderSignalChart() {
         wickDownColor: '#2196f3',
     });
 
-    signalCandleSeries.setData(candleData);
+    signalCandleSeries.setData(styledCandleData);
 
     // 거래량 시리즈 추가
     signalVolumeSeries = signalChart.addHistogramSeries({
@@ -675,6 +690,7 @@ document.addEventListener('click', function(e) {
 
     const code = btn.dataset.code;
     const name = btn.dataset.name;
+    const signalDate = btn.dataset.signalDate;
     const signalOpen = parseFloat(btn.dataset.signalOpen) || 0;
     const signalClose = parseFloat(btn.dataset.signalClose) || 0;
     const currentPrice = parseFloat(btn.dataset.currentPrice) || 0;
@@ -700,6 +716,7 @@ document.addEventListener('click', function(e) {
 
             // 데이터 저장 (모달이 열린 후 렌더링)
             pendingChartData = {
+                signalDate,
                 signalOpen,
                 signalClose,
                 currentPrice,
