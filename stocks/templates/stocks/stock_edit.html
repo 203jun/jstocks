@@ -146,7 +146,6 @@
             <div class="card mb-3">
                 <div class="card-header py-2">
                     <strong>인사이트</strong>
-                    <small class="text-muted ms-2">(투자포인트/리스크/일정 통합)</small>
                 </div>
                 <div class="card-body">
                     <!-- 인사이트 탭 -->
@@ -174,59 +173,12 @@
             </div>
 
             <div class="card mb-3">
-                <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                    <strong>일정</strong>
-                    <button type="button" id="btnAddSchedule" class="btn btn-sm btn-outline-primary">추가</button>
+                <div class="card-header py-2">
+                    <strong>메모</strong>
+                    <small class="text-muted ms-2">(마크다운 지원)</small>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0" id="scheduleTable">
-                            <thead class="table-light">
-                                <tr>
-                                    <th class="ps-3" style="width:100px;">날짜</th>
-                                    <th style="width:110px;">알림일자</th>
-                                    <th>내용</th>
-                                    <th style="width:50px;"></th>
-                                </tr>
-                            </thead>
-                            <tbody id="scheduleBody">
-                                {% for schedule in schedules %}
-                                <tr data-id="{{ schedule.id }}">
-                                    <td class="ps-3">{{ schedule.date_text }}</td>
-                                    <td class="text-muted small">{{ schedule.date_sort|date:"Y-m-d"|default:"-" }}</td>
-                                    <td>{{ schedule.content }}</td>
-                                    <td class="text-center">
-                                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-schedule" data-id="{{ schedule.id }}">×</button>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr id="scheduleEmpty">
-                                    <td colspan="4" class="text-center text-muted py-3">등록된 일정이 없습니다.</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    <!-- 추가 폼 (숨김) -->
-                    <div id="scheduleAddForm" class="border-top p-3 d-none">
-                        <div class="row g-2 align-items-end">
-                            <div class="col-md-2">
-                                <label class="form-label small">날짜(표시)</label>
-                                <input type="text" class="form-control form-control-sm" id="scheduleAddDateText" placeholder="내년 상반기">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label small">알림일자</label>
-                                <input type="date" class="form-control form-control-sm" id="scheduleAddDateSort">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label small">내용</label>
-                                <input type="text" class="form-control form-control-sm" id="scheduleAddContent" placeholder="일정 내용">
-                            </div>
-                            <div class="col-md-2">
-                                <button type="button" id="btnSaveSchedule" class="btn btn-sm btn-primary w-100">저장</button>
-                            </div>
-                        </div>
-                    </div>
+                <div class="card-body">
+                    <textarea class="form-control" name="memo" id="memoInput" rows="6" placeholder="마크다운 형식으로 입력하세요...">{{ stock.memo }}</textarea>
                 </div>
             </div>
 
@@ -256,16 +208,6 @@
                             <small class="text-muted">HTML 코드를 붙여넣으면 리포트로 저장됩니다.</small>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <div class="card mb-3">
-                <div class="card-header py-2">
-                    <strong>메모</strong>
-                    <small class="text-muted ms-2">(마크다운 지원)</small>
-                </div>
-                <div class="card-body">
-                    <textarea class="form-control" name="memo" id="memoInput" rows="6" placeholder="마크다운 형식으로 입력하세요...">{{ stock.memo }}</textarea>
                 </div>
             </div>
 
@@ -928,126 +870,6 @@ if (investorChartData && investorChartData.length > 0) {
         });
     }
 }
-
-// ============ 일정 관리 ============
-const btnAddSchedule = document.getElementById('btnAddSchedule');
-const scheduleAddForm = document.getElementById('scheduleAddForm');
-const btnSaveSchedule = document.getElementById('btnSaveSchedule');
-const scheduleBody = document.getElementById('scheduleBody');
-
-// 추가 버튼 클릭 - 폼 토글
-btnAddSchedule.addEventListener('click', () => {
-    scheduleAddForm.classList.toggle('d-none');
-    if (!scheduleAddForm.classList.contains('d-none')) {
-        document.getElementById('scheduleAddDateText').focus();
-    }
-});
-
-// 저장 버튼 클릭
-btnSaveSchedule.addEventListener('click', async () => {
-    const dateText = document.getElementById('scheduleAddDateText').value.trim();
-    const dateSort = document.getElementById('scheduleAddDateSort').value;
-    const content = document.getElementById('scheduleAddContent').value.trim();
-
-    if (!dateText || !content) {
-        alert('날짜와 내용을 입력해주세요.');
-        return;
-    }
-
-    btnSaveSchedule.disabled = true;
-
-    try {
-        const formData = new FormData();
-        formData.append('date_text', dateText);
-        formData.append('date_sort', dateSort);
-        formData.append('content', content);
-
-        const response = await fetch(`/api/schedule/${stockCode}/add/`, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            // 빈 메시지 제거
-            const emptyRow = document.getElementById('scheduleEmpty');
-            if (emptyRow) emptyRow.remove();
-
-            // 새 행 추가
-            const newRow = document.createElement('tr');
-            newRow.dataset.id = data.id;
-            newRow.innerHTML = `
-                <td class="ps-3">${data.date_text}</td>
-                <td class="text-muted small">${data.date_sort || '-'}</td>
-                <td>${data.content}</td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-schedule" data-id="${data.id}">×</button>
-                </td>
-            `;
-            scheduleBody.appendChild(newRow);
-
-            // 폼 초기화 및 숨김
-            document.getElementById('scheduleAddDateText').value = '';
-            document.getElementById('scheduleAddDateSort').value = '';
-            document.getElementById('scheduleAddContent').value = '';
-            scheduleAddForm.classList.add('d-none');
-        } else {
-            alert(data.error || '저장에 실패했습니다.');
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-    } finally {
-        btnSaveSchedule.disabled = false;
-    }
-});
-
-// 삭제 버튼 클릭 (이벤트 위임)
-scheduleBody.addEventListener('click', async (e) => {
-    if (!e.target.classList.contains('btn-delete-schedule')) return;
-
-    const scheduleId = e.target.dataset.id;
-    if (!confirm('이 일정을 삭제하시겠습니까?')) return;
-
-    e.target.disabled = true;
-
-    try {
-        const formData = new FormData();
-        const response = await fetch(`/api/schedule/${scheduleId}/delete/`, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            // 행 제거
-            const row = e.target.closest('tr');
-            row.remove();
-
-            // 남은 행이 없으면 빈 메시지 표시
-            if (scheduleBody.querySelectorAll('tr').length === 0) {
-                scheduleBody.innerHTML = `
-                    <tr id="scheduleEmpty">
-                        <td colspan="4" class="text-center text-muted py-3">등록된 일정이 없습니다.</td>
-                    </tr>
-                `;
-            }
-        } else {
-            alert(data.error || '삭제에 실패했습니다.');
-            e.target.disabled = false;
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-        e.target.disabled = false;
-    }
-});
 
 // ============ 주가 vs 목표가 차트 ============
 const priceChartData = {{ price_chart_data|safe }};

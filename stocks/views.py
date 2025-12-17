@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET
 from decouple import config
 from telethon import TelegramClient
 from django.views.decorators.http import require_POST
-from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, Schedule, IndexChart, MarketTrend, InvestorTrend, ShortSelling
+from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, IndexChart, MarketTrend, InvestorTrend, ShortSelling
 
 
 def index(request):
@@ -554,9 +554,6 @@ def stock_detail(request, code):
         for m in monthly_charts
     ]
 
-    # 일정
-    schedules = Schedule.objects.filter(stock=stock).order_by('date_sort')
-
     # 섹터 (업종) - 고유한 이름만 추출
     sectors = stock.sectors.values('code', 'name').distinct().order_by('name')
 
@@ -566,7 +563,6 @@ def stock_detail(request, code):
 
     context = {
         'stock': stock,
-        'schedules': schedules,
         'sectors': sectors,
         'analysis_html_exists': analysis_html_exists,
         'annual_labels': json.dumps(annual_labels),
@@ -763,9 +759,6 @@ def stock_edit(request, code):
     # 공시 (최근 20개)
     gongsi_list = Gongsi.objects.filter(stock=stock).order_by('-date')[:20]
 
-    # 일정
-    schedules = Schedule.objects.filter(stock=stock).order_by('date_sort')
-
     # 수급 (투자자별 매매동향, 최근 60일)
     investor_trends = list(InvestorTrend.objects.filter(stock=stock).order_by('-date')[:60])
 
@@ -816,7 +809,6 @@ def stock_edit(request, code):
         'nodaji_list': nodaji_list,
         'total_nodaji': total_nodaji,
         'gongsi_list': gongsi_list,
-        'schedules': schedules,
         'investor_trends': investor_trends,
         'investor_chart_data': json.dumps(investor_chart_data),
         'short_sellings': short_sellings,
@@ -1630,51 +1622,6 @@ def fetch_dart(request, code):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
-
-@require_POST
-def schedule_add(request, code):
-    """일정 추가 API"""
-    stock = get_object_or_404(Info, code=code)
-
-    date_text = request.POST.get('date_text', '').strip()
-    date_sort = request.POST.get('date_sort', '').strip()
-    content = request.POST.get('content', '').strip()
-
-    if not date_text or not content:
-        return JsonResponse({'error': '날짜와 내용을 입력해주세요.'}, status=400)
-
-    # date_sort 파싱
-    date_sort_value = None
-    if date_sort:
-        try:
-            date_sort_value = datetime.strptime(date_sort, '%Y-%m-%d').date()
-        except ValueError:
-            pass
-
-    schedule = Schedule.objects.create(
-        stock=stock,
-        date_text=date_text,
-        date_sort=date_sort_value,
-        content=content,
-    )
-
-    return JsonResponse({
-        'success': True,
-        'id': schedule.id,
-        'date_text': schedule.date_text,
-        'date_sort': schedule.date_sort.strftime('%Y-%m-%d') if schedule.date_sort else '',
-        'content': schedule.content,
-    })
-
-
-@require_POST
-def schedule_delete(request, schedule_id):
-    """일정 삭제 API"""
-    schedule = get_object_or_404(Schedule, id=schedule_id)
-    schedule.delete()
-
-    return JsonResponse({'success': True})
 
 
 def sector(request):
