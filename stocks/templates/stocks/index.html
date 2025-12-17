@@ -644,11 +644,36 @@ function renderSignalChart() {
         });
     }
 
-    // 데이터 범위 설정 (날짜 범위 벗어나지 않게)
+    // 데이터 범위 설정 및 스크롤 제한
     if (candleData.length > 0) {
-        signalChart.timeScale().setVisibleRange({
-            from: candleData[0].time,
-            to: candleData[candleData.length - 1].time,
+        const firstTime = candleData[0].time;
+        const lastTime = candleData[candleData.length - 1].time;
+
+        signalChart.timeScale().fitContent();
+
+        // 스크롤 범위 제한
+        signalChart.timeScale().subscribeVisibleTimeRangeChange((newRange) => {
+            if (!newRange) return;
+
+            let needsUpdate = false;
+            let from = newRange.from;
+            let to = newRange.to;
+
+            // 왼쪽 범위 체크 (첫 데이터보다 이전으로 가지 않게)
+            if (from < firstTime) {
+                from = firstTime;
+                needsUpdate = true;
+            }
+
+            // 오른쪽 범위 체크 (마지막 데이터보다 이후로 가지 않게)
+            if (to > lastTime) {
+                to = lastTime;
+                needsUpdate = true;
+            }
+
+            if (needsUpdate) {
+                signalChart.timeScale().setVisibleRange({ from, to });
+            }
         });
     }
 
