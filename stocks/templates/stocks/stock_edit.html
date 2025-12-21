@@ -2204,5 +2204,28 @@ if (btnFetchShortSelling) {
         }
     });
 }
+
+// ============ URL 해시로 탭 활성화 ============
+if (window.location.hash) {
+    const hash = window.location.hash;
+    const tabMap = {
+        '#report-content': 'report-tab',
+        '#nodaji-content': 'nodaji-tab',
+        '#info-content': 'info-tab',
+        '#insight-content': 'insight-tab',
+        '#analysis-content': 'analysis-tab',
+        '#dart-content': 'dart-tab',
+        '#telegram-content': 'telegram-tab',
+        '#news-content': 'news-tab',
+        '#youtube-content': 'youtube-tab'
+    };
+    const tabId = tabMap[hash];
+    if (tabId) {
+        const tab = document.getElementById(tabId);
+        if (tab) {
+            new bootstrap.Tab(tab).show();
+        }
+    }
+}
 </script>
 {% endblock %}
