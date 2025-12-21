@@ -325,7 +325,7 @@
                         </thead>
                         <tbody>
                             {% for item in card_report_stocks %}
-                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_insight_report_html' item.stock.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
                                     <strong class="small">{{ item.stock.name }}</strong>
                                     {% if item.total_count > 1 %}<span class="badge bg-secondary ms-1" style="font-size: 0.65em;">+{{ item.total_count|add:"-1" }}</span>{% endif %}
@@ -347,7 +347,7 @@
             <!-- 모바일: 카드 리스트 -->
             <div class="card-body p-2 d-md-none">
                 {% for item in card_report_stocks %}
-                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_insight_report_html' item.stock.code %}'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
                         <span>
                             <strong>{{ item.stock.name }}</strong>
@@ -392,7 +392,7 @@
                         </thead>
                         <tbody>
                             {% for item in card_nodaji_stocks %}
-                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:nodaji_summary' item.nodaji_id %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
                                     <strong class="small">{{ item.stock.name }}</strong>
                                 </td>
@@ -409,7 +409,7 @@
             <!-- 모바일: 카드 리스트 -->
             <div class="card-body p-2 d-md-none">
                 {% for item in card_nodaji_stocks %}
-                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:nodaji_summary' item.nodaji_id %}'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
                         <strong>{{ item.stock.name }}</strong>
                         <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>

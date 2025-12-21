@@ -461,6 +461,7 @@ def index(request):
             stock = nodaji.stock
             card_nodaji_stocks.append({
                 'stock': stock,
+                'nodaji_id': nodaji.id,
                 'change_rate': stock.change_rate or 0,
                 'title': nodaji.title,
                 'date': nodaji.date,
