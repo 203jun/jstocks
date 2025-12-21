@@ -388,6 +388,88 @@ def index(request):
     # 양봉대비 순으로 정렬 (하락폭 작은 순)
     card_c_stocks.sort(key=lambda x: x['signal_price_change'], reverse=True)
 
+    # ============ 리포트 카드 ============
+    # 거래일 기준 최근 3일 가져오기 (아무 종목이나 사용)
+    recent_trading_dates = list(DailyChart.objects.values_list('date', flat=True)
+                                .order_by('-date').distinct()[:3])
+
+    card_report_stocks = []
+    if recent_trading_dates:
+        # 최근 3거래일 내 리포트 조회 (관심종목만)
+        reports = Report.objects.filter(
+            stock__in=target_stocks,
+            date__gte=min(recent_trading_dates)
+        ).select_related('stock').order_by('stock', 'date', '-target_price')
+
+        # 종목+날짜 별로 목표가 가장 높은 리포트만 선택, 총 개수 카운트
+        report_by_stock_date = defaultdict(list)
+        for report in reports:
+            key = (report.stock.code, report.date)
+            report_by_stock_date[key].append(report)
+
+        # 종목별로 그룹화 (가장 최신 날짜의 목표가 가장 높은 리포트)
+        stock_reports = defaultdict(list)
+        for (code, date), rpts in report_by_stock_date.items():
+            stock_reports[code].extend(rpts)
+
+        for code, rpts in stock_reports.items():
+            # 가장 최신 날짜 기준
+            latest_date = max(r.date for r in rpts)
+            latest_reports = [r for r in rpts if r.date == latest_date]
+
+            # 목표가 가장 높은 것 선택
+            best_report = max(latest_reports, key=lambda r: r.target_price or 0)
+            total_count = len(rpts)  # 해당 종목의 전체 리포트 개수
+
+            stock = best_report.stock
+
+            # 괴리율 계산 (목표가 vs 현재가)
+            gap_rate = 0
+            if best_report.target_price and stock.current_price:
+                gap_rate = round((best_report.target_price / stock.current_price - 1) * 100, 1)
+
+            card_report_stocks.append({
+                'stock': stock,
+                'change_rate': stock.change_rate or 0,
+                'title': best_report.title,
+                'target_price': best_report.target_price,
+                'gap_rate': gap_rate,
+                'date': best_report.date,
+                'provider': best_report.provider,
+                'total_count': total_count,
+            })
+
+    # 괴리율 높은 순 정렬
+    card_report_stocks.sort(key=lambda x: x['gap_rate'], reverse=True)
+
+    # ============ 노다지 카드 ============
+    card_nodaji_stocks = []
+    if recent_trading_dates:
+        # 최근 3거래일 내 노다지 조회 (관심종목만)
+        nodajis = Nodaji.objects.filter(
+            stock__in=target_stocks,
+            date__gte=min(recent_trading_dates)
+        ).select_related('stock').order_by('-date')
+
+        # 종목별로 가장 최신 노다지만
+        seen_codes = set()
+        for nodaji in nodajis:
+            if nodaji.stock.code in seen_codes:
+                continue
+            seen_codes.add(nodaji.stock.code)
+
+            stock = nodaji.stock
+            card_nodaji_stocks.append({
+                'stock': stock,
+                'change_rate': stock.change_rate or 0,
+                'title': nodaji.title,
+                'date': nodaji.date,
+                'link': nodaji.link,
+            })
+
+    # 등락율 순 정렬
+    card_nodaji_stocks.sort(key=lambda x: x['change_rate'], reverse=True)
+
     context = {
         'super_stocks': super_stocks,
         'normal_stocks': normal_stocks,
@@ -396,6 +478,8 @@ def index(request):
         'card_b_stocks': card_b_stocks,
         'card_d_stocks': card_d_stocks,
         'card_c_stocks': card_c_stocks,
+        'card_report_stocks': card_report_stocks,
+        'card_nodaji_stocks': card_nodaji_stocks,
     }
     return render(request, 'stocks/index.html', context)
 
