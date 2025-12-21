@@ -286,8 +286,9 @@ def index(request):
 
         signal_day = None
         signal_type = None
+        signal_days_ago = 0  # 거래일 기준 며칠 전
 
-        # 최근 5일 체크 (인덱스 0=오늘, 1=어제, ..., 4=4일전)
+        # 최근 5거래일 체크 (인덱스 0=오늘, 1=1거래일전, ..., 4=4거래일전)
         for day_idx in range(5):
             check_day = daily_data[day_idx]
 
@@ -312,6 +313,7 @@ def index(request):
                 if check_day.trading_volume == max_volume_60 and check_day.trading_volume > 0:
                     signal_day = check_day
                     signal_type = '60일'
+                    signal_days_ago = day_idx  # 거래일 기준
                     break
 
             # 20일 최대 거래량 체크
@@ -321,6 +323,7 @@ def index(request):
                 if check_day.trading_volume == max_volume_20 and check_day.trading_volume > 0:
                     signal_day = check_day
                     signal_type = '20일'
+                    signal_days_ago = day_idx  # 거래일 기준
                     break
 
         if not signal_day:
@@ -347,9 +350,6 @@ def index(request):
         # 10일 스파크라인 데이터 (종가)
         sparkline = [d.closing_price for d in daily_data[:10]]
         sparkline.reverse()  # 과거 → 현재 순서로
-
-        # 신호 발생일 (며칠 전)
-        signal_days_ago = (today.date - signal_day.date).days
 
         card_c_stocks.append({
             'stock': stock,
