@@ -188,8 +188,8 @@ def index(request):
     # 카드 A, B에 포함된 종목 코드 (중복 제거용)
     card_ab_codes = card_a_codes | {item['stock'].code for item in card_b_stocks}
 
-    # 카드 D: 이평선 줍줍 (조용한 지지)
-    # 상승 추세 종목이 거래량 없이 지지선까지 내려왔을 때 포착
+    # 카드 D: 이평선 줍줍 (정배열 눌림목)
+    # 정배열 상태에서 MA20 아래로 눌린 종목 포착
     card_d_stocks = []
 
     for stock in target_stocks:
@@ -197,60 +197,44 @@ def index(request):
         if stock.code in card_ab_codes:
             continue
 
-        # 최근 60일 일봉 데이터
+        # 최근 65일 일봉 데이터 (5일전 MA60 계산용)
         daily_data = list(DailyChart.objects.filter(
             stock=stock
-        ).order_by('-date')[:60])
+        ).order_by('-date')[:65])
 
-        if len(daily_data) < 60:  # MA60 계산을 위해 60일 필요
+        if len(daily_data) < 65:  # MA60 + 5일 필요
             continue
 
         # 오늘 데이터
         today = daily_data[0]
 
-        # MA20, MA60 계산
+        # MA20, MA60 계산 (오늘 기준)
         ma20 = sum(d.closing_price for d in daily_data[:20]) / 20
         ma60 = sum(d.closing_price for d in daily_data[:60]) / 60
 
-        # 20일 평균 거래량 계산
-        avg_volume_20 = sum(d.trading_volume for d in daily_data[:20]) / 20
+        # 5일 전 MA60 계산 (기울기 판단용)
+        ma60_5days_ago = sum(d.closing_price for d in daily_data[5:65]) / 60
 
-        # === 필수 전제 조건 (AND) ===
-        # 조건 1: 추세 조건 - 현재가 > MA60
-        if today.closing_price <= ma60:
+        # === 필터링 조건 (모두 AND) ===
+        # 조건 A (정배열): MA20 > MA60
+        if ma20 <= ma60:
             continue
 
-        # 조건 2: 거래량 조건 - 오늘 거래량 <= 20일 평균 거래량의 100%
-        if today.trading_volume > avg_volume_20:
+        # 조건 B (장기추세): MA60 기울기 > 0 (오늘 MA60 > 5일전 MA60)
+        if ma60 <= ma60_5days_ago:
             continue
 
-        # === 지지 위치 조건 (OR) ===
-        support_type = None
-
-        # Type 1 (20일선 지지): MA20 <= 저가 <= MA20 * 1.02
-        if ma20 <= today.low_price <= ma20 * 1.02:
-            support_type = 'MA20'
-        # Type 2 (60일선 지지): MA60 <= 저가 <= MA60 * 1.03
-        elif ma60 <= today.low_price <= ma60 * 1.03:
-            support_type = 'MA60'
-        else:
+        # 조건 C (눌림 상태): 종가 < MA20
+        if today.closing_price >= ma20:
             continue
 
-        # === 꼬리 뱃지 조건 (보너스) ===
-        lower_tail = min(today.opening_price, today.closing_price) - today.low_price
-        body = abs(today.opening_price - today.closing_price)
-        has_tail_badge = (lower_tail > body) or (lower_tail > today.closing_price * 0.005)
+        # 조건 D (최대 하락폭): 종가 >= MA60 * 0.90
+        if today.closing_price < ma60 * 0.90:
+            continue
 
-        # MA120 계산 및 위 여부
-        ma120 = sum(d.closing_price for d in daily_data[:60]) / 60  # 60일 데이터만 있으므로 근사치
-        if len(daily_data) >= 60:
-            # 120일 데이터 추가 조회
-            daily_data_120 = list(DailyChart.objects.filter(
-                stock=stock
-            ).order_by('-date')[:120])
-            if len(daily_data_120) >= 120:
-                ma120 = sum(d.closing_price for d in daily_data_120[:120]) / 120
-        above_ma120 = today.closing_price > ma120
+        # === 추가 정보 계산 ===
+        # MA60 대비 괴리율 (얼마나 눌렸는지)
+        gap_from_ma60 = round((today.closing_price / ma60 - 1) * 100, 1)
 
         # 52주(약 250일) 최고가 대비 위치 (마이너스 %)
         high_52w = stock.high_250 or stock.year_high
@@ -272,15 +256,13 @@ def index(request):
             'stock': stock,
             'change_rate': change_rate,
             'high_position': high_position,
-            'support_type': support_type,
-            'has_tail_badge': has_tail_badge,
-            'above_ma120': above_ma120,
+            'gap_from_ma60': gap_from_ma60,
             'trading_value': trading_value,
             'sparkline': sparkline,
         })
 
-    # 등락률 순으로 정렬
-    card_d_stocks.sort(key=lambda x: x['change_rate'], reverse=True)
+    # MA60 대비 괴리율 순으로 정렬 (0에 가까울수록 = 60일선에 가까울수록 상위)
+    card_d_stocks.sort(key=lambda x: x['gap_from_ma60'], reverse=True)
 
     # 카드 A, B, D에 포함된 종목 코드 (중복 제거용)
     card_abd_codes = card_ab_codes | {item['stock'].code for item in card_d_stocks}
