@@ -52,7 +52,7 @@
                         </thead>
                         <tbody>
                             {% for item in card_a_stocks %}
-                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
                                     <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
                                 </td>
@@ -71,7 +71,7 @@
             <!-- 모바일: 카드 리스트 -->
             <div class="card-body p-2 d-md-none">
                 {% for item in card_a_stocks %}
-                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
                         <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
                         <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
@@ -114,7 +114,7 @@
                         </thead>
                         <tbody>
                             {% for item in card_b_stocks %}
-                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
                                     <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
                                 </td>
@@ -133,7 +133,7 @@
             <!-- 모바일: 카드 리스트 -->
             <div class="card-body p-2 d-md-none">
                 {% for item in card_b_stocks %}
-                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
                         <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
                         <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
@@ -177,7 +177,7 @@
                         </thead>
                         <tbody>
                             {% for item in card_d_stocks %}
-                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
                                     <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
                                     {% if item.has_tail_badge %}<span class="ms-1" title="꼬리 지지">📍</span>{% endif %}
@@ -198,7 +198,7 @@
             <!-- 모바일: 카드 리스트 -->
             <div class="card-body p-2 d-md-none">
                 {% for item in card_d_stocks %}
-                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
                         <span>
                             <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
@@ -246,7 +246,7 @@
                         </thead>
                         <tbody>
                             {% for item in card_c_stocks %}
-                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" style="cursor:pointer;">
+                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" style="cursor:pointer;">
                                 <td class="px-3 py-2" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
                                     <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
                                 </td>
@@ -273,7 +273,7 @@
             <!-- 모바일: 카드 리스트 -->
             <div class="card-body p-2 d-md-none">
                 {% for item in card_c_stocks %}
-                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" style="cursor:pointer;">
+                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
                         <span onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
                             <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
@@ -439,18 +439,19 @@ function drawSparklines() {
 // 초기 스파크라인 그리기
 drawSparklines();
 
-// 탭별 카드 종목 개수 계산
+// 탭별 카드 종목 개수 계산 (중복 제거)
 function updateTabCounts() {
-    const counts = { super: 0, normal: 0, incubator: 0 };
+    const seen = { super: new Set(), normal: new Set(), incubator: new Set() };
     document.querySelectorAll('.dashboard-row').forEach(row => {
         const level = row.dataset.level;
-        if (counts.hasOwnProperty(level)) {
-            counts[level]++;
+        const code = row.dataset.code;
+        if (seen.hasOwnProperty(level) && code) {
+            seen[level].add(code);
         }
     });
-    document.getElementById('count-super').textContent = counts.super;
-    document.getElementById('count-normal').textContent = counts.normal;
-    document.getElementById('count-incubator').textContent = counts.incubator;
+    document.getElementById('count-super').textContent = seen.super.size;
+    document.getElementById('count-normal').textContent = seen.normal.size;
+    document.getElementById('count-incubator').textContent = seen.incubator.size;
 }
 
 // 페이지 로드 시 개수 계산
