@@ -1166,6 +1166,34 @@ class Sector(models.Model):
         return f"{self.name}({self.code}) [{self.market}] - {self.date} (개인: {self.individual_net_buying:,})"
 
 
+class CustomSector(models.Model):
+    """
+    사용자 정의 섹터
+
+    섹터 페이지에 표시할 사용자가 추가한 섹터 이름
+    예: 화장품, 2차전지, AI반도체 등
+    """
+    name = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name='섹터명',
+        help_text='섹터 이름 (예: 화장품, 2차전지)'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+
+    class Meta:
+        db_table = 'custom_sector'
+        verbose_name = '사용자정의섹터'
+        verbose_name_plural = '사용자정의섹터'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Report(models.Model):
     """
     애널리스트 리포트 데이터

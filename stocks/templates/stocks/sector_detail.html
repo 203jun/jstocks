@@ -1,0 +1,25 @@
+{% extends 'stocks/base.html' %}
+
+{% block title %}{{ sector.name }} - JStocks{% endblock %}
+
+{% block content %}
+<!-- 헤더 -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0">{{ sector.name }}</h4>
+        <small class="text-muted">섹터</small>
+    </div>
+    <div>
+        <a href="{% url 'stocks:sector_edit' sector.id %}" class="btn btn-sm btn-outline-primary">편집</a>
+        <a href="{% url 'stocks:sector' %}" class="btn btn-sm btn-outline-secondary">목록</a>
+    </div>
+</div>
+
+<!-- 메인 콘텐츠 (비워둠) -->
+<div class="card">
+    <div class="card-body text-center text-muted py-5">
+        <p class="mb-0">섹터 상세 정보가 여기에 표시됩니다.</p>
+        <small>편집 버튼을 눌러 리포트, 텔레그램, 뉴스, 유튜브를 검색하세요.</small>
+    </div>
+</div>
+{% endblock %}

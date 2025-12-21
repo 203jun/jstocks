@@ -159,6 +159,23 @@
         </div>
     </div>
 </div>
+
+<!-- 사용자 정의 섹터 -->
+{% if custom_sectors %}
+<div class="card mt-3">
+    <div class="card-header py-2">
+        <strong>관심 섹터</strong>
+        <small class="text-muted ms-2">{{ custom_sectors|length }}개</small>
+    </div>
+    <div class="card-body">
+        <div class="d-flex flex-wrap gap-2">
+            {% for sector in custom_sectors %}
+            <a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-primary text-decoration-none" style="font-size: 0.9rem; padding: 0.5rem 0.75rem; cursor: pointer;">{{ sector.name }}</a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

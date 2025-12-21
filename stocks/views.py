@@ -1759,7 +1759,10 @@ def fetch_dart(request, code):
 
 def sector(request):
     """섹터 페이지"""
-    from .models import Sector
+    from .models import Sector, CustomSector
+
+    # 사용자 정의 섹터
+    custom_sectors = CustomSector.objects.all()
 
     # === 업종 데이터 ===
     latest_kospi_date = Sector.objects.filter(market='KOSPI').order_by('-date').values_list('date', flat=True).first()
@@ -1835,8 +1838,33 @@ def sector(request):
         'kosdaq_sectors': kosdaq_sectors,
         'kospi_chart_data': json.dumps(kospi_chart_data),
         'kosdaq_chart_data': json.dumps(kosdaq_chart_data),
+        'custom_sectors': custom_sectors,
     }
     return render(request, 'stocks/sector.html', context)
+
+
+def sector_detail(request, sector_id):
+    """섹터 상세 페이지"""
+    from .models import CustomSector
+
+    sector = get_object_or_404(CustomSector, id=sector_id)
+
+    context = {
+        'sector': sector,
+    }
+    return render(request, 'stocks/sector_detail.html', context)
+
+
+def sector_edit(request, sector_id):
+    """섹터 편집 페이지"""
+    from .models import CustomSector
+
+    sector = get_object_or_404(CustomSector, id=sector_id)
+
+    context = {
+        'sector': sector,
+    }
+    return render(request, 'stocks/sector_edit.html', context)
 
 
 @require_GET
@@ -1871,11 +1899,12 @@ def sector_date_data(request):
 
 def settings(request):
     """설정 페이지"""
-    from .models import ThemeCategory, ExcludedYoutubeChannel, PreferredYoutubeChannel, Info, SystemSetting
+    from .models import ThemeCategory, ExcludedYoutubeChannel, PreferredYoutubeChannel, Info, SystemSetting, CustomSector
 
     categories = ThemeCategory.objects.prefetch_related('themes').all()
     excluded_channels = ExcludedYoutubeChannel.objects.all()
     preferred_channels = PreferredYoutubeChannel.objects.all()
+    custom_sectors = CustomSector.objects.all()
 
     # 종목분류 프롬프트용 데이터 (종목 | 대분류 | 소분류)
     stock_classify_lines = []
@@ -1895,6 +1924,7 @@ def settings(request):
         'categories': categories,
         'excluded_channels': excluded_channels,
         'preferred_channels': preferred_channels,
+        'custom_sectors': custom_sectors,
         'stock_classify_text': stock_classify_text,
         'stock_classify_lines_count': stock_classify_lines_count,
         'saved_prompts': saved_prompts,
@@ -2368,6 +2398,42 @@ def category_delete(request, category_id):
 
     category = get_object_or_404(ThemeCategory, id=category_id)
     category.delete()
+
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def custom_sector_add(request):
+    """사용자 정의 섹터 추가 API"""
+    from .models import CustomSector
+
+    name = request.POST.get('name', '').strip()
+
+    if not name:
+        return JsonResponse({'error': '섹터명을 입력해주세요.'}, status=400)
+
+    if len(name) > 50:
+        return JsonResponse({'error': '섹터명은 50자 이하로 입력해주세요.'}, status=400)
+
+    if CustomSector.objects.filter(name=name).exists():
+        return JsonResponse({'error': '이미 존재하는 섹터입니다.'}, status=400)
+
+    sector = CustomSector.objects.create(name=name)
+
+    return JsonResponse({
+        'success': True,
+        'id': sector.id,
+        'name': sector.name,
+    })
+
+
+@require_POST
+def custom_sector_delete(request, sector_id):
+    """사용자 정의 섹터 삭제 API"""
+    from .models import CustomSector
+
+    sector = get_object_or_404(CustomSector, id=sector_id)
+    sector.delete()
 
     return JsonResponse({'success': True})
 

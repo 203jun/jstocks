@@ -1,0 +1,561 @@
+{% extends 'stocks/base.html' %}
+
+{% block title %}{{ sector.name }} 편집 - JStocks{% endblock %}
+
+{% block content %}
+<!-- 헤더 -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0">{{ sector.name }}</h4>
+        <small class="text-muted">섹터 편집</small>
+    </div>
+    <div>
+        <a href="{% url 'stocks:sector_detail' sector.id %}" class="btn btn-sm btn-outline-secondary">상세</a>
+        <a href="{% url 'stocks:sector' %}" class="btn btn-sm btn-outline-secondary">목록</a>
+    </div>
+</div>
+
+<!-- 메인 탭 -->
+<ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab">리포트</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="telegram-tab" data-bs-toggle="tab" data-bs-target="#telegram-content" type="button" role="tab">텔레그램</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="news-tab" data-bs-toggle="tab" data-bs-target="#news-content" type="button" role="tab">뉴스</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="youtube-tab" data-bs-toggle="tab" data-bs-target="#youtube-content" type="button" role="tab">유튜브</button>
+    </li>
+</ul>
+
+<div class="tab-content" id="mainTabContent">
+    <!-- 리포트 탭 -->
+    <div class="tab-pane fade show active" id="report-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>리포트 검색</strong>
+                    <small class="text-muted ms-2">"{{ sector.name }}" 관련</small>
+                </div>
+                <button type="button" id="btnSearchReport" class="btn btn-sm btn-outline-primary">
+                    검색
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="reportLoading" class="text-center py-3 d-none">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span class="ms-2">검색 중...</span>
+                </div>
+                <div id="reportTabs" class="d-none">
+                    <ul class="nav nav-tabs" id="reportChannelTabs" role="tablist"></ul>
+                    <div class="tab-content pt-3" id="reportChannelTabContent"></div>
+                </div>
+                <div id="reportEmpty" class="text-muted">버튼을 클릭하면 "{{ sector.name }}" 관련 리포트를 검색합니다.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 텔레그램 탭 -->
+    <div class="tab-pane fade" id="telegram-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>텔레그램 검색</strong>
+                        <small class="text-muted ms-2">1주일 데이터</small>
+                    </div>
+                </div>
+                <div class="mt-2 d-flex gap-2">
+                    <input type="text" id="telegramSearchInput" class="form-control form-control-sm" value="{{ sector.name }}" placeholder="검색어 입력">
+                    <button type="button" id="btnSearchTelegram" class="btn btn-sm btn-outline-primary" style="white-space: nowrap;">
+                        검색
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="telegramLoading" class="text-center py-3 d-none">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span class="ms-2">검색 중...</span>
+                </div>
+                <div id="telegramTabs" class="d-none">
+                    <ul class="nav nav-tabs" id="channelTabs" role="tablist"></ul>
+                    <div class="tab-content pt-3" id="channelTabContent"></div>
+                </div>
+                <div id="telegramEmpty" class="text-muted">검색어를 입력하고 검색 버튼을 클릭하세요.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 뉴스 탭 -->
+    <div class="tab-pane fade" id="news-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Google 뉴스</strong>
+                    </div>
+                </div>
+                <div class="mt-2 d-flex gap-2">
+                    <input type="text" id="newsSearchInput" class="form-control form-control-sm" value="{{ sector.name }}" placeholder="검색어 입력">
+                    <button type="button" id="btnSearchNews" class="btn btn-sm btn-outline-info" style="white-space: nowrap;">
+                        검색
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="newsLoading" class="text-center py-3 d-none">
+                    <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+                    <span class="ms-2">검색 중... (5~10초 소요)</span>
+                </div>
+                <div id="newsResult">
+                    <div class="text-muted">검색어를 입력하고 검색 버튼을 클릭하세요.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 유튜브 탭 -->
+    <div class="tab-pane fade" id="youtube-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <strong>유튜브 검색</strong>
+                    <div class="d-flex gap-2">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" id="btnYoutubeGeneral" class="btn btn-outline-secondary active">일반</button>
+                            <button type="button" id="btnYoutubePreferred" class="btn btn-outline-secondary">선호</button>
+                        </div>
+                        <button type="button" id="btnSearchYoutube" class="btn btn-sm btn-danger">검색</button>
+                    </div>
+                </div>
+                <div class="mt-1">
+                    <small class="text-muted" id="youtubeSearchInfo">"{{ sector.name }}" 검색 · 조회수 1,000회 이상 · 최신순</small>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="youtubeLoading" class="text-center py-3 d-none">
+                    <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
+                    <span class="ms-2" id="youtubeLoadingText">검색 중...</span>
+                </div>
+                <div id="youtubeResult"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.highlight {
+    background-color: #fff3cd;
+    padding: 0 2px;
+    border-radius: 2px;
+    font-weight: bold;
+}
+#channelTabs,
+#reportChannelTabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    border-bottom: none;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #dee2e6;
+}
+@media (min-width: 768px) {
+    #channelTabs,
+    #reportChannelTabs {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+#channelTabs .nav-item,
+#reportChannelTabs .nav-item {
+    margin: 0;
+}
+#channelTabs .nav-link,
+#reportChannelTabs .nav-link {
+    display: block;
+    width: 100%;
+    padding: 4px 6px;
+    font-size: 0.7rem;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    background: #f8f9fa;
+    color: #495057;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#channelTabs .nav-link:hover,
+#reportChannelTabs .nav-link:hover {
+    background: #e9ecef;
+}
+#channelTabs .nav-link.active,
+#reportChannelTabs .nav-link.active {
+    background: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const sectorName = "{{ sector.name|escapejs }}";
+
+// 공통 함수
+function linkify(text) {
+    const urlRegex = /(https?:\/\/[^\s<]+)/g;
+    return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
+
+function highlightKeyword(text, keyword) {
+    if (!keyword) return text;
+    const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(regex, '<span class="highlight">$1</span>');
+}
+
+function countMessages(channelData) {
+    let total = 0;
+    let recent = 0;
+    const today = new Date();
+    const threeDaysAgo = new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const threeDaysAgoStr = threeDaysAgo.toISOString().split('T')[0];
+
+    for (const date in channelData) {
+        const count = channelData[date].length;
+        total += count;
+        if (date >= threeDaysAgoStr) {
+            recent += count;
+        }
+    }
+    return { total, recent };
+}
+
+function renderChannelContent(channelData, keyword) {
+    const dates = Object.keys(channelData).sort().reverse();
+    if (dates.length === 0) {
+        return '<div class="text-muted">검색 결과가 없습니다.</div>';
+    }
+
+    let html = '';
+    for (const date of dates) {
+        const items = channelData[date];
+        html += `<div class="mb-3">`;
+        html += `<h6 class="text-primary mb-2">${date} (${items.length}건)</h6>`;
+        items.forEach((item, idx) => {
+            let text = item.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            text = linkify(text);
+            text = highlightKeyword(text, keyword);
+            html += `<div class="border-start border-2 border-primary ps-2 py-2 small bg-light mb-0">`;
+            html += `<span class="text-muted">[${item.time}]</span> `;
+            html += `<span style="white-space: pre-wrap;">${text}</span>`;
+            html += `</div>`;
+            if (idx < items.length - 1) {
+                html += `<hr class="my-2">`;
+            }
+        });
+        html += `</div>`;
+    }
+    return html;
+}
+
+// 텔레그램 검색
+async function searchTelegram() {
+    const searchQuery = document.getElementById('telegramSearchInput').value.trim();
+    if (!searchQuery) {
+        alert('검색어를 입력하세요.');
+        return;
+    }
+
+    const loading = document.getElementById('telegramLoading');
+    const tabs = document.getElementById('telegramTabs');
+    const channelTabs = document.getElementById('channelTabs');
+    const channelTabContent = document.getElementById('channelTabContent');
+    const empty = document.getElementById('telegramEmpty');
+
+    loading.classList.remove('d-none');
+    tabs.classList.add('d-none');
+    channelTabs.innerHTML = '';
+    channelTabContent.innerHTML = '';
+    empty.classList.add('d-none');
+
+    try {
+        const response = await fetch(`/api/telegram/search/?keyword=${encodeURIComponent(searchQuery)}&limit=30`);
+        const data = await response.json();
+
+        if (data.error) {
+            channelTabContent.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            tabs.classList.remove('d-none');
+            return;
+        }
+
+        const channels = Object.keys(data.results);
+        const channelNames = data.channel_names || {};
+
+        if (channels.length === 0) {
+            empty.textContent = '검색 결과가 없습니다.';
+            empty.classList.remove('d-none');
+            return;
+        }
+
+        let tabsHtml = '';
+        let contentHtml = '';
+
+        channels.forEach((channel, idx) => {
+            const channelId = channel.replace('@', '');
+            const displayName = channelNames[channel] || channel;
+            const isActive = idx === 0;
+            const { total, recent } = countMessages(data.results[channel]);
+
+            const recentBadge = recent > 0 ? `<span class="badge bg-danger">${recent}</span>` : '';
+            const totalBadge = total > 0 ? `<span class="badge bg-secondary">${total}</span>` : '';
+
+            tabsHtml += `
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link ${isActive ? 'active' : ''} ${recent > 0 ? 'has-recent' : ''}"
+                            id="${channelId}-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#${channelId}-content"
+                            type="button" role="tab">
+                        ${displayName} ${recentBadge}${totalBadge}
+                    </button>
+                </li>`;
+
+            contentHtml += `
+                <div class="tab-pane fade ${isActive ? 'show active' : ''}"
+                     id="${channelId}-content" role="tabpanel">
+                    ${renderChannelContent(data.results[channel], searchQuery)}
+                </div>`;
+        });
+
+        channelTabs.innerHTML = tabsHtml;
+        channelTabContent.innerHTML = contentHtml;
+        tabs.classList.remove('d-none');
+
+    } catch (err) {
+        channelTabContent.innerHTML = `<div class="alert alert-danger">오류: ${err.message}</div>`;
+        tabs.classList.remove('d-none');
+    } finally {
+        loading.classList.add('d-none');
+    }
+}
+
+document.getElementById('btnSearchTelegram').addEventListener('click', searchTelegram);
+document.getElementById('telegramSearchInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') searchTelegram();
+});
+
+// 리포트 검색 (텔레그램에서 리포트 관련 채널 검색)
+document.getElementById('btnSearchReport').addEventListener('click', async function() {
+    const loading = document.getElementById('reportLoading');
+    const tabs = document.getElementById('reportTabs');
+    const reportChannelTabs = document.getElementById('reportChannelTabs');
+    const reportChannelTabContent = document.getElementById('reportChannelTabContent');
+    const empty = document.getElementById('reportEmpty');
+
+    loading.classList.remove('d-none');
+    tabs.classList.add('d-none');
+    reportChannelTabs.innerHTML = '';
+    reportChannelTabContent.innerHTML = '';
+    empty.classList.add('d-none');
+
+    try {
+        const response = await fetch(`/api/telegram/search/?keyword=${encodeURIComponent(sectorName)}&limit=30`);
+        const data = await response.json();
+
+        if (data.error) {
+            reportChannelTabContent.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            tabs.classList.remove('d-none');
+            return;
+        }
+
+        const channels = Object.keys(data.results);
+        const channelNames = data.channel_names || {};
+
+        if (channels.length === 0) {
+            empty.textContent = '검색 결과가 없습니다.';
+            empty.classList.remove('d-none');
+            return;
+        }
+
+        let tabsHtml = '';
+        let contentHtml = '';
+
+        channels.forEach((channel, idx) => {
+            const channelId = 'rpt_' + channel.replace('@', '');
+            const displayName = channelNames[channel] || channel;
+            const isActive = idx === 0;
+            const { total, recent } = countMessages(data.results[channel]);
+
+            const recentBadge = recent > 0 ? `<span class="badge bg-danger">${recent}</span>` : '';
+            const totalBadge = total > 0 ? `<span class="badge bg-secondary">${total}</span>` : '';
+
+            tabsHtml += `
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link ${isActive ? 'active' : ''}"
+                            id="${channelId}-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#${channelId}-content"
+                            type="button" role="tab">
+                        ${displayName} ${recentBadge}${totalBadge}
+                    </button>
+                </li>`;
+
+            contentHtml += `
+                <div class="tab-pane fade ${isActive ? 'show active' : ''}"
+                     id="${channelId}-content" role="tabpanel">
+                    ${renderChannelContent(data.results[channel], sectorName)}
+                </div>`;
+        });
+
+        reportChannelTabs.innerHTML = tabsHtml;
+        reportChannelTabContent.innerHTML = contentHtml;
+        tabs.classList.remove('d-none');
+
+    } catch (err) {
+        reportChannelTabContent.innerHTML = `<div class="alert alert-danger">오류: ${err.message}</div>`;
+        tabs.classList.remove('d-none');
+    } finally {
+        loading.classList.add('d-none');
+    }
+});
+
+// 뉴스 검색
+async function searchNews() {
+    const searchQuery = document.getElementById('newsSearchInput').value.trim();
+    if (!searchQuery) {
+        alert('검색어를 입력하세요.');
+        return;
+    }
+
+    const loading = document.getElementById('newsLoading');
+    const result = document.getElementById('newsResult');
+
+    loading.classList.remove('d-none');
+    result.innerHTML = '';
+
+    try {
+        const response = await fetch(`/api/news/search/?keyword=${encodeURIComponent(searchQuery)}`);
+        const data = await response.json();
+
+        if (data.error) {
+            result.innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
+        } else if (data.results.length === 0) {
+            result.innerHTML = '<div class="text-muted">검색 결과가 없습니다.</div>';
+        } else {
+            let html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0">';
+            html += '<thead class="table-light"><tr><th class="ps-3" style="width:130px;">날짜</th><th>제목</th><th style="width:150px;" class="d-none d-md-table-cell">출처</th></tr></thead><tbody>';
+            data.results.forEach(item => {
+                html += `<tr>`;
+                html += `<td class="text-muted ps-3" style="font-size:0.75rem;">${item.date || '-'}</td>`;
+                html += `<td><a href="${item.link}" target="_blank" class="text-decoration-none">${item.title}</a></td>`;
+                html += `<td class="text-muted d-none d-md-table-cell" style="font-size:0.75rem;">${item.source || ''}</td>`;
+                html += `</tr>`;
+            });
+            html += '</tbody></table></div>';
+            result.innerHTML = html;
+        }
+    } catch (err) {
+        result.innerHTML = '<div class="text-danger">오류: ' + err.message + '</div>';
+    } finally {
+        loading.classList.add('d-none');
+    }
+}
+
+document.getElementById('btnSearchNews').addEventListener('click', searchNews);
+document.getElementById('newsSearchInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') searchNews();
+});
+
+// 유튜브 검색 모드
+let youtubeSearchMode = 'general';
+
+document.getElementById('btnYoutubeGeneral').addEventListener('click', function() {
+    youtubeSearchMode = 'general';
+    this.classList.add('active');
+    document.getElementById('btnYoutubePreferred').classList.remove('active');
+    document.getElementById('youtubeSearchInfo').textContent = `"${sectorName}" 검색 · 조회수 1,000회 이상 · 최신순`;
+});
+
+document.getElementById('btnYoutubePreferred').addEventListener('click', function() {
+    youtubeSearchMode = 'preferred';
+    this.classList.add('active');
+    document.getElementById('btnYoutubeGeneral').classList.remove('active');
+    document.getElementById('youtubeSearchInfo').textContent = `선호 채널에서 "${sectorName}" 검색`;
+});
+
+// 유튜브 검색
+document.getElementById('btnSearchYoutube').addEventListener('click', async function() {
+    const loading = document.getElementById('youtubeLoading');
+    const loadingText = document.getElementById('youtubeLoadingText');
+    const result = document.getElementById('youtubeResult');
+
+    loading.classList.remove('d-none');
+    result.innerHTML = '';
+
+    let url;
+    if (youtubeSearchMode === 'preferred') {
+        loadingText.textContent = '선호 채널 검색 중... (채널 수에 따라 20~40초 소요)';
+        url = `/api/youtube/search/preferred/?keyword=${encodeURIComponent(sectorName)}&min_views=1000`;
+    } else {
+        loadingText.textContent = '검색 중...';
+        url = `/api/youtube/search/?keyword=${encodeURIComponent(sectorName)}&min_views=1000`;
+    }
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.error) {
+            result.innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
+        } else if (data.message && data.results.length === 0) {
+            result.innerHTML = `<div class="alert alert-warning mb-0">${data.message}</div>`;
+        } else if (data.results.length === 0) {
+            result.innerHTML = '<div class="text-muted">검색 결과가 없습니다.</div>';
+        } else {
+            let html = '';
+            if (data.channels_searched && data.channels_searched.length > 0) {
+                html += `<div class="small text-muted mb-2">검색 채널: ${data.channels_searched.join(', ')}</div>`;
+            }
+            html += '<div class="list-group list-group-flush">';
+            data.results.forEach(video => {
+                html += `<div class="list-group-item d-flex gap-3 py-2">`;
+                if (video.thumbnail) {
+                    html += `<a href="${video.link}" target="_blank"><img src="${video.thumbnail}" alt="" style="width:120px; height:68px; object-fit:cover; border-radius:4px;"></a>`;
+                }
+                html += `<div class="flex-grow-1 overflow-hidden">`;
+                html += `<a href="${video.link}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">${video.title}</a>`;
+                html += `<small class="text-muted">${video.channel}</small>`;
+                html += `<small class="text-muted ms-2">${video.views || ''}</small>`;
+                html += `<small class="text-muted ms-2">${video.published || ''}</small>`;
+                html += `</div>`;
+                html += `</div>`;
+            });
+            html += '</div>';
+            result.innerHTML = html;
+        }
+    } catch (err) {
+        result.innerHTML = '<div class="text-danger">오류: ' + err.message + '</div>';
+    } finally {
+        loading.classList.add('d-none');
+    }
+});
+
+// URL 해시로 탭 활성화
+document.addEventListener('DOMContentLoaded', function() {
+    const hash = window.location.hash;
+    if (hash) {
+        const tabButton = document.querySelector(`button[data-bs-target="${hash}"]`);
+        if (tabButton) {
+            const tab = new bootstrap.Tab(tabButton);
+            tab.show();
+        }
+    }
+});
+</script>
+{% endblock %}
