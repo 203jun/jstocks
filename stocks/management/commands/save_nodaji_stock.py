@@ -165,6 +165,10 @@ class Command(BaseCommand):
                 if not title or not link:
                     continue
 
+                # [모닝브리프], [마감브리프] 제외
+                if '[모닝브리프]' in title or '[마감브리프]' in title:
+                    continue
+
                 # 링크로 중복 체크
                 exists = Nodaji.objects.filter(link=link).exists()
 
