@@ -371,16 +371,16 @@ def index(request):
     card_c_stocks.sort(key=lambda x: x['signal_price_change'], reverse=True)
 
     # ============ 리포트 카드 ============
-    # 거래일 기준 최근 3일 가져오기 (아무 종목이나 사용)
-    recent_trading_dates = list(DailyChart.objects.values_list('date', flat=True)
+    # 거래일 기준 최근 3거래일 가져오기
+    recent_3_trading_dates = list(DailyChart.objects.values_list('date', flat=True)
                                 .order_by('-date').distinct()[:3])
 
     card_report_stocks = []
-    if recent_trading_dates:
+    if recent_3_trading_dates:
         # 최근 3거래일 내 리포트 조회 (관심종목만)
         reports = Report.objects.filter(
             stock__in=target_stocks,
-            date__gte=min(recent_trading_dates)
+            date__gte=min(recent_3_trading_dates)
         ).select_related('stock').order_by('stock', 'date', '-target_price')
 
         # 종목+날짜 별로 목표가 가장 높은 리포트만 선택, 총 개수 카운트
@@ -425,12 +425,16 @@ def index(request):
     card_report_stocks.sort(key=lambda x: x['gap_rate'], reverse=True)
 
     # ============ 노다지 카드 ============
+    # 거래일 기준 최근 5거래일 가져오기
+    recent_5_trading_dates = list(DailyChart.objects.values_list('date', flat=True)
+                                .order_by('-date').distinct()[:5])
+
     card_nodaji_stocks = []
-    if recent_trading_dates:
-        # 최근 3거래일 내 노다지 조회 (관심종목만)
+    if recent_5_trading_dates:
+        # 최근 5거래일 내 노다지 조회 (관심종목만)
         nodajis = Nodaji.objects.filter(
             stock__in=target_stocks,
-            date__gte=min(recent_trading_dates)
+            date__gte=min(recent_5_trading_dates)
         ).select_related('stock').order_by('-date')
 
         # 종목별로 가장 최신 노다지만
