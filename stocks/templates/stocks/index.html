@@ -54,7 +54,7 @@
                             {% for item in card_a_stocks %}
                             <tr class="dashboard-row signal-up-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
-                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
+                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
                                 </td>
                                 <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
                                     {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
@@ -69,7 +69,7 @@
                             {% for item in card_a_down_stocks %}
                             <tr class="dashboard-row signal-down-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
-                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
+                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
                                 </td>
                                 <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
                                     {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
@@ -90,7 +90,7 @@
                 {% for item in card_a_stocks %}
                 <div class="mobile-stock-item dashboard-row signal-up-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
-                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
+                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
                         <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
@@ -104,7 +104,7 @@
                 {% for item in card_a_down_stocks %}
                 <div class="mobile-stock-item dashboard-row signal-down-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
-                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
+                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
                         <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
@@ -143,7 +143,7 @@
                             {% for item in card_b_stocks %}
                             <tr class="dashboard-row signal-up-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
-                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
+                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
                                 </td>
                                 <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
                                     {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
@@ -158,7 +158,7 @@
                             {% for item in card_b_down_stocks %}
                             <tr class="dashboard-row signal-down-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
-                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
+                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
                                 </td>
                                 <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
                                     {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
@@ -179,7 +179,7 @@
                 {% for item in card_b_stocks %}
                 <div class="mobile-stock-item dashboard-row signal-up-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
-                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
+                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
                         <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
@@ -193,7 +193,7 @@
                 {% for item in card_b_down_stocks %}
                 <div class="mobile-stock-item dashboard-row signal-down-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
-                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
+                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
                         <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
@@ -232,7 +232,7 @@
                             {% for item in card_d_stocks %}
                             <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
-                                    <strong class="small">{{ item.stock.name }}</strong>
+                                    <strong class="small{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
                                 </td>
                                 <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
                                     {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
@@ -251,7 +251,7 @@
                 {% for item in card_d_stocks %}
                 <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
-                        <strong>{{ item.stock.name }}</strong>
+                        <strong class="{% if not item.stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ item.stock.name }}</strong>
                         <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
@@ -295,7 +295,7 @@
                             {% for item in card_c_stocks %}
                             <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" style="cursor:pointer;">
                                 <td class="px-3 py-2" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
-                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
+                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
                                 </td>
                                 <td class="text-center px-3 py-2" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'"><span class="badge" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %};">{{ item.signal_type }}</span></td>
                                 <td class="text-center px-3 py-2 small" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">{{ item.signal_days_ago }}일전</td>
@@ -323,7 +323,7 @@
                 <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
                         <span onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
-                            <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.stock.name }}</strong>
+                            <strong class="{% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
                             <span class="badge ms-1" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %}; font-size: 0.7em;">{{ item.signal_type }}</span>
                         </span>
                         <span class="signal-chart-btn {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %} fw-bold"
@@ -374,7 +374,7 @@
                             {% for item in card_report_stocks %}
                             <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_edit' item.stock.code %}#report-content'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
-                                    <strong class="small">{{ item.stock.name }}</strong>
+                                    <strong class="small{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
                                     {% if item.total_count > 1 %}<span class="badge bg-secondary ms-1" style="font-size: 0.65em;">+{{ item.total_count|add:"-1" }}</span>{% endif %}
                                 </td>
                                 <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
@@ -397,7 +397,7 @@
                 <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_edit' item.stock.code %}#report-content'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
                         <span>
-                            <strong>{{ item.stock.name }}</strong>
+                            <strong class="{% if not item.stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ item.stock.name }}</strong>
                             {% if item.total_count > 1 %}<span class="badge bg-secondary ms-1" style="font-size: 0.7em;">+{{ item.total_count|add:"-1" }}</span>{% endif %}
                         </span>
                         <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
@@ -441,7 +441,7 @@
                             {% for item in card_nodaji_stocks %}
                             <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_edit' item.stock.code %}#nodaji-content'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
-                                    <strong class="small">{{ item.stock.name }}</strong>
+                                    <strong class="small{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
                                 </td>
                                 <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
                                     {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
@@ -458,7 +458,7 @@
                 {% for item in card_nodaji_stocks %}
                 <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_edit' item.stock.code %}#nodaji-content'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
-                        <strong>{{ item.stock.name }}</strong>
+                        <strong class="{% if not item.stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ item.stock.name }}</strong>
                         <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
                     </div>
                     <div class="text-muted small mt-1 text-truncate">{{ item.title }}</div>

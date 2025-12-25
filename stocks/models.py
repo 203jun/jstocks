@@ -219,6 +219,13 @@ class Info(models.Model):
         help_text='메모 마지막 수정일'
     )
 
+    @property
+    def has_insight_and_analysis(self):
+        """인사이트와 기업분석 둘 다 있는지 확인"""
+        has_insight = bool(self.insight_summary_html or self.insight_report_html)
+        has_analysis = bool(self.analysis_text)
+        return has_insight and has_analysis
+
     class Meta:
         db_table = 'info'
         verbose_name = '종목정보'
