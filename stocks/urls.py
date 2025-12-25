@@ -58,10 +58,23 @@ urlpatterns = [
     path('api/news/save/', views.news_save, name='news_save'),
     path('api/news/save-by-link/', views.news_save_by_link, name='news_save_by_link'),
     path('api/news/<int:news_id>/delete/', views.news_delete, name='news_delete'),
-    # 텔레그램
+    # 텔레그램 (종목)
     path('telegram/<int:message_id>/summary/', views.telegram_summary, name='telegram_summary'),
     path('api/telegram/message/save/', views.telegram_message_save, name='telegram_message_save'),
     path('api/telegram/message/<int:message_id>/delete/', views.telegram_message_delete, name='telegram_message_delete'),
+    # 텔레그램 (섹터)
+    path('api/sector/telegram/save/', views.sector_telegram_message_save, name='sector_telegram_message_save'),
+    path('api/sector/telegram/<int:message_id>/delete/', views.sector_telegram_message_delete, name='sector_telegram_message_delete'),
+    # 뉴스 (섹터)
+    path('sector/news/<int:news_id>/summary/', views.sector_news_summary, name='sector_news_summary'),
+    path('api/sector/news/save/', views.sector_news_save, name='sector_news_save'),
+    path('api/sector/news/save-by-link/', views.sector_news_save_by_link, name='sector_news_save_by_link'),
+    path('api/sector/news/<int:news_id>/delete/', views.sector_news_delete, name='sector_news_delete'),
+    # 유튜브 (섹터)
+    path('sector/youtube/<int:video_id>/summary/', views.sector_youtube_summary, name='sector_youtube_summary'),
+    path('api/sector/youtube/video/save/', views.sector_youtube_video_save, name='sector_youtube_video_save'),
+    path('api/sector/youtube/video/save-by-link/', views.sector_youtube_video_save_by_link, name='sector_youtube_video_save_by_link'),
+    path('api/sector/youtube/video/<int:video_id>/delete/', views.sector_youtube_video_delete, name='sector_youtube_video_delete'),
     path('api/market/trend/<str:market>/refresh/', views.refresh_market_trend, name='refresh_market_trend'),
     path('api/sector/<str:market>/refresh/', views.refresh_sector, name='refresh_sector'),
     path('api/stock/<str:code>/refresh/', views.refresh_stock, name='refresh_stock'),

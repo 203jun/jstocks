@@ -1895,6 +1895,182 @@ class TelegramMessage(models.Model):
         return f"{self.stock.name} - {self.channel} [{self.date}]"
 
 
+class SectorTelegramMessage(models.Model):
+    """
+    섹터별 저장된 텔레그램 메시지
+
+    섹터별로 관심 텔레그램 메시지를 저장
+    """
+
+    sector = models.ForeignKey(
+        CustomSector,
+        on_delete=models.CASCADE,
+        related_name='telegram_messages',
+        verbose_name='섹터'
+    )
+    channel = models.CharField(
+        max_length=100,
+        verbose_name='채널'
+    )
+    channel_name = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='채널명'
+    )
+    date = models.CharField(
+        max_length=20,
+        verbose_name='날짜'
+    )
+    time = models.CharField(
+        max_length=20,
+        verbose_name='시간'
+    )
+    text = models.TextField(
+        verbose_name='내용'
+    )
+    summary = models.TextField(
+        blank=True,
+        verbose_name='요약',
+        help_text='메시지 요약 내용'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='저장일시'
+    )
+
+    class Meta:
+        db_table = 'sector_telegram_message'
+        verbose_name = '섹터 텔레그램 메시지'
+        verbose_name_plural = '섹터 텔레그램 메시지'
+        ordering = ['-date', '-time']
+
+    def __str__(self):
+        return f"{self.sector.name} - {self.channel} [{self.date}]"
+
+
+class SectorNews(models.Model):
+    """
+    섹터별 저장된 뉴스 기사
+
+    섹터별로 관심 뉴스를 저장
+    """
+
+    sector = models.ForeignKey(
+        CustomSector,
+        on_delete=models.CASCADE,
+        related_name='news_articles',
+        verbose_name='섹터'
+    )
+    title = models.CharField(
+        max_length=500,
+        verbose_name='제목'
+    )
+    link = models.URLField(
+        max_length=1000,
+        verbose_name='링크'
+    )
+    source = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='출처'
+    )
+    published = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name='게시일'
+    )
+    summary = models.TextField(
+        blank=True,
+        verbose_name='요약',
+        help_text='뉴스 요약 내용'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='저장일시'
+    )
+
+    class Meta:
+        db_table = 'sector_news'
+        verbose_name = '섹터 뉴스'
+        verbose_name_plural = '섹터 뉴스'
+        ordering = ['-created_at']
+        unique_together = [('sector', 'link')]
+
+    def __str__(self):
+        return f"{self.sector.name} - {self.title}"
+
+
+class SectorYoutubeVideo(models.Model):
+    """
+    섹터별 저장된 유튜브 영상
+
+    섹터별로 관심 영상을 저장
+    """
+
+    sector = models.ForeignKey(
+        CustomSector,
+        on_delete=models.CASCADE,
+        related_name='youtube_videos',
+        verbose_name='섹터'
+    )
+    video_id = models.CharField(
+        max_length=20,
+        verbose_name='영상ID',
+        help_text='유튜브 영상 고유 ID'
+    )
+    title = models.CharField(
+        max_length=200,
+        verbose_name='제목'
+    )
+    channel = models.CharField(
+        max_length=100,
+        verbose_name='채널명'
+    )
+    thumbnail = models.URLField(
+        max_length=500,
+        blank=True,
+        verbose_name='썸네일'
+    )
+    duration = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name='재생시간'
+    )
+    views = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name='조회수'
+    )
+    published = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name='업로드일'
+    )
+    summary = models.TextField(
+        blank=True,
+        verbose_name='요약',
+        help_text='영상 요약 내용'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='저장일시'
+    )
+
+    class Meta:
+        db_table = 'sector_youtube_video'
+        verbose_name = '섹터 유튜브 영상'
+        verbose_name_plural = '섹터 유튜브 영상'
+        ordering = ['-created_at']
+        unique_together = [('sector', 'video_id')]
+
+    def __str__(self):
+        return f"{self.sector.name} - {self.title}"
+
+    @property
+    def link(self):
+        return f'https://www.youtube.com/watch?v={self.video_id}'
+
+
 class SystemSetting(models.Model):
     """
     시스템 설정 (키-값 저장)

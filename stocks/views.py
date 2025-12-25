@@ -1887,12 +1887,18 @@ def sector_detail(request, sector_id):
 
 def sector_edit(request, sector_id):
     """섹터 편집 페이지"""
-    from .models import CustomSector
+    from .models import CustomSector, SectorTelegramMessage, SectorNews, SectorYoutubeVideo
 
     sector = get_object_or_404(CustomSector, id=sector_id)
+    telegram_messages = SectorTelegramMessage.objects.filter(sector=sector).order_by('-date', '-time')
+    news_articles = SectorNews.objects.filter(sector=sector).order_by('-created_at')
+    youtube_videos = SectorYoutubeVideo.objects.filter(sector=sector).order_by('-created_at')
 
     context = {
         'sector': sector,
+        'telegram_messages': telegram_messages,
+        'news_articles': news_articles,
+        'youtube_videos': youtube_videos,
     }
     return render(request, 'stocks/sector_edit.html', context)
 
@@ -4129,3 +4135,394 @@ def save_setting(request):
     )
 
     return JsonResponse({'success': True})
+
+
+# ============ 섹터 텔레그램 메시지 ============
+
+@require_POST
+def sector_telegram_message_save(request):
+    """섹터 텔레그램 메시지 저장"""
+    from .models import CustomSector, SectorTelegramMessage
+
+    sector_id = request.POST.get('sector_id')
+    channel = request.POST.get('channel', '')
+    channel_name = request.POST.get('channel_name', '')
+    date = request.POST.get('date', '')
+    time = request.POST.get('time', '')
+    text = request.POST.get('text', '')
+
+    if not sector_id or not channel or not date or not time or not text:
+        return JsonResponse({'error': '필수 항목이 누락되었습니다.'})
+
+    try:
+        sector = CustomSector.objects.get(id=sector_id)
+    except CustomSector.DoesNotExist:
+        return JsonResponse({'error': '섹터를 찾을 수 없습니다.'})
+
+    # 중복 체크
+    exists = SectorTelegramMessage.objects.filter(
+        sector=sector,
+        channel=channel,
+        date=date,
+        time=time
+    ).exists()
+
+    if exists:
+        return JsonResponse({'error': '이미 저장된 메시지입니다.'})
+
+    msg = SectorTelegramMessage.objects.create(
+        sector=sector,
+        channel=channel,
+        channel_name=channel_name,
+        date=date,
+        time=time,
+        text=text
+    )
+
+    return JsonResponse({
+        'success': True,
+        'id': msg.id,
+        'channel': msg.channel,
+        'channel_name': msg.channel_name,
+        'date': msg.date,
+        'time': msg.time,
+        'text': msg.text,
+    })
+
+
+@require_POST
+def sector_telegram_message_delete(request, message_id):
+    """섹터 텔레그램 메시지 삭제"""
+    from .models import SectorTelegramMessage
+
+    try:
+        msg = SectorTelegramMessage.objects.get(id=message_id)
+        msg.delete()
+        return JsonResponse({'success': True})
+    except SectorTelegramMessage.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '메시지를 찾을 수 없습니다.'})
+
+
+# ============ 섹터 뉴스 ============
+
+@require_POST
+def sector_news_save(request):
+    """섹터 뉴스 저장 (검색 결과에서)"""
+    from .models import CustomSector, SectorNews
+
+    sector_id = request.POST.get('sector_id')
+    title = request.POST.get('title', '')
+    link = request.POST.get('link', '')
+    source = request.POST.get('source', '')
+    published = request.POST.get('published', '')
+
+    if not sector_id or not title or not link:
+        return JsonResponse({'error': '필수 항목이 누락되었습니다.'})
+
+    try:
+        sector = CustomSector.objects.get(id=sector_id)
+    except CustomSector.DoesNotExist:
+        return JsonResponse({'error': '섹터를 찾을 수 없습니다.'})
+
+    # 중복 체크
+    if SectorNews.objects.filter(sector=sector, link=link).exists():
+        return JsonResponse({'error': '이미 저장된 뉴스입니다.'})
+
+    news = SectorNews.objects.create(
+        sector=sector,
+        title=title,
+        link=link,
+        source=source,
+        published=published
+    )
+
+    return JsonResponse({
+        'success': True,
+        'id': news.id,
+        'title': news.title,
+        'link': news.link,
+        'source': news.source,
+        'published': news.published,
+    })
+
+
+@require_POST
+def sector_news_save_by_link(request):
+    """섹터 뉴스 저장 (링크로 직접)"""
+    import requests as http_requests
+    from bs4 import BeautifulSoup
+    from .models import CustomSector, SectorNews
+
+    sector_id = request.POST.get('sector_id')
+    link = request.POST.get('link', '').strip()
+
+    if not sector_id or not link:
+        return JsonResponse({'error': '필수 항목이 누락되었습니다.'})
+
+    try:
+        sector = CustomSector.objects.get(id=sector_id)
+    except CustomSector.DoesNotExist:
+        return JsonResponse({'error': '섹터를 찾을 수 없습니다.'})
+
+    # 중복 체크
+    if SectorNews.objects.filter(sector=sector, link=link).exists():
+        return JsonResponse({'error': '이미 저장된 뉴스입니다.'})
+
+    # 뉴스 페이지에서 정보 추출
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        response = http_requests.get(link, headers=headers, timeout=10)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # og:title 또는 title 태그에서 제목 추출
+        og_title = soup.find('meta', property='og:title')
+        title = og_title['content'] if og_title else (soup.title.string if soup.title else link)
+
+        # og:site_name에서 출처 추출
+        og_site = soup.find('meta', property='og:site_name')
+        source = og_site['content'] if og_site else ''
+
+    except Exception as e:
+        return JsonResponse({'error': f'페이지를 가져올 수 없습니다: {str(e)}'})
+
+    news = SectorNews.objects.create(
+        sector=sector,
+        title=title,
+        link=link,
+        source=source,
+        published=''
+    )
+
+    return JsonResponse({
+        'success': True,
+        'id': news.id,
+        'title': news.title,
+        'link': news.link,
+        'source': news.source,
+        'published': news.published,
+    })
+
+
+@require_POST
+def sector_news_delete(request, news_id):
+    """섹터 뉴스 삭제"""
+    from .models import SectorNews
+
+    try:
+        news = SectorNews.objects.get(id=news_id)
+        news.delete()
+        return JsonResponse({'success': True})
+    except SectorNews.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '뉴스를 찾을 수 없습니다.'})
+
+
+def sector_news_summary(request, news_id):
+    """섹터 뉴스 요약 페이지"""
+    from django.contrib import messages
+    from .models import SectorNews
+
+    news = get_object_or_404(SectorNews, id=news_id)
+
+    if request.method == 'POST':
+        summary = request.POST.get('summary', '')
+        news.summary = summary
+        news.save()
+        messages.success(request, '저장되었습니다.')
+        return redirect('stocks:sector_news_summary', news_id=news_id)
+
+    return render(request, 'stocks/sector_news_summary.html', {'news': news})
+
+
+# ============ 섹터 유튜브 ============
+
+@require_POST
+def sector_youtube_video_save(request):
+    """섹터 유튜브 영상 저장 API"""
+    from .models import SectorYoutubeVideo, CustomSector
+
+    sector_id = request.POST.get('sector_id', '').strip()
+    video_id = request.POST.get('video_id', '').strip()
+    title = request.POST.get('title', '').strip()
+    channel = request.POST.get('channel', '').strip()
+    thumbnail = request.POST.get('thumbnail', '').strip()
+    duration = request.POST.get('duration', '').strip()
+    views = request.POST.get('views', '').strip()
+    published = request.POST.get('published', '').strip()
+
+    if not sector_id or not video_id or not title:
+        return JsonResponse({'error': '필수 정보가 누락되었습니다.'}, status=400)
+
+    sector = get_object_or_404(CustomSector, id=sector_id)
+
+    # 이미 저장된 영상인지 확인
+    if SectorYoutubeVideo.objects.filter(sector=sector, video_id=video_id).exists():
+        return JsonResponse({'error': '이미 저장된 영상입니다.'}, status=400)
+
+    video = SectorYoutubeVideo.objects.create(
+        sector=sector,
+        video_id=video_id,
+        title=title,
+        channel=channel,
+        thumbnail=thumbnail,
+        duration=duration,
+        views=views,
+        published=published,
+    )
+
+    return JsonResponse({
+        'success': True,
+        'id': video.id,
+        'video_id': video.video_id,
+        'title': video.title,
+    })
+
+
+@require_POST
+def sector_youtube_video_save_by_link(request):
+    """섹터 유튜브 링크로 영상 저장 API"""
+    import requests as http_requests
+    import re
+    import json
+    from .models import SectorYoutubeVideo, CustomSector
+
+    sector_id = request.POST.get('sector_id', '').strip()
+    link = request.POST.get('link', '').strip()
+
+    if not sector_id or not link:
+        return JsonResponse({'error': '필수 정보가 누락되었습니다.'}, status=400)
+
+    # video_id 추출
+    video_id = None
+    # youtube.com/watch?v=VIDEO_ID
+    match = re.search(r'[?&]v=([^&]+)', link)
+    if match:
+        video_id = match.group(1)
+    else:
+        # youtu.be/VIDEO_ID
+        match = re.search(r'youtu\.be/([^?&]+)', link)
+        if match:
+            video_id = match.group(1)
+        else:
+            # youtube.com/embed/VIDEO_ID
+            match = re.search(r'embed/([^?&]+)', link)
+            if match:
+                video_id = match.group(1)
+
+    if not video_id:
+        return JsonResponse({'error': '올바른 유튜브 링크가 아닙니다.'}, status=400)
+
+    sector = get_object_or_404(CustomSector, id=sector_id)
+
+    # 이미 저장된 영상인지 확인
+    if SectorYoutubeVideo.objects.filter(sector=sector, video_id=video_id).exists():
+        return JsonResponse({'error': '이미 저장된 영상입니다.'}, status=400)
+
+    # 유튜브 페이지에서 영상 정보 가져오기
+    try:
+        url = f'https://www.youtube.com/watch?v={video_id}'
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'ko-KR,ko;q=0.9',
+        }
+        response = http_requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+
+        # ytInitialPlayerResponse에서 정보 추출
+        title = ''
+        channel = ''
+        thumbnail = ''
+        views = ''
+        published = ''
+
+        # 유니코드 이스케이프 디코딩 함수
+        def decode_unicode(s):
+            try:
+                return json.loads(f'"{s}"')
+            except:
+                return s
+
+        # 제목 추출
+        title_match = re.search(r'"title":"([^"]+)"', response.text)
+        if title_match:
+            title = decode_unicode(title_match.group(1))
+
+        # 채널명 추출
+        channel_match = re.search(r'"ownerChannelName":"([^"]+)"', response.text)
+        if channel_match:
+            channel = decode_unicode(channel_match.group(1))
+
+        # 썸네일
+        thumbnail = f'https://i.ytimg.com/vi/{video_id}/hqdefault.jpg'
+
+        # 조회수 추출
+        views_match = re.search(r'"viewCount":"(\d+)"', response.text)
+        if views_match:
+            view_count = int(views_match.group(1))
+            if view_count >= 10000:
+                views = f'조회수 {view_count // 10000}만회'
+            elif view_count >= 1000:
+                views = f'조회수 {view_count // 1000}천회'
+            else:
+                views = f'조회수 {view_count}회'
+
+        # 업로드 날짜 추출
+        date_match = re.search(r'"publishDate":"(\d{4}-\d{2}-\d{2})"', response.text)
+        if date_match:
+            published = date_match.group(1)
+
+        if not title:
+            return JsonResponse({'error': '영상 정보를 가져올 수 없습니다.'}, status=400)
+
+        video = SectorYoutubeVideo.objects.create(
+            sector=sector,
+            video_id=video_id,
+            title=title,
+            channel=channel,
+            thumbnail=thumbnail,
+            views=views,
+            published=published,
+        )
+
+        return JsonResponse({
+            'success': True,
+            'id': video.id,
+            'video_id': video.video_id,
+            'title': video.title,
+            'channel': video.channel,
+            'thumbnail': video.thumbnail,
+            'views': video.views,
+            'published': video.published,
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': f'영상 정보를 가져오는 중 오류: {str(e)}'}, status=500)
+
+
+@require_POST
+def sector_youtube_video_delete(request, video_id):
+    """섹터 유튜브 영상 삭제 API"""
+    from .models import SectorYoutubeVideo
+
+    video = get_object_or_404(SectorYoutubeVideo, id=video_id)
+    video.delete()
+
+    return JsonResponse({'success': True})
+
+
+def sector_youtube_summary(request, video_id):
+    """섹터 유튜브 영상 요약 편집 페이지"""
+    from .models import SectorYoutubeVideo
+
+    video = get_object_or_404(SectorYoutubeVideo, id=video_id)
+
+    if request.method == 'POST':
+        summary = request.POST.get('summary', '')
+        video.summary = summary
+        video.save()
+        messages.success(request, '요약이 저장되었습니다.')
+        return redirect('stocks:sector_youtube_summary', video_id=video_id)
+
+    return render(request, 'stocks/sector_youtube_summary.html', {
+        'video': video,
+    })
