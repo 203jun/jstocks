@@ -491,7 +491,7 @@
             {% for stock in super_stocks %}
             <tr class="stock-row" data-level="super" onclick="location.href='{% url 'stocks:stock_detail' stock.code %}'" style="cursor:pointer;">
                 <td>
-                    <strong>{{ stock.name }}</strong>
+                    <strong class="{% if not stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ stock.name }}</strong>
                     <small class="text-muted ms-1">{{ stock.code }}</small>
                 </td>
                 <td class="hide-mobile small text-muted">{% for theme in stock.themes.all %}{% if forloop.first %}{{ theme.category.name }}{% endif %}{% empty %}-{% endfor %}</td>
@@ -506,7 +506,7 @@
             {% for stock in normal_stocks %}
             <tr class="stock-row" data-level="normal" onclick="location.href='{% url 'stocks:stock_detail' stock.code %}'" style="cursor:pointer;">
                 <td>
-                    <strong>{{ stock.name }}</strong>
+                    <strong class="{% if not stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ stock.name }}</strong>
                     <small class="text-muted ms-1">{{ stock.code }}</small>
                 </td>
                 <td class="hide-mobile small text-muted">{% for theme in stock.themes.all %}{% if forloop.first %}{{ theme.category.name }}{% endif %}{% empty %}-{% endfor %}</td>
@@ -521,7 +521,7 @@
             {% for stock in incubator_stocks %}
             <tr class="stock-row" data-level="incubator" onclick="location.href='{% url 'stocks:stock_detail' stock.code %}'" style="cursor:pointer;">
                 <td>
-                    <strong>{{ stock.name }}</strong>
+                    <strong class="{% if not stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ stock.name }}</strong>
                     <small class="text-muted ms-1">{{ stock.code }}</small>
                 </td>
                 <td class="hide-mobile small text-muted">{% for theme in stock.themes.all %}{% if forloop.first %}{{ theme.category.name }}{% endif %}{% empty %}-{% endfor %}</td>
