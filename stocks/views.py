@@ -1677,12 +1677,15 @@ def fetch_stock_prompt_data(request, code):
     lines.append("## 노다지 IR노트 (최근 3개)")
     if nodaji_list:
         import re
+        from bs4 import BeautifulSoup
         for n in nodaji_list:
             date_str = n.date.strftime('%Y-%m-%d') if n.date else '-'
             lines.append(f"- [{date_str}] {n.title}")
             if n.summary:
+                # HTML -> 텍스트 변환
+                soup = BeautifulSoup(n.summary, 'html.parser')
+                summary = soup.get_text(separator='\n')
                 # citation 제거 (모든 [cite...] 형식)
-                summary = n.summary
                 summary = re.sub(r'\[cite_start\]', '', summary)
                 summary = re.sub(r'\[cite_end\]', '', summary)
                 summary = re.sub(r'\[cite:\s*\d+\]', '', summary)
