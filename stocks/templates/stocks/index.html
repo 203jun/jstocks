@@ -50,7 +50,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr class="table-success"><td colspan="5" class="px-3 py-1 small fw-bold text-success">급등</td></tr>
+                            <tr class="table-danger"><td colspan="5" class="px-3 py-1 small fw-bold text-danger">급등</td></tr>
                             {% for item in card_a_stocks %}
                             <tr class="dashboard-row signal-up-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
@@ -65,7 +65,7 @@
                             </tr>
                             {% endfor %}
                             <tr class="signal-up-empty"{% if card_a_stocks %} style="display:none"{% endif %}><td colspan="5" class="text-center text-muted py-2"><small>해당 종목 없음</small></td></tr>
-                            <tr class="table-danger"><td colspan="5" class="px-3 py-1 small fw-bold text-danger">급락</td></tr>
+                            <tr class="table-primary"><td colspan="5" class="px-3 py-1 small fw-bold text-primary">급락</td></tr>
                             {% for item in card_a_down_stocks %}
                             <tr class="dashboard-row signal-down-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
@@ -86,7 +86,7 @@
             </div>
             <!-- 모바일: 카드 리스트 -->
             <div class="card-body p-2 d-md-none">
-                <div class="bg-success-subtle px-2 py-1 mb-1 small fw-bold text-success">급등</div>
+                <div class="bg-danger-subtle px-2 py-1 mb-1 small fw-bold text-danger">급등</div>
                 {% for item in card_a_stocks %}
                 <div class="mobile-stock-item dashboard-row signal-up-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
@@ -100,7 +100,7 @@
                 </div>
                 {% endfor %}
                 <div class="signal-up-empty text-center text-muted py-2"{% if card_a_stocks %} style="display:none"{% endif %}><small>해당 종목 없음</small></div>
-                <div class="bg-danger-subtle px-2 py-1 mb-1 mt-2 small fw-bold text-danger">급락</div>
+                <div class="bg-primary-subtle px-2 py-1 mb-1 mt-2 small fw-bold text-primary">급락</div>
                 {% for item in card_a_down_stocks %}
                 <div class="mobile-stock-item dashboard-row signal-down-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
@@ -139,7 +139,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr class="table-success"><td colspan="5" class="px-3 py-1 small fw-bold text-success">급등</td></tr>
+                            <tr class="table-danger"><td colspan="5" class="px-3 py-1 small fw-bold text-danger">급등</td></tr>
                             {% for item in card_b_stocks %}
                             <tr class="dashboard-row signal-up-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
@@ -154,7 +154,7 @@
                             </tr>
                             {% endfor %}
                             <tr class="signal-up-empty"{% if card_b_stocks %} style="display:none"{% endif %}><td colspan="5" class="text-center text-muted py-2"><small>해당 종목 없음</small></td></tr>
-                            <tr class="table-danger"><td colspan="5" class="px-3 py-1 small fw-bold text-danger">급락</td></tr>
+                            <tr class="table-primary"><td colspan="5" class="px-3 py-1 small fw-bold text-primary">급락</td></tr>
                             {% for item in card_b_down_stocks %}
                             <tr class="dashboard-row signal-down-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
@@ -175,7 +175,7 @@
             </div>
             <!-- 모바일: 카드 리스트 -->
             <div class="card-body p-2 d-md-none">
-                <div class="bg-success-subtle px-2 py-1 mb-1 small fw-bold text-success">급등</div>
+                <div class="bg-danger-subtle px-2 py-1 mb-1 small fw-bold text-danger">급등</div>
                 {% for item in card_b_stocks %}
                 <div class="mobile-stock-item dashboard-row signal-up-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
@@ -189,7 +189,7 @@
                 </div>
                 {% endfor %}
                 <div class="signal-up-empty text-center text-muted py-2"{% if card_b_stocks %} style="display:none"{% endif %}><small>해당 종목 없음</small></div>
-                <div class="bg-danger-subtle px-2 py-1 mb-1 mt-2 small fw-bold text-danger">급락</div>
+                <div class="bg-primary-subtle px-2 py-1 mb-1 mt-2 small fw-bold text-primary">급락</div>
                 {% for item in card_b_down_stocks %}
                 <div class="mobile-stock-item dashboard-row signal-down-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
