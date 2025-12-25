@@ -1229,6 +1229,25 @@ function removeCitations(text) {
         .replace(/\[cite_end\]/g, '');
 }
 
+// HTML 문서에서 body 내용만 추출
+function extractBodyContent(html) {
+    // <body> 태그가 있으면 그 내용만 추출
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    if (bodyMatch) {
+        return bodyMatch[1].trim();
+    }
+    // <html> 태그만 있는 경우 head 제외하고 추출
+    if (html.includes('<html')) {
+        // head 태그 제거
+        let content = html.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
+        // html, doctype 태그 제거
+        content = content.replace(/<!DOCTYPE[^>]*>/gi, '');
+        content = content.replace(/<\/?html[^>]*>/gi, '');
+        return content.trim();
+    }
+    return html;
+}
+
 // 노다지 요약 토글
 function initNodajiSummaryToggle() {
     document.querySelectorAll('.btn-toggle-summary').forEach(btn => {
@@ -1244,6 +1263,7 @@ function initNodajiSummaryToggle() {
                 if (raw) {
                     raw = decodeUnicode(raw);
                     raw = removeCitations(raw);
+                    raw = extractBodyContent(raw);
                     htmlContent.innerHTML = raw;
                 }
                 htmlContent.dataset.rendered = 'true';
@@ -1279,7 +1299,8 @@ function initNodajiSummarySave() {
                     // HTML 영역 업데이트
                     const htmlContent = row.querySelector('.html-content');
                     if (summary) {
-                        const cleanSummary = removeCitations(summary);
+                        let cleanSummary = removeCitations(summary);
+                        cleanSummary = extractBodyContent(cleanSummary);
                         htmlContent.innerHTML = cleanSummary;
                         htmlContent.dataset.raw = summary;
                     } else {
