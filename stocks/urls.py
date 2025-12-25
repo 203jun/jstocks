@@ -53,6 +53,11 @@ urlpatterns = [
     path('api/youtube/video/save/', views.youtube_video_save, name='youtube_video_save'),
     path('api/youtube/video/save-by-link/', views.youtube_video_save_by_link, name='youtube_video_save_by_link'),
     path('api/youtube/video/<int:video_id>/delete/', views.youtube_video_delete, name='youtube_video_delete'),
+    # 뉴스
+    path('news/<int:news_id>/summary/', views.news_summary, name='news_summary'),
+    path('api/news/save/', views.news_save, name='news_save'),
+    path('api/news/save-by-link/', views.news_save_by_link, name='news_save_by_link'),
+    path('api/news/<int:news_id>/delete/', views.news_delete, name='news_delete'),
     path('api/market/trend/<str:market>/refresh/', views.refresh_market_trend, name='refresh_market_trend'),
     path('api/sector/<str:market>/refresh/', views.refresh_sector, name='refresh_sector'),
     path('api/stock/<str:code>/refresh/', views.refresh_stock, name='refresh_stock'),

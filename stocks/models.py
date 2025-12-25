@@ -1790,6 +1790,58 @@ class YoutubeVideo(models.Model):
         return f'https://www.youtube.com/watch?v={self.video_id}'
 
 
+class News(models.Model):
+    """
+    저장된 뉴스 기사
+
+    종목별로 관심 뉴스를 저장
+    """
+
+    stock = models.ForeignKey(
+        Info,
+        on_delete=models.CASCADE,
+        related_name='news_articles',
+        verbose_name='종목'
+    )
+    title = models.CharField(
+        max_length=500,
+        verbose_name='제목'
+    )
+    link = models.URLField(
+        max_length=1000,
+        verbose_name='링크'
+    )
+    source = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='출처'
+    )
+    published = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name='게시일'
+    )
+    summary = models.TextField(
+        blank=True,
+        verbose_name='요약',
+        help_text='뉴스 요약 내용'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='저장일시'
+    )
+
+    class Meta:
+        db_table = 'news'
+        verbose_name = '뉴스'
+        verbose_name_plural = '뉴스'
+        ordering = ['-created_at']
+        unique_together = [('stock', 'link')]
+
+    def __str__(self):
+        return f"{self.stock.name} - {self.title}"
+
+
 class SystemSetting(models.Model):
     """
     시스템 설정 (키-값 저장)

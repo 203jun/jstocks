@@ -903,6 +903,10 @@ def stock_edit(request, code):
     # 저장된 유튜브 영상
     youtube_videos = YoutubeVideo.objects.filter(stock=stock)
 
+    # 저장된 뉴스
+    from .models import News
+    news_articles = News.objects.filter(stock=stock)
+
     # 기업분석 HTML 파일 확인
     html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
     analysis_html_exists = html_path.exists()
@@ -925,6 +929,7 @@ def stock_edit(request, code):
         'investor_chart_data': json.dumps(investor_chart_data),
         'short_sellings': short_sellings,
         'youtube_videos': youtube_videos,
+        'news_articles': news_articles,
         'analysis_html_exists': analysis_html_exists,
         'analysis_html_content': analysis_html_content,
     }
@@ -3170,6 +3175,138 @@ def youtube_video_delete(request, video_id):
     video.delete()
 
     return JsonResponse({'success': True})
+
+
+@require_POST
+def news_save(request):
+    """뉴스 저장 API (검색 결과에서)"""
+    from .models import News, Info
+
+    stock_code = request.POST.get('stock_code', '').strip()
+    link = request.POST.get('link', '').strip()
+    title = request.POST.get('title', '').strip()
+    source = request.POST.get('source', '').strip()
+    published = request.POST.get('published', '').strip()
+
+    if not stock_code or not link or not title:
+        return JsonResponse({'error': '필수 정보가 누락되었습니다.'}, status=400)
+
+    stock = get_object_or_404(Info, code=stock_code)
+
+    # 이미 저장된 뉴스인지 확인
+    if News.objects.filter(stock=stock, link=link).exists():
+        return JsonResponse({'error': '이미 저장된 뉴스입니다.'}, status=400)
+
+    news = News.objects.create(
+        stock=stock,
+        title=title,
+        link=link,
+        source=source,
+        published=published,
+    )
+
+    return JsonResponse({
+        'success': True,
+        'id': news.id,
+        'title': news.title,
+        'link': news.link,
+        'source': news.source,
+        'published': news.published,
+    })
+
+
+@require_POST
+def news_save_by_link(request):
+    """뉴스 링크로 저장 API"""
+    import requests as http_requests
+    from bs4 import BeautifulSoup
+    from .models import News, Info
+
+    stock_code = request.POST.get('stock_code', '').strip()
+    link = request.POST.get('link', '').strip()
+
+    if not stock_code or not link:
+        return JsonResponse({'error': '필수 정보가 누락되었습니다.'}, status=400)
+
+    stock = get_object_or_404(Info, code=stock_code)
+
+    # 이미 저장된 뉴스인지 확인
+    if News.objects.filter(stock=stock, link=link).exists():
+        return JsonResponse({'error': '이미 저장된 뉴스입니다.'}, status=400)
+
+    # 뉴스 페이지에서 정보 가져오기
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        }
+        response = http_requests.get(link, headers=headers, timeout=10)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # 제목 추출 (og:title > title 태그)
+        title = ''
+        og_title = soup.find('meta', property='og:title')
+        if og_title and og_title.get('content'):
+            title = og_title['content']
+        elif soup.title:
+            title = soup.title.string or ''
+        title = title.strip()
+
+        # 출처 추출 (og:site_name)
+        source = ''
+        og_site = soup.find('meta', property='og:site_name')
+        if og_site and og_site.get('content'):
+            source = og_site['content']
+
+        if not title:
+            return JsonResponse({'error': '뉴스 정보를 가져올 수 없습니다.'}, status=400)
+
+        news = News.objects.create(
+            stock=stock,
+            title=title,
+            link=link,
+            source=source,
+        )
+
+        return JsonResponse({
+            'success': True,
+            'id': news.id,
+            'title': news.title,
+            'link': news.link,
+            'source': news.source,
+            'published': news.published,
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': f'뉴스 정보를 가져오는 중 오류: {str(e)}'}, status=500)
+
+
+@require_POST
+def news_delete(request, news_id):
+    """뉴스 삭제 API"""
+    from .models import News
+
+    news = get_object_or_404(News, id=news_id)
+    news.delete()
+
+    return JsonResponse({'success': True})
+
+
+def news_summary(request, news_id):
+    """뉴스 요약 페이지"""
+    from .models import News
+
+    news = get_object_or_404(News, id=news_id)
+
+    if request.method == 'POST':
+        news.summary = request.POST.get('summary', '')
+        news.save()
+        return redirect('stocks:news_summary', news_id=news_id)
+
+    return render(request, 'stocks/news_summary.html', {
+        'news': news,
+    })
 
 
 @require_POST
