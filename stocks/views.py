@@ -3041,6 +3041,127 @@ def youtube_video_save(request):
 
 
 @require_POST
+def youtube_video_save_by_link(request):
+    """유튜브 링크로 영상 저장 API"""
+    import requests as http_requests
+    import re
+    import json
+    from .models import YoutubeVideo, Info
+
+    stock_code = request.POST.get('stock_code', '').strip()
+    link = request.POST.get('link', '').strip()
+
+    if not stock_code or not link:
+        return JsonResponse({'error': '필수 정보가 누락되었습니다.'}, status=400)
+
+    # video_id 추출
+    video_id = None
+    # youtube.com/watch?v=VIDEO_ID
+    match = re.search(r'[?&]v=([^&]+)', link)
+    if match:
+        video_id = match.group(1)
+    else:
+        # youtu.be/VIDEO_ID
+        match = re.search(r'youtu\.be/([^?&]+)', link)
+        if match:
+            video_id = match.group(1)
+        else:
+            # youtube.com/embed/VIDEO_ID
+            match = re.search(r'embed/([^?&]+)', link)
+            if match:
+                video_id = match.group(1)
+
+    if not video_id:
+        return JsonResponse({'error': '올바른 유튜브 링크가 아닙니다.'}, status=400)
+
+    stock = get_object_or_404(Info, code=stock_code)
+
+    # 이미 저장된 영상인지 확인
+    if YoutubeVideo.objects.filter(stock=stock, video_id=video_id).exists():
+        return JsonResponse({'error': '이미 저장된 영상입니다.'}, status=400)
+
+    # 유튜브 페이지에서 영상 정보 가져오기
+    try:
+        url = f'https://www.youtube.com/watch?v={video_id}'
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'ko-KR,ko;q=0.9',
+        }
+        response = http_requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+
+        # ytInitialPlayerResponse에서 정보 추출
+        title = ''
+        channel = ''
+        thumbnail = ''
+        views = ''
+        published = ''
+
+        # 유니코드 이스케이프 디코딩 함수
+        def decode_unicode(s):
+            try:
+                return json.loads(f'"{s}"')
+            except:
+                return s
+
+        # 제목 추출
+        title_match = re.search(r'"title":"([^"]+)"', response.text)
+        if title_match:
+            title = decode_unicode(title_match.group(1))
+
+        # 채널명 추출
+        channel_match = re.search(r'"ownerChannelName":"([^"]+)"', response.text)
+        if channel_match:
+            channel = decode_unicode(channel_match.group(1))
+
+        # 썸네일
+        thumbnail = f'https://i.ytimg.com/vi/{video_id}/hqdefault.jpg'
+
+        # 조회수 추출
+        views_match = re.search(r'"viewCount":"(\d+)"', response.text)
+        if views_match:
+            view_count = int(views_match.group(1))
+            if view_count >= 10000:
+                views = f'조회수 {view_count // 10000}만회'
+            elif view_count >= 1000:
+                views = f'조회수 {view_count // 1000}천회'
+            else:
+                views = f'조회수 {view_count}회'
+
+        # 업로드 날짜 추출
+        date_match = re.search(r'"publishDate":"(\d{4}-\d{2}-\d{2})"', response.text)
+        if date_match:
+            published = date_match.group(1)
+
+        if not title:
+            return JsonResponse({'error': '영상 정보를 가져올 수 없습니다.'}, status=400)
+
+        video = YoutubeVideo.objects.create(
+            stock=stock,
+            video_id=video_id,
+            title=title,
+            channel=channel,
+            thumbnail=thumbnail,
+            views=views,
+            published=published,
+        )
+
+        return JsonResponse({
+            'success': True,
+            'id': video.id,
+            'video_id': video.video_id,
+            'title': video.title,
+            'channel': video.channel,
+            'thumbnail': video.thumbnail,
+            'views': video.views,
+            'published': video.published,
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': f'영상 정보를 가져오는 중 오류: {str(e)}'}, status=500)
+
+
+@require_POST
 def youtube_video_delete(request, video_id):
     """유튜브 영상 삭제 API"""
     from .models import YoutubeVideo
