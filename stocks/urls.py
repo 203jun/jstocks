@@ -58,6 +58,10 @@ urlpatterns = [
     path('api/news/save/', views.news_save, name='news_save'),
     path('api/news/save-by-link/', views.news_save_by_link, name='news_save_by_link'),
     path('api/news/<int:news_id>/delete/', views.news_delete, name='news_delete'),
+    # 텔레그램
+    path('telegram/<int:message_id>/summary/', views.telegram_summary, name='telegram_summary'),
+    path('api/telegram/message/save/', views.telegram_message_save, name='telegram_message_save'),
+    path('api/telegram/message/<int:message_id>/delete/', views.telegram_message_delete, name='telegram_message_delete'),
     path('api/market/trend/<str:market>/refresh/', views.refresh_market_trend, name='refresh_market_trend'),
     path('api/sector/<str:market>/refresh/', views.refresh_sector, name='refresh_sector'),
     path('api/stock/<str:code>/refresh/', views.refresh_stock, name='refresh_stock'),

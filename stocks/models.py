@@ -1842,6 +1842,59 @@ class News(models.Model):
         return f"{self.stock.name} - {self.title}"
 
 
+class TelegramMessage(models.Model):
+    """
+    저장된 텔레그램 메시지
+
+    종목별로 관심 텔레그램 메시지를 저장
+    """
+
+    stock = models.ForeignKey(
+        Info,
+        on_delete=models.CASCADE,
+        related_name='telegram_messages',
+        verbose_name='종목'
+    )
+    channel = models.CharField(
+        max_length=100,
+        verbose_name='채널'
+    )
+    channel_name = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='채널명'
+    )
+    date = models.CharField(
+        max_length=20,
+        verbose_name='날짜'
+    )
+    time = models.CharField(
+        max_length=20,
+        verbose_name='시간'
+    )
+    text = models.TextField(
+        verbose_name='내용'
+    )
+    summary = models.TextField(
+        blank=True,
+        verbose_name='요약',
+        help_text='메시지 요약 내용'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='저장일시'
+    )
+
+    class Meta:
+        db_table = 'telegram_message'
+        verbose_name = '텔레그램 메시지'
+        verbose_name_plural = '텔레그램 메시지'
+        ordering = ['-date', '-time']
+
+    def __str__(self):
+        return f"{self.stock.name} - {self.channel} [{self.date}]"
+
+
 class SystemSetting(models.Model):
     """
     시스템 설정 (키-값 저장)

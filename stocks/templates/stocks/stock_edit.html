@@ -532,6 +532,41 @@
 
     <!-- 텔레그램 탭 -->
     <div class="tab-pane fade" id="telegram-content" role="tabpanel">
+        <!-- 저장된 메시지 -->
+        <div class="card mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>저장된 메시지</strong>
+                <span class="badge bg-primary" id="savedTelegramCount">{{ telegram_messages|length }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div id="savedTelegramList" class="list-group list-group-flush">
+                    {% for msg in telegram_messages %}
+                    <div class="list-group-item py-2" data-id="{{ msg.id }}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="badge bg-secondary">{{ msg.channel_name|default:msg.channel }}</span>
+                                    <small class="text-muted">{{ msg.date }} {{ msg.time }}</small>
+                                </div>
+                                <div class="small text-truncate-2" style="white-space: pre-wrap; max-height: 3em; overflow: hidden;">{{ msg.text|truncatechars:150 }}</div>
+                            </div>
+                            <div class="d-flex gap-2 ms-2" style="white-space: nowrap;">
+                                <button type="button" class="btn btn-sm btn-outline-primary btn-view-telegram"
+                                    data-channel="{{ msg.channel_name|default:msg.channel }}"
+                                    data-date="{{ msg.date }} {{ msg.time }}"
+                                    data-text="{{ msg.text|escapejs }}">전체보기</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-telegram" data-id="{{ msg.id }}">삭제</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-3" id="noSavedTelegram">저장된 메시지가 없습니다.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 검색 -->
         <div class="card">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <div>
@@ -788,6 +823,22 @@
         </div>
     </div>
 
+</div>
+
+<!-- 텔레그램 메시지 전체보기 모달 -->
+<div class="modal fade" id="telegramModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <div>
+                    <span class="badge bg-secondary" id="telegramModalChannel"></span>
+                    <small class="text-muted ms-2" id="telegramModalDate"></small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="white-space: pre-wrap; max-height: 70vh; overflow-y: auto;" id="telegramModalText"></div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -2149,6 +2200,153 @@ btnDisclosure.addEventListener('click', async () => {
     }
 });
 
+// ============ 텔레그램 저장/삭제 ============
+// 저장된 텔레그램 메시지 키 (channel+date+time으로 중복 체크)
+let savedTelegramKeys = new Set([
+    {% for msg in telegram_messages %}'{{ msg.channel|escapejs }}_{{ msg.date|escapejs }}_{{ msg.time|escapejs }}',{% endfor %}
+]);
+
+// 메시지 저장
+async function saveTelegramMessage(btn, channel, channelName, date, time, text) {
+    const key = `${channel}_${date}_${time}`;
+    if (savedTelegramKeys.has(key)) {
+        alert('이미 저장된 메시지입니다.');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '저장 중...';
+
+    try {
+        const formData = new FormData();
+        formData.append('stock_code', stockCode);
+        formData.append('channel', channel);
+        formData.append('channel_name', channelName);
+        formData.append('date', date);
+        formData.append('time', time);
+        formData.append('text', text);
+
+        const response = await fetch('/api/telegram/message/save/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: formData
+        });
+        const data = await response.json();
+
+        if (data.error) {
+            alert(data.error);
+            btn.disabled = false;
+            btn.textContent = '저장';
+        } else {
+            savedTelegramKeys.add(key);
+            addTelegramToList(data);
+            // 버튼을 뱃지로 교체
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-success';
+            badge.textContent = '저장됨';
+            btn.replaceWith(badge);
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = '저장';
+    }
+}
+
+// 저장된 목록에 추가
+function addTelegramToList(data) {
+    const savedList = document.getElementById('savedTelegramList');
+    const noMsg = document.getElementById('noSavedTelegram');
+    if (noMsg) noMsg.remove();
+
+    const newItem = document.createElement('div');
+    newItem.className = 'list-group-item py-2';
+    newItem.dataset.id = data.id;
+    const truncatedText = data.text.length > 150 ? data.text.substring(0, 150) + '...' : data.text;
+    const escapedText = data.text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    newItem.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1 overflow-hidden">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-secondary">${data.channel_name || data.channel}</span>
+                    <small class="text-muted">${data.date} ${data.time}</small>
+                </div>
+                <div class="small" style="white-space: pre-wrap; max-height: 3em; overflow: hidden;">${truncatedText}</div>
+            </div>
+            <div class="d-flex gap-2 ms-2" style="white-space: nowrap;">
+                <button type="button" class="btn btn-sm btn-outline-primary btn-view-telegram"
+                    data-channel="${data.channel_name || data.channel}"
+                    data-date="${data.date} ${data.time}"
+                    data-text="${escapedText}">전체보기</button>
+                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-telegram" data-id="${data.id}">삭제</button>
+            </div>
+        </div>
+    `;
+    savedList.insertBefore(newItem, savedList.firstChild);
+
+    const countEl = document.getElementById('savedTelegramCount');
+    countEl.textContent = parseInt(countEl.textContent) + 1;
+}
+
+// 메시지 삭제
+document.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-delete-telegram')) return;
+
+    if (!confirm('삭제하시겠습니까?')) return;
+
+    const msgId = e.target.dataset.id;
+    e.target.disabled = true;
+
+    try {
+        const response = await fetch(`/api/telegram/message/${msgId}/delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            const item = e.target.closest('.list-group-item');
+            item.remove();
+
+            const countEl = document.getElementById('savedTelegramCount');
+            const newCount = parseInt(countEl.textContent) - 1;
+            countEl.textContent = newCount;
+
+            if (newCount === 0) {
+                document.getElementById('savedTelegramList').innerHTML = '<div class="text-center text-muted py-3" id="noSavedTelegram">저장된 메시지가 없습니다.</div>';
+            }
+        } else {
+            alert(data.error || '삭제 실패');
+            e.target.disabled = false;
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        e.target.disabled = false;
+    }
+});
+
+// 메시지 전체보기
+document.addEventListener('click', (e) => {
+    if (!e.target.classList.contains('btn-view-telegram')) return;
+
+    const channel = e.target.dataset.channel;
+    const date = e.target.dataset.date;
+    // 유니코드 이스케이프 시퀀스 디코딩
+    let text = e.target.dataset.text;
+    try {
+        text = JSON.parse('"' + text.replace(/"/g, '\\"') + '"');
+    } catch (err) {
+        text = text.replace(/\\n/g, '\n');
+    }
+
+    document.getElementById('telegramModalChannel').textContent = channel;
+    document.getElementById('telegramModalDate').textContent = date;
+    document.getElementById('telegramModalText').textContent = text;
+
+    const modal = new bootstrap.Modal(document.getElementById('telegramModal'));
+    modal.show();
+});
+
 // ============ 텔레그램 검색 ============
 const btnTelegram = document.getElementById('btnSearchTelegram');
 const telegramLoading = document.getElementById('telegramLoading');
@@ -2157,11 +2355,15 @@ const channelTabs = document.getElementById('channelTabs');
 const channelTabContent = document.getElementById('channelTabContent');
 const telegramEmpty = document.getElementById('telegramEmpty');
 
-function renderChannelContent(channelData) {
+let currentChannelNames = {}; // 채널명 저장용
+
+function renderChannelContent(channel, channelData) {
     const dates = Object.keys(channelData).sort().reverse();
     if (dates.length === 0) {
         return '<div class="text-muted">검색 결과가 없습니다.</div>';
     }
+
+    const channelName = currentChannelNames[channel] || channel;
 
     let html = '';
     for (const date of dates) {
@@ -2169,13 +2371,21 @@ function renderChannelContent(channelData) {
         html += `<div class="mb-3">`;
         html += `<h6 class="text-primary mb-2">${date} (${items.length}건)</h6>`;
         items.forEach((item, idx) => {
+            const key = `${channel}_${date}_${item.time}`;
+            const isSaved = savedTelegramKeys.has(key);
             let text = item.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const originalText = item.text; // 저장용 원본 텍스트
             text = linkify(text);
             text = highlightKeyword(text, stockName);
-            html += `<div class="border-start border-2 border-primary ps-2 py-2 small bg-light mb-0">`;
-            html += `<span class="text-muted">[${item.time}]</span> `;
-            html += `<span style="white-space: pre-wrap;">${text}</span>`;
-            html += `</div>`;
+            html += `<div class="border-start border-2 border-primary ps-2 py-2 small bg-light mb-0 d-flex justify-content-between">`;
+            html += `<div><span class="text-muted">[${item.time}]</span> <span style="white-space: pre-wrap;">${text}</span></div>`;
+            html += `<div class="ms-2 flex-shrink-0">`;
+            if (isSaved) {
+                html += `<span class="badge bg-success">저장됨</span>`;
+            } else {
+                html += `<button class="btn btn-sm btn-outline-primary btn-save-telegram" style="white-space:nowrap;" data-channel="${channel}" data-channel-name="${channelName.replace(/"/g, '&quot;')}" data-date="${date}" data-time="${item.time}" data-text="${originalText.replace(/"/g, '&quot;').replace(/\n/g, '&#10;')}">저장</button>`;
+            }
+            html += `</div></div>`;
             if (idx < items.length - 1) {
                 html += `<hr class="my-2">`;
             }
@@ -2221,13 +2431,13 @@ btnTelegram.addEventListener('click', async () => {
         }
 
         const channels = Object.keys(data.results);
-        const channelNames = data.channel_names || {};
+        currentChannelNames = data.channel_names || {};
         let tabsHtml = '';
         let contentHtml = '';
 
         channels.forEach((channel, idx) => {
             const channelId = channel.replace('@', '');
-            const displayName = channelNames[channel] || channel;
+            const displayName = currentChannelNames[channel] || channel;
             const isActive = idx === 0;
             const { total, recent } = countMessages(data.results[channel]);
 
@@ -2248,12 +2458,20 @@ btnTelegram.addEventListener('click', async () => {
             contentHtml += `
                 <div class="tab-pane fade ${isActive ? 'show active' : ''}"
                      id="${channelId}-content" role="tabpanel">
-                    ${renderChannelContent(data.results[channel])}
+                    ${renderChannelContent(channel, data.results[channel])}
                 </div>`;
         });
 
         channelTabs.innerHTML = tabsHtml;
         channelTabContent.innerHTML = contentHtml;
+
+        // 저장 버튼 이벤트
+        channelTabContent.querySelectorAll('.btn-save-telegram').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const text = btn.dataset.text.replace(/&#10;/g, '\n');
+                saveTelegramMessage(btn, btn.dataset.channel, btn.dataset.channelName, btn.dataset.date, btn.dataset.time, text);
+            });
+        });
         telegramTabs.classList.remove('d-none');
 
     } catch (err) {

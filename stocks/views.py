@@ -907,6 +907,10 @@ def stock_edit(request, code):
     from .models import News
     news_articles = News.objects.filter(stock=stock)
 
+    # 저장된 텔레그램 메시지
+    from .models import TelegramMessage
+    telegram_messages = TelegramMessage.objects.filter(stock=stock)
+
     # 기업분석 HTML 파일 확인
     html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
     analysis_html_exists = html_path.exists()
@@ -930,6 +934,7 @@ def stock_edit(request, code):
         'short_sellings': short_sellings,
         'youtube_videos': youtube_videos,
         'news_articles': news_articles,
+        'telegram_messages': telegram_messages,
         'analysis_html_exists': analysis_html_exists,
         'analysis_html_content': analysis_html_content,
     }
@@ -3306,6 +3311,74 @@ def news_summary(request, news_id):
 
     return render(request, 'stocks/news_summary.html', {
         'news': news,
+    })
+
+
+@require_POST
+def telegram_message_save(request):
+    """텔레그램 메시지 저장 API"""
+    from .models import TelegramMessage, Info
+
+    stock_code = request.POST.get('stock_code', '').strip()
+    channel = request.POST.get('channel', '').strip()
+    channel_name = request.POST.get('channel_name', '').strip()
+    date = request.POST.get('date', '').strip()
+    time = request.POST.get('time', '').strip()
+    text = request.POST.get('text', '').strip()
+
+    if not stock_code or not channel or not date or not time or not text:
+        return JsonResponse({'error': '필수 정보가 누락되었습니다.'}, status=400)
+
+    stock = get_object_or_404(Info, code=stock_code)
+
+    # 이미 저장된 메시지인지 확인 (channel + date + time으로 중복 체크)
+    if TelegramMessage.objects.filter(stock=stock, channel=channel, date=date, time=time).exists():
+        return JsonResponse({'error': '이미 저장된 메시지입니다.'}, status=400)
+
+    msg = TelegramMessage.objects.create(
+        stock=stock,
+        channel=channel,
+        channel_name=channel_name,
+        date=date,
+        time=time,
+        text=text,
+    )
+
+    return JsonResponse({
+        'success': True,
+        'id': msg.id,
+        'channel': msg.channel,
+        'channel_name': msg.channel_name,
+        'date': msg.date,
+        'time': msg.time,
+        'text': msg.text,
+    })
+
+
+@require_POST
+def telegram_message_delete(request, message_id):
+    """텔레그램 메시지 삭제 API"""
+    from .models import TelegramMessage
+
+    msg = get_object_or_404(TelegramMessage, id=message_id)
+    msg.delete()
+
+    return JsonResponse({'success': True})
+
+
+def telegram_summary(request, message_id):
+    """텔레그램 메시지 요약 페이지"""
+    from .models import TelegramMessage
+
+    msg = get_object_or_404(TelegramMessage, id=message_id)
+
+    if request.method == 'POST':
+        msg.summary = request.POST.get('summary', '')
+        msg.save()
+        return redirect('stocks:telegram_summary', message_id=message_id)
+
+    return render(request, 'stocks/telegram_summary.html', {
+        'message': msg,
     })
 
 
