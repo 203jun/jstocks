@@ -603,27 +603,23 @@
                             <tr>
                                 <td class="text-muted small ps-3">{{ article.date|date:"y/m/d"|default:"-" }}</td>
                                 <td><a href="{{ article.link }}" target="_blank" class="text-decoration-none">{{ article.title }}</a></td>
-                                <td class="text-center">
-                                    <button type="button" class="btn btn-sm p-0 border-0 btn-toggle-summary" data-id="{{ article.id }}">
-                                        {% if article.summary %}
+                                <td class="text-center text-nowrap">
+                                    {% if article.summary %}
+                                    <button type="button" class="btn btn-sm p-0 border-0 btn-view-summary" data-id="{{ article.id }}" title="새창에서 보기">
                                         <span class="badge bg-success">O</span>
-                                        {% else %}
-                                        <span class="badge bg-secondary">-</span>
-                                        {% endif %}
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-sm p-0 border-0 btn-toggle-summary ms-1" data-id="{{ article.id }}" title="편집">
+                                        <span class="badge bg-secondary">✎</span>
                                     </button>
                                 </td>
                             </tr>
                             <tr class="summary-row d-none" data-id="{{ article.id }}">
                                 <td colspan="3" class="bg-light p-3">
-                                    <div class="summary-content mb-2" style="max-height: 300px; overflow-y: auto;">
-                                        <div class="html-content" data-raw="{{ article.summary|escapejs }}">{% if not article.summary %}<span class="text-muted">요약 없음</span>{% endif %}</div>
-                                    </div>
-                                    <div class="border-top pt-2">
-                                        <textarea class="form-control form-control-sm summary-textarea" rows="3" placeholder="HTML 형식으로 입력...">{{ article.summary }}</textarea>
-                                        <div class="d-flex justify-content-between align-items-center mt-2">
-                                            <small class="text-muted">복사/붙여넣기 후 저장</small>
-                                            <button type="button" class="btn btn-primary btn-sm btn-save-summary" data-id="{{ article.id }}">저장</button>
-                                        </div>
+                                    <textarea class="form-control form-control-sm summary-textarea" rows="5" placeholder="HTML 형식으로 입력...">{{ article.summary }}</textarea>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <small class="text-muted">HTML 붙여넣기 후 저장</small>
+                                        <button type="button" class="btn btn-primary btn-sm btn-save-summary" data-id="{{ article.id }}">저장</button>
                                     </div>
                                 </td>
                             </tr>
@@ -800,26 +796,6 @@
 #reportChannelTabs .nav-link.has-recent.active {
     background: #dc3545;
     border-color: #dc3545;
-}
-/* 노다지 요약 HTML 스타일 */
-.summary-row .html-content {
-    font-size: 0.75rem;
-    line-height: 1.5;
-}
-.summary-row .html-content h1,
-.summary-row .html-content h2,
-.summary-row .html-content h3 {
-    font-size: 0.85rem;
-    margin-top: 0.5rem;
-    margin-bottom: 0.25rem;
-}
-.summary-row .html-content p {
-    margin-bottom: 0.5rem;
-}
-.summary-row .html-content ul,
-.summary-row .html-content ol {
-    padding-left: 1.2rem;
-    margin-bottom: 0.5rem;
 }
 /* 리포트 요약 마크다운 스타일 */
 .report-summary-row .markdown-content {
@@ -1229,45 +1205,32 @@ function removeCitations(text) {
         .replace(/\[cite_end\]/g, '');
 }
 
-// HTML 문서에서 body 내용만 추출
-function extractBodyContent(html) {
-    // <body> 태그가 있으면 그 내용만 추출
-    const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-    if (bodyMatch) {
-        return bodyMatch[1].trim();
-    }
-    // <html> 태그만 있는 경우 head 제외하고 추출
-    if (html.includes('<html')) {
-        // head 태그 제거
-        let content = html.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
-        // html, doctype 태그 제거
-        content = content.replace(/<!DOCTYPE[^>]*>/gi, '');
-        content = content.replace(/<\/?html[^>]*>/gi, '');
-        return content.trim();
-    }
-    return html;
-}
+// 노다지 요약 새창에서 보기
+function initNodajiSummaryView() {
+    document.querySelectorAll('.btn-view-summary').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const row = document.querySelector(`.summary-row[data-id="${id}"]`);
+            const textarea = row.querySelector('.summary-textarea');
+            const html = textarea.value;
 
-// 노다지 요약 토글
+            if (html) {
+                const newWindow = window.open('', '_blank');
+                newWindow.document.write(html);
+                newWindow.document.close();
+            }
+        });
+    });
+}
+initNodajiSummaryView();
+
+// 노다지 요약 편집 토글
 function initNodajiSummaryToggle() {
     document.querySelectorAll('.btn-toggle-summary').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
             const row = document.querySelector(`.summary-row[data-id="${id}"]`);
             row.classList.toggle('d-none');
-
-            // HTML 렌더링 (처음 열 때만)
-            const htmlContent = row.querySelector('.html-content[data-raw]');
-            if (htmlContent && !htmlContent.dataset.rendered) {
-                let raw = htmlContent.dataset.raw;
-                if (raw) {
-                    raw = decodeUnicode(raw);
-                    raw = removeCitations(raw);
-                    raw = extractBodyContent(raw);
-                    htmlContent.innerHTML = raw;
-                }
-                htmlContent.dataset.rendered = 'true';
-            }
         });
     });
 }
@@ -1296,25 +1259,31 @@ function initNodajiSummarySave() {
                 });
 
                 if (response.ok) {
-                    // HTML 영역 업데이트
-                    const htmlContent = row.querySelector('.html-content');
-                    if (summary) {
-                        let cleanSummary = removeCitations(summary);
-                        cleanSummary = extractBodyContent(cleanSummary);
-                        htmlContent.innerHTML = cleanSummary;
-                        htmlContent.dataset.raw = summary;
-                    } else {
-                        htmlContent.innerHTML = '<span class="text-muted">요약 없음</span>';
-                    }
+                    // 보기 버튼 업데이트
+                    const btnCell = document.querySelector(`.btn-toggle-summary[data-id="${id}"]`).parentElement;
+                    let viewBtn = btnCell.querySelector('.btn-view-summary');
 
-                    // 배지 업데이트
-                    const badge = document.querySelector(`.btn-toggle-summary[data-id="${id}"] .badge`);
                     if (summary) {
-                        badge.className = 'badge bg-success';
-                        badge.textContent = 'O';
+                        if (!viewBtn) {
+                            // 보기 버튼 추가
+                            viewBtn = document.createElement('button');
+                            viewBtn.type = 'button';
+                            viewBtn.className = 'btn btn-sm p-0 border-0 btn-view-summary';
+                            viewBtn.dataset.id = id;
+                            viewBtn.title = '새창에서 보기';
+                            viewBtn.innerHTML = '<span class="badge bg-success">O</span>';
+                            btnCell.insertBefore(viewBtn, btnCell.firstChild);
+                            // 이벤트 바인딩
+                            viewBtn.addEventListener('click', function() {
+                                const newWindow = window.open('', '_blank');
+                                newWindow.document.write(summary);
+                                newWindow.document.close();
+                            });
+                        }
                     } else {
-                        badge.className = 'badge bg-secondary';
-                        badge.textContent = '-';
+                        if (viewBtn) {
+                            viewBtn.remove();
+                        }
                     }
 
                     this.textContent = '저장됨';
@@ -1355,9 +1324,10 @@ if (btnLoadMoreNodaji) {
                     tr.innerHTML = `
                         <td class="text-muted small ps-3">${article.date}</td>
                         <td><a href="${article.link}" target="_blank" class="text-decoration-none">${article.title}</a></td>
-                        <td class="text-center">
-                            <button type="button" class="btn btn-sm p-0 border-0 btn-toggle-summary" data-id="${article.id}">
-                                <span class="badge ${article.summary ? 'bg-success' : 'bg-secondary'}">${article.summary ? 'O' : '-'}</span>
+                        <td class="text-center text-nowrap">
+                            ${article.summary ? `<button type="button" class="btn btn-sm p-0 border-0 btn-view-summary" data-id="${article.id}" title="새창에서 보기"><span class="badge bg-success">O</span></button>` : ''}
+                            <button type="button" class="btn btn-sm p-0 border-0 btn-toggle-summary ms-1" data-id="${article.id}" title="편집">
+                                <span class="badge bg-secondary">✎</span>
                             </button>
                         </td>
                     `;
@@ -1369,15 +1339,10 @@ if (btnLoadMoreNodaji) {
                     summaryTr.dataset.id = article.id;
                     summaryTr.innerHTML = `
                         <td colspan="3" class="bg-light p-3">
-                            <div class="summary-content mb-2" style="max-height: 300px; overflow-y: auto;">
-                                <div class="html-content" data-raw="${article.summary.replace(/"/g, '&quot;')}">${!article.summary ? '<span class="text-muted">요약 없음</span>' : ''}</div>
-                            </div>
-                            <div class="border-top pt-2">
-                                <textarea class="form-control form-control-sm summary-textarea" rows="3" placeholder="HTML 형식으로 입력...">${article.summary}</textarea>
-                                <div class="d-flex justify-content-between align-items-center mt-2">
-                                    <small class="text-muted">복사/붙여넣기 후 저장</small>
-                                    <button type="button" class="btn btn-primary btn-sm btn-save-summary" data-id="${article.id}">저장</button>
-                                </div>
+                            <textarea class="form-control form-control-sm summary-textarea" rows="5" placeholder="HTML 형식으로 입력...">${article.summary || ''}</textarea>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <small class="text-muted">HTML 붙여넣기 후 저장</small>
+                                <button type="button" class="btn btn-primary btn-sm btn-save-summary" data-id="${article.id}">저장</button>
                             </div>
                         </td>
                     `;
@@ -1385,6 +1350,7 @@ if (btnLoadMoreNodaji) {
                 });
 
                 // 이벤트 다시 바인딩
+                initNodajiSummaryView();
                 initNodajiSummaryToggle();
                 initNodajiSummarySave();
 
