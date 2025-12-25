@@ -43,8 +43,9 @@ def index(request):
     # 관심종목만 대상 (super, normal, incubator)
     target_stocks = list(base_qs.filter(interest_level__in=['super', 'normal', 'incubator']))
 
-    # 카드 A: 장기 급등 (60일 신고거래량)
-    card_a_stocks = []
+    # 카드 A: 장기 신호 (60일 신고거래량)
+    card_a_stocks = []  # 급등 (양봉, MA20 위)
+    card_a_down_stocks = []  # 급락 (음봉, MA20 아래)
 
     for stock in target_stocks:
         # 최근 120일 일봉 데이터 (MA120 계산용)
@@ -65,19 +66,11 @@ def index(request):
         if today.trading_volume != max_volume_60 or today.trading_volume <= 0:
             continue
 
-        # 조건 2: 양봉 (종가 >= 시가)
-        if today.closing_price < today.opening_price:
-            continue
-
         # 이평선 계산
         ma10 = sum(d.closing_price for d in daily_data[:10]) / 10 if len(daily_data) >= 10 else 0
         ma20 = sum(d.closing_price for d in daily_data[:20]) / 20 if len(daily_data) >= 20 else 0
         ma60 = sum(d.closing_price for d in daily_data[:60]) / 60 if len(daily_data) >= 60 else 0
         ma120 = sum(d.closing_price for d in daily_data[:120]) / 120 if len(daily_data) >= 120 else 0
-
-        # 조건 3: 현재가 > MA20
-        if today.closing_price <= ma20:
-            continue
 
         # MA120 위 여부 (정배열 체크)
         above_ma120 = today.closing_price > ma120 if ma120 else False
@@ -98,23 +91,35 @@ def index(request):
         sparkline = [d.closing_price for d in daily_data[:10]]
         sparkline.reverse()  # 과거 → 현재 순서로
 
-        card_a_stocks.append({
+        stock_data = {
             'stock': stock,
             'change_rate': change_rate,
             'above_ma120': above_ma120,
             'high_position': high_position,
             'trading_value': trading_value,
             'sparkline': sparkline,
-        })
+        }
+
+        # 급등: 양봉 + MA20 위
+        is_bullish = today.closing_price >= today.opening_price
+        above_ma20 = today.closing_price > ma20
+
+        if is_bullish and above_ma20:
+            card_a_stocks.append(stock_data)
+        # 급락: 음봉 + MA20 아래
+        elif not is_bullish and not above_ma20:
+            card_a_down_stocks.append(stock_data)
 
     # 등락률 순으로 정렬
     card_a_stocks.sort(key=lambda x: x['change_rate'], reverse=True)
+    card_a_down_stocks.sort(key=lambda x: x['change_rate'])  # 급락은 낮은 순
 
     # 카드 A에 포함된 종목 코드 (중복 제거용)
-    card_a_codes = {item['stock'].code for item in card_a_stocks}
+    card_a_codes = {item['stock'].code for item in card_a_stocks} | {item['stock'].code for item in card_a_down_stocks}
 
-    # 카드 B: 단기 급등 (20일 신고거래량)
-    card_b_stocks = []
+    # 카드 B: 단기 신호 (20일 신고거래량)
+    card_b_stocks = []  # 급등 (양봉, MA20 위)
+    card_b_down_stocks = []  # 급락 (음봉, MA20 아래)
 
     for stock in target_stocks:
         # 카드 A에 이미 있는 종목은 제외
@@ -140,19 +145,11 @@ def index(request):
         if today.trading_volume != max_volume_20 or today.trading_volume <= 0:
             continue
 
-        # 조건 2: 양봉 (종가 >= 시가)
-        if today.closing_price < today.opening_price:
-            continue
-
         # 이평선 계산
         ma10 = sum(d.closing_price for d in daily_data[:10]) / 10 if len(daily_data) >= 10 else 0
         ma20 = sum(d.closing_price for d in daily_data[:20]) / 20 if len(daily_data) >= 20 else 0
         ma60 = sum(d.closing_price for d in daily_data[:60]) / 60 if len(daily_data) >= 60 else 0
         ma120 = sum(d.closing_price for d in daily_data[:120]) / 120 if len(daily_data) >= 120 else 0
-
-        # 조건 3: 현재가 > MA20
-        if today.closing_price <= ma20:
-            continue
 
         # MA120 위 여부 (정배열 체크)
         above_ma120 = today.closing_price > ma120 if ma120 else False
@@ -173,20 +170,31 @@ def index(request):
         sparkline = [d.closing_price for d in daily_data[:10]]
         sparkline.reverse()  # 과거 → 현재 순서로
 
-        card_b_stocks.append({
+        stock_data = {
             'stock': stock,
             'change_rate': change_rate,
             'above_ma120': above_ma120,
             'high_position': high_position,
             'trading_value': trading_value,
             'sparkline': sparkline,
-        })
+        }
+
+        # 급등: 양봉 + MA20 위
+        is_bullish = today.closing_price >= today.opening_price
+        above_ma20 = today.closing_price > ma20
+
+        if is_bullish and above_ma20:
+            card_b_stocks.append(stock_data)
+        # 급락: 음봉 + MA20 아래
+        elif not is_bullish and not above_ma20:
+            card_b_down_stocks.append(stock_data)
 
     # 등락률 순으로 정렬
     card_b_stocks.sort(key=lambda x: x['change_rate'], reverse=True)
+    card_b_down_stocks.sort(key=lambda x: x['change_rate'])  # 급락은 낮은 순
 
     # 카드 A, B에 포함된 종목 코드 (중복 제거용)
-    card_ab_codes = card_a_codes | {item['stock'].code for item in card_b_stocks}
+    card_ab_codes = card_a_codes | {item['stock'].code for item in card_b_stocks} | {item['stock'].code for item in card_b_down_stocks}
 
     # 카드 D: 이평선 줍줍 (정배열 눌림목)
     # 정배열 상태에서 MA20 아래로 눌린 종목 포착
@@ -462,7 +470,9 @@ def index(request):
         'normal_stocks': normal_stocks,
         'incubator_stocks': incubator_stocks,
         'card_a_stocks': card_a_stocks,
+        'card_a_down_stocks': card_a_down_stocks,
         'card_b_stocks': card_b_stocks,
+        'card_b_down_stocks': card_b_down_stocks,
         'card_d_stocks': card_d_stocks,
         'card_c_stocks': card_c_stocks,
         'card_report_stocks': card_report_stocks,
