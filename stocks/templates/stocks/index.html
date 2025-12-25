@@ -36,7 +36,6 @@
                 <strong>🥇 장기 신호</strong>
                 <small class="text-muted d-block">60일 신고거래량</small>
             </div>
-            {% if card_a_stocks or card_a_down_stocks %}
             <!-- PC: 테이블 -->
             <div class="card-body p-0 d-none d-md-block">
                 <div class="table-responsive">
@@ -51,7 +50,6 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% if card_a_stocks %}
                             <tr class="table-success"><td colspan="5" class="px-3 py-1 small fw-bold text-success">급등</td></tr>
                             {% for item in card_a_stocks %}
                             <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
@@ -65,9 +63,9 @@
                                 <td class="text-end px-3 py-2 small">{{ item.trading_value|intcomma }}억</td>
                                 <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
                             </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted py-2"><small>해당 종목 없음</small></td></tr>
                             {% endfor %}
-                            {% endif %}
-                            {% if card_a_down_stocks %}
                             <tr class="table-danger"><td colspan="5" class="px-3 py-1 small fw-bold text-danger">급락</td></tr>
                             {% for item in card_a_down_stocks %}
                             <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
@@ -81,15 +79,15 @@
                                 <td class="text-end px-3 py-2 small">{{ item.trading_value|intcomma }}억</td>
                                 <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
                             </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted py-2"><small>해당 종목 없음</small></td></tr>
                             {% endfor %}
-                            {% endif %}
                         </tbody>
                     </table>
                 </div>
             </div>
             <!-- 모바일: 카드 리스트 -->
             <div class="card-body p-2 d-md-none">
-                {% if card_a_stocks %}
                 <div class="bg-success-subtle px-2 py-1 mb-1 small fw-bold text-success">급등</div>
                 {% for item in card_a_stocks %}
                 <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
@@ -102,10 +100,10 @@
                         <span>{{ item.trading_value|intcomma }}억</span>
                     </div>
                 </div>
+                {% empty %}
+                <div class="text-center text-muted py-2"><small>해당 종목 없음</small></div>
                 {% endfor %}
-                {% endif %}
-                {% if card_a_down_stocks %}
-                <div class="bg-danger-subtle px-2 py-1 mb-1 {% if card_a_stocks %}mt-2{% endif %} small fw-bold text-danger">급락</div>
+                <div class="bg-danger-subtle px-2 py-1 mb-1 mt-2 small fw-bold text-danger">급락</div>
                 {% for item in card_a_down_stocks %}
                 <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
@@ -117,14 +115,10 @@
                         <span>{{ item.trading_value|intcomma }}억</span>
                     </div>
                 </div>
+                {% empty %}
+                <div class="text-center text-muted py-2"><small>해당 종목 없음</small></div>
                 {% endfor %}
-                {% endif %}
             </div>
-            {% else %}
-            <div class="card-body text-center text-muted py-4">
-                <small>해당 종목 없음</small>
-            </div>
-            {% endif %}
         </div>
     </div>
 
@@ -135,7 +129,6 @@
                 <strong>🥈 단기 신호</strong>
                 <small class="text-muted d-block">20일 신고거래량</small>
             </div>
-            {% if card_b_stocks or card_b_down_stocks %}
             <!-- PC: 테이블 -->
             <div class="card-body p-0 d-none d-md-block">
                 <div class="table-responsive">
@@ -150,7 +143,6 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% if card_b_stocks %}
                             <tr class="table-success"><td colspan="5" class="px-3 py-1 small fw-bold text-success">급등</td></tr>
                             {% for item in card_b_stocks %}
                             <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
@@ -164,9 +156,9 @@
                                 <td class="text-end px-3 py-2 small">{{ item.trading_value|intcomma }}억</td>
                                 <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
                             </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted py-2"><small>해당 종목 없음</small></td></tr>
                             {% endfor %}
-                            {% endif %}
-                            {% if card_b_down_stocks %}
                             <tr class="table-danger"><td colspan="5" class="px-3 py-1 small fw-bold text-danger">급락</td></tr>
                             {% for item in card_b_down_stocks %}
                             <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
@@ -180,15 +172,15 @@
                                 <td class="text-end px-3 py-2 small">{{ item.trading_value|intcomma }}억</td>
                                 <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
                             </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted py-2"><small>해당 종목 없음</small></td></tr>
                             {% endfor %}
-                            {% endif %}
                         </tbody>
                     </table>
                 </div>
             </div>
             <!-- 모바일: 카드 리스트 -->
             <div class="card-body p-2 d-md-none">
-                {% if card_b_stocks %}
                 <div class="bg-success-subtle px-2 py-1 mb-1 small fw-bold text-success">급등</div>
                 {% for item in card_b_stocks %}
                 <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
@@ -201,10 +193,10 @@
                         <span>{{ item.trading_value|intcomma }}억</span>
                     </div>
                 </div>
+                {% empty %}
+                <div class="text-center text-muted py-2"><small>해당 종목 없음</small></div>
                 {% endfor %}
-                {% endif %}
-                {% if card_b_down_stocks %}
-                <div class="bg-danger-subtle px-2 py-1 mb-1 {% if card_b_stocks %}mt-2{% endif %} small fw-bold text-danger">급락</div>
+                <div class="bg-danger-subtle px-2 py-1 mb-1 mt-2 small fw-bold text-danger">급락</div>
                 {% for item in card_b_down_stocks %}
                 <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <div class="d-flex justify-content-between align-items-center">
@@ -216,14 +208,10 @@
                         <span>{{ item.trading_value|intcomma }}억</span>
                     </div>
                 </div>
+                {% empty %}
+                <div class="text-center text-muted py-2"><small>해당 종목 없음</small></div>
                 {% endfor %}
-                {% endif %}
             </div>
-            {% else %}
-            <div class="card-body text-center text-muted py-4">
-                <small>해당 종목 없음</small>
-            </div>
-            {% endif %}
         </div>
     </div>
 
