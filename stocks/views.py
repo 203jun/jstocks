@@ -1685,6 +1685,8 @@ def fetch_stock_prompt_data(request, code):
                 # HTML -> 텍스트 변환
                 soup = BeautifulSoup(n.summary, 'html.parser')
                 summary = soup.get_text(separator='\n')
+                # 연속된 빈 줄/공백 정리
+                summary = re.sub(r'\n\s*\n+', '\n', summary)
                 # citation 제거 (모든 [cite...] 형식)
                 summary = re.sub(r'\[cite_start\]', '', summary)
                 summary = re.sub(r'\[cite_end\]', '', summary)
@@ -1692,9 +1694,10 @@ def fetch_stock_prompt_data(request, code):
                 summary = re.sub(r'\[cite:\s*[\d,\s]+\]', '', summary)
                 summary = re.sub(r'\[citexx\]', '', summary)
                 summary = re.sub(r'\[/cite\]', '', summary)
-                # 요약 내용 전체 (줄바꿈 유지)
+                # 요약 내용 전체 (빈 줄 제외)
                 for sl in summary.strip().split('\n'):
-                    lines.append(f"  {sl}")
+                    if sl.strip():  # 빈 줄 제외
+                        lines.append(f"  {sl.strip()}")
             lines.append("")
     else:
         lines.append("- 없음")
