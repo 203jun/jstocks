@@ -616,10 +616,10 @@
                             <tr class="summary-row d-none" data-id="{{ article.id }}">
                                 <td colspan="3" class="bg-light p-3">
                                     <div class="summary-content mb-2" style="max-height: 300px; overflow-y: auto;">
-                                        <div class="markdown-content" data-raw="{{ article.summary|escapejs }}">{% if not article.summary %}<span class="text-muted">요약 없음</span>{% endif %}</div>
+                                        <div class="html-content" data-raw="{{ article.summary|escapejs }}">{% if not article.summary %}<span class="text-muted">요약 없음</span>{% endif %}</div>
                                     </div>
                                     <div class="border-top pt-2">
-                                        <textarea class="form-control form-control-sm summary-textarea" rows="3" placeholder="마크다운 형식으로 입력...">{{ article.summary }}</textarea>
+                                        <textarea class="form-control form-control-sm summary-textarea" rows="3" placeholder="HTML 형식으로 입력...">{{ article.summary }}</textarea>
                                         <div class="d-flex justify-content-between align-items-center mt-2">
                                             <small class="text-muted">복사/붙여넣기 후 저장</small>
                                             <button type="button" class="btn btn-primary btn-sm btn-save-summary" data-id="{{ article.id }}">저장</button>
@@ -801,15 +801,31 @@
     background: #dc3545;
     border-color: #dc3545;
 }
-/* 노다지/리포트 요약 마크다운 스타일 */
-.summary-row .markdown-content,
+/* 노다지 요약 HTML 스타일 */
+.summary-row .html-content {
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+.summary-row .html-content h1,
+.summary-row .html-content h2,
+.summary-row .html-content h3 {
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+.summary-row .html-content p {
+    margin-bottom: 0.5rem;
+}
+.summary-row .html-content ul,
+.summary-row .html-content ol {
+    padding-left: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+/* 리포트 요약 마크다운 스타일 */
 .report-summary-row .markdown-content {
     font-size: 0.75rem;
     line-height: 1.5;
 }
-.summary-row .markdown-content h1,
-.summary-row .markdown-content h2,
-.summary-row .markdown-content h3,
 .report-summary-row .markdown-content h1,
 .report-summary-row .markdown-content h2,
 .report-summary-row .markdown-content h3 {
@@ -817,12 +833,9 @@
     margin-top: 0.5rem;
     margin-bottom: 0.25rem;
 }
-.summary-row .markdown-content p,
 .report-summary-row .markdown-content p {
     margin-bottom: 0.5rem;
 }
-.summary-row .markdown-content ul,
-.summary-row .markdown-content ol,
 .report-summary-row .markdown-content ul,
 .report-summary-row .markdown-content ol {
     padding-left: 1.2rem;
@@ -1224,16 +1237,16 @@ function initNodajiSummaryToggle() {
             const row = document.querySelector(`.summary-row[data-id="${id}"]`);
             row.classList.toggle('d-none');
 
-            // 마크다운 렌더링 (처음 열 때만)
-            const mdContent = row.querySelector('.markdown-content[data-raw]');
-            if (mdContent && !mdContent.dataset.rendered) {
-                let raw = mdContent.dataset.raw;
-                if (raw && typeof marked !== 'undefined') {
+            // HTML 렌더링 (처음 열 때만)
+            const htmlContent = row.querySelector('.html-content[data-raw]');
+            if (htmlContent && !htmlContent.dataset.rendered) {
+                let raw = htmlContent.dataset.raw;
+                if (raw) {
                     raw = decodeUnicode(raw);
                     raw = removeCitations(raw);
-                    mdContent.innerHTML = marked.parse(raw);
+                    htmlContent.innerHTML = raw;
                 }
-                mdContent.dataset.rendered = 'true';
+                htmlContent.dataset.rendered = 'true';
             }
         });
     });
@@ -1263,14 +1276,14 @@ function initNodajiSummarySave() {
                 });
 
                 if (response.ok) {
-                    // 마크다운 영역 업데이트
-                    const mdContent = row.querySelector('.markdown-content');
+                    // HTML 영역 업데이트
+                    const htmlContent = row.querySelector('.html-content');
                     if (summary) {
                         const cleanSummary = removeCitations(summary);
-                        mdContent.innerHTML = typeof marked !== 'undefined' ? marked.parse(cleanSummary) : cleanSummary;
-                        mdContent.dataset.raw = summary;
+                        htmlContent.innerHTML = cleanSummary;
+                        htmlContent.dataset.raw = summary;
                     } else {
-                        mdContent.innerHTML = '<span class="text-muted">요약 없음</span>';
+                        htmlContent.innerHTML = '<span class="text-muted">요약 없음</span>';
                     }
 
                     // 배지 업데이트
@@ -1336,10 +1349,10 @@ if (btnLoadMoreNodaji) {
                     summaryTr.innerHTML = `
                         <td colspan="3" class="bg-light p-3">
                             <div class="summary-content mb-2" style="max-height: 300px; overflow-y: auto;">
-                                <div class="markdown-content" data-raw="${article.summary.replace(/"/g, '&quot;')}">${!article.summary ? '<span class="text-muted">요약 없음</span>' : ''}</div>
+                                <div class="html-content" data-raw="${article.summary.replace(/"/g, '&quot;')}">${!article.summary ? '<span class="text-muted">요약 없음</span>' : ''}</div>
                             </div>
                             <div class="border-top pt-2">
-                                <textarea class="form-control form-control-sm summary-textarea" rows="3" placeholder="마크다운 형식으로 입력...">${article.summary}</textarea>
+                                <textarea class="form-control form-control-sm summary-textarea" rows="3" placeholder="HTML 형식으로 입력...">${article.summary}</textarea>
                                 <div class="d-flex justify-content-between align-items-center mt-2">
                                     <small class="text-muted">복사/붙여넣기 후 저장</small>
                                     <button type="button" class="btn btn-primary btn-sm btn-save-summary" data-id="${article.id}">저장</button>
