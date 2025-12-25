@@ -31,7 +31,7 @@
 <div class="row mb-4" id="dashboardCards">
     <!-- 카드 A: 장기 신호 (60일 신고거래량) -->
     <div class="col-md-6 mb-3">
-        <div class="card h-100">
+        <div class="card h-100 signal-card">
             <div class="card-header py-2">
                 <strong>🥇 장기 신호</strong>
                 <small class="text-muted d-block">60일 신고거래량</small>
@@ -124,7 +124,7 @@
 
     <!-- 카드 B: 단기 신호 (20일 신고거래량) -->
     <div class="col-md-6 mb-3">
-        <div class="card h-100">
+        <div class="card h-100 signal-card">
             <div class="card-header py-2">
                 <strong>🥈 단기 신호</strong>
                 <small class="text-muted d-block">20일 신고거래량</small>
@@ -647,8 +647,8 @@ function applyFilter(filter) {
         }
     });
 
-    // 각 카드별로 보이는 행이 없으면 "해당 종목 없음" 표시
-    document.querySelectorAll('#dashboardCards .card').forEach(card => {
+    // 각 카드별로 보이는 행이 없으면 "해당 종목 없음" 표시 (signal-card 제외)
+    document.querySelectorAll('#dashboardCards .card:not(.signal-card)').forEach(card => {
         const tbody = card.querySelector('tbody');
         const emptyMsg = card.querySelector('.empty-filter-msg');
 
