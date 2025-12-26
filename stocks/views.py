@@ -2051,13 +2051,262 @@ def settings(request):
 
 def etf(request):
     """ETF 페이지"""
-    from .models import InfoETF
+    from .models import InfoETF, DailyChartETF
 
     # 관심 ETF 목록 (is_active=True)
-    etfs = InfoETF.objects.filter(is_active=True).order_by('-market_cap')
+    etfs = list(InfoETF.objects.filter(is_active=True).order_by('-market_cap'))
+
+    # ============ 대시보드 카드 ============
+    # 카드 A: 장기 신호 (60일 신고거래량)
+    card_a_etfs = []  # 급등 (양봉, MA20 위)
+    card_a_down_etfs = []  # 급락 (음봉, MA20 아래)
+
+    for etf_item in etfs:
+        # 최근 120일 일봉 데이터 (MA120 계산용)
+        daily_data = list(DailyChartETF.objects.filter(
+            etf=etf_item
+        ).order_by('-date')[:120])
+
+        if len(daily_data) < 60:  # 최소 60일 필요
+            continue
+
+        # 오늘 데이터
+        today = daily_data[0]
+
+        # 60일 중 최대 거래량
+        max_volume_60 = max(d.trading_volume for d in daily_data[:60])
+
+        # 조건 1: 오늘 거래량 == 60일 최대 거래량
+        if today.trading_volume != max_volume_60 or today.trading_volume <= 0:
+            continue
+
+        # 이평선 계산
+        ma20 = sum(d.closing_price for d in daily_data[:20]) / 20 if len(daily_data) >= 20 else 0
+        ma120 = sum(d.closing_price for d in daily_data[:120]) / 120 if len(daily_data) >= 120 else 0
+
+        # MA120 위 여부
+        above_ma120 = today.closing_price > ma120 if ma120 else False
+
+        # 등락률
+        change_rate = float(etf_item.change_rate) if etf_item.change_rate else 0
+
+        # 10일 스파크라인 데이터 (종가)
+        sparkline = [d.closing_price for d in daily_data[:10]]
+        sparkline.reverse()
+
+        etf_data = {
+            'etf': etf_item,
+            'change_rate': change_rate,
+            'above_ma120': above_ma120,
+            'sparkline': sparkline,
+        }
+
+        # 급등: 양봉 + MA20 위
+        is_bullish = today.closing_price >= today.opening_price
+        above_ma20 = today.closing_price > ma20
+
+        if is_bullish and above_ma20:
+            card_a_etfs.append(etf_data)
+        # 급락: 음봉 + MA20 아래
+        elif not is_bullish and not above_ma20:
+            card_a_down_etfs.append(etf_data)
+
+    # 등락률 순으로 정렬
+    card_a_etfs.sort(key=lambda x: x['change_rate'], reverse=True)
+    card_a_down_etfs.sort(key=lambda x: x['change_rate'])
+
+    # 카드 A에 포함된 ETF 코드 (중복 제거용)
+    card_a_codes = {item['etf'].code for item in card_a_etfs} | {item['etf'].code for item in card_a_down_etfs}
+
+    # 카드 B: 단기 신호 (20일 신고거래량)
+    card_b_etfs = []
+    card_b_down_etfs = []
+
+    for etf_item in etfs:
+        if etf_item.code in card_a_codes:
+            continue
+
+        daily_data = list(DailyChartETF.objects.filter(
+            etf=etf_item
+        ).order_by('-date')[:120])
+
+        if len(daily_data) < 20:
+            continue
+
+        today = daily_data[0]
+
+        # 20일 중 최대 거래량
+        max_volume_20 = max(d.trading_volume for d in daily_data[:20])
+
+        if today.trading_volume != max_volume_20 or today.trading_volume <= 0:
+            continue
+
+        ma20 = sum(d.closing_price for d in daily_data[:20]) / 20
+        ma120 = sum(d.closing_price for d in daily_data[:120]) / 120 if len(daily_data) >= 120 else 0
+
+        above_ma120 = today.closing_price > ma120 if ma120 else False
+        change_rate = float(etf_item.change_rate) if etf_item.change_rate else 0
+
+        sparkline = [d.closing_price for d in daily_data[:10]]
+        sparkline.reverse()
+
+        etf_data = {
+            'etf': etf_item,
+            'change_rate': change_rate,
+            'above_ma120': above_ma120,
+            'sparkline': sparkline,
+        }
+
+        is_bullish = today.closing_price >= today.opening_price
+        above_ma20 = today.closing_price > ma20
+
+        if is_bullish and above_ma20:
+            card_b_etfs.append(etf_data)
+        elif not is_bullish and not above_ma20:
+            card_b_down_etfs.append(etf_data)
+
+    card_b_etfs.sort(key=lambda x: x['change_rate'], reverse=True)
+    card_b_down_etfs.sort(key=lambda x: x['change_rate'])
+
+    card_ab_codes = card_a_codes | {item['etf'].code for item in card_b_etfs} | {item['etf'].code for item in card_b_down_etfs}
+
+    # 카드 D: 이평선 줍줍 (정배열 눌림목)
+    card_d_etfs = []
+
+    for etf_item in etfs:
+        if etf_item.code in card_ab_codes:
+            continue
+
+        daily_data = list(DailyChartETF.objects.filter(
+            etf=etf_item
+        ).order_by('-date')[:65])
+
+        if len(daily_data) < 65:
+            continue
+
+        today = daily_data[0]
+
+        ma20 = sum(d.closing_price for d in daily_data[:20]) / 20
+        ma60 = sum(d.closing_price for d in daily_data[:60]) / 60
+        ma60_5days_ago = sum(d.closing_price for d in daily_data[5:65]) / 60
+
+        # 조건 A (정배열): MA20 > MA60
+        if ma20 <= ma60:
+            continue
+        # 조건 B (장기추세): MA60 기울기 > 0
+        if ma60 <= ma60_5days_ago:
+            continue
+        # 조건 C (눌림 상태): 종가 < MA20
+        if today.closing_price >= ma20:
+            continue
+        # 조건 D (최대 하락폭): 종가 >= MA60 * 0.90
+        if today.closing_price < ma60 * 0.90:
+            continue
+
+        gap_from_ma60 = round((today.closing_price / ma60 - 1) * 100, 1)
+        change_rate = float(etf_item.change_rate) if etf_item.change_rate else 0
+
+        sparkline = [d.closing_price for d in daily_data[:10]]
+        sparkline.reverse()
+
+        card_d_etfs.append({
+            'etf': etf_item,
+            'change_rate': change_rate,
+            'gap_from_ma60': gap_from_ma60,
+            'sparkline': sparkline,
+        })
+
+    card_d_etfs.sort(key=lambda x: x['gap_from_ma60'], reverse=True)
+
+    card_abd_codes = card_ab_codes | {item['etf'].code for item in card_d_etfs}
+
+    # 카드 C: 신호 추적 (최근 5일 내 조건 충족)
+    card_c_etfs = []
+
+    for etf_item in etfs:
+        if etf_item.code in card_abd_codes:
+            continue
+
+        daily_data = list(DailyChartETF.objects.filter(
+            etf=etf_item
+        ).order_by('-date')[:125])
+
+        if len(daily_data) < 65:
+            continue
+
+        signal_day = None
+        signal_type = None
+        signal_days_ago = 0
+
+        for day_idx in range(5):
+            check_day = daily_data[day_idx]
+
+            if check_day.closing_price < check_day.opening_price:
+                continue
+
+            ma20_data = daily_data[day_idx:day_idx + 20]
+            if len(ma20_data) < 20:
+                continue
+            ma20 = sum(d.closing_price for d in ma20_data) / 20
+
+            if check_day.closing_price <= ma20:
+                continue
+
+            volume_60_data = daily_data[day_idx:day_idx + 60]
+            if len(volume_60_data) >= 60:
+                max_volume_60 = max(d.trading_volume for d in volume_60_data)
+                if check_day.trading_volume == max_volume_60 and check_day.trading_volume > 0:
+                    signal_day = check_day
+                    signal_type = '60일'
+                    signal_days_ago = day_idx
+                    break
+
+            volume_20_data = daily_data[day_idx:day_idx + 20]
+            if len(volume_20_data) >= 20:
+                max_volume_20 = max(d.trading_volume for d in volume_20_data)
+                if check_day.trading_volume == max_volume_20 and check_day.trading_volume > 0:
+                    signal_day = check_day
+                    signal_type = '20일'
+                    signal_days_ago = day_idx
+                    break
+
+        if not signal_day:
+            continue
+
+        today = daily_data[0]
+
+        signal_price_change = 0
+        if signal_day.closing_price > 0:
+            signal_price_change = round((today.closing_price / signal_day.closing_price - 1) * 100, 1)
+
+        ma120 = sum(d.closing_price for d in daily_data[:120]) / 120 if len(daily_data) >= 120 else 0
+        above_ma120 = today.closing_price > ma120 if ma120 else False
+
+        sparkline = [d.closing_price for d in daily_data[:10]]
+        sparkline.reverse()
+
+        card_c_etfs.append({
+            'etf': etf_item,
+            'signal_type': signal_type,
+            'signal_days_ago': signal_days_ago,
+            'signal_price_change': signal_price_change,
+            'sparkline': sparkline,
+            'above_ma120': above_ma120,
+            'signal_date': signal_day.date.strftime('%Y-%m-%d'),
+            'signal_close': signal_day.closing_price,
+            'current_price': etf_item.current_price,
+        })
+
+    card_c_etfs.sort(key=lambda x: x['signal_price_change'], reverse=True)
 
     context = {
         'etfs': etfs,
+        'card_a_etfs': card_a_etfs,
+        'card_a_down_etfs': card_a_down_etfs,
+        'card_b_etfs': card_b_etfs,
+        'card_b_down_etfs': card_b_down_etfs,
+        'card_c_etfs': card_c_etfs,
+        'card_d_etfs': card_d_etfs,
     }
     return render(request, 'stocks/etf.html', context)
 

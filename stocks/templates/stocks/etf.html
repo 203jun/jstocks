@@ -19,34 +19,323 @@
     </div>
 </div>
 
+<!-- 대시보드 카드 -->
+<div class="row mb-4">
+    <!-- 카드 A: 장기 신호 (60일 신고거래량) -->
+    <div class="col-md-6 mb-3">
+        <div class="card h-100 signal-card">
+            <div class="card-header py-2">
+                <strong>🥇 장기 신호</strong>
+                <small class="text-muted d-block">60일 신고거래량 · 급등(양봉+MA20↑) · 급락(음봉+MA20↓)</small>
+            </div>
+            <!-- PC: 테이블 -->
+            <div class="card-body p-0 d-none d-md-block">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="px-3">ETF명</th>
+                                <th class="text-end px-3">등락율</th>
+                                <th class="text-end px-3">10일</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="table-danger"><td colspan="3" class="px-3 py-1 small fw-bold text-danger">급등</td></tr>
+                            {% for item in card_a_etfs %}
+                            <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                                <td class="px-3 py-2">
+                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
+                                </td>
+                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
+                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
+                                </td>
+                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted py-2"><small>해당 ETF 없음</small></td></tr>
+                            {% endfor %}
+                            <tr class="table-primary"><td colspan="3" class="px-3 py-1 small fw-bold text-primary">급락</td></tr>
+                            {% for item in card_a_down_etfs %}
+                            <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                                <td class="px-3 py-2">
+                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
+                                </td>
+                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
+                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
+                                </td>
+                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted py-2"><small>해당 ETF 없음</small></td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- 모바일: 카드 리스트 -->
+            <div class="card-body p-2 d-md-none">
+                <div class="bg-danger-subtle px-2 py-1 mb-1 small fw-bold text-danger">급등</div>
+                {% for item in card_a_etfs %}
+                <div class="mobile-stock-item border-bottom py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
+                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-2"><small>해당 ETF 없음</small></div>
+                {% endfor %}
+                <div class="bg-primary-subtle px-2 py-1 mb-1 mt-2 small fw-bold text-primary">급락</div>
+                {% for item in card_a_down_etfs %}
+                <div class="mobile-stock-item border-bottom py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
+                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-2"><small>해당 ETF 없음</small></div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 카드 B: 단기 신호 (20일 신고거래량) -->
+    <div class="col-md-6 mb-3">
+        <div class="card h-100 signal-card">
+            <div class="card-header py-2">
+                <strong>🥈 단기 신호</strong>
+                <small class="text-muted d-block">20일 신고거래량 · 급등(양봉+MA20↑) · 급락(음봉+MA20↓)</small>
+            </div>
+            <!-- PC: 테이블 -->
+            <div class="card-body p-0 d-none d-md-block">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="px-3">ETF명</th>
+                                <th class="text-end px-3">등락율</th>
+                                <th class="text-end px-3">10일</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="table-danger"><td colspan="3" class="px-3 py-1 small fw-bold text-danger">급등</td></tr>
+                            {% for item in card_b_etfs %}
+                            <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                                <td class="px-3 py-2">
+                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
+                                </td>
+                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
+                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
+                                </td>
+                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted py-2"><small>해당 ETF 없음</small></td></tr>
+                            {% endfor %}
+                            <tr class="table-primary"><td colspan="3" class="px-3 py-1 small fw-bold text-primary">급락</td></tr>
+                            {% for item in card_b_down_etfs %}
+                            <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                                <td class="px-3 py-2">
+                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
+                                </td>
+                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
+                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
+                                </td>
+                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted py-2"><small>해당 ETF 없음</small></td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- 모바일: 카드 리스트 -->
+            <div class="card-body p-2 d-md-none">
+                <div class="bg-danger-subtle px-2 py-1 mb-1 small fw-bold text-danger">급등</div>
+                {% for item in card_b_etfs %}
+                <div class="mobile-stock-item border-bottom py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
+                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-2"><small>해당 ETF 없음</small></div>
+                {% endfor %}
+                <div class="bg-primary-subtle px-2 py-1 mb-1 mt-2 small fw-bold text-primary">급락</div>
+                {% for item in card_b_down_etfs %}
+                <div class="mobile-stock-item border-bottom py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
+                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-2"><small>해당 ETF 없음</small></div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 카드 D: 이평선 줍줍 -->
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header py-2">
+                <strong>🧲 이평선 줍줍</strong>
+                <small class="text-muted d-block">정배열 + 60선↗ + 종가&lt;MA20</small>
+            </div>
+            {% if card_d_etfs %}
+            <!-- PC: 테이블 -->
+            <div class="card-body p-0 d-none d-md-block">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="px-3">ETF명</th>
+                                <th class="text-end px-3">등락율</th>
+                                <th class="text-end px-3">60선대비</th>
+                                <th class="text-end px-3">10일</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in card_d_etfs %}
+                            <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                                <td class="px-3 py-2">
+                                    <strong class="small">{{ item.etf.name }}</strong>
+                                </td>
+                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
+                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
+                                </td>
+                                <td class="text-end px-3 py-2 small {% if item.gap_from_ma60 >= 0 %}text-danger{% elif item.gap_from_ma60 < -5 %}text-primary{% endif %}">{{ item.gap_from_ma60 }}%</td>
+                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- 모바일: 카드 리스트 -->
+            <div class="card-body p-2 d-md-none">
+                {% for item in card_d_etfs %}
+                <div class="mobile-stock-item border-bottom py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong>{{ item.etf.name }}</strong>
+                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
+                        <span>60선 <span class="{% if item.gap_from_ma60 >= 0 %}text-danger{% elif item.gap_from_ma60 < -5 %}text-primary{% endif %}">{{ item.gap_from_ma60 }}%</span></span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="card-body text-center text-muted py-4">
+                <small>해당 ETF 없음</small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 카드 C: 신호 추적 -->
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header py-2">
+                <strong>📡 신호 추적</strong>
+                <small class="text-muted d-block">최근 5일 내 조건 충족</small>
+            </div>
+            {% if card_c_etfs %}
+            <!-- PC: 테이블 -->
+            <div class="card-body p-0 d-none d-md-block">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="px-3">ETF명</th>
+                                <th class="text-center px-3">신호</th>
+                                <th class="text-center px-3">날짜</th>
+                                <th class="text-end px-3">양봉대비</th>
+                                <th class="text-end px-3">10일</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in card_c_etfs %}
+                            <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                                <td class="px-3 py-2">
+                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
+                                </td>
+                                <td class="text-center px-3 py-2"><span class="badge" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %};">{{ item.signal_type }}</span></td>
+                                <td class="text-center px-3 py-2 small">{{ item.signal_days_ago }}일전</td>
+                                <td class="text-end px-3 py-2 {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %}">
+                                    {% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%
+                                </td>
+                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- 모바일: 카드 리스트 -->
+            <div class="card-body p-2 d-md-none">
+                {% for item in card_c_etfs %}
+                <div class="mobile-stock-item border-bottom py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>
+                            <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
+                            <span class="badge ms-1" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %}; font-size: 0.7em;">{{ item.signal_type }}</span>
+                        </span>
+                        <span class="{% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %} fw-bold">{% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%</span>
+                    </div>
+                    <div class="text-muted small mt-1">{{ item.signal_days_ago }}일전</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="card-body text-center text-muted py-4">
+                <small>해당 ETF 없음</small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
 <!-- 관심 ETF 목록 -->
 {% if etfs %}
-<div class="table-responsive mb-3">
-    <table class="table table-hover stock-table mb-0">
-        <thead class="table-light">
-            <tr>
-                <th>종목명</th>
-                <th class="text-end">현재가</th>
-                <th class="text-end">등락률</th>
-                <th class="text-end hide-mobile">시가총액</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for etf in etfs %}
-            <tr style="cursor:pointer;" onclick="location.href='{% url 'stocks:etf_detail' etf.code %}'">
-                <td>
-                    <strong>{{ etf.name }}</strong>
-                    <small class="text-muted ms-1">{{ etf.code }}</small>
-                </td>
-                <td class="text-end">{% if etf.current_price %}{{ etf.current_price|intcomma }}{% else %}-{% endif %}</td>
-                <td class="text-end {% if etf.change_rate > 0 %}text-up{% elif etf.change_rate < 0 %}text-down{% endif %}">
-                    {% if etf.change_rate %}{% if etf.change_rate > 0 %}+{% endif %}{{ etf.change_rate }}%{% else %}-{% endif %}
-                </td>
-                <td class="text-end hide-mobile">{% if etf.market_cap %}{{ etf.market_cap|intcomma }}억{% else %}-{% endif %}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>관심 ETF</strong>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover stock-table mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="px-3">종목명</th>
+                        <th class="text-end px-3">현재가</th>
+                        <th class="text-end px-3">등락률</th>
+                        <th class="text-end px-3 hide-mobile">시가총액</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for etf in etfs %}
+                    <tr style="cursor:pointer;" onclick="location.href='{% url 'stocks:etf_detail' etf.code %}'">
+                        <td class="px-3">
+                            <strong>{{ etf.name }}</strong>
+                            <small class="text-muted ms-1">{{ etf.code }}</small>
+                        </td>
+                        <td class="text-end px-3">{% if etf.current_price %}{{ etf.current_price|intcomma }}{% else %}-{% endif %}</td>
+                        <td class="text-end px-3 {% if etf.change_rate > 0 %}text-up{% elif etf.change_rate < 0 %}text-down{% endif %}">
+                            {% if etf.change_rate %}{% if etf.change_rate > 0 %}+{% endif %}{{ etf.change_rate }}%{% else %}-{% endif %}
+                        </td>
+                        <td class="text-end px-3 hide-mobile">{% if etf.market_cap %}{{ etf.market_cap|intcomma }}억{% else %}-{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 {% endif %}
 
@@ -203,5 +492,34 @@ document.getElementById('save-etf-btn').addEventListener('click', async function
         saveBtn.textContent = '관심종목 저장';
     }
 });
+
+// 스파크라인 그리기
+function drawSparklines() {
+    document.querySelectorAll('.sparkline').forEach(canvas => {
+        const ctx = canvas.getContext('2d');
+        const values = canvas.dataset.values.split(',').map(Number);
+        if (values.length < 2 || values.every(v => v === 0)) return;
+
+        const width = canvas.width;
+        const height = canvas.height;
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const range = max - min || 1;
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.beginPath();
+        ctx.strokeStyle = values[values.length - 1] >= values[0] ? '#dc3545' : '#0d6efd';
+        ctx.lineWidth = 1.5;
+
+        values.forEach((val, i) => {
+            const x = (i / (values.length - 1)) * width;
+            const y = height - ((val - min) / range) * (height - 4) - 2;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+    });
+}
+drawSparklines();
 </script>
 {% endblock %}
