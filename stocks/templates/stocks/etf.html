@@ -261,16 +261,16 @@
                         </thead>
                         <tbody>
                             {% for item in card_c_etfs %}
-                            <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
-                                <td class="px-3 py-2">
+                            <tr style="cursor:pointer;">
+                                <td class="px-3 py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">
                                     <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
                                 </td>
-                                <td class="text-center px-3 py-2"><span class="badge" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %};">{{ item.signal_type }}</span></td>
-                                <td class="text-center px-3 py-2 small">{{ item.signal_days_ago }}일전</td>
-                                <td class="text-end px-3 py-2 {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %}">
+                                <td class="text-center px-3 py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'"><span class="badge" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %};">{{ item.signal_type }}</span></td>
+                                <td class="text-center px-3 py-2 small" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">{{ item.signal_days_ago }}일전</td>
+                                <td class="text-end px-3 py-2 {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %}" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">
                                     {% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%
                                 </td>
-                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                                <td class="text-end px-3 py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -280,15 +280,15 @@
             <!-- 모바일: 카드 리스트 -->
             <div class="card-body p-2 d-md-none">
                 {% for item in card_c_etfs %}
-                <div class="mobile-stock-item border-bottom py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
-                    <div class="d-flex justify-content-between align-items-center">
+                <div class="mobile-stock-item border-bottom py-2" style="cursor:pointer;">
+                    <div class="d-flex justify-content-between align-items-center" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">
                         <span>
                             <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
                             <span class="badge ms-1" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %}; font-size: 0.7em;">{{ item.signal_type }}</span>
                         </span>
                         <span class="{% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %} fw-bold">{% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%</span>
                     </div>
-                    <div class="text-muted small mt-1">{{ item.signal_days_ago }}일전</div>
+                    <div class="text-muted small mt-1" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">{{ item.signal_days_ago }}일전</div>
                 </div>
                 {% endfor %}
             </div>
