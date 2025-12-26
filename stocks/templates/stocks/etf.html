@@ -355,7 +355,7 @@
                             <strong>{{ etf.name }}</strong>
                             <small class="text-muted ms-1">{{ etf.code }}</small>
                             {% for sector in etf.custom_sectors.all %}
-                            <span class="badge bg-success ms-1" style="font-size: 0.7em;">{{ sector.name }}</span>
+                            <a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success ms-1 text-decoration-none" style="font-size: 0.7em;" onclick="event.stopPropagation();">{{ sector.name }}</a>
                             {% endfor %}
                         </td>
                         <td class="text-end px-3">{% if etf.current_price %}{{ etf.current_price|intcomma }}{% else %}-{% endif %}</td>
