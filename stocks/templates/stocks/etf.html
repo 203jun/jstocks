@@ -36,11 +36,12 @@
                             <tr>
                                 <th class="px-3">ETF명</th>
                                 <th class="text-end px-3">등락율</th>
+                                <th class="text-end px-3">고점대비</th>
                                 <th class="text-end px-3">10일</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr class="table-danger"><td colspan="3" class="px-3 py-1 small fw-bold text-danger">급등</td></tr>
+                            <tr class="table-danger"><td colspan="4" class="px-3 py-1 small fw-bold text-danger">급등</td></tr>
                             {% for item in card_a_etfs %}
                             <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
@@ -49,12 +50,13 @@
                                 <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
                                     {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
                                 </td>
+                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</td>
                                 <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="3" class="text-center text-muted py-2"><small>해당 ETF 없음</small></td></tr>
+                            <tr><td colspan="4" class="text-center text-muted py-2"><small>해당 ETF 없음</small></td></tr>
                             {% endfor %}
-                            <tr class="table-primary"><td colspan="3" class="px-3 py-1 small fw-bold text-primary">급락</td></tr>
+                            <tr class="table-primary"><td colspan="4" class="px-3 py-1 small fw-bold text-primary">급락</td></tr>
                             {% for item in card_a_down_etfs %}
                             <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
@@ -63,10 +65,11 @@
                                 <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
                                     {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
                                 </td>
+                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</td>
                                 <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="3" class="text-center text-muted py-2"><small>해당 ETF 없음</small></td></tr>
+                            <tr><td colspan="4" class="text-center text-muted py-2"><small>해당 ETF 없음</small></td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -81,6 +84,9 @@
                         <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
                         <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
                     </div>
+                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
+                        <span>고점 <span class="{% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
+                    </div>
                 </div>
                 {% empty %}
                 <div class="text-center text-muted py-2"><small>해당 ETF 없음</small></div>
@@ -91,6 +97,9 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
                         <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
+                        <span>고점 <span class="{% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
                     </div>
                 </div>
                 {% empty %}
@@ -115,11 +124,12 @@
                             <tr>
                                 <th class="px-3">ETF명</th>
                                 <th class="text-end px-3">등락율</th>
+                                <th class="text-end px-3">고점대비</th>
                                 <th class="text-end px-3">10일</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr class="table-danger"><td colspan="3" class="px-3 py-1 small fw-bold text-danger">급등</td></tr>
+                            <tr class="table-danger"><td colspan="4" class="px-3 py-1 small fw-bold text-danger">급등</td></tr>
                             {% for item in card_b_etfs %}
                             <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
@@ -128,12 +138,13 @@
                                 <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
                                     {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
                                 </td>
+                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</td>
                                 <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="3" class="text-center text-muted py-2"><small>해당 ETF 없음</small></td></tr>
+                            <tr><td colspan="4" class="text-center text-muted py-2"><small>해당 ETF 없음</small></td></tr>
                             {% endfor %}
-                            <tr class="table-primary"><td colspan="3" class="px-3 py-1 small fw-bold text-primary">급락</td></tr>
+                            <tr class="table-primary"><td colspan="4" class="px-3 py-1 small fw-bold text-primary">급락</td></tr>
                             {% for item in card_b_down_etfs %}
                             <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
                                 <td class="px-3 py-2">
@@ -142,10 +153,11 @@
                                 <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
                                     {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
                                 </td>
+                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</td>
                                 <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="3" class="text-center text-muted py-2"><small>해당 ETF 없음</small></td></tr>
+                            <tr><td colspan="4" class="text-center text-muted py-2"><small>해당 ETF 없음</small></td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -160,6 +172,9 @@
                         <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
                         <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
                     </div>
+                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
+                        <span>고점 <span class="{% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
+                    </div>
                 </div>
                 {% empty %}
                 <div class="text-center text-muted py-2"><small>해당 ETF 없음</small></div>
@@ -170,6 +185,9 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
                         <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
+                        <span>고점 <span class="{% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
                     </div>
                 </div>
                 {% empty %}

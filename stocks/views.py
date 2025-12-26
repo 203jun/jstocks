@@ -2098,11 +2098,17 @@ def etf(request):
     card_a_etfs = []  # 급등 (양봉, MA20 위)
     card_a_down_etfs = []  # 급락 (음봉, MA20 아래)
 
+    # 먼저 모든 ETF의 250일 데이터를 미리 가져옴
+    etf_daily_data_cache = {}
     for etf_item in etfs:
-        # 최근 120일 일봉 데이터 (MA120 계산용)
         daily_data = list(DailyChartETF.objects.filter(
             etf=etf_item
-        ).order_by('-date')[:120])
+        ).order_by('-date')[:250])
+        etf_daily_data_cache[etf_item.code] = daily_data
+
+    for etf_item in etfs:
+        # 캐시된 데이터 사용
+        daily_data = etf_daily_data_cache.get(etf_item.code, [])
 
         if len(daily_data) < 60:  # 최소 60일 필요
             continue
@@ -2124,6 +2130,12 @@ def etf(request):
         # MA120 위 여부
         above_ma120 = today.closing_price > ma120 if ma120 else False
 
+        # 250일 최고가 대비 위치
+        high_250 = max(d.high_price for d in daily_data) if daily_data else 0
+        high_position = 0
+        if high_250 and high_250 > 0:
+            high_position = round((today.closing_price / high_250 - 1) * 100, 1)
+
         # 등락률
         change_rate = float(etf_item.change_rate) if etf_item.change_rate else 0
 
@@ -2135,6 +2147,7 @@ def etf(request):
             'etf': etf_item,
             'change_rate': change_rate,
             'above_ma120': above_ma120,
+            'high_position': high_position,
             'sparkline': sparkline,
         }
 
@@ -2163,9 +2176,8 @@ def etf(request):
         if etf_item.code in card_a_codes:
             continue
 
-        daily_data = list(DailyChartETF.objects.filter(
-            etf=etf_item
-        ).order_by('-date')[:120])
+        # 캐시된 데이터 사용
+        daily_data = etf_daily_data_cache.get(etf_item.code, [])
 
         if len(daily_data) < 20:
             continue
@@ -2182,6 +2194,13 @@ def etf(request):
         ma120 = sum(d.closing_price for d in daily_data[:120]) / 120 if len(daily_data) >= 120 else 0
 
         above_ma120 = today.closing_price > ma120 if ma120 else False
+
+        # 250일 최고가 대비 위치
+        high_250 = max(d.high_price for d in daily_data) if daily_data else 0
+        high_position = 0
+        if high_250 and high_250 > 0:
+            high_position = round((today.closing_price / high_250 - 1) * 100, 1)
+
         change_rate = float(etf_item.change_rate) if etf_item.change_rate else 0
 
         sparkline = [d.closing_price for d in daily_data[:10]]
@@ -2191,6 +2210,7 @@ def etf(request):
             'etf': etf_item,
             'change_rate': change_rate,
             'above_ma120': above_ma120,
+            'high_position': high_position,
             'sparkline': sparkline,
         }
 
