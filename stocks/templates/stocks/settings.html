@@ -335,21 +335,68 @@
 
             <!-- 투자포인트 탭 -->
             <div class="tab-pane fade" id="stock-summary-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <strong>투자포인트 프롬프트</strong>
-                        <div>
-                            <button type="button" class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="modal" data-bs-target="#stockDataModal">
-                                종목 데이터 조회
-                            </button>
-                            <button type="button" class="btn btn-sm btn-primary" id="btnSaveSummaryPrompt">저장</button>
-                        </div>
+                <!-- 주의사항 -->
+                <div class="alert alert-warning py-2 mb-3">
+                    <strong>⚠️ 주의:</strong> STEP 2에서 웹페이지를 만들면 STEP 1 리포트 원본이 사라집니다. 반드시 STEP 1(HTML 저장)을 먼저 완료하세요!
+                </div>
+
+                <!-- STEP 1: 리포트 만들기 -->
+                <div class="card mb-3">
+                    <div class="card-header py-2">
+                        <span class="badge bg-primary me-2">STEP 1</span>
+                        <strong>리포트 만들기</strong>
                     </div>
                     <div class="card-body">
-                        <textarea class="form-control" id="promptSummary" rows="15" placeholder="투자포인트, 리스크, 일정 생성 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_summary }}</textarea>
-                        <div class="alert alert-info mt-2 mb-0 py-2 small">
-                            <strong>권장:</strong> Gemini + 사고모드 + Deep Research 사용<br>
-                            <strong>사용법:</strong> 프롬프트 + 종목데이터 조회 내용 복사/붙여넣기
+                        <div class="alert alert-secondary py-2 mb-3">
+                            <small>
+                                <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
+                                <strong>소요:</strong> 10~30분<br>
+                                <strong>저장:</strong> 종목 편집 → 인사이트 → <code>리포트</code> 탭
+                            </small>
+                        </div>
+
+                        <!-- 종목 데이터 조회 버튼 -->
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#stockDataModal">
+                                종목 데이터 조회
+                            </button>
+                            <small class="text-muted ms-2">프롬프트에 종목 데이터를 함께 사용하세요.</small>
+                        </div>
+
+                        <!-- 프롬프트 1: 리포트 생성 -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold small mb-0">1-1. 리포트 생성 프롬프트</label>
+                                <button type="button" class="btn btn-sm btn-primary" id="btnSaveSummaryPrompt">저장</button>
+                            </div>
+                            <textarea class="form-control" id="promptSummary" rows="8" placeholder="Deep Research용 프롬프트...">{{ saved_prompts.prompt_summary }}</textarea>
+                            <small class="text-muted">Deep Research에 입력할 프롬프트</small>
+                        </div>
+
+                        <!-- 프롬프트 2: HTML 파일 만들기 -->
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold small mb-0">1-2. HTML 변환 프롬프트</label>
+                                <button type="button" class="btn btn-sm btn-primary" id="btnSaveSummaryHtmlPrompt">저장</button>
+                            </div>
+                            <textarea class="form-control" id="promptSummaryHtml" rows="8" placeholder="HTML 변환용 프롬프트...">{{ saved_prompts.prompt_summary_html }}</textarea>
+                            <small class="text-muted">리포트 결과를 HTML 파일로 변환하는 프롬프트</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 2: 요약 만들기 -->
+                <div class="card">
+                    <div class="card-header py-2">
+                        <span class="badge bg-success me-2">STEP 2</span>
+                        <strong>요약 만들기</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info py-2 mb-0">
+                            <small>
+                                <strong>방법:</strong> Gemini 리포트 결과에서 <code>웹페이지 만들기</code> 클릭<br>
+                                <strong>저장:</strong> 생성된 HTML → 종목 편집 → 인사이트 → <code>요약</code> 탭
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -973,10 +1020,16 @@ document.getElementById('btnSaveAnalysisHtmlPrompt').addEventListener('click', f
     savePrompt('prompt_analysis_html', value, this);
 });
 
-// 투자포인트 프롬프트 저장
+// 투자포인트 1-1: 리포트 생성 프롬프트 저장
 document.getElementById('btnSaveSummaryPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptSummary').value;
     savePrompt('prompt_summary', value, this);
+});
+
+// 투자포인트 1-2: HTML 변환 프롬프트 저장
+document.getElementById('btnSaveSummaryHtmlPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptSummaryHtml').value;
+    savePrompt('prompt_summary_html', value, this);
 });
 
 // 노다지 1-1: 리포트 생성 프롬프트 저장
