@@ -267,7 +267,13 @@
                                 </td>
                                 <td class="text-center px-3 py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'"><span class="badge" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %};">{{ item.signal_type }}</span></td>
                                 <td class="text-center px-3 py-2 small" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">{{ item.signal_days_ago }}일전</td>
-                                <td class="text-end px-3 py-2 {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %}" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="text-decoration: underline; cursor: pointer;">
+                                <td class="text-end px-3 py-2 signal-chart-btn {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %}"
+                                    data-code="{{ item.etf.code }}"
+                                    data-name="{{ item.etf.name }}"
+                                    data-signal-date="{{ item.signal_date }}"
+                                    data-signal-close="{{ item.signal_close }}"
+                                    data-current-price="{{ item.current_price }}"
+                                    style="text-decoration: underline; cursor: pointer;">
                                     {% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%
                                 </td>
                                 <td class="text-end px-3 py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
@@ -286,7 +292,13 @@
                             <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
                             <span class="badge ms-1" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %}; font-size: 0.7em;">{{ item.signal_type }}</span>
                         </span>
-                        <span class="{% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %} fw-bold" style="text-decoration: underline;" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">{% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%</span>
+                        <span class="signal-chart-btn {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %} fw-bold"
+                            data-code="{{ item.etf.code }}"
+                            data-name="{{ item.etf.name }}"
+                            data-signal-date="{{ item.signal_date }}"
+                            data-signal-close="{{ item.signal_close }}"
+                            data-current-price="{{ item.current_price }}"
+                            style="text-decoration: underline;">{% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%</span>
                     </div>
                     <div class="text-muted small mt-1" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">{{ item.signal_days_ago }}일전</div>
                 </div>
@@ -521,5 +533,216 @@ function drawSparklines() {
     });
 }
 drawSparklines();
+
+// 신호 차트 팝업
+let signalChart = null;
+let signalCandleSeries = null;
+let signalVolumeSeries = null;
+let pendingChartData = null;
+
+function renderSignalChart() {
+    if (!pendingChartData) return;
+
+    const { signalDate, signalClose, currentPrice, candleData, volumeData } = pendingChartData;
+
+    // 신호 발생일 봉을 검정색으로 변경
+    const styledCandleData = candleData.map(candle => {
+        if (candle.time === signalDate) {
+            return {
+                ...candle,
+                color: '#000000',
+                borderColor: '#000000',
+                wickColor: '#000000',
+            };
+        }
+        return candle;
+    });
+
+    const container = document.getElementById('signalChartContainer');
+    container.innerHTML = '';
+
+    const containerWidth = container.clientWidth || 750;
+
+    signalChart = LightweightCharts.createChart(container, {
+        width: containerWidth,
+        height: 400,
+        layout: {
+            background: { type: 'solid', color: '#ffffff' },
+            textColor: '#333',
+        },
+        grid: {
+            vertLines: { color: '#f0f0f0' },
+            horzLines: { color: '#f0f0f0' },
+        },
+        crosshair: {
+            mode: LightweightCharts.CrosshairMode.Normal,
+        },
+        rightPriceScale: {
+            borderColor: '#ddd',
+        },
+        timeScale: {
+            borderColor: '#ddd',
+            timeVisible: false,
+            rightOffset: 0,
+            fixLeftEdge: true,
+            fixRightEdge: true,
+            lockVisibleTimeRangeOnResize: true,
+        },
+        handleScroll: {
+            mouseWheel: true,
+            pressedMouseMove: true,
+            horzTouchDrag: true,
+            vertTouchDrag: false,
+        },
+        handleScale: {
+            axisPressedMouseMove: true,
+            mouseWheel: true,
+            pinch: true,
+        },
+    });
+
+    signalCandleSeries = signalChart.addCandlestickSeries({
+        upColor: '#ef5350',
+        downColor: '#2196f3',
+        borderUpColor: '#ef5350',
+        borderDownColor: '#2196f3',
+        wickUpColor: '#ef5350',
+        wickDownColor: '#2196f3',
+    });
+
+    signalCandleSeries.setData(styledCandleData);
+
+    signalVolumeSeries = signalChart.addHistogramSeries({
+        priceFormat: {
+            type: 'volume',
+        },
+        priceScaleId: '',
+        scaleMargins: {
+            top: 0.8,
+            bottom: 0,
+        },
+    });
+
+    signalVolumeSeries.setData(volumeData);
+
+    // 신호일 종가 라인
+    if (signalClose) {
+        signalCandleSeries.createPriceLine({
+            price: signalClose,
+            color: '#ff9800',
+            lineWidth: 1,
+            lineStyle: LightweightCharts.LineStyle.Dashed,
+            axisLabelVisible: false,
+            title: '',
+        });
+    }
+
+    // 현재가 라인
+    if (currentPrice) {
+        signalCandleSeries.createPriceLine({
+            price: currentPrice,
+            color: '#2196f3',
+            lineWidth: 2,
+            lineStyle: LightweightCharts.LineStyle.Dashed,
+            axisLabelVisible: false,
+            title: '',
+        });
+    }
+
+    // 정보 표시
+    const priceChange = signalClose && currentPrice ? ((currentPrice - signalClose) / signalClose * 100).toFixed(1) : 0;
+    const legendDiv = document.createElement('div');
+    legendDiv.style.cssText = 'position: absolute; top: 10px; left: 10px; z-index: 10; font-size: 12px; background: rgba(255,255,255,0.9); padding: 5px 10px; border-radius: 4px;';
+    legendDiv.innerHTML = `<span style="color: #ff9800;">신호일 종가</span> &nbsp; <span style="color: ${priceChange >= 0 ? '#ef5350' : '#2196f3'};">양봉대비: ${priceChange >= 0 ? '+' : ''}${priceChange}%</span>`;
+    container.style.position = 'relative';
+    container.appendChild(legendDiv);
+
+    signalChart.timeScale().fitContent();
+    pendingChartData = null;
+}
+
+document.getElementById('signalChartModal').addEventListener('shown.bs.modal', function() {
+    renderSignalChart();
+});
+
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.signal-chart-btn');
+    if (!btn) return;
+
+    e.stopPropagation();
+
+    const code = btn.dataset.code;
+    const name = btn.dataset.name;
+    const signalDate = btn.dataset.signalDate;
+    const signalClose = parseFloat(btn.dataset.signalClose) || 0;
+    const currentPrice = parseFloat(btn.dataset.currentPrice) || 0;
+
+    document.getElementById('signalChartModalLabel').textContent = `${name} 신호 차트`;
+    document.getElementById('signalChartContainer').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">차트 로딩 중...</p></div>';
+
+    const modal = new bootstrap.Modal(document.getElementById('signalChartModal'));
+    modal.show();
+
+    fetch(`/api/etf/${code}/signal-chart/`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) {
+                document.getElementById('signalChartContainer').innerHTML = '<div class="text-center py-5 text-muted">차트 데이터를 불러올 수 없습니다.</div>';
+                return;
+            }
+
+            pendingChartData = {
+                signalDate,
+                signalClose,
+                currentPrice,
+                candleData: data.candle_data,
+                volumeData: data.volume_data,
+            };
+
+            const modalEl = document.getElementById('signalChartModal');
+            if (modalEl.classList.contains('show')) {
+                renderSignalChart();
+            }
+        })
+        .catch(err => {
+            console.error('차트 로드 에러:', err);
+            document.getElementById('signalChartContainer').innerHTML = '<div class="text-center py-5 text-danger">차트 로드 에러</div>';
+        });
+});
+
+document.getElementById('signalChartModal').addEventListener('hidden.bs.modal', function() {
+    if (signalChart) {
+        signalChart.remove();
+        signalChart = null;
+        signalCandleSeries = null;
+        signalVolumeSeries = null;
+    }
+});
+
+window.addEventListener('resize', function() {
+    if (signalChart) {
+        const container = document.getElementById('signalChartContainer');
+        signalChart.applyOptions({ width: container.clientWidth });
+    }
+});
 </script>
+
+<!-- 신호 차트 모달 -->
+<div class="modal fade" id="signalChartModal" tabindex="-1" aria-labelledby="signalChartModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title" id="signalChartModalLabel">신호 차트</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-2">
+                <div id="signalChartContainer" style="height: 400px;"></div>
+                <div class="mt-2 small text-muted">
+                    <span class="me-3"><span style="color: #ff9800;">- - -</span> 신호일 종가</span>
+                    <span><span style="color: #2196f3;">- - -</span> 현재가</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

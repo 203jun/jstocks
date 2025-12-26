@@ -22,6 +22,7 @@ urlpatterns = [
     path('api/etf/add/', views.add_etf, name='add_etf'),
     path('api/etf/save/', views.save_etf, name='save_etf'),
     path('api/etf/<str:code>/delete/', views.delete_etf, name='delete_etf'),
+    path('api/etf/<str:code>/signal-chart/', views.etf_signal_chart_data, name='etf_signal_chart_data'),
     path('nodaji/<int:nodaji_id>/summary/', views.nodaji_summary, name='nodaji_summary'),
     path('report/<int:report_id>/summary/', views.report_summary, name='report_summary'),
     path('api/report/<str:code>/more/', views.fetch_more_reports, name='fetch_more_reports'),

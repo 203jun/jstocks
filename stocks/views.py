@@ -1033,6 +1033,43 @@ def signal_chart_data(request, code):
     })
 
 
+def etf_signal_chart_data(request, code):
+    """ETF 신호 차트 데이터 API (최근 6개월 일봉)"""
+    from .models import InfoETF, DailyChartETF
+
+    etf = get_object_or_404(InfoETF, code=code)
+
+    # 최근 120일 (약 6개월) 일봉 데이터
+    daily_charts = DailyChartETF.objects.filter(etf=etf).order_by('-date')[:120]
+
+    candle_data = []
+    volume_data = []
+    for d in reversed(daily_charts):
+        time_str = d.date.strftime('%Y-%m-%d')
+        candle_data.append({
+            'time': time_str,
+            'open': d.opening_price,
+            'high': d.high_price,
+            'low': d.low_price,
+            'close': d.closing_price,
+        })
+        # 거래량 색상: 상승(빨강), 하락(파랑)
+        volume_color = '#ef535080' if d.closing_price >= d.opening_price else '#2196f380'
+        volume_data.append({
+            'time': time_str,
+            'value': d.trading_volume,
+            'color': volume_color,
+        })
+
+    return JsonResponse({
+        'success': True,
+        'etf_name': etf.name,
+        'current_price': etf.current_price,
+        'candle_data': candle_data,
+        'volume_data': volume_data,
+    })
+
+
 # 텔레그램 채널 목록 (채널ID: 표시명)
 TELEGRAM_CHANNELS = {
     '@darthacking': '주식공시',
