@@ -15,11 +15,120 @@
     </div>
 </div>
 
-<!-- 메인 콘텐츠 (비워둠) -->
-<div class="card">
-    <div class="card-body text-center text-muted py-5">
-        <p class="mb-0">섹터 상세 정보가 여기에 표시됩니다.</p>
-        <small>편집 버튼을 눌러 리포트, 텔레그램, 뉴스, 유튜브를 검색하세요.</small>
+<!-- 요약 -->
+{% if sector.summary %}
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>요약</strong>
+    </div>
+    <div class="card-body py-2">
+        <div style="white-space: pre-wrap;">{{ sector.summary }}</div>
     </div>
 </div>
+{% endif %}
+
+<!-- 메모 -->
+{% if sector.memo %}
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>메모</strong>
+    </div>
+    <div class="card-body py-2">
+        <div style="white-space: pre-wrap;">{{ sector.memo }}</div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 최신 소식 -->
+<div class="card">
+    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+        <strong>최신 소식</strong>
+        <span class="badge bg-secondary">{{ total_count }}건</span>
+    </div>
+    <div class="card-body p-0">
+        {% if initial_items %}
+        <div class="list-group list-group-flush">
+            {% for item in initial_items %}
+            <div class="list-group-item py-2">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1 overflow-hidden">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span title="{{ item.type }}">{{ item.icon }}</span>
+                            <small class="text-muted">{{ item.date }}{% if item.time %} {{ item.time }}{% endif %}</small>
+                            {% if item.source %}
+                            <span class="badge bg-secondary" style="font-size: 0.7em;">{{ item.source }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="small">
+                            {% if item.link %}
+                            <a href="{{ item.link }}" target="_blank" class="text-decoration-none">{{ item.title }}</a>
+                            {% else %}
+                            {{ item.title }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if item.summary_url %}
+                    <a href="{{ item.summary_url }}" class="badge bg-success text-decoration-none ms-2">요약</a>
+                    {% elif item.has_summary == False and item.type != 'telegram' %}
+                    <a href="{{ item.summary_url }}" class="badge bg-secondary text-decoration-none ms-2">요약</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
+            {% if remaining_items %}
+            <!-- 더보기 영역 (숨김) -->
+            <div id="remaining-items" style="display: none;">
+                {% for item in remaining_items %}
+                <div class="list-group-item py-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span title="{{ item.type }}">{{ item.icon }}</span>
+                                <small class="text-muted">{{ item.date }}{% if item.time %} {{ item.time }}{% endif %}</small>
+                                {% if item.source %}
+                                <span class="badge bg-secondary" style="font-size: 0.7em;">{{ item.source }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="small">
+                                {% if item.link %}
+                                <a href="{{ item.link }}" target="_blank" class="text-decoration-none">{{ item.title }}</a>
+                                {% else %}
+                                {{ item.title }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if item.summary_url %}
+                        <a href="{{ item.summary_url }}" class="badge bg-success text-decoration-none ms-2">요약</a>
+                        {% elif item.has_summary == False and item.type != 'telegram' %}
+                        <a href="{{ item.summary_url }}" class="badge bg-secondary text-decoration-none ms-2">요약</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- 더보기 버튼 -->
+            <div id="show-more-btn" class="list-group-item py-2 text-center">
+                <button class="btn btn-sm btn-outline-secondary" onclick="showMoreItems()">
+                    더보기 ({{ remaining_items|length }}건)
+                </button>
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4">
+            <p class="mb-0">저장된 소식이 없습니다.</p>
+            <small><a href="{% url 'stocks:sector_edit' sector.id %}">편집</a>에서 리포트, 텔레그램, 뉴스, 유튜브를 검색하세요.</small>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function showMoreItems() {
+    document.getElementById('remaining-items').style.display = 'block';
+    document.getElementById('show-more-btn').style.display = 'none';
+}
+</script>
 {% endblock %}

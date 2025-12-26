@@ -1193,9 +1193,25 @@ class CustomSector(models.Model):
         verbose_name='섹터명',
         help_text='섹터 이름 (예: 화장품, 2차전지)'
     )
+    summary = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='요약',
+        help_text='섹터 요약'
+    )
+    memo = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='메모',
+        help_text='사용자 메모'
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='생성일시'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='수정일시'
     )
 
     class Meta:

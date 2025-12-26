@@ -18,7 +18,10 @@
 <!-- 메인 탭 -->
 <ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab">리포트</button>
+        <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-content" type="button" role="tab">기본정보</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab">리포트</button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="telegram-tab" data-bs-toggle="tab" data-bs-target="#telegram-content" type="button" role="tab">텔레그램</button>
@@ -32,8 +35,40 @@
 </ul>
 
 <div class="tab-content" id="mainTabContent">
+    <!-- 기본정보 탭 -->
+    <div class="tab-pane fade show active" id="info-content" role="tabpanel">
+        <form method="post" id="sectorInfoForm">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="info">
+
+            <!-- 요약 -->
+            <div class="card mb-3">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <strong>요약</strong>
+                </div>
+                <div class="card-body py-2">
+                    <textarea class="form-control" name="summary" rows="5" placeholder="섹터 요약을 입력하세요...">{{ sector.summary }}</textarea>
+                </div>
+            </div>
+
+            <!-- 메모 -->
+            <div class="card mb-3">
+                <div class="card-header py-2">
+                    <strong>메모</strong>
+                </div>
+                <div class="card-body py-2">
+                    <textarea class="form-control" name="memo" rows="5" placeholder="메모를 입력하세요...">{{ sector.memo }}</textarea>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary">저장</button>
+            </div>
+        </form>
+    </div>
+
     <!-- 리포트 탭 -->
-    <div class="tab-pane fade show active" id="report-content" role="tabpanel">
+    <div class="tab-pane fade" id="report-content" role="tabpanel">
         <div class="card">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <div>

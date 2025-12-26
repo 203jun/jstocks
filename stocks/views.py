@@ -1888,12 +1888,71 @@ def sector(request):
 
 def sector_detail(request, sector_id):
     """섹터 상세 페이지"""
-    from .models import CustomSector
+    from .models import CustomSector, SectorTelegramMessage, SectorNews, SectorYoutubeVideo
+    from itertools import chain
 
     sector = get_object_or_404(CustomSector, id=sector_id)
 
+    # 텔레그램, 뉴스, 유튜브 통합 리스트 (최신순)
+    telegram_messages = SectorTelegramMessage.objects.filter(sector=sector)
+    news_articles = SectorNews.objects.filter(sector=sector)
+    youtube_videos = SectorYoutubeVideo.objects.filter(sector=sector)
+
+    # 통합 리스트 생성
+    all_items = []
+    for msg in telegram_messages:
+        all_items.append({
+            'type': 'telegram',
+            'icon': '💬',
+            'date': msg.date,
+            'time': msg.time,
+            'title': msg.text[:100] + '...' if len(msg.text) > 100 else msg.text,
+            'source': msg.channel_name or msg.channel,
+            'link': None,
+            'summary_url': None,
+        })
+    for news in news_articles:
+        all_items.append({
+            'type': 'news',
+            'icon': '📰',
+            'date': news.published or '',
+            'time': '',
+            'title': news.title,
+            'source': news.source or '',
+            'link': news.link,
+            'summary_url': f'/sector/news/{news.id}/summary/' if news.summary else None,
+            'has_summary': bool(news.summary),
+        })
+    for video in youtube_videos:
+        all_items.append({
+            'type': 'youtube',
+            'icon': '🎬',
+            'date': video.published or '',
+            'time': '',
+            'title': video.title,
+            'source': video.channel or '',
+            'link': video.link,
+            'summary_url': f'/sector/youtube/{video.id}/summary/' if video.summary else None,
+            'has_summary': bool(video.summary),
+        })
+
+    # 날짜+시간 기준 정렬 (최신순)
+    def sort_key(item):
+        date_str = item['date'] or ''
+        time_str = item['time'] or ''
+        return (date_str, time_str)
+
+    all_items.sort(key=sort_key, reverse=True)
+
+    # 처음 20건만 표시, 나머지는 더보기로
+    initial_items = all_items[:20]
+    remaining_items = all_items[20:]
+
     context = {
         'sector': sector,
+        'initial_items': initial_items,
+        'remaining_items': remaining_items,
+        'total_count': len(all_items),
     }
     return render(request, 'stocks/sector_detail.html', context)
 
@@ -1903,6 +1962,15 @@ def sector_edit(request, sector_id):
     from .models import CustomSector, SectorTelegramMessage, SectorNews, SectorYoutubeVideo
 
     sector = get_object_or_404(CustomSector, id=sector_id)
+
+    # POST 처리 (기본정보 저장)
+    if request.method == 'POST' and request.POST.get('form_type') == 'info':
+        sector.summary = request.POST.get('summary', '').strip()
+        sector.memo = request.POST.get('memo', '').strip()
+        sector.save()
+        messages.success(request, f'{sector.name} 정보가 저장되었습니다.')
+        return redirect('stocks:sector_edit', sector_id=sector_id)
+
     telegram_messages = SectorTelegramMessage.objects.filter(sector=sector).order_by('-date', '-time')
     news_articles = SectorNews.objects.filter(sector=sector).order_by('-created_at')
     youtube_videos = SectorYoutubeVideo.objects.filter(sector=sector).order_by('-created_at')
