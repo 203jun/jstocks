@@ -2,7 +2,7 @@
 
 주식 데이터 수집 및 저장을 위한 Django 관리 명령어 목록입니다.
 
-## 명령어 목록 (17개)
+## 명령어 목록 (18개)
 
 | 분류 | 명령어 | 저장 모델 | 데이터 소스 | 실행 주기 |
 |------|--------|-----------|-------------|-----------|
@@ -21,6 +21,7 @@
 | 종목 | `save_stock_info` | Info | 키움 API (ka10001) | 일 1회 |
 | 종목 | `save_stock_sector` | Info.sectors (M2M) | 키움 API (ka20002) | 주 1회 |
 | ETF | `save_etf_chart` | DailyChartETF, WeeklyChartETF, MonthlyChartETF | 네이버 금융 | 일 1회 |
+| ETF | `save_etf_info` | InfoETF | 네이버 금융 | 일 1회 |
 | 재무 | `save_financial_naver` | Financial | 네이버 금융 | 주 1회 |
 | 재무 | `save_init_financial` | Financial | OpenDART (jemu 폴더) | 최초 1회 |
 
@@ -108,8 +109,9 @@ python manage.py save_gongsi_stock --code fav --log-level info
 python manage.py save_fnguide_report --code fav --log-level info
 python manage.py save_nodaji_stock --code fav --log-level info
 
-# ETF 차트
+# ETF
 python manage.py save_etf_chart --mode last --log-level info
+python manage.py save_etf_info --log-level info
 ```
 
 ### 주 1회
@@ -277,7 +279,7 @@ python manage.py get_token
 - `save_stock_info`, `save_stock_list`
 
 토큰 불필요 (네이버 금융 API 사용):
-- `save_etf_chart`
+- `save_etf_chart`, `save_etf_info`
 - `save_index_chart`, `save_market_trend`
 - `save_financial_naver`
 
