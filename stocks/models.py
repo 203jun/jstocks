@@ -315,6 +315,15 @@ class InfoETF(models.Model):
         help_text='구성종목 리스트 [{name, ratio}, ...]'
     )
 
+    # === 관심섹터 ===
+    custom_sectors = models.ManyToManyField(
+        'CustomSector',
+        related_name='etfs',
+        blank=True,
+        verbose_name='관심섹터',
+        help_text='사용자 정의 섹터 (화장품, 2차전지 등)'
+    )
+
     # === 메타 정보 ===
     created_at = models.DateTimeField(
         auto_now_add=True,

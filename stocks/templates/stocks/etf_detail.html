@@ -13,6 +13,9 @@
         </h4>
         <div class="d-flex align-items-center gap-1">
             <span class="badge bg-info">ETF</span>
+            {% for sector in etf.custom_sectors.all %}
+            <span class="badge bg-success">{{ sector.name }}</span>
+            {% endfor %}
         </div>
     </div>
     <div class="d-flex gap-2">
@@ -20,6 +23,125 @@
         <a href="{% url 'stocks:etf' %}" class="btn btn-outline-secondary btn-sm">목록</a>
     </div>
 </div>
+
+<!-- 관심섹터 -->
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>관심섹터</strong>
+        <a href="{% url 'stocks:settings' %}" class="text-muted small ms-2" target="_blank">관리</a>
+    </div>
+    <div class="card-body py-2">
+        {% if custom_sectors %}
+        <form method="post" id="sectorForm">
+            {% csrf_token %}
+            <!-- 선택된 섹터 표시 -->
+            <div id="selectedSectors" class="d-flex flex-wrap gap-1 mb-2">
+                {% for sector in etf.custom_sectors.all %}
+                <span class="badge bg-success d-flex align-items-center selected-sector" data-id="{{ sector.id }}">
+                    {{ sector.name }}
+                    <button type="button" class="btn-close btn-close-white ms-1 btn-remove-sector" style="font-size: 0.5rem;"></button>
+                </span>
+                {% empty %}
+                <span class="text-muted small" id="noSectorMsg">선택된 섹터가 없습니다.</span>
+                {% endfor %}
+            </div>
+            <!-- 섹터 추가 드롭다운 -->
+            <div class="d-flex gap-2 align-items-center">
+                <select id="sectorSelect" class="form-select form-select-sm" style="max-width: 300px;">
+                    <option value="">섹터 선택...</option>
+                    {% for sector in custom_sectors %}
+                    <option value="{{ sector.id }}" data-name="{{ sector.name }}">{{ sector.name }}</option>
+                    {% endfor %}
+                </select>
+                <button type="button" id="btnAddSector" class="btn btn-sm btn-outline-success">추가</button>
+                <button type="submit" class="btn btn-sm btn-primary">저장</button>
+            </div>
+            <!-- hidden inputs -->
+            <div id="sectorInputs">
+                {% for sector in etf.custom_sectors.all %}
+                <input type="hidden" name="custom_sectors" value="{{ sector.id }}">
+                {% endfor %}
+            </div>
+        </form>
+        {% else %}
+        <div class="text-muted small">
+            등록된 섹터가 없습니다. <a href="{% url 'stocks:settings' %}" target="_blank">설정</a>에서 섹터를 추가하세요.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+(function() {
+    const selectedSectors = document.getElementById('selectedSectors');
+    const sectorInputs = document.getElementById('sectorInputs');
+    const select = document.getElementById('sectorSelect');
+    const btnAdd = document.getElementById('btnAddSector');
+    const noSectorMsg = document.getElementById('noSectorMsg');
+
+    if (!selectedSectors || !sectorInputs || !select || !btnAdd) return;
+
+    // 섹터 추가
+    btnAdd.addEventListener('click', () => {
+        const sectorId = select.value;
+        if (!sectorId) return;
+
+        // 이미 추가된 섹터인지 확인
+        if (sectorInputs.querySelector(`input[value="${sectorId}"]`)) {
+            alert('이미 추가된 섹터입니다.');
+            return;
+        }
+
+        // "선택된 섹터가 없습니다" 메시지 제거
+        if (noSectorMsg) noSectorMsg.remove();
+
+        const sectorName = select.options[select.selectedIndex].dataset.name;
+
+        // 뱃지 추가
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-success d-flex align-items-center selected-sector';
+        badge.dataset.id = sectorId;
+        badge.innerHTML = `${sectorName}<button type="button" class="btn-close btn-close-white ms-1 btn-remove-sector" style="font-size: 0.5rem;"></button>`;
+        selectedSectors.appendChild(badge);
+
+        // hidden input 추가
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'custom_sectors';
+        input.value = sectorId;
+        sectorInputs.appendChild(input);
+
+        // 선택 초기화
+        select.value = '';
+    });
+
+    // 섹터 삭제 (이벤트 위임)
+    selectedSectors.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('btn-remove-sector')) return;
+
+        const badge = e.target.closest('.selected-sector');
+        if (!badge) return;
+
+        const sectorId = badge.dataset.id;
+
+        // 뱃지 삭제
+        badge.remove();
+
+        // hidden input 삭제
+        const input = sectorInputs.querySelector(`input[value="${sectorId}"]`);
+        if (input) input.remove();
+
+        // 섹터가 없으면 메시지 표시
+        if (selectedSectors.querySelectorAll('.selected-sector').length === 0) {
+            const msg = document.createElement('span');
+            msg.className = 'text-muted small';
+            msg.id = 'noSectorMsg';
+            msg.textContent = '선택된 섹터가 없습니다.';
+            selectedSectors.appendChild(msg);
+        }
+    });
+})();
+</script>
 
 <script>
 document.getElementById('delete-etf-btn').addEventListener('click', async function() {

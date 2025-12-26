@@ -2091,7 +2091,7 @@ def etf(request):
     from .models import InfoETF, DailyChartETF
 
     # 관심 ETF 목록 (is_active=True)
-    etfs = list(InfoETF.objects.filter(is_active=True).order_by('-market_cap'))
+    etfs = list(InfoETF.objects.filter(is_active=True).prefetch_related('custom_sectors').order_by('-market_cap'))
 
     # ============ 대시보드 카드 ============
     # 카드 A: 장기 신호 (60일 신고거래량)
@@ -2350,9 +2350,17 @@ def etf(request):
 
 def etf_detail(request, code):
     """ETF 상세 페이지"""
-    from .models import InfoETF, DailyChartETF, WeeklyChartETF, MonthlyChartETF
+    from .models import InfoETF, DailyChartETF, WeeklyChartETF, MonthlyChartETF, CustomSector
 
-    etf = get_object_or_404(InfoETF, code=code)
+    etf = get_object_or_404(InfoETF.objects.prefetch_related('custom_sectors'), code=code)
+
+    # POST 처리 - 관심섹터 저장
+    if request.method == 'POST':
+        sector_ids = request.POST.getlist('custom_sectors')
+        etf.custom_sectors.set(CustomSector.objects.filter(id__in=sector_ids))
+        from django.contrib import messages
+        messages.success(request, '관심섹터가 저장되었습니다.')
+        return redirect('stocks:etf_detail', code=code)
 
     # 일봉 차트 데이터 (최근 240일)
     daily_charts = list(DailyChartETF.objects.filter(
@@ -2429,8 +2437,12 @@ def etf_detail(request, code):
         for m in monthly_charts
     ]
 
+    # 관심섹터 전체 목록
+    custom_sectors = CustomSector.objects.all()
+
     context = {
         'etf': etf,
+        'custom_sectors': custom_sectors,
         'daily_candle_data': json.dumps(daily_candle_data),
         'daily_volume_data': json.dumps(daily_volume_data),
         'weekly_candle_data': json.dumps(weekly_candle_data),

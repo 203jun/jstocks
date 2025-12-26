@@ -336,6 +336,9 @@
                         <td class="px-3">
                             <strong>{{ etf.name }}</strong>
                             <small class="text-muted ms-1">{{ etf.code }}</small>
+                            {% for sector in etf.custom_sectors.all %}
+                            <span class="badge bg-success ms-1" style="font-size: 0.7em;">{{ sector.name }}</span>
+                            {% endfor %}
                         </td>
                         <td class="text-end px-3">{% if etf.current_price %}{{ etf.current_price|intcomma }}{% else %}-{% endif %}</td>
                         <td class="text-end px-3 {% if etf.change_rate > 0 %}text-up{% elif etf.change_rate < 0 %}text-down{% endif %}">
