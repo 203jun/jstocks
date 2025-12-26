@@ -28,7 +28,7 @@
 <div class="card mb-3">
     <div class="card-header py-2">
         <strong>관심섹터</strong>
-        <a href="{% url 'stocks:settings' %}" class="text-muted small ms-2" target="_blank">관리</a>
+        <a href="{% url 'stocks:settings' %}?tab=sector" class="text-muted small ms-2" target="_blank">관리</a>
     </div>
     <div class="card-body py-2">
         {% if custom_sectors %}

@@ -535,6 +535,19 @@
 
 {% block extra_js %}
 <script>
+// URL 파라미터로 탭 전환
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab) {
+        const tabButton = document.getElementById(tab + '-tab');
+        if (tabButton) {
+            const bsTab = new bootstrap.Tab(tabButton);
+            bsTab.show();
+        }
+    }
+})();
+
 // === 대분류 관리 ===
 const btnAddCategory = document.getElementById('btnAddCategory');
 const categoryAddForm = document.getElementById('categoryAddForm');
