@@ -785,6 +785,11 @@ def stock_edit(request, code):
         theme_ids = request.POST.getlist('themes')
         stock.themes.set(Theme.objects.filter(id__in=theme_ids))
 
+        # 관심섹터 저장 (ManyToMany)
+        from .models import CustomSector
+        sector_ids = request.POST.getlist('custom_sectors')
+        stock.custom_sectors.set(CustomSector.objects.filter(id__in=sector_ids))
+
         # 관심 종목 변경 시 데이터 수집/삭제
         if old_interest_level is None and new_interest_level is not None:
             # 관심 등록: 데이터 수집
@@ -900,9 +905,12 @@ def stock_edit(request, code):
     short_sellings = ShortSelling.objects.filter(stock=stock).order_by('-date')[:60]
 
     # 업종 (전체 및 현재 종목의 업종)
-    from .models import ThemeCategory, YoutubeVideo
+    from .models import ThemeCategory, YoutubeVideo, CustomSector
     theme_categories = ThemeCategory.objects.prefetch_related('themes').all()
     stock_theme_ids = list(stock.themes.values_list('id', flat=True))
+
+    # 관심섹터 (전체)
+    custom_sectors = CustomSector.objects.all()
 
     # 저장된 유튜브 영상
     youtube_videos = YoutubeVideo.objects.filter(stock=stock)
@@ -925,6 +933,7 @@ def stock_edit(request, code):
         'interest_choices': interest_choices,
         'theme_categories': theme_categories,
         'stock_theme_ids': stock_theme_ids,
+        'custom_sectors': custom_sectors,
         'reports': reports,
         'total_reports': total_reports,
         'price_chart_data': json.dumps(price_chart_data),

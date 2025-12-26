@@ -172,6 +172,13 @@ class Info(models.Model):
         verbose_name='업종',
         help_text='사용자 정의 업종 (반도체, 전기전력 등)'
     )
+    custom_sectors = models.ManyToManyField(
+        'CustomSector',
+        related_name='stocks',
+        blank=True,
+        verbose_name='관심섹터',
+        help_text='사용자 정의 섹터 (화장품, 2차전지 등)'
+    )
 
     # === 기업분석 ===
     analysis_text = models.TextField(

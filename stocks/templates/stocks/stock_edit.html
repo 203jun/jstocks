@@ -145,6 +145,48 @@
 
             <div class="card mb-3">
                 <div class="card-header py-2">
+                    <strong>관심섹터</strong>
+                    <a href="{% url 'stocks:settings' %}" class="text-muted small ms-2" target="_blank">관리</a>
+                </div>
+                <div class="card-body py-2">
+                    {% if custom_sectors %}
+                    <!-- 선택된 섹터 표시 -->
+                    <div id="selectedSectors" class="d-flex flex-wrap gap-1 mb-2">
+                        {% for sector in stock.custom_sectors.all %}
+                        <span class="badge bg-success d-flex align-items-center selected-sector" data-id="{{ sector.id }}">
+                            {{ sector.name }}
+                            <button type="button" class="btn-close btn-close-white ms-1 btn-remove-sector" style="font-size: 0.5rem;"></button>
+                        </span>
+                        {% empty %}
+                        <span class="text-muted small" id="noSectorMsg">선택된 섹터가 없습니다.</span>
+                        {% endfor %}
+                    </div>
+                    <!-- 섹터 추가 드롭다운 -->
+                    <div class="d-flex gap-2 align-items-center">
+                        <select id="sectorSelect" class="form-select form-select-sm" style="max-width: 300px;">
+                            <option value="">섹터 선택...</option>
+                            {% for sector in custom_sectors %}
+                            <option value="{{ sector.id }}" data-name="{{ sector.name }}">{{ sector.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" id="btnAddSectorToStock" class="btn btn-sm btn-outline-success">추가</button>
+                    </div>
+                    <!-- hidden inputs -->
+                    <div id="sectorInputs">
+                        {% for sector in stock.custom_sectors.all %}
+                        <input type="hidden" name="custom_sectors" value="{{ sector.id }}">
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-muted small">
+                        등록된 섹터가 없습니다. <a href="{% url 'stocks:settings' %}" target="_blank">설정</a>에서 섹터를 추가하세요.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header py-2">
                     <strong>인사이트</strong>
                 </div>
                 <div class="card-body">
@@ -2102,6 +2144,70 @@ if (btnAddThemeToStock) {
         // 남은 테마가 없으면 메시지 표시
         if (selectedThemes.querySelectorAll('.selected-theme').length === 0) {
             selectedThemes.innerHTML = '<span class="text-muted small" id="noThemeMsg">선택된 업종이 없습니다.</span>';
+        }
+    });
+}
+
+// ============ 관심섹터 선택 ============
+const sectorSelect = document.getElementById('sectorSelect');
+const btnAddSectorToStock = document.getElementById('btnAddSectorToStock');
+const selectedSectors = document.getElementById('selectedSectors');
+const sectorInputs = document.getElementById('sectorInputs');
+
+if (btnAddSectorToStock) {
+    btnAddSectorToStock.addEventListener('click', () => {
+        const select = sectorSelect;
+        const sectorId = select.value;
+        if (!sectorId) return;
+
+        // 이미 선택된 섹터인지 확인
+        if (sectorInputs.querySelector(`input[value="${sectorId}"]`)) {
+            alert('이미 선택된 섹터입니다.');
+            return;
+        }
+
+        const option = select.options[select.selectedIndex];
+        const sectorName = option.dataset.name;
+
+        // "선택된 섹터가 없습니다" 메시지 제거
+        const noMsg = document.getElementById('noSectorMsg');
+        if (noMsg) noMsg.remove();
+
+        // 뱃지 추가
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-success d-flex align-items-center selected-sector';
+        badge.dataset.id = sectorId;
+        badge.innerHTML = `${sectorName}<button type="button" class="btn-close btn-close-white ms-1 btn-remove-sector" style="font-size: 0.5rem;"></button>`;
+        selectedSectors.appendChild(badge);
+
+        // hidden input 추가
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'custom_sectors';
+        input.value = sectorId;
+        sectorInputs.appendChild(input);
+
+        // 선택 초기화
+        select.value = '';
+    });
+
+    // 섹터 삭제 (이벤트 위임)
+    selectedSectors.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('btn-remove-sector')) return;
+
+        const badge = e.target.closest('.selected-sector');
+        const sectorId = badge.dataset.id;
+
+        // 뱃지 제거
+        badge.remove();
+
+        // hidden input 제거
+        const input = sectorInputs.querySelector(`input[value="${sectorId}"]`);
+        if (input) input.remove();
+
+        // 남은 섹터가 없으면 메시지 표시
+        if (selectedSectors.querySelectorAll('.selected-sector').length === 0) {
+            selectedSectors.innerHTML = '<span class="text-muted small" id="noSectorMsg">선택된 섹터가 없습니다.</span>';
         }
     });
 }
