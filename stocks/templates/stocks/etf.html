@@ -376,6 +376,25 @@
     </div>
 </div>
 
+<!-- 신호 차트 모달 -->
+<div class="modal fade" id="signalChartModal" tabindex="-1" aria-labelledby="signalChartModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title" id="signalChartModalLabel">신호 차트</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-2">
+                <div id="signalChartContainer" style="height: 400px;"></div>
+                <div class="mt-2 small text-muted">
+                    <span class="me-3"><span style="color: #ff9800;">- - -</span> 신호일 종가</span>
+                    <span><span style="color: #2196f3;">- - -</span> 현재가</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // 현재 조회된 ETF 데이터 저장
 let currentETFData = null;
@@ -726,23 +745,4 @@ window.addEventListener('resize', function() {
     }
 });
 </script>
-
-<!-- 신호 차트 모달 -->
-<div class="modal fade" id="signalChartModal" tabindex="-1" aria-labelledby="signalChartModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header py-2">
-                <h6 class="modal-title" id="signalChartModalLabel">신호 차트</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-2">
-                <div id="signalChartContainer" style="height: 400px;"></div>
-                <div class="mt-2 small text-muted">
-                    <span class="me-3"><span style="color: #ff9800;">- - -</span> 신호일 종가</span>
-                    <span><span style="color: #2196f3;">- - -</span> 현재가</span>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
