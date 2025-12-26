@@ -670,7 +670,7 @@ async function searchNews() {
             data.results.forEach(item => {
                 const isSaved = savedNewsLinks.has(item.link);
                 html += `<tr>`;
-                html += `<td class="text-muted ps-3" style="font-size:0.75rem;">${item.date || '-'}</td>`;
+                html += `<td class="text-muted ps-3" style="font-size:0.75rem;">${(item.date || '').slice(0, 10) || '-'}</td>`;
                 html += `<td><a href="${item.link}" target="_blank" class="text-decoration-none">${item.title}</a></td>`;
                 html += `<td class="text-muted d-none d-md-table-cell" style="font-size:0.75rem;">${item.source || ''}</td>`;
                 html += `<td class="text-end pe-3">`;
