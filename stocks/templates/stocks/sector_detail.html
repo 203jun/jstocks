@@ -69,8 +69,6 @@
                     </div>
                     {% if item.summary_url %}
                     <a href="{{ item.summary_url }}" class="badge bg-success text-decoration-none ms-2">요약</a>
-                    {% elif item.has_summary == False and item.type != 'telegram' %}
-                    <a href="{{ item.summary_url }}" class="badge bg-secondary text-decoration-none ms-2">요약</a>
                     {% endif %}
                 </div>
             </div>
@@ -100,8 +98,6 @@
                         </div>
                         {% if item.summary_url %}
                         <a href="{{ item.summary_url }}" class="badge bg-success text-decoration-none ms-2">요약</a>
-                        {% elif item.has_summary == False and item.type != 'telegram' %}
-                        <a href="{{ item.summary_url }}" class="badge bg-secondary text-decoration-none ms-2">요약</a>
                         {% endif %}
                     </div>
                 </div>
