@@ -19,7 +19,7 @@ def index(request):
     from django.db.models import Max
 
     # 대분류명, 소분류명 순으로 정렬 (테마 없는 종목은 맨 뒤)
-    base_qs = Info.objects.filter(is_active=True).prefetch_related('themes__category')
+    base_qs = Info.objects.filter(is_active=True).prefetch_related('themes__category', 'custom_sectors')
 
     def sort_by_theme(stocks):
         """대분류, 소분류 순 정렬"""
@@ -511,7 +511,7 @@ def stock_list(request):
 
 def stock_detail(request, code):
     """종목 상세 페이지"""
-    stock = get_object_or_404(Info.objects.prefetch_related('themes__category'), code=code)
+    stock = get_object_or_404(Info.objects.prefetch_related('themes__category', 'custom_sectors'), code=code)
 
     # 연간 재무 데이터 (최근 6년)
     annual_financials = list(Financial.objects.filter(

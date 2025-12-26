@@ -493,9 +493,10 @@
                 <td>
                     <strong class="{% if not stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ stock.name }}</strong>
                     <small class="text-muted ms-1">{{ stock.code }}</small>
+                    {% if stock.custom_sectors.all %}<div class="d-md-none mt-1">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success me-1 text-decoration-none" style="font-size: 0.7em;" onclick="event.stopPropagation();">{{ sector.name }}</a>{% endfor %}</div>{% endif %}
                 </td>
                 <td class="hide-mobile small text-muted">{% for theme in stock.themes.all %}{% if forloop.first %}{{ theme.category.name }}{% endif %}{% empty %}-{% endfor %}</td>
-                <td class="hide-mobile small">{% for theme in stock.themes.all %}{{ theme.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td>
+                <td class="hide-mobile small">{% for theme in stock.themes.all %}{{ theme.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}{% if stock.custom_sectors.all %}<span class="ms-2">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success text-decoration-none" style="font-size: 0.8em;" onclick="event.stopPropagation();">{{ sector.name }}</a>{% if not forloop.last %} {% endif %}{% endfor %}</span>{% endif %}</td>
                 <td class="text-end">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</td>
                 <td class="text-end {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}">
                     {% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}
@@ -508,9 +509,10 @@
                 <td>
                     <strong class="{% if not stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ stock.name }}</strong>
                     <small class="text-muted ms-1">{{ stock.code }}</small>
+                    {% if stock.custom_sectors.all %}<div class="d-md-none mt-1">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success me-1 text-decoration-none" style="font-size: 0.7em;" onclick="event.stopPropagation();">{{ sector.name }}</a>{% endfor %}</div>{% endif %}
                 </td>
                 <td class="hide-mobile small text-muted">{% for theme in stock.themes.all %}{% if forloop.first %}{{ theme.category.name }}{% endif %}{% empty %}-{% endfor %}</td>
-                <td class="hide-mobile small">{% for theme in stock.themes.all %}{{ theme.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td>
+                <td class="hide-mobile small">{% for theme in stock.themes.all %}{{ theme.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}{% if stock.custom_sectors.all %}<span class="ms-2">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success text-decoration-none" style="font-size: 0.8em;" onclick="event.stopPropagation();">{{ sector.name }}</a>{% if not forloop.last %} {% endif %}{% endfor %}</span>{% endif %}</td>
                 <td class="text-end">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</td>
                 <td class="text-end {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}">
                     {% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}
@@ -523,9 +525,10 @@
                 <td>
                     <strong class="{% if not stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ stock.name }}</strong>
                     <small class="text-muted ms-1">{{ stock.code }}</small>
+                    {% if stock.custom_sectors.all %}<div class="d-md-none mt-1">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success me-1 text-decoration-none" style="font-size: 0.7em;" onclick="event.stopPropagation();">{{ sector.name }}</a>{% endfor %}</div>{% endif %}
                 </td>
                 <td class="hide-mobile small text-muted">{% for theme in stock.themes.all %}{% if forloop.first %}{{ theme.category.name }}{% endif %}{% empty %}-{% endfor %}</td>
-                <td class="hide-mobile small">{% for theme in stock.themes.all %}{{ theme.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td>
+                <td class="hide-mobile small">{% for theme in stock.themes.all %}{{ theme.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}{% if stock.custom_sectors.all %}<span class="ms-2">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success text-decoration-none" style="font-size: 0.8em;" onclick="event.stopPropagation();">{{ sector.name }}</a>{% if not forloop.last %} {% endif %}{% endfor %}</span>{% endif %}</td>
                 <td class="text-end">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</td>
                 <td class="text-end {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}">
                     {% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}

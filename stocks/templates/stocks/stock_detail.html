@@ -62,6 +62,16 @@
         </td>
     </tr>
     {% endif %}
+    {% if stock.custom_sectors.all %}
+    <tr>
+        <td class="text-muted py-1 pe-3" style="white-space: nowrap; vertical-align: top;">섹터</td>
+        <td class="py-1">
+            {% for sector in stock.custom_sectors.all %}
+            <a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success me-1 text-decoration-none">{{ sector.name }}</a>
+            {% endfor %}
+        </td>
+    </tr>
+    {% endif %}
 </table>
 
 <!-- 가격 정보 카드 -->
