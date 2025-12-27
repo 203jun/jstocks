@@ -2002,8 +2002,9 @@ def sector_edit(request, sector_id):
 
     # POST 처리 (기본정보 저장)
     if request.method == 'POST' and request.POST.get('form_type') == 'info':
-        sector.summary = request.POST.get('summary', '').strip()
         sector.memo = request.POST.get('memo', '').strip()
+        sector.basic_report = request.POST.get('basic_report', '')  # HTML이므로 strip 안함
+        sector.integrated_report = request.POST.get('integrated_report', '')  # HTML이므로 strip 안함
         sector.save()
         messages.success(request, f'{sector.name} 정보가 저장되었습니다.')
         return redirect('stocks:sector_edit', sector_id=sector_id)
@@ -2871,6 +2872,69 @@ def custom_sector_delete(request, sector_id):
     sector.delete()
 
     return JsonResponse({'success': True})
+
+
+@require_GET
+def custom_sector_search(request):
+    """관심섹터 검색 API"""
+    from .models import CustomSector
+
+    query = request.GET.get('q', '').strip()
+
+    if query:
+        sectors = CustomSector.objects.filter(name__icontains=query).order_by('name')
+    else:
+        sectors = CustomSector.objects.all().order_by('name')
+
+    return JsonResponse({
+        'success': True,
+        'sectors': [{'id': s.id, 'name': s.name} for s in sectors]
+    })
+
+
+@require_GET
+def custom_sector_basic_report(request, sector_id):
+    """관심섹터 기초리포트 조회 API"""
+    from .models import CustomSector
+
+    sector = get_object_or_404(CustomSector, id=sector_id)
+
+    return JsonResponse({
+        'success': True,
+        'sector_name': sector.name,
+        'basic_report': sector.basic_report or ''
+    })
+
+
+@require_GET
+def custom_sector_integrated_report(request, sector_id):
+    """관심섹터 통합리포트 조회 API (없으면 기초리포트)"""
+    from .models import CustomSector
+
+    sector = get_object_or_404(CustomSector, id=sector_id)
+
+    # 통합리포트가 있으면 통합리포트, 없으면 기초리포트
+    if sector.integrated_report:
+        return JsonResponse({
+            'success': True,
+            'sector_name': sector.name,
+            'report': sector.integrated_report,
+            'report_type': '통합리포트'
+        })
+    elif sector.basic_report:
+        return JsonResponse({
+            'success': True,
+            'sector_name': sector.name,
+            'report': sector.basic_report,
+            'report_type': '기초리포트'
+        })
+    else:
+        return JsonResponse({
+            'success': False,
+            'sector_name': sector.name,
+            'report': '',
+            'report_type': ''
+        })
 
 
 @require_POST

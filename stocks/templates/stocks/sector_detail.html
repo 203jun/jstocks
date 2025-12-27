@@ -14,28 +14,30 @@
     </div>
 </div>
 
-<!-- 요약 -->
-{% if sector.summary %}
+<!-- 기초리포트 -->
+{% if sector.basic_report %}
 <div class="card mb-3">
     <div class="card-header py-2">
-        <strong>요약</strong>
+        <strong>기초리포트</strong>
     </div>
     <div class="card-body py-2">
-        <div style="white-space: pre-wrap;">{{ sector.summary }}</div>
+        <iframe id="basicReportFrame" style="width: 100%; border: none; min-height: 300px;"></iframe>
     </div>
 </div>
+<template id="basicReportContent">{{ sector.basic_report|safe }}</template>
 {% endif %}
 
-<!-- 메모 -->
-{% if sector.memo %}
+<!-- 통합리포트 -->
+{% if sector.integrated_report %}
 <div class="card mb-3">
     <div class="card-header py-2">
-        <strong>메모</strong>
+        <strong>통합리포트</strong>
     </div>
     <div class="card-body py-2">
-        <div style="white-space: pre-wrap;">{{ sector.memo }}</div>
+        <iframe id="integratedReportFrame" style="width: 100%; border: none; min-height: 300px;"></iframe>
     </div>
 </div>
+<template id="integratedReportContent">{{ sector.integrated_report|safe }}</template>
 {% endif %}
 
 <!-- 최신 소식 -->
@@ -120,10 +122,49 @@
     </div>
 </div>
 
+<!-- 메모 -->
+{% if sector.memo %}
+<div class="card mt-3">
+    <div class="card-header py-2">
+        <strong>메모</strong>
+    </div>
+    <div class="card-body py-2">
+        <div style="white-space: pre-wrap;">{{ sector.memo }}</div>
+    </div>
+</div>
+{% endif %}
+
 <script>
 function showMoreItems() {
     document.getElementById('remaining-items').style.display = 'block';
     document.getElementById('show-more-btn').style.display = 'none';
 }
+
+// 기초리포트 iframe 로드
+(function() {
+    var basicTemplate = document.getElementById('basicReportContent');
+    var basicFrame = document.getElementById('basicReportFrame');
+    if (basicTemplate && basicFrame) {
+        basicFrame.srcdoc = basicTemplate.innerHTML;
+        basicFrame.onload = function() {
+            try {
+                var height = basicFrame.contentWindow.document.body.scrollHeight;
+                basicFrame.style.height = (height + 20) + 'px';
+            } catch(e) {}
+        };
+    }
+
+    var integratedTemplate = document.getElementById('integratedReportContent');
+    var integratedFrame = document.getElementById('integratedReportFrame');
+    if (integratedTemplate && integratedFrame) {
+        integratedFrame.srcdoc = integratedTemplate.innerHTML;
+        integratedFrame.onload = function() {
+            try {
+                var height = integratedFrame.contentWindow.document.body.scrollHeight;
+                integratedFrame.style.height = (height + 20) + 'px';
+            } catch(e) {}
+        };
+    }
+})();
 </script>
 {% endblock %}

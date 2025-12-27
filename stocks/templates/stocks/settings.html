@@ -235,6 +235,9 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="nodaji-tab" data-bs-toggle="pill" data-bs-target="#nodaji-panel" type="button" role="tab">노다지</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="sector-prompt-tab" data-bs-toggle="pill" data-bs-target="#sector-prompt-panel" type="button" role="tab">관심섹터</button>
+            </li>
         </ul>
 
         <div class="tab-content">
@@ -476,6 +479,248 @@
                                 </small>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 관심섹터 탭 -->
+            <div class="tab-pane fade" id="sector-prompt-panel" role="tabpanel">
+                <!-- STEP 1: 기초리포트 만들기 -->
+                <div class="card mb-3">
+                    <div class="card-header py-2">
+                        <span class="badge bg-primary me-2">STEP 1</span>
+                        <strong>기초리포트 만들기</strong>
+                    </div>
+                    <div class="card-body">
+                        <!-- 1-1. deep research 프롬프트 생성 -->
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold small mb-0">1-1. Deep Research 프롬프트 생성</label>
+                            <button type="button" class="btn btn-sm btn-primary" id="btnSaveSectorPrompt">저장</button>
+                        </div>
+                        <div class="alert alert-secondary py-2 mb-2">
+                            <small><strong>도구:</strong> Gemini 사고모드</small>
+                        </div>
+                        <textarea class="form-control" id="promptSectorBasic" rows="8" placeholder="Deep Research용 프롬프트 생성을 위한 프롬프트...">{{ saved_prompts.prompt_sector_basic }}</textarea>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Deep Research 실행 -->
+                <div class="card">
+                    <div class="card-header py-2">
+                        <span class="badge bg-success me-2">STEP 2</span>
+                        <strong>Deep Research 실행</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info py-2 mb-3">
+                            <small>
+                                <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
+                                <strong>방법:</strong> 1-1에서 만든 프롬프트 사용하여 작성<br>
+                                <strong>저장:</strong> 관심섹터 → 편집 → 기초리포트 저장
+                            </small>
+                        </div>
+
+                        <!-- HTML 변환 프롬프트 -->
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold small mb-0">2-1. HTML 변환 프롬프트</label>
+                            <button type="button" class="btn btn-sm btn-primary" id="btnSaveSectorHtmlPrompt">저장</button>
+                        </div>
+                        <textarea class="form-control" id="promptSectorHtml" rows="8" placeholder="HTML 변환용 프롬프트...">{{ saved_prompts.prompt_sector_html }}</textarea>
+                        <small class="text-muted">리포트 결과를 HTML 파일로 변환하는 프롬프트</small>
+                        <div class="alert alert-warning py-2 mt-2 mb-0">
+                            <small>
+                                <strong>⚠️ 생성 실패 시:</strong> 가끔 HTML을 만들지 못하는 경우가 있습니다.<br>
+                                → 일반 프롬프트로 이동 후 아래 프롬프트 실행:<br>
+                                <code class="d-block mt-1 p-2 bg-light">{deep research가 뽑아준 결과 복사(컨텐츠 복사가 아니라 마우스 드래그로 복사)}<br>---<br>html 형태로 정리해줘.</code>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 3: 질문 프롬프트 만들기 -->
+                <div class="card mt-3">
+                    <div class="card-header py-2">
+                        <span class="badge bg-warning text-dark me-2">STEP 3</span>
+                        <strong>질문 프롬프트 만들기</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-secondary py-2 mb-3">
+                            <small>섹터 관련 질문이나 의문점 업데이트 사항이 있을 경우 → Gemini가 이해하기 쉬운 형태로 변경하는 과정</small>
+                        </div>
+
+                        <!-- 관심섹터 기초리포트 조회 버튼 -->
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sectorReportModal">
+                                관심섹터 기초리포트 조회
+                            </button>
+                            <small class="text-muted ms-2">기초리포트를 참고하여 질문 프롬프트를 작성하세요.</small>
+                        </div>
+
+                        <!-- 프롬프트 메모 -->
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold small mb-0">3-1. 질문 프롬프트</label>
+                            <button type="button" class="btn btn-sm btn-primary" id="btnSaveSectorQuestionPrompt">저장</button>
+                        </div>
+                        <textarea class="form-control" id="promptSectorQuestion" rows="8" placeholder="질문 프롬프트를 입력하세요...">{{ saved_prompts.prompt_sector_question }}</textarea>
+                    </div>
+                </div>
+
+                <!-- STEP 4: 통합리포트 만들기 -->
+                <div class="card mt-3">
+                    <div class="card-header py-2">
+                        <span class="badge bg-danger me-2">STEP 4</span>
+                        <strong>통합리포트 만들기</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-secondary py-2 mb-3">
+                            <small>
+                                <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
+                                <strong>저장:</strong> 관심섹터 → 편집 → 통합리포트 저장
+                            </small>
+                        </div>
+
+                        <!-- 관심섹터 통합리포트 조회 버튼 -->
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sectorIntegratedReportModal">
+                                관심섹터 통합리포트 조회
+                            </button>
+                            <small class="text-muted ms-2">통합리포트(없으면 기초리포트)를 참고하세요.</small>
+                        </div>
+
+                        <!-- 4-1. 프롬프트 -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold small mb-0">4-1. 프롬프트 (Deep Research에서 수행)</label>
+                                <button type="button" class="btn btn-sm btn-primary" id="btnSaveSectorIntegratedPrompt">저장</button>
+                            </div>
+                            <div class="alert alert-info py-2 mb-2">
+                                <small><strong>고도화질문:</strong> STEP 3에서 Gemini가 알려준 결과입니다. 질문이 여러 개일 수 있으며, 다 붙여넣기 하면 됩니다.</small>
+                            </div>
+                            <textarea class="form-control" id="promptSectorIntegrated" rows="8" placeholder="통합리포트 생성용 프롬프트...">{{ saved_prompts.prompt_sector_integrated }}</textarea>
+                        </div>
+
+                        <!-- 4-2. HTML 변환 프롬프트 -->
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold small mb-0">4-2. HTML 변환 프롬프트</label>
+                                <button type="button" class="btn btn-sm btn-primary" id="btnSaveSectorIntegratedHtmlPrompt">저장</button>
+                            </div>
+                            <textarea class="form-control" id="promptSectorIntegratedHtml" rows="8" placeholder="HTML 변환용 프롬프트...">{{ saved_prompts.prompt_sector_integrated_html }}</textarea>
+                            <small class="text-muted">리포트 결과를 HTML 파일로 변환하는 프롬프트</small>
+                            <div class="alert alert-warning py-2 mt-2 mb-0">
+                                <small>
+                                    <strong>⚠️ 생성 실패 시:</strong> 가끔 HTML을 만들지 못하는 경우가 있습니다.<br>
+                                    → 일반 프롬프트로 이동 후 아래 프롬프트 실행:<br>
+                                    <code class="d-block mt-1 p-2 bg-light">{deep research가 뽑아준 결과 복사(컨텐츠 복사가 아니라 마우스 드래그로 복사)}<br>---<br>html 형태로 정리해줘.</code>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 관심섹터 기초리포트 조회 모달 -->
+<div class="modal fade" id="sectorReportModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title">관심섹터 기초리포트 조회</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- 섹터 검색 -->
+                <div class="mb-3">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="sectorSearchInput" placeholder="섹터명 검색...">
+                        <button type="button" class="btn btn-outline-primary" id="btnSectorSearch">검색</button>
+                    </div>
+                    <div id="sectorSearchResults" class="list-group mt-2 d-none" style="max-height: 200px; overflow-y: auto;"></div>
+                </div>
+
+                <!-- 선택된 섹터 정보 -->
+                <div id="selectedSectorInfo" class="d-none">
+                    <div class="alert alert-info py-2 mb-3">
+                        <strong id="selectedSectorName"></strong>
+                    </div>
+
+                    <!-- 데이터 로딩 -->
+                    <div id="sectorReportLoading" class="text-center py-4 d-none">
+                        <div class="spinner-border text-primary"></div>
+                        <p class="mt-2 mb-0">기초리포트 불러오는 중...</p>
+                    </div>
+
+                    <!-- 기초리포트 결과 -->
+                    <div id="sectorReportResult" class="d-none">
+                        <!-- 복사 버튼 -->
+                        <div class="d-flex justify-content-end mb-2">
+                            <button type="button" class="btn btn-sm btn-success" id="btnCopySectorReport">
+                                전체 복사
+                            </button>
+                        </div>
+
+                        <!-- 기초리포트 내용 -->
+                        <div id="sectorReportContent" class="border rounded p-3 bg-light" style="max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-size: 0.85rem;"></div>
+                    </div>
+
+                    <!-- 기초리포트 없음 -->
+                    <div id="sectorReportEmpty" class="text-center text-muted py-4 d-none">
+                        저장된 기초리포트가 없습니다.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 관심섹터 통합리포트 조회 모달 -->
+<div class="modal fade" id="sectorIntegratedReportModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title">관심섹터 통합리포트 조회</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- 섹터 검색 -->
+                <div class="mb-3">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="sectorIntegratedSearchInput" placeholder="섹터명 검색...">
+                        <button type="button" class="btn btn-outline-primary" id="btnSectorIntegratedSearch">검색</button>
+                    </div>
+                    <div id="sectorIntegratedSearchResults" class="list-group mt-2 d-none" style="max-height: 200px; overflow-y: auto;"></div>
+                </div>
+
+                <!-- 선택된 섹터 정보 -->
+                <div id="selectedSectorIntegratedInfo" class="d-none">
+                    <div class="alert alert-info py-2 mb-3">
+                        <strong id="selectedSectorIntegratedName"></strong>
+                        <span id="selectedSectorIntegratedType" class="badge bg-secondary ms-2"></span>
+                    </div>
+
+                    <!-- 데이터 로딩 -->
+                    <div id="sectorIntegratedReportLoading" class="text-center py-4 d-none">
+                        <div class="spinner-border text-primary"></div>
+                        <p class="mt-2 mb-0">리포트 불러오는 중...</p>
+                    </div>
+
+                    <!-- 리포트 결과 -->
+                    <div id="sectorIntegratedReportResult" class="d-none">
+                        <!-- 복사 버튼 -->
+                        <div class="d-flex justify-content-end mb-2">
+                            <button type="button" class="btn btn-sm btn-success" id="btnCopySectorIntegratedReport">
+                                전체 복사
+                            </button>
+                        </div>
+
+                        <!-- 리포트 내용 -->
+                        <div id="sectorIntegratedReportContent" class="border rounded p-3 bg-light" style="max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-size: 0.85rem;"></div>
+                    </div>
+
+                    <!-- 리포트 없음 -->
+                    <div id="sectorIntegratedReportEmpty" class="text-center text-muted py-4 d-none">
+                        저장된 리포트가 없습니다.
                     </div>
                 </div>
             </div>
@@ -1090,6 +1335,281 @@ document.getElementById('btnSaveNodajiPrompt').addEventListener('click', functio
 document.getElementById('btnSaveNodajiHtmlPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptNodajiHtml').value;
     savePrompt('prompt_nodaji_html', value, this);
+});
+
+// 관심섹터 1-1: 프롬프트 저장
+document.getElementById('btnSaveSectorPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptSectorBasic').value;
+    savePrompt('prompt_sector_basic', value, this);
+});
+
+// 관심섹터 2-1: HTML 변환 프롬프트 저장
+document.getElementById('btnSaveSectorHtmlPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptSectorHtml').value;
+    savePrompt('prompt_sector_html', value, this);
+});
+
+// 관심섹터 3-1: 질문 프롬프트 저장
+document.getElementById('btnSaveSectorQuestionPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptSectorQuestion').value;
+    savePrompt('prompt_sector_question', value, this);
+});
+
+// 관심섹터 4-1: 통합리포트 프롬프트 저장
+document.getElementById('btnSaveSectorIntegratedPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptSectorIntegrated').value;
+    savePrompt('prompt_sector_integrated', value, this);
+});
+
+// 관심섹터 4-2: 통합리포트 HTML 변환 프롬프트 저장
+document.getElementById('btnSaveSectorIntegratedHtmlPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptSectorIntegratedHtml').value;
+    savePrompt('prompt_sector_integrated_html', value, this);
+});
+
+// === 관심섹터 기초리포트 조회 모달 ===
+const sectorSearchInput = document.getElementById('sectorSearchInput');
+const btnSectorSearch = document.getElementById('btnSectorSearch');
+const sectorSearchResults = document.getElementById('sectorSearchResults');
+const selectedSectorInfo = document.getElementById('selectedSectorInfo');
+const selectedSectorName = document.getElementById('selectedSectorName');
+const sectorReportLoading = document.getElementById('sectorReportLoading');
+const sectorReportResult = document.getElementById('sectorReportResult');
+const sectorReportContent = document.getElementById('sectorReportContent');
+const sectorReportEmpty = document.getElementById('sectorReportEmpty');
+const btnCopySectorReport = document.getElementById('btnCopySectorReport');
+
+// 섹터 검색
+btnSectorSearch.addEventListener('click', searchSector);
+sectorSearchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') searchSector();
+});
+
+async function searchSector() {
+    const query = sectorSearchInput.value.trim();
+
+    try {
+        // 빈 검색어면 전체 목록 조회
+        const url = query ? `/api/custom-sector/search/?q=${encodeURIComponent(query)}` : '/api/custom-sector/search/';
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.success && data.sectors.length > 0) {
+            sectorSearchResults.innerHTML = data.sectors.map(s => `
+                <button type="button" class="list-group-item list-group-item-action" data-id="${s.id}" data-name="${s.name}">
+                    <strong>${s.name}</strong>
+                </button>
+            `).join('');
+            sectorSearchResults.classList.remove('d-none');
+        } else {
+            sectorSearchResults.innerHTML = '<div class="list-group-item text-muted">검색 결과가 없습니다.</div>';
+            sectorSearchResults.classList.remove('d-none');
+        }
+    } catch (err) {
+        alert('검색 오류: ' + err.message);
+    }
+}
+
+// 섹터 선택
+sectorSearchResults.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-id]');
+    if (!btn) return;
+
+    const sectorId = btn.dataset.id;
+    const name = btn.dataset.name;
+
+    // UI 업데이트
+    selectedSectorName.textContent = name;
+    selectedSectorInfo.classList.remove('d-none');
+    sectorSearchResults.classList.add('d-none');
+    sectorReportLoading.classList.remove('d-none');
+    sectorReportResult.classList.add('d-none');
+    sectorReportEmpty.classList.add('d-none');
+
+    // 기초리포트 가져오기
+    try {
+        const response = await fetch(`/api/custom-sector/${sectorId}/basic-report/`);
+        const data = await response.json();
+
+        sectorReportLoading.classList.add('d-none');
+
+        if (data.success && data.basic_report) {
+            // HTML을 순수 텍스트로 변환
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = data.basic_report;
+
+            // style, script 태그 제거
+            tempDiv.querySelectorAll('style, script').forEach(el => el.remove());
+
+            // 텍스트 추출 후 정리
+            let text = tempDiv.textContent || tempDiv.innerText;
+            // 각 줄의 앞뒤 공백 제거 후 빈 줄 정리
+            text = text.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .join('\n');
+            // 앞뒤 공백 제거
+            text = text.trim();
+
+            sectorReportContent.textContent = text;
+            sectorReportResult.classList.remove('d-none');
+        } else {
+            sectorReportEmpty.classList.remove('d-none');
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        sectorReportLoading.classList.add('d-none');
+    }
+});
+
+// 기초리포트 복사
+btnCopySectorReport.addEventListener('click', async () => {
+    const text = sectorReportContent.innerText;
+
+    try {
+        await copyToClipboard(text);
+        btnCopySectorReport.textContent = '복사됨!';
+        btnCopySectorReport.classList.remove('btn-success');
+        btnCopySectorReport.classList.add('btn-secondary');
+        setTimeout(() => {
+            btnCopySectorReport.textContent = '전체 복사';
+            btnCopySectorReport.classList.remove('btn-secondary');
+            btnCopySectorReport.classList.add('btn-success');
+        }, 1500);
+    } catch (err) {
+        alert('복사에 실패했습니다: ' + err.message);
+    }
+});
+
+// 모달 닫힐 때 초기화
+document.getElementById('sectorReportModal').addEventListener('hidden.bs.modal', () => {
+    sectorSearchInput.value = '';
+    sectorSearchResults.classList.add('d-none');
+    selectedSectorInfo.classList.add('d-none');
+    sectorReportLoading.classList.add('d-none');
+    sectorReportResult.classList.add('d-none');
+    sectorReportEmpty.classList.add('d-none');
+});
+
+// === 관심섹터 통합리포트 조회 모달 ===
+const sectorIntegratedSearchInput = document.getElementById('sectorIntegratedSearchInput');
+const btnSectorIntegratedSearch = document.getElementById('btnSectorIntegratedSearch');
+const sectorIntegratedSearchResults = document.getElementById('sectorIntegratedSearchResults');
+const selectedSectorIntegratedInfo = document.getElementById('selectedSectorIntegratedInfo');
+const selectedSectorIntegratedName = document.getElementById('selectedSectorIntegratedName');
+const selectedSectorIntegratedType = document.getElementById('selectedSectorIntegratedType');
+const sectorIntegratedReportLoading = document.getElementById('sectorIntegratedReportLoading');
+const sectorIntegratedReportResult = document.getElementById('sectorIntegratedReportResult');
+const sectorIntegratedReportContent = document.getElementById('sectorIntegratedReportContent');
+const sectorIntegratedReportEmpty = document.getElementById('sectorIntegratedReportEmpty');
+const btnCopySectorIntegratedReport = document.getElementById('btnCopySectorIntegratedReport');
+
+// 섹터 검색 (통합리포트용)
+btnSectorIntegratedSearch.addEventListener('click', searchSectorIntegrated);
+sectorIntegratedSearchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') searchSectorIntegrated();
+});
+
+async function searchSectorIntegrated() {
+    const query = sectorIntegratedSearchInput.value.trim();
+
+    try {
+        const url = query ? `/api/custom-sector/search/?q=${encodeURIComponent(query)}` : '/api/custom-sector/search/';
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.success && data.sectors.length > 0) {
+            sectorIntegratedSearchResults.innerHTML = data.sectors.map(s => `
+                <button type="button" class="list-group-item list-group-item-action" data-id="${s.id}" data-name="${s.name}">
+                    <strong>${s.name}</strong>
+                </button>
+            `).join('');
+            sectorIntegratedSearchResults.classList.remove('d-none');
+        } else {
+            sectorIntegratedSearchResults.innerHTML = '<div class="list-group-item text-muted">검색 결과가 없습니다.</div>';
+            sectorIntegratedSearchResults.classList.remove('d-none');
+        }
+    } catch (err) {
+        alert('검색 오류: ' + err.message);
+    }
+}
+
+// 섹터 선택 (통합리포트용)
+sectorIntegratedSearchResults.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-id]');
+    if (!btn) return;
+
+    const sectorId = btn.dataset.id;
+    const name = btn.dataset.name;
+
+    // UI 업데이트
+    selectedSectorIntegratedName.textContent = name;
+    selectedSectorIntegratedType.textContent = '';
+    selectedSectorIntegratedInfo.classList.remove('d-none');
+    sectorIntegratedSearchResults.classList.add('d-none');
+    sectorIntegratedReportLoading.classList.remove('d-none');
+    sectorIntegratedReportResult.classList.add('d-none');
+    sectorIntegratedReportEmpty.classList.add('d-none');
+
+    // 통합리포트 또는 기초리포트 가져오기
+    try {
+        const response = await fetch(`/api/custom-sector/${sectorId}/integrated-report/`);
+        const data = await response.json();
+
+        sectorIntegratedReportLoading.classList.add('d-none');
+
+        if (data.success && data.report) {
+            // HTML을 순수 텍스트로 변환
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = data.report;
+            tempDiv.querySelectorAll('style, script').forEach(el => el.remove());
+            let text = tempDiv.textContent || tempDiv.innerText;
+            text = text.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .join('\n');
+            text = text.trim();
+
+            sectorIntegratedReportContent.textContent = text;
+            selectedSectorIntegratedType.textContent = data.report_type;
+            selectedSectorIntegratedType.className = data.report_type === '통합리포트' ? 'badge bg-danger ms-2' : 'badge bg-primary ms-2';
+            sectorIntegratedReportResult.classList.remove('d-none');
+        } else {
+            sectorIntegratedReportEmpty.classList.remove('d-none');
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        sectorIntegratedReportLoading.classList.add('d-none');
+    }
+});
+
+// 통합리포트 복사
+btnCopySectorIntegratedReport.addEventListener('click', async () => {
+    const text = sectorIntegratedReportContent.textContent;
+
+    try {
+        await copyToClipboard(text);
+        btnCopySectorIntegratedReport.textContent = '복사됨!';
+        btnCopySectorIntegratedReport.classList.remove('btn-success');
+        btnCopySectorIntegratedReport.classList.add('btn-secondary');
+        setTimeout(() => {
+            btnCopySectorIntegratedReport.textContent = '전체 복사';
+            btnCopySectorIntegratedReport.classList.remove('btn-secondary');
+            btnCopySectorIntegratedReport.classList.add('btn-success');
+        }, 1500);
+    } catch (err) {
+        alert('복사에 실패했습니다: ' + err.message);
+    }
+});
+
+// 모달 닫힐 때 초기화 (통합리포트)
+document.getElementById('sectorIntegratedReportModal').addEventListener('hidden.bs.modal', () => {
+    sectorIntegratedSearchInput.value = '';
+    sectorIntegratedSearchResults.classList.add('d-none');
+    selectedSectorIntegratedInfo.classList.add('d-none');
+    sectorIntegratedReportLoading.classList.add('d-none');
+    sectorIntegratedReportResult.classList.add('d-none');
+    sectorIntegratedReportEmpty.classList.add('d-none');
 });
 
 // === 종목 데이터 조회 모달 ===

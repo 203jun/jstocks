@@ -40,13 +40,25 @@
             {% csrf_token %}
             <input type="hidden" name="form_type" value="info">
 
-            <!-- 요약 -->
+            <!-- 기초리포트 -->
             <div class="card mb-3">
-                <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                    <strong>요약</strong>
+                <div class="card-header py-2">
+                    <strong>기초리포트</strong>
+                    <small class="text-muted ms-2">HTML 형식</small>
                 </div>
                 <div class="card-body py-2">
-                    <textarea class="form-control" name="summary" rows="5" placeholder="섹터 요약을 입력하세요...">{{ sector.summary }}</textarea>
+                    <textarea class="form-control font-monospace" name="basic_report" rows="10" placeholder="기초리포트를 HTML 형식으로 입력하세요...">{{ sector.basic_report }}</textarea>
+                </div>
+            </div>
+
+            <!-- 통합리포트 -->
+            <div class="card mb-3">
+                <div class="card-header py-2">
+                    <strong>통합리포트</strong>
+                    <small class="text-muted ms-2">HTML 형식</small>
+                </div>
+                <div class="card-body py-2">
+                    <textarea class="form-control font-monospace" name="integrated_report" rows="10" placeholder="통합리포트를 HTML 형식으로 입력하세요...">{{ sector.integrated_report }}</textarea>
                 </div>
             </div>
 
