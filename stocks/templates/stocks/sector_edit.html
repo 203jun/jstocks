@@ -20,6 +20,9 @@
         <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-content" type="button" role="tab">기본정보</button>
     </li>
     <li class="nav-item" role="presentation">
+        <button class="nav-link" id="question-report-tab" data-bs-toggle="tab" data-bs-target="#question-report-content" type="button" role="tab">질문리포트</button>
+    </li>
+    <li class="nav-item" role="presentation">
         <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab">리포트</button>
     </li>
     <li class="nav-item" role="presentation">
@@ -51,17 +54,6 @@
                 </div>
             </div>
 
-            <!-- 통합리포트 -->
-            <div class="card mb-3">
-                <div class="card-header py-2">
-                    <strong>통합리포트</strong>
-                    <small class="text-muted ms-2">HTML 형식</small>
-                </div>
-                <div class="card-body py-2">
-                    <textarea class="form-control font-monospace" name="integrated_report" rows="10" placeholder="통합리포트를 HTML 형식으로 입력하세요...">{{ sector.integrated_report }}</textarea>
-                </div>
-            </div>
-
             <!-- 메모 -->
             <div class="card mb-3">
                 <div class="card-header py-2">
@@ -76,6 +68,44 @@
                 <button type="submit" class="btn btn-primary">저장</button>
             </div>
         </form>
+    </div>
+
+    <!-- 질문리포트 탭 -->
+    <div class="tab-pane fade" id="question-report-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>질문리포트 목록</strong>
+                <span class="badge bg-primary" id="questionReportCount">{{ question_reports|length }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div id="questionReportList" class="list-group list-group-flush">
+                    {% for qr in question_reports %}
+                    <div class="list-group-item py-3" data-id="{{ qr.id }}">
+                        <div class="mb-2">
+                            <label class="form-label small text-muted mb-1">질문</label>
+                            <textarea class="form-control form-control-sm qr-question" rows="2">{{ qr.question }}</textarea>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small text-muted mb-1">리포트 (HTML)</label>
+                            <textarea class="form-control form-control-sm font-monospace qr-report" rows="6">{{ qr.report }}</textarea>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ qr.created_at|date:"Y-m-d H:i" }}</small>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-primary btn-save-qr" data-id="{{ qr.id }}">저장</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-qr" data-id="{{ qr.id }}">삭제</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-4" id="noQuestionReport">
+                        저장된 질문리포트가 없습니다.<br>
+                        <small>설정 → 프롬프트 → 관심섹터 → STEP 5에서 추가하세요.</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- 리포트 탭 -->
@@ -1375,6 +1405,102 @@ document.addEventListener('click', async (e) => {
     } catch (err) {
         alert('오류: ' + err.message);
         e.target.disabled = false;
+    }
+});
+
+// ============ 질문리포트 저장/삭제 ============
+
+// 질문리포트 저장
+document.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-save-qr')) return;
+
+    const btn = e.target;
+    const reportId = btn.dataset.id;
+    const item = btn.closest('.list-group-item');
+    const question = item.querySelector('.qr-question').value.trim();
+    const report = item.querySelector('.qr-report').value;
+
+    if (!question) {
+        alert('질문을 입력하세요.');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '저장 중...';
+
+    try {
+        const formData = new FormData();
+        formData.append('question', question);
+        formData.append('report', report);
+
+        const response = await fetch(`/api/sector/question-report/${reportId}/update/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: formData
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            btn.textContent = '저장됨!';
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-success');
+            setTimeout(() => {
+                btn.textContent = '저장';
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-primary');
+                btn.disabled = false;
+            }, 1500);
+        } else {
+            alert(data.error || '저장 실패');
+            btn.disabled = false;
+            btn.textContent = '저장';
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = '저장';
+    }
+});
+
+// 질문리포트 삭제
+document.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-delete-qr')) return;
+
+    if (!confirm('삭제하시겠습니까?')) return;
+
+    const btn = e.target;
+    const reportId = btn.dataset.id;
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(`/api/sector/question-report/${reportId}/delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            const item = btn.closest('.list-group-item');
+            item.remove();
+
+            const countEl = document.getElementById('questionReportCount');
+            const newCount = parseInt(countEl.textContent) - 1;
+            countEl.textContent = newCount;
+
+            if (newCount === 0) {
+                document.getElementById('questionReportList').innerHTML = `
+                    <div class="text-center text-muted py-4" id="noQuestionReport">
+                        저장된 질문리포트가 없습니다.<br>
+                        <small>설정 → 프롬프트 → 관심섹터 → STEP 5에서 추가하세요.</small>
+                    </div>`;
+            }
+        } else {
+            alert(data.error || '삭제 실패');
+            btn.disabled = false;
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        btn.disabled = false;
     }
 });
 </script>

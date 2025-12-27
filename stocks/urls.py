@@ -79,6 +79,10 @@ urlpatterns = [
     path('api/sector/youtube/video/save/', views.sector_youtube_video_save, name='sector_youtube_video_save'),
     path('api/sector/youtube/video/save-by-link/', views.sector_youtube_video_save_by_link, name='sector_youtube_video_save_by_link'),
     path('api/sector/youtube/video/<int:video_id>/delete/', views.sector_youtube_video_delete, name='sector_youtube_video_delete'),
+    # 질문리포트 (섹터)
+    path('api/sector/question-report/save/', views.sector_question_report_save, name='sector_question_report_save'),
+    path('api/sector/question-report/<int:report_id>/update/', views.sector_question_report_update, name='sector_question_report_update'),
+    path('api/sector/question-report/<int:report_id>/delete/', views.sector_question_report_delete, name='sector_question_report_delete'),
     path('api/market/trend/<str:market>/refresh/', views.refresh_market_trend, name='refresh_market_trend'),
     path('api/sector/<str:market>/refresh/', views.refresh_sector, name='refresh_sector'),
     path('api/stock/<str:code>/refresh/', views.refresh_stock, name='refresh_stock'),

@@ -1925,10 +1925,17 @@ def sector(request):
 
 def sector_detail(request, sector_id):
     """섹터 상세 페이지"""
-    from .models import CustomSector, SectorTelegramMessage, SectorNews, SectorYoutubeVideo
+    from .models import CustomSector, SectorTelegramMessage, SectorNews, SectorYoutubeVideo, SectorQuestionReport, Info, InfoETF
     from itertools import chain
 
     sector = get_object_or_404(CustomSector, id=sector_id)
+
+    # 해당 섹터에 연결된 종목과 ETF
+    related_stocks = Info.objects.filter(custom_sectors=sector).order_by('name')
+    related_etfs = InfoETF.objects.filter(custom_sectors=sector).order_by('name')
+
+    # 질문-리포트 목록
+    question_reports = SectorQuestionReport.objects.filter(sector=sector)
 
     # 텔레그램, 뉴스, 유튜브 통합 리스트 (최신순)
     telegram_messages = SectorTelegramMessage.objects.filter(sector=sector)
@@ -1987,6 +1994,9 @@ def sector_detail(request, sector_id):
 
     context = {
         'sector': sector,
+        'related_stocks': related_stocks,
+        'related_etfs': related_etfs,
+        'question_reports': question_reports,
         'initial_items': initial_items,
         'remaining_items': remaining_items,
         'total_count': len(all_items),
@@ -1996,7 +2006,7 @@ def sector_detail(request, sector_id):
 
 def sector_edit(request, sector_id):
     """섹터 편집 페이지"""
-    from .models import CustomSector, SectorTelegramMessage, SectorNews, SectorYoutubeVideo
+    from .models import CustomSector, SectorTelegramMessage, SectorNews, SectorYoutubeVideo, SectorQuestionReport
 
     sector = get_object_or_404(CustomSector, id=sector_id)
 
@@ -2004,7 +2014,6 @@ def sector_edit(request, sector_id):
     if request.method == 'POST' and request.POST.get('form_type') == 'info':
         sector.memo = request.POST.get('memo', '').strip()
         sector.basic_report = request.POST.get('basic_report', '')  # HTML이므로 strip 안함
-        sector.integrated_report = request.POST.get('integrated_report', '')  # HTML이므로 strip 안함
         sector.save()
         messages.success(request, f'{sector.name} 정보가 저장되었습니다.')
         return redirect('stocks:sector_edit', sector_id=sector_id)
@@ -2012,12 +2021,14 @@ def sector_edit(request, sector_id):
     telegram_messages = SectorTelegramMessage.objects.filter(sector=sector).order_by('-date', '-time')
     news_articles = SectorNews.objects.filter(sector=sector).order_by('-created_at')
     youtube_videos = SectorYoutubeVideo.objects.filter(sector=sector).order_by('-created_at')
+    question_reports = SectorQuestionReport.objects.filter(sector=sector).order_by('-created_at')
 
     context = {
         'sector': sector,
         'telegram_messages': telegram_messages,
         'news_articles': news_articles,
         'youtube_videos': youtube_videos,
+        'question_reports': question_reports,
     }
     return render(request, 'stocks/sector_edit.html', context)
 
@@ -2908,20 +2919,12 @@ def custom_sector_basic_report(request, sector_id):
 
 @require_GET
 def custom_sector_integrated_report(request, sector_id):
-    """관심섹터 통합리포트 조회 API (없으면 기초리포트)"""
+    """관심섹터 기초리포트 조회 API (STEP4용 - 이름 유지)"""
     from .models import CustomSector
 
     sector = get_object_or_404(CustomSector, id=sector_id)
 
-    # 통합리포트가 있으면 통합리포트, 없으면 기초리포트
-    if sector.integrated_report:
-        return JsonResponse({
-            'success': True,
-            'sector_name': sector.name,
-            'report': sector.integrated_report,
-            'report_type': '통합리포트'
-        })
-    elif sector.basic_report:
+    if sector.basic_report:
         return JsonResponse({
             'success': True,
             'sector_name': sector.name,
@@ -2935,6 +2938,73 @@ def custom_sector_integrated_report(request, sector_id):
             'report': '',
             'report_type': ''
         })
+
+
+@require_POST
+def sector_question_report_save(request):
+    """섹터 질문리포트 저장 API"""
+    from .models import CustomSector, SectorQuestionReport
+
+    sector_id = request.POST.get('sector_id', '')
+    question = request.POST.get('question', '').strip()
+    report = request.POST.get('report', '')
+
+    if not sector_id:
+        return JsonResponse({'success': False, 'error': '섹터를 선택해주세요.'})
+
+    if not question:
+        return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
+
+    try:
+        sector = CustomSector.objects.get(id=sector_id)
+    except CustomSector.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '섹터를 찾을 수 없습니다.'})
+
+    qr = SectorQuestionReport.objects.create(
+        sector=sector,
+        question=question,
+        report=report
+    )
+
+    return JsonResponse({
+        'success': True,
+        'id': qr.id,
+        'message': '질문리포트가 저장되었습니다.'
+    })
+
+
+@require_POST
+def sector_question_report_delete(request, report_id):
+    """섹터 질문리포트 삭제 API"""
+    from .models import SectorQuestionReport
+
+    try:
+        qr = SectorQuestionReport.objects.get(id=report_id)
+        qr.delete()
+        return JsonResponse({'success': True})
+    except SectorQuestionReport.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '질문리포트를 찾을 수 없습니다.'})
+
+
+@require_POST
+def sector_question_report_update(request, report_id):
+    """섹터 질문리포트 수정 API"""
+    from .models import SectorQuestionReport
+
+    question = request.POST.get('question', '').strip()
+    report = request.POST.get('report', '')
+
+    if not question:
+        return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
+
+    try:
+        qr = SectorQuestionReport.objects.get(id=report_id)
+        qr.question = question
+        qr.report = report
+        qr.save()
+        return JsonResponse({'success': True})
+    except SectorQuestionReport.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '질문리포트를 찾을 수 없습니다.'})
 
 
 @require_POST

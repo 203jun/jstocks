@@ -1214,12 +1214,6 @@ class CustomSector(models.Model):
         verbose_name='기초리포트',
         help_text='기초리포트 (HTML 형식)'
     )
-    integrated_report = models.TextField(
-        blank=True,
-        default='',
-        verbose_name='통합리포트',
-        help_text='통합리포트 (HTML 형식)'
-    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='생성일시'
@@ -1237,6 +1231,49 @@ class CustomSector(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class SectorQuestionReport(models.Model):
+    """
+    섹터 질문-리포트 쌍
+
+    관심섹터에 대한 질문과 그에 대한 리포트를 저장
+    하나의 섹터에 여러 개의 질문-리포트 쌍을 가질 수 있음
+    """
+    sector = models.ForeignKey(
+        CustomSector,
+        on_delete=models.CASCADE,
+        related_name='question_reports',
+        verbose_name='섹터',
+        help_text='관련 섹터'
+    )
+    question = models.TextField(
+        verbose_name='질문',
+        help_text='질문 내용'
+    )
+    report = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='리포트',
+        help_text='리포트 (HTML 형식)'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='수정일시'
+    )
+
+    class Meta:
+        db_table = 'sector_question_report'
+        verbose_name = '섹터질문리포트'
+        verbose_name_plural = '섹터질문리포트'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.sector.name}: {self.question[:30]}"
 
 
 class Report(models.Model):

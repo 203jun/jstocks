@@ -14,34 +14,97 @@
     </div>
 </div>
 
+<!-- 관련 종목/ETF -->
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>관련 종목/ETF</strong>
+    </div>
+    <div class="card-body py-2">
+        {% if related_stocks or related_etfs %}
+        <div class="d-flex flex-wrap gap-2">
+            {% for stock in related_stocks %}
+            <a href="{% url 'stocks:stock_detail' stock.code %}" class="badge bg-primary text-decoration-none" style="font-size: 0.85em;">
+                {{ stock.name }}
+            </a>
+            {% endfor %}
+            {% for etf in related_etfs %}
+            <a href="{% url 'stocks:etf_detail' etf.code %}" class="badge bg-success text-decoration-none" style="font-size: 0.85em;">
+                {{ etf.name }}
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-2">
+            <small>등록된 종목/ETF가 없습니다.</small>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
 <!-- 기초리포트 -->
-{% if sector.basic_report %}
 <div class="card mb-3">
     <div class="card-header py-2">
         <strong>기초리포트</strong>
     </div>
     <div class="card-body py-2">
+        {% if sector.basic_report %}
         <iframe id="basicReportFrame" style="width: 100%; border: none; min-height: 300px;"></iframe>
+        {% else %}
+        <div class="text-center text-muted py-2">
+            <small>기초리포트가 없습니다.</small>
+        </div>
+        {% endif %}
     </div>
 </div>
+{% if sector.basic_report %}
 <template id="basicReportContent">{{ sector.basic_report|safe }}</template>
 {% endif %}
 
-<!-- 통합리포트 -->
-{% if sector.integrated_report %}
+<!-- 질문리포트 -->
 <div class="card mb-3">
-    <div class="card-header py-2">
-        <strong>통합리포트</strong>
+    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+        <strong>질문리포트</strong>
+        <span class="badge bg-secondary">{{ question_reports|length }}건</span>
     </div>
-    <div class="card-body py-2">
-        <iframe id="integratedReportFrame" style="width: 100%; border: none; min-height: 300px;"></iframe>
+    <div class="card-body p-0">
+        {% if question_reports %}
+        <div class="accordion accordion-flush" id="questionReportAccordion">
+            {% for qr in question_reports %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#qr{{ qr.id }}" aria-expanded="false">
+                        <span class="small">{{ qr.question|truncatechars:80 }}</span>
+                    </button>
+                </h2>
+                <div id="qr{{ qr.id }}" class="accordion-collapse collapse" data-bs-parent="#questionReportAccordion">
+                    <div class="accordion-body p-2">
+                        {% if qr.report %}
+                        <iframe id="qrFrame{{ qr.id }}" style="width: 100%; border: none; min-height: 200px;" onload="adjustIframeHeight(this)"></iframe>
+                        {% else %}
+                        <div class="text-center text-muted py-2">
+                            <small>리포트가 없습니다.</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4">
+            <small>등록된 질문리포트가 없습니다.</small>
+        </div>
+        {% endif %}
     </div>
 </div>
-<template id="integratedReportContent">{{ sector.integrated_report|safe }}</template>
+{% for qr in question_reports %}
+{% if qr.report %}
+<template id="qrContent{{ qr.id }}">{{ qr.report|safe }}</template>
 {% endif %}
+{% endfor %}
 
 <!-- 최신 소식 -->
-<div class="card">
+<div class="card mb-3">
     <div class="card-header py-2 d-flex justify-content-between align-items-center">
         <strong>최신 소식</strong>
         <span class="badge bg-secondary">{{ total_count }}건</span>
@@ -115,29 +178,39 @@
         </div>
         {% else %}
         <div class="text-center text-muted py-4">
-            <p class="mb-0">저장된 소식이 없습니다.</p>
-            <small><a href="{% url 'stocks:sector_edit' sector.id %}">편집</a>에서 리포트, 텔레그램, 뉴스, 유튜브를 검색하세요.</small>
+            <small>저장된 소식이 없습니다.</small>
         </div>
         {% endif %}
     </div>
 </div>
 
 <!-- 메모 -->
-{% if sector.memo %}
-<div class="card mt-3">
+<div class="card">
     <div class="card-header py-2">
         <strong>메모</strong>
     </div>
     <div class="card-body py-2">
+        {% if sector.memo %}
         <div style="white-space: pre-wrap;">{{ sector.memo }}</div>
+        {% else %}
+        <div class="text-center text-muted py-2">
+            <small>메모가 없습니다.</small>
+        </div>
+        {% endif %}
     </div>
 </div>
-{% endif %}
 
 <script>
 function showMoreItems() {
     document.getElementById('remaining-items').style.display = 'block';
     document.getElementById('show-more-btn').style.display = 'none';
+}
+
+function adjustIframeHeight(iframe) {
+    try {
+        var height = iframe.contentWindow.document.body.scrollHeight;
+        iframe.style.height = (height + 20) + 'px';
+    } catch(e) {}
 }
 
 // 기초리포트 iframe 로드
@@ -147,24 +220,21 @@ function showMoreItems() {
     if (basicTemplate && basicFrame) {
         basicFrame.srcdoc = basicTemplate.innerHTML;
         basicFrame.onload = function() {
-            try {
-                var height = basicFrame.contentWindow.document.body.scrollHeight;
-                basicFrame.style.height = (height + 20) + 'px';
-            } catch(e) {}
-        };
-    }
-
-    var integratedTemplate = document.getElementById('integratedReportContent');
-    var integratedFrame = document.getElementById('integratedReportFrame');
-    if (integratedTemplate && integratedFrame) {
-        integratedFrame.srcdoc = integratedTemplate.innerHTML;
-        integratedFrame.onload = function() {
-            try {
-                var height = integratedFrame.contentWindow.document.body.scrollHeight;
-                integratedFrame.style.height = (height + 20) + 'px';
-            } catch(e) {}
+            adjustIframeHeight(basicFrame);
         };
     }
 })();
+
+// 질문리포트 아코디언 열릴 때 iframe 로드
+document.querySelectorAll('.accordion-collapse').forEach(function(collapse) {
+    collapse.addEventListener('shown.bs.collapse', function() {
+        var id = this.id.replace('qr', '');
+        var template = document.getElementById('qrContent' + id);
+        var frame = document.getElementById('qrFrame' + id);
+        if (template && frame && !frame.srcdoc) {
+            frame.srcdoc = template.innerHTML;
+        }
+    });
+});
 </script>
 {% endblock %}

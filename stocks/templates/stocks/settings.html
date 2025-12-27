@@ -564,26 +564,26 @@
                     </div>
                 </div>
 
-                <!-- STEP 4: 통합리포트 만들기 -->
+                <!-- STEP 4: 질문리포트 만들기 -->
                 <div class="card mt-3">
                     <div class="card-header py-2">
                         <span class="badge bg-danger me-2">STEP 4</span>
-                        <strong>통합리포트 만들기</strong>
+                        <strong>질문리포트 만들기</strong>
                     </div>
                     <div class="card-body">
                         <div class="alert alert-secondary py-2 mb-3">
                             <small>
                                 <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
-                                <strong>저장:</strong> 관심섹터 → 편집 → 통합리포트 저장
+                                <strong>저장:</strong> 아래 폼에서 직접 저장 (여러 개 저장 가능)
                             </small>
                         </div>
 
-                        <!-- 관심섹터 통합리포트 조회 버튼 -->
+                        <!-- 관심섹터 기초리포트 조회 버튼 -->
                         <div class="mb-3">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sectorIntegratedReportModal">
-                                관심섹터 통합리포트 조회
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sectorReportModal">
+                                관심섹터 기초리포트 조회
                             </button>
-                            <small class="text-muted ms-2">통합리포트(없으면 기초리포트)를 참고하세요.</small>
+                            <small class="text-muted ms-2">기초리포트를 참고하여 질문리포트를 작성하세요.</small>
                         </div>
 
                         <!-- 4-1. 프롬프트 -->
@@ -593,9 +593,9 @@
                                 <button type="button" class="btn btn-sm btn-primary" id="btnSaveSectorIntegratedPrompt">저장</button>
                             </div>
                             <div class="alert alert-info py-2 mb-2">
-                                <small><strong>고도화질문:</strong> STEP 3에서 Gemini가 알려준 결과입니다. 질문이 여러 개일 수 있으며, 다 붙여넣기 하면 됩니다.</small>
+                                <small><strong>고도화질문:</strong> STEP 3에서 Gemini가 알려준 결과입니다. 질문이 여러 개일 수 있으며, 하나씩 수행합니다.</small>
                             </div>
-                            <textarea class="form-control" id="promptSectorIntegrated" rows="8" placeholder="통합리포트 생성용 프롬프트...">{{ saved_prompts.prompt_sector_integrated }}</textarea>
+                            <textarea class="form-control" id="promptSectorIntegrated" rows="8" placeholder="질문리포트 생성용 프롬프트...">{{ saved_prompts.prompt_sector_integrated }}</textarea>
                         </div>
 
                         <!-- 4-2. HTML 변환 프롬프트 -->
@@ -606,13 +606,45 @@
                             </div>
                             <textarea class="form-control" id="promptSectorIntegratedHtml" rows="8" placeholder="HTML 변환용 프롬프트...">{{ saved_prompts.prompt_sector_integrated_html }}</textarea>
                             <small class="text-muted">리포트 결과를 HTML 파일로 변환하는 프롬프트</small>
-                            <div class="alert alert-warning py-2 mt-2 mb-0">
-                                <small>
-                                    <strong>⚠️ 생성 실패 시:</strong> 가끔 HTML을 만들지 못하는 경우가 있습니다.<br>
-                                    → 일반 프롬프트로 이동 후 아래 프롬프트 실행:<br>
-                                    <code class="d-block mt-1 p-2 bg-light">{deep research가 뽑아준 결과 복사(컨텐츠 복사가 아니라 마우스 드래그로 복사)}<br>---<br>html 형태로 정리해줘.</code>
-                                </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 5: 질문리포트 저장 -->
+                <div class="card mt-3">
+                    <div class="card-header py-2">
+                        <span class="badge bg-dark me-2">STEP 5</span>
+                        <strong>질문리포트 저장</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-secondary py-2 mb-3">
+                            <small>
+                                <strong>저장:</strong> STEP 4에서 생성한 질문리포트를 저장합니다. (여러 개 저장 가능)
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small mb-1">관심섹터 선택</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="questionReportSectorSearch" placeholder="섹터명 검색...">
+                                <button type="button" class="btn btn-outline-primary" id="btnQuestionReportSectorSearch">검색</button>
                             </div>
+                            <div id="questionReportSectorResults" class="list-group mt-2 d-none" style="max-height: 150px; overflow-y: auto;"></div>
+                            <input type="hidden" id="questionReportSectorId">
+                            <div id="questionReportSelectedSector" class="mt-2 d-none">
+                                <span class="badge bg-primary" id="questionReportSectorName"></span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small mb-1">질문</label>
+                            <textarea class="form-control" id="questionReportQuestion" rows="3" placeholder="질문 내용을 입력하세요..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small mb-1">리포트 (HTML)</label>
+                            <textarea class="form-control font-monospace" id="questionReportHtml" rows="6" placeholder="리포트 HTML을 입력하세요..."></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-success" id="btnSaveQuestionReport">질문리포트 저장</button>
                         </div>
                     </div>
                 </div>
@@ -667,60 +699,6 @@
                     <!-- 기초리포트 없음 -->
                     <div id="sectorReportEmpty" class="text-center text-muted py-4 d-none">
                         저장된 기초리포트가 없습니다.
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 관심섹터 통합리포트 조회 모달 -->
-<div class="modal fade" id="sectorIntegratedReportModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header py-2">
-                <h6 class="modal-title">관심섹터 통합리포트 조회</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <!-- 섹터 검색 -->
-                <div class="mb-3">
-                    <div class="input-group">
-                        <input type="text" class="form-control" id="sectorIntegratedSearchInput" placeholder="섹터명 검색...">
-                        <button type="button" class="btn btn-outline-primary" id="btnSectorIntegratedSearch">검색</button>
-                    </div>
-                    <div id="sectorIntegratedSearchResults" class="list-group mt-2 d-none" style="max-height: 200px; overflow-y: auto;"></div>
-                </div>
-
-                <!-- 선택된 섹터 정보 -->
-                <div id="selectedSectorIntegratedInfo" class="d-none">
-                    <div class="alert alert-info py-2 mb-3">
-                        <strong id="selectedSectorIntegratedName"></strong>
-                        <span id="selectedSectorIntegratedType" class="badge bg-secondary ms-2"></span>
-                    </div>
-
-                    <!-- 데이터 로딩 -->
-                    <div id="sectorIntegratedReportLoading" class="text-center py-4 d-none">
-                        <div class="spinner-border text-primary"></div>
-                        <p class="mt-2 mb-0">리포트 불러오는 중...</p>
-                    </div>
-
-                    <!-- 리포트 결과 -->
-                    <div id="sectorIntegratedReportResult" class="d-none">
-                        <!-- 복사 버튼 -->
-                        <div class="d-flex justify-content-end mb-2">
-                            <button type="button" class="btn btn-sm btn-success" id="btnCopySectorIntegratedReport">
-                                전체 복사
-                            </button>
-                        </div>
-
-                        <!-- 리포트 내용 -->
-                        <div id="sectorIntegratedReportContent" class="border rounded p-3 bg-light" style="max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-size: 0.85rem;"></div>
-                    </div>
-
-                    <!-- 리포트 없음 -->
-                    <div id="sectorIntegratedReportEmpty" class="text-center text-muted py-4 d-none">
-                        저장된 리포트가 없습니다.
                     </div>
                 </div>
             </div>
@@ -1491,27 +1469,25 @@ document.getElementById('sectorReportModal').addEventListener('hidden.bs.modal',
     sectorReportEmpty.classList.add('d-none');
 });
 
-// === 관심섹터 통합리포트 조회 모달 ===
-const sectorIntegratedSearchInput = document.getElementById('sectorIntegratedSearchInput');
-const btnSectorIntegratedSearch = document.getElementById('btnSectorIntegratedSearch');
-const sectorIntegratedSearchResults = document.getElementById('sectorIntegratedSearchResults');
-const selectedSectorIntegratedInfo = document.getElementById('selectedSectorIntegratedInfo');
-const selectedSectorIntegratedName = document.getElementById('selectedSectorIntegratedName');
-const selectedSectorIntegratedType = document.getElementById('selectedSectorIntegratedType');
-const sectorIntegratedReportLoading = document.getElementById('sectorIntegratedReportLoading');
-const sectorIntegratedReportResult = document.getElementById('sectorIntegratedReportResult');
-const sectorIntegratedReportContent = document.getElementById('sectorIntegratedReportContent');
-const sectorIntegratedReportEmpty = document.getElementById('sectorIntegratedReportEmpty');
-const btnCopySectorIntegratedReport = document.getElementById('btnCopySectorIntegratedReport');
+// === 질문리포트 저장 (STEP 4-3) ===
+const questionReportSectorSearch = document.getElementById('questionReportSectorSearch');
+const btnQuestionReportSectorSearch = document.getElementById('btnQuestionReportSectorSearch');
+const questionReportSectorResults = document.getElementById('questionReportSectorResults');
+const questionReportSectorId = document.getElementById('questionReportSectorId');
+const questionReportSelectedSector = document.getElementById('questionReportSelectedSector');
+const questionReportSectorName = document.getElementById('questionReportSectorName');
+const questionReportQuestion = document.getElementById('questionReportQuestion');
+const questionReportHtml = document.getElementById('questionReportHtml');
+const btnSaveQuestionReport = document.getElementById('btnSaveQuestionReport');
 
-// 섹터 검색 (통합리포트용)
-btnSectorIntegratedSearch.addEventListener('click', searchSectorIntegrated);
-sectorIntegratedSearchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') searchSectorIntegrated();
+// 섹터 검색 (질문리포트용)
+btnQuestionReportSectorSearch.addEventListener('click', searchQuestionReportSector);
+questionReportSectorSearch.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') searchQuestionReportSector();
 });
 
-async function searchSectorIntegrated() {
-    const query = sectorIntegratedSearchInput.value.trim();
+async function searchQuestionReportSector() {
+    const query = questionReportSectorSearch.value.trim();
 
     try {
         const url = query ? `/api/custom-sector/search/?q=${encodeURIComponent(query)}` : '/api/custom-sector/search/';
@@ -1519,97 +1495,78 @@ async function searchSectorIntegrated() {
         const data = await response.json();
 
         if (data.success && data.sectors.length > 0) {
-            sectorIntegratedSearchResults.innerHTML = data.sectors.map(s => `
-                <button type="button" class="list-group-item list-group-item-action" data-id="${s.id}" data-name="${s.name}">
-                    <strong>${s.name}</strong>
+            questionReportSectorResults.innerHTML = data.sectors.map(s => `
+                <button type="button" class="list-group-item list-group-item-action py-1" data-id="${s.id}" data-name="${s.name}">
+                    ${s.name}
                 </button>
             `).join('');
-            sectorIntegratedSearchResults.classList.remove('d-none');
+            questionReportSectorResults.classList.remove('d-none');
         } else {
-            sectorIntegratedSearchResults.innerHTML = '<div class="list-group-item text-muted">검색 결과가 없습니다.</div>';
-            sectorIntegratedSearchResults.classList.remove('d-none');
+            questionReportSectorResults.innerHTML = '<div class="list-group-item text-muted py-1">검색 결과가 없습니다.</div>';
+            questionReportSectorResults.classList.remove('d-none');
         }
     } catch (err) {
         alert('검색 오류: ' + err.message);
     }
 }
 
-// 섹터 선택 (통합리포트용)
-sectorIntegratedSearchResults.addEventListener('click', async (e) => {
+// 섹터 선택 (질문리포트용)
+questionReportSectorResults.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-id]');
     if (!btn) return;
 
-    const sectorId = btn.dataset.id;
-    const name = btn.dataset.name;
+    questionReportSectorId.value = btn.dataset.id;
+    questionReportSectorName.textContent = btn.dataset.name;
+    questionReportSelectedSector.classList.remove('d-none');
+    questionReportSectorResults.classList.add('d-none');
+});
 
-    // UI 업데이트
-    selectedSectorIntegratedName.textContent = name;
-    selectedSectorIntegratedType.textContent = '';
-    selectedSectorIntegratedInfo.classList.remove('d-none');
-    sectorIntegratedSearchResults.classList.add('d-none');
-    sectorIntegratedReportLoading.classList.remove('d-none');
-    sectorIntegratedReportResult.classList.add('d-none');
-    sectorIntegratedReportEmpty.classList.add('d-none');
+// 질문리포트 저장
+btnSaveQuestionReport.addEventListener('click', async () => {
+    const sectorId = questionReportSectorId.value;
+    const question = questionReportQuestion.value.trim();
+    const report = questionReportHtml.value;
 
-    // 통합리포트 또는 기초리포트 가져오기
+    if (!sectorId) {
+        alert('관심섹터를 선택해주세요.');
+        return;
+    }
+    if (!question) {
+        alert('질문을 입력해주세요.');
+        return;
+    }
+    if (!report) {
+        alert('리포트를 입력해주세요.');
+        return;
+    }
+
     try {
-        const response = await fetch(`/api/custom-sector/${sectorId}/integrated-report/`);
+        const formData = new FormData();
+        formData.append('sector_id', sectorId);
+        formData.append('question', question);
+        formData.append('report', report);
+
+        const response = await fetch('/api/sector/question-report/save/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrfToken() },
+            body: formData
+        });
         const data = await response.json();
 
-        sectorIntegratedReportLoading.classList.add('d-none');
-
-        if (data.success && data.report) {
-            // HTML을 순수 텍스트로 변환
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = data.report;
-            tempDiv.querySelectorAll('style, script').forEach(el => el.remove());
-            let text = tempDiv.textContent || tempDiv.innerText;
-            text = text.split('\n')
-                .map(line => line.trim())
-                .filter(line => line.length > 0)
-                .join('\n');
-            text = text.trim();
-
-            sectorIntegratedReportContent.textContent = text;
-            selectedSectorIntegratedType.textContent = data.report_type;
-            selectedSectorIntegratedType.className = data.report_type === '통합리포트' ? 'badge bg-danger ms-2' : 'badge bg-primary ms-2';
-            sectorIntegratedReportResult.classList.remove('d-none');
+        if (data.success) {
+            alert('질문리포트가 저장되었습니다.');
+            // 폼 초기화
+            questionReportSectorId.value = '';
+            questionReportSectorSearch.value = '';
+            questionReportSelectedSector.classList.add('d-none');
+            questionReportQuestion.value = '';
+            questionReportHtml.value = '';
         } else {
-            sectorIntegratedReportEmpty.classList.remove('d-none');
+            alert('저장 실패: ' + (data.error || '알 수 없는 오류'));
         }
     } catch (err) {
-        alert('오류: ' + err.message);
-        sectorIntegratedReportLoading.classList.add('d-none');
+        alert('저장 오류: ' + err.message);
     }
-});
-
-// 통합리포트 복사
-btnCopySectorIntegratedReport.addEventListener('click', async () => {
-    const text = sectorIntegratedReportContent.textContent;
-
-    try {
-        await copyToClipboard(text);
-        btnCopySectorIntegratedReport.textContent = '복사됨!';
-        btnCopySectorIntegratedReport.classList.remove('btn-success');
-        btnCopySectorIntegratedReport.classList.add('btn-secondary');
-        setTimeout(() => {
-            btnCopySectorIntegratedReport.textContent = '전체 복사';
-            btnCopySectorIntegratedReport.classList.remove('btn-secondary');
-            btnCopySectorIntegratedReport.classList.add('btn-success');
-        }, 1500);
-    } catch (err) {
-        alert('복사에 실패했습니다: ' + err.message);
-    }
-});
-
-// 모달 닫힐 때 초기화 (통합리포트)
-document.getElementById('sectorIntegratedReportModal').addEventListener('hidden.bs.modal', () => {
-    sectorIntegratedSearchInput.value = '';
-    sectorIntegratedSearchResults.classList.add('d-none');
-    selectedSectorIntegratedInfo.classList.add('d-none');
-    sectorIntegratedReportLoading.classList.add('d-none');
-    sectorIntegratedReportResult.classList.add('d-none');
-    sectorIntegratedReportEmpty.classList.add('d-none');
 });
 
 // === 종목 데이터 조회 모달 ===
