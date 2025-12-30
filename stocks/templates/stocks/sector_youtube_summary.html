@@ -3,11 +3,23 @@
 {% block title %}요약 - {{ video.sector.name }} - JStocks{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
 <style>
-.EasyMDEContainer .CodeMirror {
-    height: 400px;
+#summary {
+    width: 100%;
+    height: 300px;
+    font-family: monospace;
+    font-size: 14px;
+    resize: vertical;
 }
+#preview {
+    min-height: 100px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+#preview h1, #preview h2, #preview h3 { margin-top: 0.5em; }
+#preview ul, #preview ol { padding-left: 1.5em; }
+#preview p { margin-bottom: 0.5em; }
 </style>
 {% endblock %}
 
@@ -48,35 +60,40 @@
 </div>
 {% endif %}
 
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>미리보기</strong>
+    </div>
+    <div class="card-body p-2">
+        <div id="preview"></div>
+    </div>
+</div>
+
 <form method="post">
     {% csrf_token %}
     <div class="card">
         <div class="card-header py-2 d-flex justify-content-between align-items-center">
-            <strong>요약 내용</strong>
+            <strong>마크다운 입력</strong>
             <button type="submit" class="btn btn-primary btn-sm">저장</button>
         </div>
         <div class="card-body p-2">
-            <textarea name="summary" id="summary">{{ video.summary }}</textarea>
+            <textarea name="summary" id="summary" placeholder="마크다운으로 요약 내용을 입력하세요...">{{ video.summary }}</textarea>
         </div>
     </div>
 </form>
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
-const easyMDE = new EasyMDE({
-    element: document.getElementById('summary'),
-    placeholder: '마크다운으로 요약 내용을 입력하세요...',
-    spellChecker: false,
-    toolbar: [
-        'bold', 'italic', 'heading', '|',
-        'quote', 'unordered-list', 'ordered-list', '|',
-        'link', 'image', '|',
-        'preview', 'side-by-side', 'fullscreen', '|',
-        'guide'
-    ],
-    status: false
-});
+const textarea = document.getElementById('summary');
+const preview = document.getElementById('preview');
+
+function updatePreview() {
+    preview.innerHTML = marked.parse(textarea.value || '');
+}
+
+textarea.addEventListener('input', updatePreview);
+updatePreview();
 </script>
 {% endblock %}
