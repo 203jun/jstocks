@@ -1828,26 +1828,6 @@ def fetch_stock_data_loader(request, code):
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
 
-    # 리포트 (최신 10개)
-    if 'report' in types:
-        lines.append("## 리포트 (최신 10개)")
-        all_reports = Report.objects.filter(stock=stock).order_by('-date')
-        seen_dates = set()
-        reports = []
-        for r in all_reports:
-            if r.date not in seen_dates:
-                reports.append(r)
-                seen_dates.add(r.date)
-                if len(reports) >= 10:
-                    break
-        if reports:
-            for r in reports:
-                date_str = r.date.strftime('%Y-%m-%d') if r.date else '-'
-                lines.append(f"- [{date_str}] {r.title} / {r.author} / {r.provider}")
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
-
     # 노다지 (요약 풀로 최대 5개)
     if 'nodaji' in types:
         lines.append("## 노다지 IR노트 (최대 5개)")
@@ -1866,15 +1846,22 @@ def fetch_stock_data_loader(request, code):
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
 
-    # 텔레그램
-    if 'telegram' in types:
-        lines.append("## 텔레그램")
-        telegram_list = TelegramMessage.objects.filter(stock=stock).order_by('-id')[:10]
-        if telegram_list:
-            for t in telegram_list:
-                channel_name = t.channel_name or t.channel
-                lines.append(f"\n### {channel_name}")
-                lines.append(t.text[:500] if t.text else '')
+    # 리포트 (최신 10개)
+    if 'report' in types:
+        lines.append("## 리포트 (최신 10개)")
+        all_reports = Report.objects.filter(stock=stock).order_by('-date')
+        seen_dates = set()
+        reports = []
+        for r in all_reports:
+            if r.date not in seen_dates:
+                reports.append(r)
+                seen_dates.add(r.date)
+                if len(reports) >= 10:
+                    break
+        if reports:
+            for r in reports:
+                date_str = r.date.strftime('%Y-%m-%d') if r.date else '-'
+                lines.append(f"- [{date_str}] {r.title} / {r.author} / {r.provider}")
         else:
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
@@ -1901,6 +1888,19 @@ def fetch_stock_data_loader(request, code):
             for n in news_list:
                 lines.append(f"- {n.title}")
                 lines.append(f"  링크: {n.link}")
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    # 텔레그램
+    if 'telegram' in types:
+        lines.append("## 텔레그램")
+        telegram_list = TelegramMessage.objects.filter(stock=stock).order_by('-id')[:10]
+        if telegram_list:
+            for t in telegram_list:
+                channel_name = t.channel_name or t.channel
+                lines.append(f"\n### {channel_name}")
+                lines.append(t.text[:500] if t.text else '')
         else:
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
