@@ -1783,7 +1783,7 @@ def fetch_stock_data_loader(request, code):
     """종목 데이터 불러오기 API (선택적 데이터 로드)"""
     import re
     from bs4 import BeautifulSoup
-    from .models import YoutubeVideo, News, TelegramMessage
+    from .models import YoutubeVideo, News, TelegramMessage, StockQuestionReport
 
     stock = get_object_or_404(Info, code=code)
 
@@ -1824,6 +1824,19 @@ def fetch_stock_data_loader(request, code):
             lines.append(html_to_text(stock.insight_summary_html))
         elif stock.insight_report_html:
             lines.append(html_to_text(stock.insight_report_html))
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    # 질문리포트 (최대 10개)
+    if 'question_report' in types:
+        lines.append("## 질문리포트 (최대 10개)")
+        qr_list = StockQuestionReport.objects.filter(stock=stock).order_by('-id')[:10]
+        if qr_list:
+            for qr in qr_list:
+                lines.append(f"\n### Q: {qr.question}")
+                if qr.report:
+                    lines.append(html_to_text(qr.report))
         else:
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
