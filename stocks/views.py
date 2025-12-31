@@ -1918,6 +1918,15 @@ def fetch_stock_data_loader(request, code):
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
 
+    # 메모
+    if 'memo' in types:
+        lines.append("## 메모")
+        if stock.memo:
+            lines.append(html_to_text(stock.memo))
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
     return JsonResponse({
         'success': True,
         'data': '\n'.join(lines)
