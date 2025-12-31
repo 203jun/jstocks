@@ -563,7 +563,7 @@
                     <div class="card-body">
                         <div class="alert alert-secondary py-2 mb-3">
                             <small>
-                                <strong>도구:</strong> Gemini + 사고모드<br>
+                                <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
                                 <strong>저장:</strong> 종목 편집 → <code>질문리포트</code> 탭
                             </small>
                         </div>
@@ -586,6 +586,13 @@
                             </div>
                             <textarea class="form-control" id="promptQuestionReportHtml" rows="8" placeholder="HTML 변환 프롬프트...">{{ saved_prompts.prompt_question_report_html }}</textarea>
                             <small class="text-muted">리포트 결과를 HTML 형식으로 변환하는 프롬프트</small>
+                            <div class="alert alert-warning py-2 mt-2 mb-0">
+                                <small>
+                                    <strong>⚠️ 생성 실패 시:</strong> 가끔 HTML을 만들지 못하는 경우가 있습니다.<br>
+                                    → 일반 프롬프트로 이동 후 아래 프롬프트 실행:<br>
+                                    <code class="d-block mt-1 p-2 bg-light">{deep research가 뽑아준 결과 복사(컨텐츠 복사가 아니라 마우스 드래그로 복사)}<br>---<br>html 형태로 정리해줘.</code>
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>
