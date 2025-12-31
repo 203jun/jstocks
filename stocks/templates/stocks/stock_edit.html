@@ -2004,6 +2004,8 @@ document.addEventListener('click', async (e) => {
 document.addEventListener('click', async (e) => {
     if (!e.target.classList.contains('btn-delete-video')) return;
 
+    if (!confirm('삭제하시겠습니까?')) return;
+
     const btn = e.target;
     const videoId = btn.dataset.id;
     btn.disabled = true;
