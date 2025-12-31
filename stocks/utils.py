@@ -199,3 +199,54 @@ def get_last_trading_date():
     """
     from stocks.models import DailyChart
     return DailyChart.objects.order_by('-date').values_list('date', flat=True).first()
+
+
+def send_telegram_message(message):
+    """
+    텔레그램으로 메시지를 전송합니다.
+
+    Args:
+        message: 전송할 메시지 문자열
+
+    Returns:
+        bool: 전송 성공 여부
+    """
+    bot_token = config('TELEGRAM_BOT_TOKEN', default='')
+    chat_id = config('TELEGRAM_CHAT_ID', default='')
+
+    if not bot_token or not chat_id:
+        _get_file_logger().warning('utils: 텔레그램 설정 없음 (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)')
+        return False
+
+    url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
+    payload = {
+        'chat_id': chat_id,
+        'text': message,
+        'parse_mode': 'HTML',
+    }
+
+    try:
+        response = requests.post(url, json=payload, timeout=10)
+        if response.status_code == 200:
+            return True
+        else:
+            _get_file_logger().error(f'utils: 텔레그램 전송 실패 - {response.status_code}')
+            return False
+    except Exception as e:
+        _get_file_logger().error(f'utils: 텔레그램 전송 오류 - {str(e)}')
+        return False
+
+
+def send_telegram_error(command_name, error_message):
+    """
+    오류 발생 시 텔레그램으로 알림을 보냅니다.
+
+    Args:
+        command_name: 오류가 발생한 커맨드명
+        error_message: 오류 메시지
+
+    Returns:
+        bool: 전송 성공 여부
+    """
+    message = f"<b>[오류 알림]</b>\n\n<b>커맨드:</b> {command_name}\n<b>오류:</b> {error_message}"
+    return send_telegram_message(message)
