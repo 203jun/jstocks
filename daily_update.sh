@@ -19,6 +19,14 @@ fi
 cd /home/stock/jstocks
 source venv/bin/activate
 
+# 텔레그램 알림 함수
+send_telegram() {
+    python manage.py tele_api_test -m "$1" > /dev/null 2>&1
+}
+
+# 시작 알림
+send_telegram "📊 일일 업데이트 시작 ($(date '+%H:%M'))"
+
 echo "========================================"
 echo "일일 업데이트 시작: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "========================================"
@@ -83,3 +91,6 @@ python manage.py save_etf_info --log-level info
 echo "========================================"
 echo "일일 업데이트 완료: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "========================================"
+
+# 완료 알림
+send_telegram "✅ 일일 업데이트 완료 ($(date '+%H:%M'))"

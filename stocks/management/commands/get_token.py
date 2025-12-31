@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from stocks.utils import issue_token, save_token
+from stocks.utils import issue_token, save_token, send_telegram_error
 from stocks.logger import StockLogger
 
 
@@ -23,5 +23,7 @@ class Command(BaseCommand):
                 self.log.info(f'토큰 발급 완료: {token_data["expires_dt"]}까지 유효', success=True)
             else:
                 self.log.error('토큰 저장 실패')
+                send_telegram_error('get_token', '토큰 저장 실패')
         else:
             self.log.error('토큰 발급 실패')
+            send_telegram_error('get_token', '토큰 발급 실패')

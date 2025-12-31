@@ -1276,6 +1276,49 @@ class SectorQuestionReport(models.Model):
         return f"{self.sector.name}: {self.question[:30]}"
 
 
+class StockQuestionReport(models.Model):
+    """
+    종목 질문-리포트 쌍
+
+    관심종목에 대한 질문과 그에 대한 리포트를 저장
+    하나의 종목에 여러 개의 질문-리포트 쌍을 가질 수 있음
+    """
+    stock = models.ForeignKey(
+        Info,
+        on_delete=models.CASCADE,
+        related_name='question_reports',
+        verbose_name='종목',
+        help_text='관련 종목'
+    )
+    question = models.TextField(
+        verbose_name='질문',
+        help_text='질문 내용'
+    )
+    report = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='리포트',
+        help_text='리포트 내용'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='수정일시'
+    )
+
+    class Meta:
+        db_table = 'stock_question_report'
+        verbose_name = '종목질문리포트'
+        verbose_name_plural = '종목질문리포트'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.stock.name}: {self.question[:30]}"
+
+
 class Report(models.Model):
     """
     애널리스트 리포트 데이터

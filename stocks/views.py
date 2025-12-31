@@ -648,10 +648,15 @@ def stock_detail(request, code):
     html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
     analysis_html_exists = html_path.exists()
 
+    # 질문리포트
+    from .models import StockQuestionReport
+    question_reports = StockQuestionReport.objects.filter(stock=stock)
+
     context = {
         'stock': stock,
         'sectors': sectors,
         'analysis_html_exists': analysis_html_exists,
+        'question_reports': question_reports,
         'annual_labels': json.dumps(annual_labels),
         'annual_revenue': json.dumps(annual_revenue),
         'annual_op': json.dumps(annual_op),
@@ -923,6 +928,10 @@ def stock_edit(request, code):
     from .models import TelegramMessage
     telegram_messages = TelegramMessage.objects.filter(stock=stock)
 
+    # 질문리포트
+    from .models import StockQuestionReport
+    question_reports = StockQuestionReport.objects.filter(stock=stock)
+
     # 기업분석 HTML 파일 확인
     html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
     analysis_html_exists = html_path.exists()
@@ -948,6 +957,7 @@ def stock_edit(request, code):
         'youtube_videos': youtube_videos,
         'news_articles': news_articles,
         'telegram_messages': telegram_messages,
+        'question_reports': question_reports,
         'analysis_html_exists': analysis_html_exists,
         'analysis_html_content': analysis_html_content,
     }
@@ -1761,6 +1771,139 @@ def fetch_stock_prompt_data(request, code):
             lines.append("")
     else:
         lines.append("- 없음")
+
+    return JsonResponse({
+        'success': True,
+        'data': '\n'.join(lines)
+    })
+
+
+@require_GET
+def fetch_stock_data_loader(request, code):
+    """종목 데이터 불러오기 API (선택적 데이터 로드)"""
+    import re
+    from bs4 import BeautifulSoup
+    from .models import YoutubeVideo, News, TelegramMessage
+
+    stock = get_object_or_404(Info, code=code)
+
+    # 선택된 데이터 타입 (쉼표로 구분)
+    types = request.GET.get('types', '').split(',')
+
+    def html_to_text(html):
+        """HTML을 텍스트로 변환"""
+        if not html:
+            return ''
+        soup = BeautifulSoup(html, 'html.parser')
+        text = soup.get_text(separator='\n')
+        # 연속된 빈 줄 정리
+        text = re.sub(r'\n\s*\n+', '\n\n', text)
+        # citation 제거
+        text = re.sub(r'\[cite_start\]', '', text)
+        text = re.sub(r'\[cite_end\]', '', text)
+        text = re.sub(r'\[cite:\s*[\d,\s]+\]', '', text)
+        text = re.sub(r'\[/cite\]', '', text)
+        return text.strip()
+
+    lines = []
+    lines.append(f"=== {stock.name} ({stock.code}) 데이터 ===\n")
+
+    # 기업분석
+    if 'analysis' in types:
+        lines.append("## 기업분석")
+        if stock.analysis_text:
+            lines.append(html_to_text(stock.analysis_text))
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    # 투자포인트 (인사이트)
+    if 'insight' in types:
+        lines.append("## 투자포인트")
+        if stock.insight_summary_html:
+            lines.append(html_to_text(stock.insight_summary_html))
+        elif stock.insight_report_html:
+            lines.append(html_to_text(stock.insight_report_html))
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    # 리포트 (최신 10개)
+    if 'report' in types:
+        lines.append("## 리포트 (최신 10개)")
+        all_reports = Report.objects.filter(stock=stock).order_by('-date')
+        seen_dates = set()
+        reports = []
+        for r in all_reports:
+            if r.date not in seen_dates:
+                reports.append(r)
+                seen_dates.add(r.date)
+                if len(reports) >= 10:
+                    break
+        if reports:
+            for r in reports:
+                date_str = r.date.strftime('%Y-%m-%d') if r.date else '-'
+                lines.append(f"- [{date_str}] {r.title} / {r.author} / {r.provider}")
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    # 노다지 (요약 풀로 최대 5개)
+    if 'nodaji' in types:
+        lines.append("## 노다지 IR노트 (최대 5개)")
+        nodaji_list = Nodaji.objects.filter(
+            stock=stock,
+            title__contains=stock.name
+        ).exclude(summary__isnull=True).exclude(summary='').order_by('-date')[:5]
+        if nodaji_list:
+            for n in nodaji_list:
+                date_str = n.date.strftime('%Y-%m-%d') if n.date else '-'
+                lines.append(f"\n### [{date_str}] {n.title}")
+                if n.summary:
+                    summary = html_to_text(n.summary)
+                    lines.append(summary)
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    # 텔레그램
+    if 'telegram' in types:
+        lines.append("## 텔레그램")
+        telegram_list = TelegramMessage.objects.filter(stock=stock).order_by('-id')[:10]
+        if telegram_list:
+            for t in telegram_list:
+                channel_name = t.channel_name or t.channel
+                lines.append(f"\n### {channel_name}")
+                lines.append(t.text[:500] if t.text else '')
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    # 유튜브 (저장된 링크, 제목 최대 10개)
+    if 'youtube' in types:
+        lines.append("## 유튜브 (최대 10개)")
+        youtube_list = YoutubeVideo.objects.filter(stock=stock).order_by('-id')[:10]
+        if youtube_list:
+            for v in youtube_list:
+                lines.append(f"- {v.title}")
+                lines.append(f"  링크: {v.link}")
+                if v.channel:
+                    lines.append(f"  채널: {v.channel}")
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    # 뉴스 (최대 10개)
+    if 'news' in types:
+        lines.append("## 뉴스 (최대 10개)")
+        news_list = News.objects.filter(stock=stock).order_by('-id')[:10]
+        if news_list:
+            for n in news_list:
+                lines.append(f"- {n.title}")
+                lines.append(f"  링크: {n.link}")
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
 
     return JsonResponse({
         'success': True,
@@ -3004,6 +3147,69 @@ def sector_question_report_update(request, report_id):
         qr.save()
         return JsonResponse({'success': True})
     except SectorQuestionReport.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '질문리포트를 찾을 수 없습니다.'})
+
+
+@require_POST
+def stock_question_report_save(request):
+    """종목 질문리포트 저장 API"""
+    from .models import Info, StockQuestionReport
+
+    stock_code = request.POST.get('stock_code', '')
+    question = request.POST.get('question', '').strip()
+    report = request.POST.get('report', '')
+
+    if not stock_code:
+        return JsonResponse({'success': False, 'error': '종목코드가 필요합니다.'})
+
+    if not question:
+        return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
+
+    try:
+        stock = Info.objects.get(code=stock_code)
+    except Info.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '종목을 찾을 수 없습니다.'})
+
+    qr = StockQuestionReport.objects.create(
+        stock=stock,
+        question=question,
+        report=report
+    )
+
+    return JsonResponse({'success': True, 'id': qr.id})
+
+
+@require_POST
+def stock_question_report_delete(request, report_id):
+    """종목 질문리포트 삭제 API"""
+    from .models import StockQuestionReport
+
+    try:
+        qr = StockQuestionReport.objects.get(id=report_id)
+        qr.delete()
+        return JsonResponse({'success': True})
+    except StockQuestionReport.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '질문리포트를 찾을 수 없습니다.'})
+
+
+@require_POST
+def stock_question_report_update(request, report_id):
+    """종목 질문리포트 수정 API"""
+    from .models import StockQuestionReport
+
+    question = request.POST.get('question', '').strip()
+    report = request.POST.get('report', '')
+
+    if not question:
+        return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
+
+    try:
+        qr = StockQuestionReport.objects.get(id=report_id)
+        qr.question = question
+        qr.report = report
+        qr.save()
+        return JsonResponse({'success': True})
+    except StockQuestionReport.DoesNotExist:
         return JsonResponse({'success': False, 'error': '질문리포트를 찾을 수 없습니다.'})
 
 
