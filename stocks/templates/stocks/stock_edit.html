@@ -1107,7 +1107,7 @@ if (btnSaveNewsLink) {
             formData.append('stock_code', stockCode);
             formData.append('link', link);
 
-            const response = await fetch('/api/news/save/', {
+            const response = await fetch('/api/news/save-by-link/', {
                 method: 'POST',
                 headers: { 'X-CSRFToken': '{{ csrf_token }}' },
                 body: formData
@@ -1120,7 +1120,6 @@ if (btnSaveNewsLink) {
                 savedNewsLinks.add(data.link);
                 addNewsToList(data);
                 newsLinkInput.value = '';
-                alert('저장되었습니다.');
             }
         } catch (err) {
             alert('오류: ' + err.message);
