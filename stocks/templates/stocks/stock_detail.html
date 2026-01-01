@@ -34,347 +34,837 @@
     </div>
 </div>
 
-<!-- 테마 / 업종 정보 -->
-<table class="table table-borderless mb-3" style="width: auto;">
-    {% if stock.themes.all %}
-    <tr>
-        <td class="text-muted py-1 pe-3" style="white-space: nowrap; vertical-align: top;">테마</td>
-        <td class="py-1">
-            {% regroup stock.themes.all by category as theme_groups %}
-            {% for group in theme_groups %}
-            <div class="d-flex align-items-center flex-wrap mb-1">
-                <span class="badge bg-primary me-2">{{ group.grouper.name }}</span>
-                {% for theme in group.list %}
-                <span class="badge border border-primary text-primary me-1" style="background: transparent;">{{ theme.name }}</span>
-                {% endfor %}
-            </div>
-            {% endfor %}
-        </td>
-    </tr>
-    {% endif %}
-    {% if sectors %}
-    <tr>
-        <td class="text-muted py-1 pe-3" style="white-space: nowrap; vertical-align: top;">업종</td>
-        <td class="py-1">
-            {% for s in sectors %}
-            <span class="badge border border-secondary text-secondary me-1" style="background: transparent;">{{ s.name }}</span>
-            {% endfor %}
-        </td>
-    </tr>
-    {% endif %}
-    {% if stock.custom_sectors.all %}
-    <tr>
-        <td class="text-muted py-1 pe-3" style="white-space: nowrap; vertical-align: top;">섹터</td>
-        <td class="py-1">
-            {% for sector in stock.custom_sectors.all %}
-            <a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success me-1 text-decoration-none">{{ sector.name }}</a>
-            {% endfor %}
-        </td>
-    </tr>
-    {% endif %}
-</table>
+<!-- 메인 탭 -->
+<ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-content" type="button" role="tab">기본정보</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="supply-tab" data-bs-toggle="tab" data-bs-target="#supply-content" type="button" role="tab">수급</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="shortsell-tab" data-bs-toggle="tab" data-bs-target="#shortsell-content" type="button" role="tab">공매도</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="disclosure-tab" data-bs-toggle="tab" data-bs-target="#disclosure-content" type="button" role="tab">공시</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab">리포트</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="telegram-tab" data-bs-toggle="tab" data-bs-target="#telegram-content" type="button" role="tab">텔레그램</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="news-tab" data-bs-toggle="tab" data-bs-target="#news-content" type="button" role="tab">뉴스</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="nodaji-tab" data-bs-toggle="tab" data-bs-target="#nodaji-content" type="button" role="tab">노다지</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="youtube-tab" data-bs-toggle="tab" data-bs-target="#youtube-content" type="button" role="tab">유튜브</button>
+    </li>
+</ul>
 
-<!-- 가격 정보 카드 -->
-<div class="card mb-3">
-    <div class="card-body">
-        <div class="row">
-            <div class="col-6 col-md-3">
-                <small class="text-muted">현재가</small>
-                <div class="fs-4 fw-bold" id="currentPrice">
-                    {% if stock.current_price %}
-                        {{ stock.current_price|intcomma }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <small class="text-muted">등락율</small>
-                <div class="fs-4 fw-bold {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}" id="changeRate">
-                    {% if stock.change_rate %}
-                        {% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%
-                    {% else %}
-                        -
-                    {% endif %}
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <small class="text-muted">전일대비</small>
-                <div class="{% if stock.price_change > 0 %}text-up{% elif stock.price_change < 0 %}text-down{% endif %}" id="priceChange">
-                    {% if stock.price_change %}
-                        {% if stock.price_change > 0 %}+{% endif %}{{ stock.price_change|intcomma }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <small class="text-muted">거래량</small>
-                <div id="volume">
-                    {% if stock.volume %}
-                        {{ stock.volume|intcomma }}
-                    {% else %}
-                        -
-                    {% endif %}
+<div class="tab-content" id="mainTabContent">
+    <!-- 기본정보 탭 -->
+    <div class="tab-pane fade show active" id="info-content" role="tabpanel">
+        <!-- 테마 / 업종 정보 -->
+        <table class="table table-borderless mb-3" style="width: auto;">
+            {% if stock.themes.all %}
+            <tr>
+                <td class="text-muted py-1 pe-3" style="white-space: nowrap; vertical-align: top;">테마</td>
+                <td class="py-1">
+                    {% regroup stock.themes.all by category as theme_groups %}
+                    {% for group in theme_groups %}
+                    <div class="d-flex align-items-center flex-wrap mb-1">
+                        <span class="badge bg-primary me-2">{{ group.grouper.name }}</span>
+                        {% for theme in group.list %}
+                        <span class="badge border border-primary text-primary me-1" style="background: transparent;">{{ theme.name }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endif %}
+            {% if sectors %}
+            <tr>
+                <td class="text-muted py-1 pe-3" style="white-space: nowrap; vertical-align: top;">업종</td>
+                <td class="py-1">
+                    {% for s in sectors %}
+                    <span class="badge border border-secondary text-secondary me-1" style="background: transparent;">{{ s.name }}</span>
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endif %}
+            {% if stock.custom_sectors.all %}
+            <tr>
+                <td class="text-muted py-1 pe-3" style="white-space: nowrap; vertical-align: top;">섹터</td>
+                <td class="py-1">
+                    {% for sector in stock.custom_sectors.all %}
+                    <a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success me-1 text-decoration-none">{{ sector.name }}</a>
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endif %}
+        </table>
+
+        <!-- 가격 정보 카드 -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6 col-md-3">
+                        <small class="text-muted">현재가</small>
+                        <div class="fs-4 fw-bold" id="currentPrice">
+                            {% if stock.current_price %}
+                                {{ stock.current_price|intcomma }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <small class="text-muted">등락율</small>
+                        <div class="fs-4 fw-bold {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}" id="changeRate">
+                            {% if stock.change_rate %}
+                                {% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <small class="text-muted">전일대비</small>
+                        <div class="{% if stock.price_change > 0 %}text-up{% elif stock.price_change < 0 %}text-down{% endif %}" id="priceChange">
+                            {% if stock.price_change %}
+                                {% if stock.price_change > 0 %}+{% endif %}{{ stock.price_change|intcomma }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <small class="text-muted">거래량</small>
+                        <div id="volume">
+                            {% if stock.volume %}
+                                {{ stock.volume|intcomma }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-<!-- 인사이트 (투자포인트/리스크/일정 통합) -->
-{% if stock.insight_summary_html or stock.insight_report_html %}
-<div class="card mb-3">
-    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-        <strong>인사이트</strong>
-        {% if stock.insight_updated_at %}<small class="text-muted">update: {{ stock.insight_updated_at|date:"Y-m-d" }}</small>{% endif %}
-    </div>
-    <div class="card-body p-0">
-        <!-- 탭 (둘 다 있을 때만 표시) -->
-        {% if stock.insight_summary_html and stock.insight_report_html %}
-        <ul class="nav nav-tabs nav-tabs-sm px-3 pt-2" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="insight-summary-tab" data-bs-toggle="tab" data-bs-target="#insight-summary-panel" type="button" role="tab">요약</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="insight-report-tab" data-bs-toggle="tab" data-bs-target="#insight-report-panel" type="button" role="tab">리포트</button>
-            </li>
-        </ul>
-        <div class="tab-content">
-            <div class="tab-pane fade show active" id="insight-summary-panel" role="tabpanel">
+        <!-- 인사이트 (투자포인트/리스크/일정 통합) -->
+        {% if stock.insight_summary_html or stock.insight_report_html %}
+        <div class="card mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>인사이트</strong>
+                {% if stock.insight_updated_at %}<small class="text-muted">update: {{ stock.insight_updated_at|date:"Y-m-d" }}</small>{% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if stock.insight_summary_html and stock.insight_report_html %}
+                <ul class="nav nav-tabs nav-tabs-sm px-3 pt-2" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="insight-summary-tab" data-bs-toggle="tab" data-bs-target="#insight-summary-panel" type="button" role="tab">요약</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="insight-report-tab" data-bs-toggle="tab" data-bs-target="#insight-report-panel" type="button" role="tab">리포트</button>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="insight-summary-panel" role="tabpanel">
+                        <iframe src="{% url 'stocks:stock_insight_summary_html' stock.code %}" style="width: 100%; height: 500px; border: none;"></iframe>
+                    </div>
+                    <div class="tab-pane fade" id="insight-report-panel" role="tabpanel">
+                        <iframe src="{% url 'stocks:stock_insight_report_html' stock.code %}" style="width: 100%; height: 600px; border: none;"></iframe>
+                    </div>
+                </div>
+                {% elif stock.insight_summary_html %}
                 <iframe src="{% url 'stocks:stock_insight_summary_html' stock.code %}" style="width: 100%; height: 500px; border: none;"></iframe>
-            </div>
-            <div class="tab-pane fade" id="insight-report-panel" role="tabpanel">
+                {% else %}
                 <iframe src="{% url 'stocks:stock_insight_report_html' stock.code %}" style="width: 100%; height: 600px; border: none;"></iframe>
+                {% endif %}
             </div>
         </div>
-        {% elif stock.insight_summary_html %}
-        <!-- 요약만 있을 때 -->
-        <iframe src="{% url 'stocks:stock_insight_summary_html' stock.code %}" style="width: 100%; height: 500px; border: none;"></iframe>
-        {% else %}
-        <!-- 리포트만 있을 때 -->
-        <iframe src="{% url 'stocks:stock_insight_report_html' stock.code %}" style="width: 100%; height: 600px; border: none;"></iframe>
         {% endif %}
-    </div>
-</div>
-{% endif %}
 
-<!-- 메모 -->
-<div class="card mb-3">
-    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-        <strong>메모</strong>
-        {% if stock.memo_updated_at %}<small class="text-muted">update: {{ stock.memo_updated_at|date:"Y-m-d" }}</small>{% endif %}
-    </div>
-    <div class="card-body">
-        <div class="content markdown-content" id="memoMarkdown"></div>
-        <script type="text/plain" id="memoRaw">{{ stock.memo|default:"-"|safe }}</script>
-    </div>
-</div>
-
-<!-- 질문리포트 -->
-{% if question_reports %}
-<div class="card mb-3">
-    <div class="card-header py-2">
-        <strong>질문리포트</strong>
-        <span class="badge bg-primary ms-1">{{ question_reports|length }}</span>
-    </div>
-    <div class="card-body p-0">
-        <div class="list-group list-group-flush">
-            {% for qr in question_reports %}
-            <a href="#" class="list-group-item list-group-item-action py-2 btn-view-qr" data-qr-id="{{ qr.id }}">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-truncate" style="max-width: 90%;">{{ qr.question|truncatechars:80 }}</span>
-                    <small class="text-muted">{{ qr.created_at|date:"m.d" }}</small>
-                </div>
-            </a>
-            {% endfor %}
-        </div>
-    </div>
-</div>
-<!-- 질문리포트 데이터 (숨김) -->
-{% for qr in question_reports %}
-<textarea id="qr-question-{{ qr.id }}" style="display:none;">{{ qr.question }}</textarea>
-<textarea id="qr-report-{{ qr.id }}" style="display:none;">{{ qr.report }}</textarea>
-{% endfor %}
-{% endif %}
-
-<div class="row">
-    <!-- 투자 지표 -->
-    <div class="col-12 col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header py-2">
-                <strong>투자 지표</strong>
+        <!-- 메모 -->
+        <div class="card mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>메모</strong>
+                {% if stock.memo_updated_at %}<small class="text-muted">update: {{ stock.memo_updated_at|date:"Y-m-d" }}</small>{% endif %}
             </div>
-            <div class="card-body py-2">
-                <table class="table table-sm mb-0">
-                    <tr>
-                        <td class="text-muted">PER</td>
-                        <td class="text-end">{% if stock.per %}{{ stock.per }}배{% else %}-{% endif %}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">PBR</td>
-                        <td class="text-end">{% if stock.pbr %}{{ stock.pbr }}배{% else %}-{% endif %}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">ROE</td>
-                        <td class="text-end">{% if stock.roe %}{{ stock.roe }}%{% else %}-{% endif %}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">EPS</td>
-                        <td class="text-end">{% if stock.eps %}{{ stock.eps|intcomma }}원{% else %}-{% endif %}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">BPS</td>
-                        <td class="text-end">{% if stock.bps %}{{ stock.bps|intcomma }}원{% else %}-{% endif %}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">EV</td>
-                        <td class="text-end">{% if stock.ev %}{{ stock.ev }}{% else %}-{% endif %}</td>
-                    </tr>
-                </table>
+            <div class="card-body">
+                <div class="content markdown-content" id="memoMarkdown"></div>
+                <script type="text/plain" id="memoRaw">{{ stock.memo|default:"-"|safe }}</script>
             </div>
         </div>
-    </div>
 
-    <!-- 시가총액 정보 -->
-    <div class="col-12 col-md-6 mb-3">
-        <div class="card h-100">
+        <!-- 질문리포트 -->
+        {% if question_reports %}
+        <div class="card mb-3">
             <div class="card-header py-2">
-                <strong>시가총액</strong>
+                <strong>질문리포트</strong>
+                <span class="badge bg-primary ms-1">{{ question_reports|length }}</span>
             </div>
-            <div class="card-body py-2">
-                <table class="table table-sm mb-0">
-                    <tr>
-                        <td class="text-muted">시가총액</td>
-                        <td class="text-end">{% if stock.market_cap %}{{ stock.market_cap|intcomma }}억{% else %}-{% endif %}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">유통비율</td>
-                        <td class="text-end">{% if stock.listed_ratio %}{{ stock.listed_ratio }}%{% else %}-{% endif %}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">신용비율</td>
-                        <td class="text-end">{% if stock.credit_ratio %}{{ stock.credit_ratio }}%{% else %}-{% endif %}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">외인소진률</td>
-                        <td class="text-end">{% if stock.foreign_exhaustion %}{{ stock.foreign_exhaustion }}%{% else %}-{% endif %}</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 실적 차트 -->
-<div class="row">
-    <div class="col-12 col-md-4 mb-3">
-        <div class="card h-100">
-            <div class="card-header py-2">
-                <strong>연간 실적</strong>
-            </div>
-            <div class="card-body py-2">
-                <div style="height: 400px;">
-                    <canvas id="annualChart"></canvas>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for qr in question_reports %}
+                    <a href="#" class="list-group-item list-group-item-action py-2 btn-view-qr" data-qr-id="{{ qr.id }}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-truncate" style="max-width: 90%;">{{ qr.question|truncatechars:80 }}</span>
+                            <small class="text-muted">{{ qr.created_at|date:"m.d" }}</small>
+                        </div>
+                    </a>
+                    {% endfor %}
                 </div>
             </div>
         </div>
-    </div>
-    <div class="col-12 col-md-8 mb-3">
-        <div class="card h-100">
-            <div class="card-header py-2">
-                <strong>분기 실적</strong>
+        {% for qr in question_reports %}
+        <textarea id="qr-question-{{ qr.id }}" style="display:none;">{{ qr.question }}</textarea>
+        <textarea id="qr-report-{{ qr.id }}" style="display:none;">{{ qr.report }}</textarea>
+        {% endfor %}
+        {% endif %}
+
+        <div class="row">
+            <!-- 투자 지표 -->
+            <div class="col-12 col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header py-2">
+                        <strong>투자 지표</strong>
+                    </div>
+                    <div class="card-body py-2">
+                        <table class="table table-sm mb-0">
+                            <tr>
+                                <td class="text-muted">PER</td>
+                                <td class="text-end">{% if stock.per %}{{ stock.per }}배{% else %}-{% endif %}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">PBR</td>
+                                <td class="text-end">{% if stock.pbr %}{{ stock.pbr }}배{% else %}-{% endif %}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">ROE</td>
+                                <td class="text-end">{% if stock.roe %}{{ stock.roe }}%{% else %}-{% endif %}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">EPS</td>
+                                <td class="text-end">{% if stock.eps %}{{ stock.eps|intcomma }}원{% else %}-{% endif %}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">BPS</td>
+                                <td class="text-end">{% if stock.bps %}{{ stock.bps|intcomma }}원{% else %}-{% endif %}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">EV</td>
+                                <td class="text-end">{% if stock.ev %}{{ stock.ev }}{% else %}-{% endif %}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="card-body py-2">
-                <div style="height: 400px;">
-                    <canvas id="quarterlyChart"></canvas>
+
+            <!-- 시가총액 정보 -->
+            <div class="col-12 col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header py-2">
+                        <strong>시가총액</strong>
+                    </div>
+                    <div class="card-body py-2">
+                        <table class="table table-sm mb-0">
+                            <tr>
+                                <td class="text-muted">시가총액</td>
+                                <td class="text-end">{% if stock.market_cap %}{{ stock.market_cap|intcomma }}억{% else %}-{% endif %}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">유통비율</td>
+                                <td class="text-end">{% if stock.listed_ratio %}{{ stock.listed_ratio }}%{% else %}-{% endif %}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">신용비율</td>
+                                <td class="text-end">{% if stock.credit_ratio %}{{ stock.credit_ratio }}%{% else %}-{% endif %}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">외인소진률</td>
+                                <td class="text-end">{% if stock.foreign_exhaustion %}{{ stock.foreign_exhaustion }}%{% else %}-{% endif %}</td>
+                            </tr>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-<!-- 일봉 차트 -->
-<div class="card mb-3">
-    <div class="card-header py-2 d-flex align-items-center justify-content-between">
-        <div>
-            <strong>일봉</strong>
-            <small class="text-muted ms-2">최근 240일</small>
+        <!-- 실적 차트 -->
+        <div class="row">
+            <div class="col-12 col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-header py-2">
+                        <strong>연간 실적</strong>
+                    </div>
+                    <div class="card-body py-2">
+                        <div style="height: 400px;">
+                            <canvas id="annualChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-8 mb-3">
+                <div class="card h-100">
+                    <div class="card-header py-2">
+                        <strong>분기 실적</strong>
+                    </div>
+                    <div class="card-body py-2">
+                        <div style="height: 400px;">
+                            <canvas id="quarterlyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="d-flex gap-1">
-            <span class="badge ma-toggle active" data-ma="10" style="background-color: #ff9800; cursor: pointer;">10</span>
-            <span class="badge ma-toggle active" data-ma="20" style="background-color: #2196f3; cursor: pointer;">20</span>
-            <span class="badge ma-toggle active" data-ma="60" style="background-color: #4caf50; cursor: pointer;">60</span>
-            <span class="badge ma-toggle active" data-ma="120" style="background-color: #9c27b0; cursor: pointer;">120</span>
+
+        <!-- 일봉 차트 -->
+        <div class="card mb-3">
+            <div class="card-header py-2 d-flex align-items-center justify-content-between">
+                <div>
+                    <strong>일봉</strong>
+                    <small class="text-muted ms-2">최근 240일</small>
+                </div>
+                <div class="d-flex gap-1">
+                    <span class="badge ma-toggle active" data-ma="10" style="background-color: #ff9800; cursor: pointer;">10</span>
+                    <span class="badge ma-toggle active" data-ma="20" style="background-color: #2196f3; cursor: pointer;">20</span>
+                    <span class="badge ma-toggle active" data-ma="60" style="background-color: #4caf50; cursor: pointer;">60</span>
+                    <span class="badge ma-toggle active" data-ma="120" style="background-color: #9c27b0; cursor: pointer;">120</span>
+                </div>
+            </div>
+            <div class="card-body py-2">
+                <div id="dailyChart" style="height: 400px;"></div>
+            </div>
+        </div>
+
+        <!-- 주봉 차트 -->
+        <div class="card mb-3">
+            <div class="card-header py-2">
+                <strong>주봉</strong>
+                <small class="text-muted ms-2">최근 2년</small>
+            </div>
+            <div class="card-body py-2">
+                <div id="weeklyChart" style="height: 400px;"></div>
+            </div>
+        </div>
+
+        <!-- 월봉 차트 -->
+        <div class="card mb-3">
+            <div class="card-header py-2">
+                <strong>월봉</strong>
+                <small class="text-muted ms-2">최근 6년</small>
+            </div>
+            <div class="card-body py-2">
+                <div id="monthlyChart" style="height: 400px;"></div>
+            </div>
+        </div>
+
+        <!-- 기업분석 -->
+        {% if stock.analysis_text or analysis_html_exists %}
+        <div class="card mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>기업분석</strong>
+                {% if stock.analysis_updated_at %}<small class="text-muted">update: {{ stock.analysis_updated_at|date:"Y-m-d" }}</small>{% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if stock.analysis_text and analysis_html_exists %}
+                <ul class="nav nav-tabs nav-tabs-sm px-3 pt-2" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="analysis-summary-view-tab" data-bs-toggle="tab" data-bs-target="#analysis-summary-view-panel" type="button" role="tab">요약</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="analysis-report-view-tab" data-bs-toggle="tab" data-bs-target="#analysis-report-view-panel" type="button" role="tab">리포트</button>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="analysis-summary-view-panel" role="tabpanel">
+                        <iframe src="{% url 'stocks:stock_analysis_summary_html' stock.code %}" style="width: 100%; height: 500px; border: none;"></iframe>
+                    </div>
+                    <div class="tab-pane fade" id="analysis-report-view-panel" role="tabpanel">
+                        <iframe src="{% url 'stocks:stock_analysis_html' stock.code %}" style="width: 100%; height: 600px; border: none;"></iframe>
+                    </div>
+                </div>
+                {% elif stock.analysis_text %}
+                <iframe src="{% url 'stocks:stock_analysis_summary_html' stock.code %}" style="width: 100%; height: 500px; border: none;"></iframe>
+                {% else %}
+                <iframe src="{% url 'stocks:stock_analysis_html' stock.code %}" style="width: 100%; height: 600px; border: none;"></iframe>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 업데이트 시간 -->
+        <div class="text-muted text-end small">
+            업데이트: {{ stock.updated_at|date:"Y-m-d H:i" }}
         </div>
     </div>
-    <div class="card-body py-2">
-        <div id="dailyChart" style="height: 400px;"></div>
-    </div>
-</div>
 
-<!-- 주봉 차트 -->
-<div class="card mb-3">
-    <div class="card-header py-2">
-        <strong>주봉</strong>
-        <small class="text-muted ms-2">최근 2년</small>
-    </div>
-    <div class="card-body py-2">
-        <div id="weeklyChart" style="height: 400px;"></div>
-    </div>
-</div>
-
-<!-- 월봉 차트 -->
-<div class="card mb-3">
-    <div class="card-header py-2">
-        <strong>월봉</strong>
-        <small class="text-muted ms-2">최근 6년</small>
-    </div>
-    <div class="card-body py-2">
-        <div id="monthlyChart" style="height: 400px;"></div>
-    </div>
-</div>
-
-<!-- 기업분석 -->
-{% if stock.analysis_text or analysis_html_exists %}
-<div class="card mb-3">
-    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-        <strong>기업분석</strong>
-        {% if stock.analysis_updated_at %}<small class="text-muted">update: {{ stock.analysis_updated_at|date:"Y-m-d" }}</small>{% endif %}
-    </div>
-    <div class="card-body p-0">
-        <!-- 탭 (둘 다 있을 때만 표시) -->
-        {% if stock.analysis_text and analysis_html_exists %}
-        <ul class="nav nav-tabs nav-tabs-sm px-3 pt-2" role="tablist">
+    <!-- 수급 탭 -->
+    <div class="tab-pane fade" id="supply-content" role="tabpanel">
+        <!-- 다음/키움 하위 탭 -->
+        <ul class="nav nav-tabs nav-tabs-sm mb-3" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="analysis-summary-view-tab" data-bs-toggle="tab" data-bs-target="#analysis-summary-view-panel" type="button" role="tab">요약</button>
+                <button class="nav-link active py-1 px-3" id="supply-daum-tab" data-bs-toggle="tab" data-bs-target="#supply-daum" type="button" role="tab">다음</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="analysis-report-view-tab" data-bs-toggle="tab" data-bs-target="#analysis-report-view-panel" type="button" role="tab">리포트</button>
+                <button class="nav-link py-1 px-3" id="supply-kiwoom-tab" data-bs-toggle="tab" data-bs-target="#supply-kiwoom" type="button" role="tab">키움</button>
             </li>
         </ul>
+
         <div class="tab-content">
-            <div class="tab-pane fade show active" id="analysis-summary-view-panel" role="tabpanel">
-                <iframe src="{% url 'stocks:stock_analysis_summary_html' stock.code %}" style="width: 100%; height: 500px; border: none;"></iframe>
+            <!-- 다음 탭 -->
+            <div class="tab-pane fade show active" id="supply-daum" role="tabpanel">
+                {% if investor_trends_daum %}
+                <div class="card mb-3">
+                    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+                        <strong>누적 순매수</strong>
+                        <div class="d-flex gap-1">
+                            <span class="badge text-bg-success" style="font-size: 0.65rem;">외국인</span>
+                            <span class="badge text-bg-danger" style="font-size: 0.65rem;">기관</span>
+                            <span class="badge text-bg-primary" style="font-size: 0.65rem;">주가</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-2">
+                        <div style="height: 280px;">
+                            <canvas id="investorTrendChartDaum"></canvas>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="card">
+                    <div class="card-header py-2">
+                        <strong>투자자별 매매동향</strong>
+                        <small class="text-muted ms-2">최근 60일</small>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if investor_trends_daum %}
+                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr class="small">
+                                        <th class="ps-3">일자</th>
+                                        <th class="text-end">외국인</th>
+                                        <th class="text-end">기관</th>
+                                        <th class="text-end">등락률</th>
+                                        <th class="text-end pe-3">거래량</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for t in investor_trends_daum %}
+                                    <tr class="small">
+                                        <td class="ps-3 text-muted">{{ t.date|date:"m.d" }}</td>
+                                        <td class="text-end {% if t.daum_foreign > 0 %}text-up{% elif t.daum_foreign < 0 %}text-down{% endif %}">{{ t.daum_foreign|intcomma }}</td>
+                                        <td class="text-end {% if t.daum_institution > 0 %}text-up{% elif t.daum_institution < 0 %}text-down{% endif %}">{{ t.daum_institution|intcomma }}</td>
+                                        <td class="text-end {% if t.change_rate > 0 %}text-up{% elif t.change_rate < 0 %}text-down{% endif %}">{% if t.change_rate is not None %}{{ t.change_rate }}%{% else %}-{% endif %}</td>
+                                        <td class="text-end pe-3">{% if t.trading_volume %}{{ t.trading_volume|intcomma }}{% else %}-{% endif %}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted py-4">
+                            수급 데이터가 없습니다.<br>
+                            <small class="text-muted">python manage.py save_investor_daum --code {{ stock.code }} --mode all</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-            <div class="tab-pane fade" id="analysis-report-view-panel" role="tabpanel">
-                <iframe src="{% url 'stocks:stock_analysis_html' stock.code %}" style="width: 100%; height: 600px; border: none;"></iframe>
+
+            <!-- 키움 탭 -->
+            <div class="tab-pane fade" id="supply-kiwoom" role="tabpanel">
+                {% if investor_trends %}
+                <div class="card mb-3">
+                    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+                        <strong>누적 순매수</strong>
+                        <div class="d-flex gap-1">
+                            <span class="badge text-bg-warning text-dark" style="font-size: 0.65rem;">개인</span>
+                            <span class="badge text-bg-success" style="font-size: 0.65rem;">외국인</span>
+                            <span class="badge text-bg-danger" style="font-size: 0.65rem;">기관</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-2">
+                        <div style="height: 280px;">
+                            <canvas id="investorTrendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="card">
+                    <div class="card-header py-2">
+                        <strong>투자자별 매매동향</strong>
+                        <small class="text-muted ms-2">최근 60일</small>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if investor_trends %}
+                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr class="small">
+                                        <th class="ps-3">일자</th>
+                                        <th class="text-end">개인</th>
+                                        <th class="text-end">외국인</th>
+                                        <th class="text-end">기관</th>
+                                        <th class="text-end">금융투자</th>
+                                        <th class="text-end">보험</th>
+                                        <th class="text-end">투신</th>
+                                        <th class="text-end">은행</th>
+                                        <th class="text-end">연기금</th>
+                                        <th class="text-end">사모</th>
+                                        <th class="text-end pe-3">기타법인</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for t in investor_trends %}
+                                    <tr class="small">
+                                        <td class="ps-3 text-muted">{{ t.date|date:"m.d" }}</td>
+                                        <td class="text-end {% if t.individual > 0 %}text-up{% elif t.individual < 0 %}text-down{% endif %}">{{ t.individual|intcomma }}</td>
+                                        <td class="text-end {% if t.foreign > 0 %}text-up{% elif t.foreign < 0 %}text-down{% endif %}">{{ t.foreign|intcomma }}</td>
+                                        <td class="text-end {% if t.institution > 0 %}text-up{% elif t.institution < 0 %}text-down{% endif %}">{{ t.institution|intcomma }}</td>
+                                        <td class="text-end {% if t.financial > 0 %}text-up{% elif t.financial < 0 %}text-down{% endif %}">{{ t.financial|intcomma }}</td>
+                                        <td class="text-end {% if t.insurance > 0 %}text-up{% elif t.insurance < 0 %}text-down{% endif %}">{{ t.insurance|intcomma }}</td>
+                                        <td class="text-end {% if t.investment_trust > 0 %}text-up{% elif t.investment_trust < 0 %}text-down{% endif %}">{{ t.investment_trust|intcomma }}</td>
+                                        <td class="text-end {% if t.bank > 0 %}text-up{% elif t.bank < 0 %}text-down{% endif %}">{{ t.bank|intcomma }}</td>
+                                        <td class="text-end {% if t.pension_fund > 0 %}text-up{% elif t.pension_fund < 0 %}text-down{% endif %}">{{ t.pension_fund|intcomma }}</td>
+                                        <td class="text-end {% if t.private_fund > 0 %}text-up{% elif t.private_fund < 0 %}text-down{% endif %}">{{ t.private_fund|intcomma }}</td>
+                                        <td class="text-end pe-3 {% if t.other_corporation > 0 %}text-up{% elif t.other_corporation < 0 %}text-down{% endif %}">{{ t.other_corporation|intcomma }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted py-4">
+                            수급 데이터가 없습니다.<br>
+                            <small class="text-muted">python manage.py save_investor_trend --code {{ stock.code }} --mode all</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
-        {% elif stock.analysis_text %}
-        <!-- 요약만 있을 때 -->
-        <iframe src="{% url 'stocks:stock_analysis_summary_html' stock.code %}" style="width: 100%; height: 500px; border: none;"></iframe>
-        {% else %}
-        <!-- 리포트만 있을 때 -->
-        <iframe src="{% url 'stocks:stock_analysis_html' stock.code %}" style="width: 100%; height: 600px; border: none;"></iframe>
-        {% endif %}
     </div>
-</div>
-{% endif %}
 
-<!-- 업데이트 시간 -->
-<div class="text-muted text-end small">
-    업데이트: {{ stock.updated_at|date:"Y-m-d H:i" }}
+    <!-- 공매도 탭 -->
+    <div class="tab-pane fade" id="shortsell-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2">
+                <strong>공매도 현황</strong>
+                <small class="text-muted ms-2">최근 60일</small>
+            </div>
+            <div class="card-body p-0">
+                {% if short_sellings %}
+                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr class="small">
+                                <th class="ps-3">일자</th>
+                                <th class="text-end">거래량</th>
+                                <th class="text-end">공매도량</th>
+                                <th class="text-end">비중(%)</th>
+                                <th class="text-end">공매도대금</th>
+                                <th class="text-end pe-3">평균가</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in short_sellings %}
+                            <tr class="small">
+                                <td class="ps-3 text-muted">{{ s.date|date:"m.d" }}</td>
+                                <td class="text-end">{{ s.trading_volume|intcomma }}</td>
+                                <td class="text-end">{{ s.short_volume|intcomma }}</td>
+                                <td class="text-end {% if s.trading_weight >= 10 %}text-danger fw-bold{% elif s.trading_weight >= 5 %}text-warning{% endif %}">{{ s.trading_weight }}%</td>
+                                <td class="text-end">{{ s.short_trading_value|intcomma }}</td>
+                                <td class="text-end pe-3">{{ s.short_average_price|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    공매도 데이터가 없습니다.<br>
+                    <small class="text-muted">python manage.py save_short_selling --code {{ stock.code }} --mode all</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 공시 탭 -->
+    <div class="tab-pane fade" id="disclosure-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2">
+                <strong>DART 공시</strong>
+                <small class="text-muted ms-2">전자공시시스템</small>
+            </div>
+            <div class="card-body">
+                {% if gongsi_list %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3" style="width:100px;">접수일</th>
+                                <th>보고서명</th>
+                                <th style="width:100px;" class="d-none d-md-table-cell">제출인</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for gongsi in gongsi_list %}
+                            <tr>
+                                <td class="text-muted small ps-3">{{ gongsi.date|date:"Y-m-d"|default:"-" }}</td>
+                                <td><a href="{{ gongsi.link }}" target="_blank" class="text-decoration-none">{{ gongsi.title }}</a></td>
+                                <td class="small d-none d-md-table-cell">{{ gongsi.submitter }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-muted">공시가 없습니다. <code>python manage.py save_gongsi_stock --code {{ stock.code }}</code> 실행</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 리포트 탭 -->
+    <div class="tab-pane fade" id="report-content" role="tabpanel">
+        {% if reports %}
+        <div class="card mb-3">
+            <div class="card-header py-2">
+                <strong>주가 vs 목표가</strong>
+            </div>
+            <div class="card-body">
+                <canvas id="priceTargetChart" style="height: 250px;"></canvas>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header py-2">
+                <strong>애널리스트 리포트</strong>
+                <small class="text-muted ms-2">{{ reports|length }}개{% if total_reports > 20 %} / {{ total_reports }}개{% endif %}</small>
+            </div>
+            <div class="card-body {% if reports %}p-0{% endif %}">
+                {% if reports %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0" id="reportTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3" style="width: 80px;">일자</th>
+                                <th>제목</th>
+                                <th style="width: 100px;" class="d-none d-md-table-cell">애널리스트</th>
+                                <th style="width: 90px;" class="d-none d-md-table-cell">증권사</th>
+                                <th style="width: 90px;" class="text-end">목표가</th>
+                                <th style="width: 70px;" class="text-end pe-3">괴리율</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportTableBody">
+                            {% for report in reports %}
+                            <tr>
+                                <td class="text-muted small ps-3">{{ report.date|date:"y/m/d" }}</td>
+                                <td class="text-truncate" style="max-width: 250px;" title="{{ report.title }}">{{ report.title }}</td>
+                                <td class="small d-none d-md-table-cell">{{ report.author }}</td>
+                                <td class="small d-none d-md-table-cell">{{ report.provider }}</td>
+                                <td class="text-end">
+                                    {% if report.target_price %}
+                                    <strong class="text-danger">{{ report.target_price|intcomma }}원</strong>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-3">
+                                    {% if report.gap_rate != None %}
+                                    <span class="{% if report.gap_rate > 0 %}text-danger{% elif report.gap_rate < 0 %}text-primary{% endif %}">
+                                        {% if report.gap_rate > 0 %}+{% endif %}{{ report.gap_rate }}%
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-muted p-3">리포트가 없습니다. <code>python manage.py save_fnguide_report --code {{ stock.code }}</code> 실행</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 텔레그램 탭 -->
+    <div class="tab-pane fade" id="telegram-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>저장된 메시지</strong>
+                <span class="badge bg-primary">{{ telegram_messages|length }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for msg in telegram_messages %}
+                    <div class="list-group-item py-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="badge bg-secondary">{{ msg.channel_name|default:msg.channel }}</span>
+                                    <small class="text-muted">{{ msg.date }} {{ msg.time }}</small>
+                                </div>
+                                <div class="small text-truncate-2" style="white-space: pre-wrap; max-height: 3em; overflow: hidden;">{{ msg.text|truncatechars:150 }}</div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary ms-2 btn-view-telegram"
+                                data-channel="{{ msg.channel_name|default:msg.channel }}"
+                                data-date="{{ msg.date }} {{ msg.time }}"
+                                data-text="{{ msg.text|escapejs }}">전체보기</button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-3">저장된 메시지가 없습니다.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 뉴스 탭 -->
+    <div class="tab-pane fade" id="news-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>저장된 뉴스</strong>
+                <span class="badge bg-primary">{{ news_articles|length }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for news in news_articles %}
+                    <div class="list-group-item py-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <a href="{{ news.link }}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">{{ news.title }}</a>
+                                <small class="text-muted">{{ news.source }}</small>
+                                <small class="text-muted ms-2">{{ news.published|slice:":10" }}</small>
+                            </div>
+                            <a href="{% url 'stocks:news_summary' news.id %}" class="text-decoration-none ms-2" title="요약">
+                                {% if news.summary %}
+                                <span class="badge bg-success">요약</span>
+                                {% else %}
+                                <span class="badge bg-secondary">요약</span>
+                                {% endif %}
+                            </a>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-3">저장된 뉴스가 없습니다.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 노다지 탭 -->
+    <div class="tab-pane fade" id="nodaji-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2">
+                <strong>노다지 IR노트</strong>
+                <small class="text-muted ms-2">{{ nodaji_list|length }}개{% if total_nodaji > 20 %} / {{ total_nodaji }}개{% endif %}</small>
+            </div>
+            <div class="card-body {% if nodaji_list %}p-0{% endif %}">
+                {% if nodaji_list %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3" style="width:100px;">날짜</th>
+                                <th>제목</th>
+                                <th style="width:50px;" class="text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for article in nodaji_list %}
+                            <tr>
+                                <td class="text-muted small ps-3">{{ article.date|date:"y/m/d"|default:"-" }}</td>
+                                <td><a href="{{ article.link }}" target="_blank" class="text-decoration-none">{{ article.title }}</a></td>
+                                <td class="text-center">
+                                    {% if article.summary %}
+                                    <button type="button" class="btn btn-sm p-0 border-0 btn-view-nodaji-summary" data-id="{{ article.id }}" title="요약 보기">
+                                        <span class="badge bg-success">O</span>
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-muted p-3">노다지 기사가 없습니다.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 유튜브 탭 -->
+    <div class="tab-pane fade" id="youtube-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>저장된 영상</strong>
+                <span class="badge bg-primary">{{ youtube_videos|length }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for video in youtube_videos %}
+                    <div class="list-group-item d-flex gap-3 py-2">
+                        {% if video.thumbnail %}
+                        <a href="{{ video.link }}" target="_blank">
+                            <img src="{{ video.thumbnail }}" alt="" style="width:120px; height:68px; object-fit:cover; border-radius:4px;">
+                        </a>
+                        {% endif %}
+                        <div class="flex-grow-1 overflow-hidden">
+                            <a href="{{ video.link }}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">{{ video.title }}</a>
+                            <small class="text-muted">{{ video.channel }}</small>
+                            <small class="text-muted ms-2">{{ video.views }}</small>
+                            <small class="text-muted ms-2">{{ video.published }}</small>
+                        </div>
+                        <a href="{% url 'stocks:youtube_summary' video.id %}" class="text-decoration-none align-self-center" title="요약">
+                            {% if video.summary %}
+                            <span class="badge bg-success">요약</span>
+                            {% else %}
+                            <span class="badge bg-secondary">요약</span>
+                            {% endif %}
+                        </a>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-3">저장된 영상이 없습니다.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 텔레그램 메시지 전체보기 모달 -->
+<div class="modal fade" id="telegramModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <div>
+                    <span class="badge bg-secondary" id="telegramModalChannel"></span>
+                    <small class="text-muted ms-2" id="telegramModalDate"></small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="white-space: pre-wrap; max-height: 70vh; overflow-y: auto;" id="telegramModalText"></div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -383,6 +873,9 @@
 <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
+const stockName = "{{ stock.name }}";
+const stockCode = "{{ stock.code }}";
+
 // 질문리포트 클릭 시 새 창에서 리포트 보기
 document.querySelectorAll('.btn-view-qr').forEach(el => {
     el.addEventListener('click', (e) => {
@@ -424,10 +917,10 @@ document.querySelectorAll('.btn-view-qr').forEach(el => {
 
 // marked.js 옵션 설정
 marked.setOptions({
-    breaks: true,      // 줄바꿈을 <br>로 변환
-    gfm: true,         // GitHub Flavored Markdown 활성화
-    headerIds: false,  // 헤더 ID 비활성화 (불필요한 속성 방지)
-    mangle: false      // 이메일 주소 난독화 비활성화
+    breaks: true,
+    gfm: true,
+    headerIds: false,
+    mangle: false
 });
 
 // 콘텐츠 렌더링 함수 (HTML/마크다운 자동 감지, Gemini citation 제거)
@@ -436,16 +929,13 @@ function renderContent(rawId, markdownId) {
     const markdownEl = document.getElementById(markdownId);
     if (rawEl && markdownEl) {
         let content = rawEl.textContent;
-        // HTML 태그 제거 후 실제 텍스트가 있는지 확인
         const textOnly = content.replace(/<[^>]*>/g, '').trim();
         if (content && textOnly !== '-' && textOnly !== '') {
-            // Gemini citation 제거 ([cite_start], [cite: xxx] 등)
             content = content.replace(/\[cite_start\]/g, '');
             content = content.replace(/\[cite_end\]/g, '');
             content = content.replace(/\[cite:\s*[\d,\s]+\]/g, '');
             content = content.replace(/\[\/cite\]/g, '');
 
-            // HTML 태그가 포함되어 있으면 HTML로 렌더링, 아니면 마크다운으로 렌더링
             if (/<[a-z][\s\S]*>/i.test(content)) {
                 markdownEl.innerHTML = content;
             } else {
@@ -459,6 +949,16 @@ function renderContent(rawId, markdownId) {
 
 // 메모 렌더링
 renderContent('memoRaw', 'memoMarkdown');
+
+// 텔레그램 메시지 전체보기
+document.querySelectorAll('.btn-view-telegram').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.getElementById('telegramModalChannel').textContent = this.dataset.channel;
+        document.getElementById('telegramModalDate').textContent = this.dataset.date;
+        document.getElementById('telegramModalText').textContent = this.dataset.text;
+        new bootstrap.Modal(document.getElementById('telegramModal')).show();
+    });
+});
 </script>
 <style>
 /* 마크다운 콘텐츠 공통 스타일 */
@@ -909,6 +1409,161 @@ if (btnRefreshStock) btnRefreshStock.addEventListener('click', async function() 
         this.classList.remove('spin');
     }
 });
+
+// ============ 수급 누적 차트 (키움) ============
+const investorChartData = {{ investor_chart_data|safe }};
+
+if (investorChartData && investorChartData.length > 0) {
+    const ctx = document.getElementById('investorTrendChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: investorChartData.map(d => d.date),
+                datasets: [
+                    { label: '개인', data: investorChartData.map(d => d.individual), borderColor: '#ffc107', borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false },
+                    { label: '외국인', data: investorChartData.map(d => d.foreign), borderColor: '#198754', borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false },
+                    { label: '기관', data: investorChartData.map(d => d.institution), borderColor: '#dc3545', borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.raw.toLocaleString('ko-KR') }}
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { maxTicksLimit: 10 }},
+                    y: { ticks: { callback: v => Math.abs(v) >= 100000000 ? (v/100000000).toFixed(1)+'억' : Math.abs(v) >= 10000 ? (v/10000).toFixed(1)+'만' : v.toFixed(0) }, grid: { color: '#f0f0f0' }}
+                }
+            }
+        });
+    }
+}
+
+// ============ 수급 누적 차트 (다음) ============
+const investorChartDataDaum = {{ investor_chart_data_daum|safe }};
+
+if (investorChartDataDaum && investorChartDataDaum.length > 0) {
+    const ctx = document.getElementById('investorTrendChartDaum');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: investorChartDataDaum.map(d => d.date),
+                datasets: [
+                    { label: '외국인', data: investorChartDataDaum.map(d => d.foreign), borderColor: '#198754', borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false, yAxisID: 'y' },
+                    { label: '기관', data: investorChartDataDaum.map(d => d.institution), borderColor: '#dc3545', borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false, yAxisID: 'y' },
+                    { label: '주가', data: investorChartDataDaum.map(d => d.price), borderColor: 'rgba(13, 110, 253, 0.4)', borderWidth: 1.5, tension: 0.3, pointRadius: 1, fill: false, yAxisID: 'y1' }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + (ctx.raw ? ctx.raw.toLocaleString('ko-KR') : '-') }}
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { maxTicksLimit: 10 }},
+                    y: {
+                        position: 'left',
+                        ticks: { callback: v => Math.abs(v) >= 100000000 ? (v/100000000).toFixed(1)+'억' : Math.abs(v) >= 10000 ? (v/10000).toFixed(1)+'만' : v.toFixed(0) },
+                        grid: { color: '#f0f0f0' }
+                    },
+                    y1: {
+                        position: 'right',
+                        ticks: { callback: v => v ? v.toLocaleString('ko-KR') : '' },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+}
+
+// ============ 주가 vs 목표가 차트 ============
+const priceChartData = {{ price_chart_data|safe }};
+const targetChartData = {{ target_chart_data|safe }};
+const gapChartData = {{ gap_chart_data|safe }};
+let priceTargetChart = null;
+
+function initPriceTargetChart() {
+    if (priceTargetChart) return;
+    if (priceChartData.length === 0) return;
+
+    const ctx = document.getElementById('priceTargetChart');
+    if (!ctx) return;
+
+    // 날짜 라벨 추출
+    const labels = priceChartData.map(d => d.x);
+    const priceValues = priceChartData.map(d => d.y);
+    const targetValues = targetChartData.map(d => d.y);
+    const gapValues = gapChartData.map(d => d.y);
+
+    priceTargetChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: '주가',
+                    data: priceValues,
+                    borderColor: '#0d6efd',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    fill: false,
+                    yAxisID: 'y'
+                },
+                {
+                    label: '목표가',
+                    data: targetValues,
+                    borderColor: '#dc3545',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    fill: false,
+                    yAxisID: 'y'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const idx = context.dataIndex;
+                            const label = context.dataset.label;
+                            const value = context.raw;
+                            if (label === '목표가') {
+                                const gap = gapValues[idx];
+                                return `${label}: ${value.toLocaleString()}원 (괴리율: ${gap > 0 ? '+' : ''}${gap}%)`;
+                            }
+                            return `${label}: ${value.toLocaleString()}원`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: { callback: v => v.toLocaleString() }
+                },
+                x: {
+                    ticks: { maxTicksLimit: 10 }
+                }
+            }
+        }
+    });
+}
+
+// 리포트 탭 클릭 시 차트 초기화
+document.getElementById('report-tab').addEventListener('shown.bs.tab', initPriceTargetChart);
 </script>
 <style>
 #btnRefreshStock.spin {

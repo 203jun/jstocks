@@ -648,15 +648,127 @@ def stock_detail(request, code):
     html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
     analysis_html_exists = html_path.exists()
 
+    # 리포트 (최근 20개)
+    reports_queryset = Report.objects.filter(stock=stock).order_by('-date')
+    total_reports = reports_queryset.count()
+    reports = list(reports_queryset[:20])
+
+    # 노다지 (최근 20개)
+    nodaji_queryset = Nodaji.objects.filter(
+        stock=stock,
+        title__contains=stock.name
+    ).order_by('-date')
+    total_nodaji = nodaji_queryset.count()
+    nodaji_list = list(nodaji_queryset[:20])
+
+    # 공시 (최근 20개)
+    gongsi_list = Gongsi.objects.filter(stock=stock).order_by('-date')[:20]
+
+    # 수급 (투자자별 매매동향, 최근 60일)
+    investor_trends = list(InvestorTrend.objects.filter(stock=stock).order_by('-date')[:60])
+
+    # 수급 누적 차트 데이터 - 키움 (오래된 날짜부터)
+    investor_chart_data = []
+    if investor_trends:
+        trends_asc = list(reversed(investor_trends))
+        cum_individual = 0
+        cum_foreign = 0
+        cum_institution = 0
+        for t in trends_asc:
+            cum_individual += t.individual or 0
+            cum_foreign += t.foreign or 0
+            cum_institution += t.institution or 0
+            investor_chart_data.append({
+                'date': t.date.strftime('%m.%d'),
+                'individual': cum_individual,
+                'foreign': cum_foreign,
+                'institution': cum_institution,
+            })
+
+    # 수급 데이터 - 다음 (daum_foreign, daum_institution이 있는 것만)
+    investor_trends_daum_raw = [t for t in investor_trends if t.daum_foreign is not None or t.daum_institution is not None]
+
+    # DailyChart에서 주가/등락률/거래량 가져오기
+    daum_dates = [t.date for t in investor_trends_daum_raw]
+    daily_charts_map = {
+        dc.date: dc for dc in DailyChart.objects.filter(stock=stock, date__in=daum_dates)
+    }
+
+    # 다음 탭용 데이터에 주가 정보 추가
+    investor_trends_daum = []
+    for t in investor_trends_daum_raw:
+        dc = daily_charts_map.get(t.date)
+        t.closing_price = dc.closing_price if dc else None
+        t.price_change = dc.price_change if dc else None
+        t.trading_volume = dc.trading_volume if dc else None
+        # 등락률 계산
+        if dc and dc.closing_price and dc.price_change:
+            prev_price = dc.closing_price - dc.price_change
+            t.change_rate = round((dc.price_change / prev_price) * 100, 2) if prev_price else 0
+        else:
+            t.change_rate = None
+        investor_trends_daum.append(t)
+
+    # 수급 누적 차트 데이터 - 다음 (주가 포함)
+    investor_chart_data_daum = []
+    if investor_trends_daum:
+        trends_daum_asc = list(reversed(investor_trends_daum))
+        cum_daum_foreign = 0
+        cum_daum_institution = 0
+        for t in trends_daum_asc:
+            cum_daum_foreign += t.daum_foreign or 0
+            cum_daum_institution += t.daum_institution or 0
+            investor_chart_data_daum.append({
+                'date': t.date.strftime('%m.%d'),
+                'foreign': cum_daum_foreign,
+                'institution': cum_daum_institution,
+                'price': t.closing_price,
+            })
+
+    # 공매도 (최근 60일)
+    short_sellings = ShortSelling.objects.filter(stock=stock).order_by('-date')[:60]
+
+    # 저장된 유튜브 영상
+    from .models import YoutubeVideo
+    youtube_videos = YoutubeVideo.objects.filter(stock=stock)
+
+    # 저장된 뉴스
+    from .models import News
+    news_articles = News.objects.filter(stock=stock)
+
+    # 저장된 텔레그램 메시지
+    from .models import TelegramMessage
+    telegram_messages = TelegramMessage.objects.filter(stock=stock)
+
     # 질문리포트
     from .models import StockQuestionReport
-    question_reports = StockQuestionReport.objects.filter(stock=stock)
+    question_reports = StockQuestionReport.objects.filter(stock=stock).order_by('-created_at')
+
+    # 주가 vs 목표가 차트 데이터 (리포트 탭용)
+    price_chart_data = []
+    target_chart_data = []
+    gap_chart_data = []
+    if reports:
+        # 리포트 목표가와 해당 날짜의 종가 데이터
+        report_dates = [r.date for r in reports if r.date]
+        daily_price_map = {
+            dc.date: dc.closing_price
+            for dc in DailyChart.objects.filter(stock=stock, date__in=report_dates)
+        }
+        for r in reversed(reports):
+            if r.date and r.target_price:
+                date_str = r.date.strftime('%Y-%m-%d')
+                closing = daily_price_map.get(r.date)
+                if closing:
+                    price_chart_data.append({'x': date_str, 'y': closing})
+                    target_chart_data.append({'x': date_str, 'y': r.target_price})
+                    gap = round((r.target_price - closing) / closing * 100, 1)
+                    gap_chart_data.append({'x': date_str, 'y': gap})
 
     context = {
         'stock': stock,
         'sectors': sectors,
         'analysis_html_exists': analysis_html_exists,
-        'question_reports': question_reports,
         'annual_labels': json.dumps(annual_labels),
         'annual_revenue': json.dumps(annual_revenue),
         'annual_op': json.dumps(annual_op),
@@ -673,6 +785,24 @@ def stock_detail(request, code):
         'weekly_volume_data': json.dumps(weekly_volume_data),
         'monthly_candle_data': json.dumps(monthly_candle_data),
         'monthly_volume_data': json.dumps(monthly_volume_data),
+        # 탭 데이터
+        'reports': reports,
+        'total_reports': total_reports,
+        'nodaji_list': nodaji_list,
+        'total_nodaji': total_nodaji,
+        'gongsi_list': gongsi_list,
+        'investor_trends': investor_trends,
+        'investor_chart_data': json.dumps(investor_chart_data),
+        'investor_trends_daum': investor_trends_daum,
+        'investor_chart_data_daum': json.dumps(investor_chart_data_daum),
+        'short_sellings': short_sellings,
+        'youtube_videos': youtube_videos,
+        'news_articles': news_articles,
+        'telegram_messages': telegram_messages,
+        'question_reports': question_reports,
+        'price_chart_data': json.dumps(price_chart_data),
+        'target_chart_data': json.dumps(target_chart_data),
+        'gap_chart_data': json.dumps(gap_chart_data),
     }
     return render(request, 'stocks/stock_detail.html', context)
 
@@ -909,9 +1039,30 @@ def stock_edit(request, code):
             })
 
     # 수급 데이터 - 다음 (daum_foreign, daum_institution이 있는 것만)
-    investor_trends_daum = [t for t in investor_trends if t.daum_foreign is not None or t.daum_institution is not None]
+    investor_trends_daum_raw = [t for t in investor_trends if t.daum_foreign is not None or t.daum_institution is not None]
 
-    # 수급 누적 차트 데이터 - 다음
+    # DailyChart에서 주가/등락률/거래량 가져오기
+    daum_dates = [t.date for t in investor_trends_daum_raw]
+    daily_charts = {
+        dc.date: dc for dc in DailyChart.objects.filter(stock=stock, date__in=daum_dates)
+    }
+
+    # 다음 탭용 데이터에 주가 정보 추가
+    investor_trends_daum = []
+    for t in investor_trends_daum_raw:
+        dc = daily_charts.get(t.date)
+        t.closing_price = dc.closing_price if dc else None
+        t.price_change = dc.price_change if dc else None
+        t.trading_volume = dc.trading_volume if dc else None
+        # 등락률 계산
+        if dc and dc.closing_price and dc.price_change:
+            prev_price = dc.closing_price - dc.price_change
+            t.change_rate = round((dc.price_change / prev_price) * 100, 2) if prev_price else 0
+        else:
+            t.change_rate = None
+        investor_trends_daum.append(t)
+
+    # 수급 누적 차트 데이터 - 다음 (주가 포함)
     investor_chart_data_daum = []
     if investor_trends_daum:
         trends_daum_asc = list(reversed(investor_trends_daum))
@@ -924,6 +1075,7 @@ def stock_edit(request, code):
                 'date': t.date.strftime('%m.%d'),
                 'foreign': cum_daum_foreign,
                 'institution': cum_daum_institution,
+                'price': t.closing_price,
             })
 
     # 공매도 (최근 60일)
@@ -2187,6 +2339,10 @@ def sector_detail(request, sector_id):
         'initial_items': initial_items,
         'remaining_items': remaining_items,
         'total_count': len(all_items),
+        # 탭용 데이터
+        'telegram_messages': telegram_messages,
+        'news_articles': news_articles,
+        'youtube_videos': youtube_videos,
     }
     return render(request, 'stocks/sector_detail.html', context)
 
