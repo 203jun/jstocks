@@ -220,8 +220,7 @@
 
     <!-- 유튜브 탭 -->
     <div class="tab-pane fade" id="youtube-content" role="tabpanel">
-        <!-- 저장된 영상 -->
-        <div class="card mb-3">
+        <div class="card">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <strong>저장된 영상</strong>
                 <span class="badge bg-primary">{{ youtube_videos|length }}</span>
@@ -253,32 +252,6 @@
                     <div class="text-center text-muted py-3">저장된 영상이 없습니다.</div>
                     {% endfor %}
                 </div>
-            </div>
-        </div>
-
-        <!-- 검색 -->
-        <div class="card">
-            <div class="card-header py-2">
-                <div class="d-flex justify-content-between align-items-center">
-                    <strong>검색</strong>
-                    <div class="d-flex gap-2">
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" id="btnYoutubeGeneral" class="btn btn-outline-secondary active">일반</button>
-                            <button type="button" id="btnYoutubePreferred" class="btn btn-outline-secondary">선호</button>
-                        </div>
-                        <button type="button" id="btnSearchYoutube" class="btn btn-sm btn-danger">검색</button>
-                    </div>
-                </div>
-                <div class="mt-1">
-                    <small class="text-muted" id="youtubeSearchInfo">"{{ sector.name }}" 검색 · 조회수 1,000회 이상 · 최신순</small>
-                </div>
-            </div>
-            <div class="card-body">
-                <div id="youtubeLoading" class="text-center py-3 d-none">
-                    <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
-                    <span class="ms-2" id="youtubeLoadingText">검색 중...</span>
-                </div>
-                <div id="youtubeResult"></div>
             </div>
         </div>
     </div>
@@ -548,89 +521,6 @@ document.getElementById('btnSearchReport').addEventListener('click', async funct
     } catch (err) {
         reportChannelTabContent.innerHTML = `<div class="alert alert-danger">오류: ${err.message}</div>`;
         tabs.classList.remove('d-none');
-    } finally {
-        loading.classList.add('d-none');
-    }
-});
-
-// 유튜브 검색 모드
-let youtubeSearchMode = 'general';
-
-document.getElementById('btnYoutubeGeneral').addEventListener('click', function() {
-    youtubeSearchMode = 'general';
-    this.classList.add('active');
-    document.getElementById('btnYoutubePreferred').classList.remove('active');
-    document.getElementById('youtubeSearchInfo').textContent = `"${sectorName}" 검색 · 조회수 1,000회 이상 · 최신순`;
-});
-
-document.getElementById('btnYoutubePreferred').addEventListener('click', function() {
-    youtubeSearchMode = 'preferred';
-    this.classList.add('active');
-    document.getElementById('btnYoutubeGeneral').classList.remove('active');
-    document.getElementById('youtubeSearchInfo').textContent = `선호 채널에서 "${sectorName}" 검색`;
-});
-
-// 유튜브 검색 결과 렌더링
-function renderYoutubeResults(data) {
-    if (data.error) {
-        return `<div class="alert alert-danger mb-0">${data.error}</div>`;
-    }
-
-    if (data.message && data.results.length === 0) {
-        return `<div class="alert alert-warning mb-0">${data.message}</div>`;
-    }
-
-    if (data.results.length === 0) {
-        return '<div class="text-muted">검색 결과가 없습니다.</div>';
-    }
-
-    let html = '';
-    if (data.channels_searched && data.channels_searched.length > 0) {
-        html += `<div class="small text-muted mb-2">검색 채널: ${data.channels_searched.join(', ')}</div>`;
-    }
-
-    html += '<div class="list-group list-group-flush">';
-    data.results.forEach(video => {
-        html += `<div class="list-group-item d-flex gap-3 py-2">`;
-        if (video.thumbnail) {
-            html += `<a href="${video.link}" target="_blank"><img src="${video.thumbnail}" alt="" style="width:120px; height:68px; object-fit:cover; border-radius:4px;"></a>`;
-        }
-        html += `<div class="flex-grow-1 overflow-hidden">`;
-        html += `<a href="${video.link}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">${video.title}</a>`;
-        html += `<small class="text-muted">${video.channel}</small>`;
-        html += `<small class="text-muted ms-2">${video.views || ''}</small>`;
-        html += `<small class="text-muted ms-2">${video.published || ''}</small>`;
-        html += `</div>`;
-        html += `</div>`;
-    });
-    html += '</div>';
-    return html;
-}
-
-// 유튜브 검색
-document.getElementById('btnSearchYoutube').addEventListener('click', async function() {
-    const loading = document.getElementById('youtubeLoading');
-    const loadingText = document.getElementById('youtubeLoadingText');
-    const result = document.getElementById('youtubeResult');
-
-    loading.classList.remove('d-none');
-    result.innerHTML = '';
-
-    let url;
-    if (youtubeSearchMode === 'preferred') {
-        loadingText.textContent = '선호 채널 검색 중... (채널 수에 따라 20~40초 소요)';
-        url = `/api/youtube/search/preferred/?keyword=${encodeURIComponent(sectorName)}&min_views=1000`;
-    } else {
-        loadingText.textContent = '검색 중...';
-        url = `/api/youtube/search/?keyword=${encodeURIComponent(sectorName)}&min_views=1000`;
-    }
-
-    try {
-        const response = await fetch(url);
-        const data = await response.json();
-        result.innerHTML = renderYoutubeResults(data);
-    } catch (err) {
-        result.innerHTML = '<div class="text-danger">오류: ' + err.message + '</div>';
     } finally {
         loading.classList.add('d-none');
     }
