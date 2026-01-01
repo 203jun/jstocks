@@ -405,14 +405,16 @@
 
         <!-- Google 뉴스 검색 -->
         <div class="card">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <div>
+            <div class="card-header py-2">
+                <div class="d-flex justify-content-between align-items-center">
                     <strong>Google 뉴스</strong>
-                    <small class="text-muted ms-2">"{{ stock.name }}" 검색</small>
                 </div>
-                <button type="button" id="btnSearchNews" class="btn btn-sm btn-outline-info">
-                    검색
-                </button>
+                <div class="mt-2 d-flex gap-2">
+                    <input type="text" id="newsSearchInput" class="form-control form-control-sm" value="{{ stock.name }}" placeholder="검색어 입력">
+                    <button type="button" id="btnSearchNews" class="btn btn-sm btn-outline-info" style="white-space: nowrap;">
+                        검색
+                    </button>
+                </div>
             </div>
             <div class="card-body">
                 <div id="newsLoading" class="text-center py-3 d-none">
@@ -420,7 +422,7 @@
                     <span class="ms-2">검색 중... (5~10초 소요)</span>
                 </div>
                 <div id="newsResult">
-                    <div class="text-muted">버튼을 클릭하면 "{{ stock.name }}" 관련 최신 뉴스를 검색합니다.</div>
+                    <div class="text-muted">검색어를 입력하고 검색 버튼을 클릭하세요.</div>
                 </div>
             </div>
         </div>
@@ -1251,57 +1253,66 @@ document.addEventListener('click', async (e) => {
 const btnNews = document.getElementById('btnSearchNews');
 const newsLoading = document.getElementById('newsLoading');
 const newsResult = document.getElementById('newsResult');
+const newsSearchInput = document.getElementById('newsSearchInput');
 
-if (btnNews) {
-    btnNews.addEventListener('click', async () => {
-        btnNews.disabled = true;
-        newsLoading.classList.remove('d-none');
-        newsResult.innerHTML = '';
+async function searchNews() {
+    const searchQuery = newsSearchInput.value.trim();
+    if (!searchQuery) {
+        alert('검색어를 입력하세요.');
+        return;
+    }
 
-        try {
-            const response = await fetch(`/api/news/search/?keyword=${encodeURIComponent(stockName)}`);
-            const data = await response.json();
+    btnNews.disabled = true;
+    newsLoading.classList.remove('d-none');
+    newsResult.innerHTML = '';
 
-            if (data.error) {
-                newsResult.innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
-            } else if (data.results.length === 0) {
-                newsResult.innerHTML = '<div class="text-muted">검색 결과가 없습니다.</div>';
-            } else {
-                let html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0">';
-                html += '<thead class="table-light"><tr><th class="ps-3" style="width:100px;">날짜</th><th>제목</th><th style="width:100px;" class="d-none d-md-table-cell">출처</th><th style="width:60px;"></th></tr></thead><tbody>';
-                data.results.forEach(item => {
-                    const isSaved = savedNewsLinks.has(item.link);
-                    html += `<tr>`;
-                    html += `<td class="text-muted ps-3" style="font-size:0.75rem;">${(item.date || '').slice(0, 10) || '-'}</td>`;
-                    html += `<td><a href="${item.link}" target="_blank" class="text-decoration-none">${item.title}</a></td>`;
-                    html += `<td class="text-muted d-none d-md-table-cell" style="font-size:0.75rem;">${item.source || ''}</td>`;
-                    html += `<td class="text-end pe-3">`;
-                    if (isSaved) {
-                        html += `<span class="badge bg-success" style="white-space:nowrap;">저장됨</span>`;
-                    } else {
-                        html += `<button class="btn btn-sm btn-outline-primary btn-save-news" style="white-space:nowrap;" data-link="${item.link}" data-title="${item.title.replace(/"/g, '&quot;')}" data-source="${item.source || ''}" data-published="${item.date || ''}">저장</button>`;
-                    }
-                    html += `</td></tr>`;
+    try {
+        const response = await fetch(`/api/news/search/?keyword=${encodeURIComponent(searchQuery)}`);
+        const data = await response.json();
+
+        if (data.error) {
+            newsResult.innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
+        } else if (data.results.length === 0) {
+            newsResult.innerHTML = '<div class="text-muted">검색 결과가 없습니다.</div>';
+        } else {
+            let html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0">';
+            html += '<thead class="table-light"><tr><th class="ps-3" style="width:100px;">날짜</th><th>제목</th><th style="width:100px;" class="d-none d-md-table-cell">출처</th><th style="width:60px;"></th></tr></thead><tbody>';
+            data.results.forEach(item => {
+                const isSaved = savedNewsLinks.has(item.link);
+                html += `<tr>`;
+                html += `<td class="text-muted ps-3" style="font-size:0.75rem;">${(item.date || '').slice(0, 10) || '-'}</td>`;
+                html += `<td><a href="${item.link}" target="_blank" class="text-decoration-none">${item.title}</a></td>`;
+                html += `<td class="text-muted d-none d-md-table-cell" style="font-size:0.75rem;">${item.source || ''}</td>`;
+                html += `<td class="text-end pe-3">`;
+                if (isSaved) {
+                    html += `<span class="badge bg-success" style="white-space:nowrap;">저장됨</span>`;
+                } else {
+                    html += `<button class="btn btn-sm btn-outline-primary btn-save-news" style="white-space:nowrap;" data-link="${item.link}" data-title="${item.title.replace(/"/g, '&quot;')}" data-source="${item.source || ''}" data-published="${item.date || ''}">저장</button>`;
+                }
+                html += `</td></tr>`;
+            });
+            html += '</tbody></table></div>';
+            newsResult.innerHTML = html;
+
+            // 저장 버튼 이벤트
+            newsResult.querySelectorAll('.btn-save-news').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    saveNewsFromSearch(btn, btn.dataset.link, btn.dataset.title, btn.dataset.source, btn.dataset.published);
                 });
-                html += '</tbody></table></div>';
-                newsResult.innerHTML = html;
-
-                // 저장 버튼 이벤트
-                newsResult.querySelectorAll('.btn-save-news').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        saveNewsFromSearch(btn, btn.dataset.link, btn.dataset.title, btn.dataset.source, btn.dataset.published);
-                    });
-                });
-            }
-
-        } catch (err) {
-            newsResult.innerHTML = `<div class="alert alert-danger mb-0">오류: ${err.message}</div>`;
-        } finally {
-            btnNews.disabled = false;
-            newsLoading.classList.add('d-none');
+            });
         }
-    });
+    } catch (err) {
+        newsResult.innerHTML = `<div class="alert alert-danger mb-0">오류: ${err.message}</div>`;
+    } finally {
+        btnNews.disabled = false;
+        newsLoading.classList.add('d-none');
+    }
 }
+
+btnNews?.addEventListener('click', searchNews);
+newsSearchInput?.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') searchNews();
+});
 </script>
 <style>
 .highlight {
