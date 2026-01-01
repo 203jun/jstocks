@@ -985,10 +985,13 @@ document.addEventListener('click', function(e) {
         // 이미 디코딩된 경우
     }
 
-    text = text.replace(/\\u([0-9a-fA-F]{4})/g, (m, cc) => String.fromCharCode(parseInt(cc, 16)));
+    // 유니코드 이스케이프 시퀀스 디코딩 (\u000D, \\u000D 등)
+    text = text.replace(/\\{1,2}u([0-9a-fA-F]{4})/gi, (m, cc) => String.fromCharCode(parseInt(cc, 16)));
+    // 기타 이스케이프 처리
+    text = text.replace(/\\r/g, '\r');
     text = text.replace(/\\n/g, '\n');
-    text = text.replace(/\\\n/g, '\n');
-    text = text.replace(/\\$/gm, '');
+    text = text.replace(/\\t/g, '\t');
+    text = text.replace(/\\\\/g, '\\');
 
     document.getElementById('telegramModalChannel').textContent = btn.dataset.channel;
     document.getElementById('telegramModalDate').textContent = btn.dataset.date;
