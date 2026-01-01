@@ -1348,7 +1348,7 @@ def search_telegram(request):
     """텔레그램 채널 검색 API"""
     keyword = request.GET.get('keyword', '')
     limit = int(request.GET.get('limit', 30))
-    days = int(request.GET.get('days', 7))  # 기본 7일, 최대 180일
+    days = int(request.GET.get('days', 120))  # 기본 120일
 
     if not keyword:
         return JsonResponse({'error': '검색어가 필요합니다.'}, status=400)
@@ -1359,7 +1359,7 @@ def search_telegram(request):
     async def search():
         async with TelegramClient('telegram_session', api_id, api_hash) as client:
             # 지정된 기간 전 날짜
-            date_limit = datetime.now(timezone.utc) - timedelta(days=min(days, 180))
+            date_limit = datetime.now(timezone.utc) - timedelta(days=days)
 
             # 채널별 결과
             by_channel = {}
@@ -1371,12 +1371,8 @@ def search_telegram(request):
 
                     channel_msgs = [m for m in msgs if m.text]
 
-                    # 기간 이내 메시지 필터링
+                    # 기간 이내 메시지만 필터링
                     recent_msgs = [m for m in channel_msgs if m.date >= date_limit]
-
-                    # 3개 미만이면 날짜 상관없이 최대 3개
-                    if len(recent_msgs) < 3:
-                        recent_msgs = channel_msgs[:3]
 
                     # 날짜별 그룹핑
                     by_date = defaultdict(list)

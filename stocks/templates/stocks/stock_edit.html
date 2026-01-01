@@ -325,7 +325,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <strong>텔레그램 검색</strong>
-                        <small class="text-muted ms-2">1주일 데이터</small>
+                        <small class="text-muted ms-2">120일 데이터</small>
                     </div>
                 </div>
                 <div class="mt-2 d-flex gap-2">
@@ -715,13 +715,13 @@ function countMessages(channelData) {
     let total = 0;
     let recent = 0;
     const today = new Date();
-    const threeDaysAgo = new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000);
-    const threeDaysAgoStr = threeDaysAgo.toISOString().split('T')[0];
+    const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
 
     for (const date in channelData) {
         const count = channelData[date].length;
         total += count;
-        if (date >= threeDaysAgoStr) {
+        if (date >= sevenDaysAgoStr) {
             recent += count;
         }
     }
@@ -793,8 +793,14 @@ async function searchTelegram() {
             return;
         }
 
-        const channels = Object.keys(data.results);
+        const allChannels = Object.keys(data.results);
         const channelNames = data.channel_names || {};
+
+        // 결과가 있는 채널만 필터링
+        const channels = allChannels.filter(channel => {
+            const { total } = countMessages(data.results[channel]);
+            return total > 0;
+        });
 
         if (channels.length === 0) {
             empty.textContent = '검색 결과가 없습니다.';
@@ -812,7 +818,7 @@ async function searchTelegram() {
             const { total, recent } = countMessages(data.results[channel]);
 
             const recentBadge = recent > 0 ? `<span class="badge bg-danger">${recent}</span>` : '';
-            const totalBadge = total > 0 ? `<span class="badge bg-secondary">${total}</span>` : '';
+            const totalBadge = `<span class="badge bg-secondary">${total}</span>`;
 
             tabsHtml += `
                 <li class="nav-item" role="presentation">
