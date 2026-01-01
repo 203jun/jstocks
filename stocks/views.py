@@ -4155,10 +4155,15 @@ def youtube_video_save_by_link(request):
             if date_match:
                 published = date_match.group(1)
             else:
-                # 대체 패턴 2: dateText
+                # 대체 패턴 2: dateText (절대 날짜)
                 date_match = re.search(r'"dateText":\{"simpleText":"([^"]+)"\}', response.text)
                 if date_match:
                     published = date_match.group(1)
+                else:
+                    # 대체 패턴 3: publishedTimeText (상대 시간 "1일 전" 등)
+                    date_match = re.search(r'"publishedTimeText":\{"simpleText":"([^"]+)"\}', response.text)
+                    if date_match:
+                        published = date_match.group(1)
 
         if not title:
             return JsonResponse({'error': '영상 정보를 가져올 수 없습니다.'}, status=400)
@@ -5526,10 +5531,15 @@ def sector_youtube_video_save_by_link(request):
             if date_match:
                 published = date_match.group(1)
             else:
-                # 대체 패턴 2: dateText
+                # 대체 패턴 2: dateText (절대 날짜)
                 date_match = re.search(r'"dateText":\{"simpleText":"([^"]+)"\}', response.text)
                 if date_match:
                     published = date_match.group(1)
+                else:
+                    # 대체 패턴 3: publishedTimeText (상대 시간 "1일 전" 등)
+                    date_match = re.search(r'"publishedTimeText":\{"simpleText":"([^"]+)"\}', response.text)
+                    if date_match:
+                        published = date_match.group(1)
 
         if not title:
             return JsonResponse({'error': '영상 정보를 가져올 수 없습니다.'}, status=400)
