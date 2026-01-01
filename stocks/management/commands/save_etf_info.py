@@ -13,17 +13,17 @@ ETF 정보 업데이트 (네이버 금융 크롤링)
 현재가, 등락률, NAV, 시가총액, 구성종목을 네이버에서 크롤링하여 저장합니다.
 
 옵션:
-  --code      (선택) ETF 코드 또는 "all" (기본값: all)
+  --etf-code  (선택) ETF 코드 또는 "all" (기본값: all)
   --log-level (선택) debug / info / warning / error (기본값: info)
 
 예시:
   python manage.py save_etf_info
-  python manage.py save_etf_info --code 305720
+  python manage.py save_etf_info --etf-code 305720
 '''
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--code',
+            '--etf-code',
             type=str,
             default='all',
             help='ETF 코드 또는 "all" (기본값: all)'
@@ -34,13 +34,13 @@ ETF 정보 업데이트 (네이버 금융 크롤링)
         # 로거 초기화
         self.log = StockLogger(self.stdout, self.style, options, 'save_etf_info')
 
-        code = options['code']
-        process_all = code.lower() == 'all'
+        etf_code = options['etf_code']
+        process_all = etf_code.lower() == 'all'
 
         if process_all:
             self.process_all_etfs()
         else:
-            self.process_single_etf(code)
+            self.process_single_etf(etf_code)
 
     def process_single_etf(self, etf_code):
         """단일 ETF 처리"""

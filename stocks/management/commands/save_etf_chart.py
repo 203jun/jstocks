@@ -13,7 +13,7 @@ ETF 차트 조회 및 저장 (네이버 금융 API)
 일봉, 주봉, 월봉을 한번에 저장합니다.
 
 옵션:
-  --code      (선택) ETF 코드 또는 "all" (기본값: all)
+  --etf-code  (선택) ETF 코드 또는 "all" (기본값: all)
   --mode      (선택) all / last (기본값: last)
   --clear     (선택) 전체 데이터 삭제
   --log-level (선택) debug / info / warning / error (기본값: info)
@@ -24,14 +24,14 @@ ETF 차트 조회 및 저장 (네이버 금융 API)
 
 예시:
   python manage.py save_etf_chart
-  python manage.py save_etf_chart --code 305720 --mode all
+  python manage.py save_etf_chart --etf-code 305720 --mode all
   python manage.py save_etf_chart --mode all
   python manage.py save_etf_chart --clear
 '''
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--code',
+            '--etf-code',
             type=str,
             default='all',
             help='ETF 코드 또는 "all" (기본값: all)'
@@ -65,15 +65,15 @@ ETF 차트 조회 및 저장 (네이버 금융 API)
         self.log = StockLogger(self.stdout, self.style, options, 'save_etf_chart')
 
         # 파라미터 설정
-        code = options['code']
+        etf_code = options['etf_code']
         mode = options['mode']
-        process_all = code.lower() == 'all'
+        process_all = etf_code.lower() == 'all'
 
         # 처리
         if process_all:
             self.process_all_etfs(mode)
         else:
-            self.process_single_etf(code, mode)
+            self.process_single_etf(etf_code, mode)
 
     def process_single_etf(self, etf_code, mode):
         """단일 ETF 처리"""

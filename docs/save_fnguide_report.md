@@ -1,111 +1,53 @@
 # save_fnguide_report
 
-FnGuide에서 애널리스트 리포트 데이터를 조회하여 저장합니다.
+FnGuide에서 애널리스트 리포트를 조회하여 저장합니다.
 
 ## 사용법
 
 ```bash
+# 관심 종목 (정기 업데이트용)
+python manage.py save_fnguide_report --code fav
+
+# 전체 종목
+python manage.py save_fnguide_report --code all
+
 # 단일 종목
 python manage.py save_fnguide_report --code 005930
 
-# 전체 종목 (정기 업데이트용)
-python manage.py save_fnguide_report --code all
-
-# 관심 종목만 (interest_level 설정된 종목)
-python manage.py save_fnguide_report --code fav
-
-# 디버그 모드
-python manage.py save_fnguide_report --code 005930 --log-level debug
+# 데이터 삭제
+python manage.py save_fnguide_report --clear
 ```
 
 ## 옵션
 
 | 옵션 | 필수 | 설명 |
 |------|------|------|
-| `--code` | O | 종목코드 또는 `all` / `fav` |
-| `--log-level` | X | 로그 레벨 (debug/info/error, 기본: info) |
-| `--clear` | X | 전체 데이터 삭제 |
+| `--code` | O* | 종목코드 / "all" / "fav" |
+| `--clear` | X | 데이터 삭제 |
+| `--log-level` | X | debug / info / warning / error (기본: info) |
 
-### --code 옵션 값
+\* --clear 사용 시 불필요
 
-| 값 | 설명 |
-|----|------|
-| `종목코드` | 특정 종목만 처리 (예: 005930) |
-| `all` | 전체 종목 처리 (is_active=True) |
-| `fav` | 관심 종목만 처리 (interest_level이 설정된 종목: 초관심/관심/인큐베이터) |
+## 저장 모델
+
+`Report`
 
 ## 데이터 소스
 
-- API: FnGuide CompanyWise (comp.wisereport.co.kr)
+- API: FnGuide (`comp.wisereport.co.kr`)
 - 토큰 불필요
 
 ## 수집 데이터
 
-| 항목 | 필드명 | 설명 |
-|------|--------|------|
-| 리포트ID | report_id | FnGuide 고유 ID |
-| 발행일 | date | 리포트 발행일 |
-| 제목 | title | 리포트 제목 |
-| 작성자 | author | 애널리스트명 |
-| 제공처 | provider | 증권사명 |
-| 목표가 | target_price | 목표주가 |
-| 투자의견 | recommendation | BUY, HOLD, SELL 등 |
+| 항목 | 필드명 |
+|------|--------|
+| 날짜 | date |
+| 제목 | title |
+| 애널리스트 | author |
+| 증권사 | provider |
+| 목표가 | target_price |
+| 투자의견 | recommendation |
 
-## 수집 범위
+## 실행 주기
 
-- 첫 페이지 리포트 (최대 20개)
-- 매일 실행하여 최신 리포트 수집
-
-## 저장 방식
-
-- 날짜 + 제목이 같으면 스킵 (중복 방지)
-- 없으면 INSERT
-- `Report` 모델에 저장
-
-## 전체 종목 처리 시
-
-- `is_active=True`인 종목만 처리
-- 요청 간격: 0.2초
-- 처리 완료 후 최종 리포트 출력 (성공/데이터없음/오류)
-
-## 출력 예시
-
-```
-# 단일 종목
-종목: 삼성전자 (005930)
-======================================================================
-신규 20, 스킵 0
-
-# 재실행 시 (중복 스킵)
-종목: 삼성전자 (005930)
-======================================================================
-신규 0, 스킵 20
-
-# 전체 종목
-리포트 조회 시작 (2714개 종목)
-[1/2714] 005930 삼성전자: 신규 0, 스킵 20
-[2/2714] 000660 SK하이닉스: 신규 5, 스킵 15
-[3/2714] 373220 LG에너지솔루션: 데이터 없음
-...
-======================================================================
-리포트 조회 완료: 성공 2500개, 데이터없음 200개, 오류 14개
-
-[데이터 없음] 200개:
-  - 000020 동화약품
-  - 000040 KR모터스
-  ... 외 198개
-
-[오류 발생] 14개:
-  - 123456 ABC기업: API 호출 실패
-```
-
-## 권장 사용법
-
-1. 매일 정기 실행: `--code all`로 전체 종목 업데이트
-2. 중복 체크가 있어 매일 실행해도 안전
-
-## 주의사항
-
-- `Info` 모델에 종목이 등록되어 있어야 함
-- 전체 종목 처리 시 약 10분 소요 (2700개 기준, 0.2초 간격)
-- 소형주는 리포트가 없는 경우가 많음
+일 1회 (daily_update.sh)

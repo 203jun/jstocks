@@ -39,16 +39,16 @@ class Command(BaseCommand):
 
 옵션:
   --code      (필수*) 종목코드 또는 "all" (전체 종목)
-  --mode      (선택) annual / quarterly / all (기본값: all)
+  --type      (선택) annual / quarterly / all (기본값: all)
   --clear     (선택) 기존 Financial 데이터 전체 삭제
   --log-level (선택) debug / info / warning / error (기본값: info)
 
   * --code 또는 --clear 중 하나는 필수
 
 예시:
-  python manage.py init_financial --code 005930
-  python manage.py init_financial --code all --mode annual --log-level info
-  python manage.py init_financial --clear
+  python manage.py save_init_financial --code 005930
+  python manage.py save_init_financial --code all --type annual --log-level info
+  python manage.py save_init_financial --clear
 '''
 
     def add_arguments(self, parser):
@@ -58,9 +58,9 @@ class Command(BaseCommand):
             type=str,
             help='종목코드 또는 "all" (전체 종목)'
         )
-        # 데이터 유형 (--mode: annual/quarterly/all)
+        # 데이터 유형 (--type: annual/quarterly/all)
         parser.add_argument(
-            '--mode',
+            '--type',
             type=str,
             choices=['annual', 'quarterly', 'all'],
             default='all',
@@ -96,12 +96,12 @@ class Command(BaseCommand):
             self.log.info(f'Financial 데이터 {deleted_count}건 삭제 완료', success=True)
             return
 
-        mode = options['mode']
+        data_type = options['type']
         process_all = code.lower() == 'all'
 
-        # mode에 따라 처리할 데이터 유형 결정
-        do_annual = mode in ['annual', 'all']
-        do_quarterly = mode in ['quarterly', 'all']
+        # type에 따라 처리할 데이터 유형 결정
+        do_annual = data_type in ['annual', 'all']
+        do_quarterly = data_type in ['quarterly', 'all']
 
         # jemu 폴더 경로 (프로젝트 루트/jemu)
         from django.conf import settings

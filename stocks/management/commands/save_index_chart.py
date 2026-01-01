@@ -12,14 +12,14 @@ class Command(BaseCommand):
 지수(KOSPI/KOSDAQ) 일봉 차트 데이터 저장 (네이버 금융)
 
 옵션:
-  --code      (선택) KOSPI / KOSDAQ / all (기본값: all)
+  --market    (선택) KOSPI / KOSDAQ / all (기본값: all)
   --mode      (선택) all (2024.1.1부터) / last (마지막 저장일부터, 기본값)
   --clear     (선택) 전체 데이터 삭제
   --log-level (선택) debug / info / warning / error (기본값: info)
 
 예시:
   python manage.py save_index_chart
-  python manage.py save_index_chart --code KOSPI --mode all
+  python manage.py save_index_chart --market KOSPI --mode all
   python manage.py save_index_chart --clear
 '''
 
@@ -28,7 +28,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--code',
+            '--market',
             type=str,
             default='all',
             help='지수코드: KOSPI, KOSDAQ, all (기본값: all)'
@@ -56,15 +56,15 @@ class Command(BaseCommand):
 
         self.log = StockLogger(self.stdout, self.style, options, 'save_index_chart')
 
-        code = options['code'].upper()
+        market = options['market'].upper()
         mode = options['mode']
 
-        if code == 'ALL':
+        if market == 'ALL':
             codes = self.INDEX_CODES
-        elif code in self.INDEX_CODES:
-            codes = [code]
+        elif market in self.INDEX_CODES:
+            codes = [market]
         else:
-            self.log.error(f'지원하지 않는 지수코드: {code}')
+            self.log.error(f'지원하지 않는 지수코드: {market}')
             self.log.info(f'지원 코드: {", ".join(self.INDEX_CODES)}')
             return
 

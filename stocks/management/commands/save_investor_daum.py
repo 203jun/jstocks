@@ -11,10 +11,10 @@ class Command(BaseCommand):
 다음 금융 투자자별 매매동향 저장 (외국인/기관 순매수량)
 
 옵션:
-  --code      (필수*) 종목코드 또는 "all" / "fav"
+  --code      (필수) 종목코드 또는 "all" / "fav"
               - all: 전체 종목
               - fav: 관심 종목만 (interest_level 설정된 종목)
-  --mode      (필수*) all (최근 60일) / last (최근 1일)
+  --mode      (필수) all (최근 60일) / last (최근 1일)
   --log-level (선택) debug / info / warning / error (기본값: info)
 
 예시:
