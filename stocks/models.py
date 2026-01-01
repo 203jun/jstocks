@@ -703,6 +703,20 @@ class InvestorTrend(models.Model):
         blank=True
     )
 
+    # === 다음 금융 데이터 ===
+    daum_foreign = models.BigIntegerField(
+        verbose_name='외국인 순매수(다음)',
+        help_text='다음 금융 외국인 순매수량 (API: foreignStraightPurchaseVolume)',
+        null=True,
+        blank=True
+    )
+    daum_institution = models.BigIntegerField(
+        verbose_name='기관 순매수(다음)',
+        help_text='다음 금융 기관 순매수량 (API: institutionStraightPurchaseVolume)',
+        null=True,
+        blank=True
+    )
+
     # === 메타 정보 ===
     created_at = models.DateTimeField(
         auto_now_add=True,

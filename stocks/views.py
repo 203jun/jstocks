@@ -692,6 +692,8 @@ def run_fav_commands(stock_code, action):
                 # 데이터 수집 (전체 기간)
                 logger.info(f'[FAV] {stock_code} save_investor_trend 시작')
                 call_command('save_investor_trend', code=stock_code, mode='all')
+                logger.info(f'[FAV] {stock_code} save_investor_daum 시작')
+                call_command('save_investor_daum', code=stock_code, mode='all')
                 logger.info(f'[FAV] {stock_code} save_short_selling 시작')
                 call_command('save_short_selling', code=stock_code, mode='all')
                 logger.info(f'[FAV] {stock_code} save_gongsi_stock 시작')
@@ -888,7 +890,7 @@ def stock_edit(request, code):
     # 수급 (투자자별 매매동향, 최근 60일)
     investor_trends = list(InvestorTrend.objects.filter(stock=stock).order_by('-date')[:60])
 
-    # 수급 누적 차트 데이터 (오래된 날짜부터)
+    # 수급 누적 차트 데이터 - 키움 (오래된 날짜부터)
     investor_chart_data = []
     if investor_trends:
         trends_asc = list(reversed(investor_trends))
@@ -904,6 +906,24 @@ def stock_edit(request, code):
                 'individual': cum_individual,
                 'foreign': cum_foreign,
                 'institution': cum_institution,
+            })
+
+    # 수급 데이터 - 다음 (daum_foreign, daum_institution이 있는 것만)
+    investor_trends_daum = [t for t in investor_trends if t.daum_foreign is not None or t.daum_institution is not None]
+
+    # 수급 누적 차트 데이터 - 다음
+    investor_chart_data_daum = []
+    if investor_trends_daum:
+        trends_daum_asc = list(reversed(investor_trends_daum))
+        cum_daum_foreign = 0
+        cum_daum_institution = 0
+        for t in trends_daum_asc:
+            cum_daum_foreign += t.daum_foreign or 0
+            cum_daum_institution += t.daum_institution or 0
+            investor_chart_data_daum.append({
+                'date': t.date.strftime('%m.%d'),
+                'foreign': cum_daum_foreign,
+                'institution': cum_daum_institution,
             })
 
     # 공매도 (최근 60일)
@@ -953,6 +973,8 @@ def stock_edit(request, code):
         'gongsi_list': gongsi_list,
         'investor_trends': investor_trends,
         'investor_chart_data': json.dumps(investor_chart_data),
+        'investor_trends_daum': investor_trends_daum,
+        'investor_chart_data_daum': json.dumps(investor_chart_data_daum),
         'short_sellings': short_sellings,
         'youtube_videos': youtube_videos,
         'news_articles': news_articles,
