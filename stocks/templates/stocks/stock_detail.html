@@ -141,10 +141,10 @@
                                 {% if not has_recent_report and not has_recent_nodaji and not has_recent_gongsi %}<span class="text-muted">없음</span>{% endif %}
                             </div>
                         </div>
-                        <!-- 수급/공매도 -->
+                        <!-- 수급/공매도/괴리율 -->
                         <div class="border-top pt-2 mt-2">
                             <div class="row small">
-                                <div class="col-6">
+                                <div class="col-5">
                                     <span class="text-muted">수급</span>
                                     {% if latest_investor %}
                                     <div class="d-flex gap-2">
@@ -153,10 +153,16 @@
                                     </div>
                                     {% else %}<div class="text-muted">-</div>{% endif %}
                                 </div>
-                                <div class="col-6">
+                                <div class="col-4">
                                     <span class="text-muted">공매도</span>
                                     {% if latest_short %}
                                     <div>{{ latest_short.weight }}%</div>
+                                    {% else %}<div class="text-muted">-</div>{% endif %}
+                                </div>
+                                <div class="col-3">
+                                    <span class="text-muted">괴리율</span>
+                                    {% if latest_report_gap is not None %}
+                                    <div class="{% if latest_report_gap > 0 %}text-danger{% elif latest_report_gap < 0 %}text-primary{% endif %}">{% if latest_report_gap > 0 %}+{% endif %}{{ latest_report_gap }}%</div>
                                     {% else %}<div class="text-muted">-</div>{% endif %}
                                 </div>
                             </div>

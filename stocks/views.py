@@ -789,6 +789,11 @@ def stock_detail(request, code):
             'weight': short_sellings[0].trading_weight,
         }
 
+    # 최근 리포트 괴리율
+    latest_report_gap = None
+    if reports and hasattr(reports[0], 'gap_rate') and reports[0].gap_rate is not None:
+        latest_report_gap = reports[0].gap_rate
+
     # 주가 vs 목표가 차트 데이터 (리포트 탭용)
     price_chart_data = []
     target_chart_data = []
@@ -820,6 +825,7 @@ def stock_detail(request, code):
         'has_recent_gongsi': has_recent_gongsi,
         'latest_investor': latest_investor,
         'latest_short': latest_short,
+        'latest_report_gap': latest_report_gap,
         'annual_labels': json.dumps(annual_labels),
         'annual_revenue': json.dumps(annual_revenue),
         'annual_op': json.dumps(annual_op),
