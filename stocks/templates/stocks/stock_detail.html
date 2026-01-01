@@ -1022,8 +1022,10 @@ document.querySelectorAll('.btn-view-telegram').forEach(btn => {
 // 노다지 요약 새창에서 보기
 document.querySelectorAll('.btn-view-nodaji-summary').forEach(btn => {
     btn.addEventListener('click', function() {
-        const html = this.dataset.summary;
+        let html = this.dataset.summary;
         if (html) {
+            // 유니코드 이스케이프 디코딩
+            html = html.replace(/\\u([0-9a-fA-F]{4})/g, (m, p1) => String.fromCharCode(parseInt(p1, 16)));
             const newWindow = window.open('', '_blank');
             newWindow.document.write(html);
             newWindow.document.close();
