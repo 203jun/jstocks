@@ -750,9 +750,9 @@ def stock_detail(request, code):
     from .models import News
     news_articles = News.objects.filter(stock=stock)
 
-    # 저장된 텔레그램 메시지
+    # 저장된 텔레그램 메시지 (최신순)
     from .models import TelegramMessage
-    telegram_messages = TelegramMessage.objects.filter(stock=stock)
+    telegram_messages = TelegramMessage.objects.filter(stock=stock).order_by('-date', '-time')
 
     # 질문리포트
     from .models import StockQuestionReport
@@ -1153,9 +1153,9 @@ def stock_edit(request, code):
     from .models import News
     news_articles = News.objects.filter(stock=stock)
 
-    # 저장된 텔레그램 메시지
+    # 저장된 텔레그램 메시지 (최신순)
     from .models import TelegramMessage
-    telegram_messages = TelegramMessage.objects.filter(stock=stock)
+    telegram_messages = TelegramMessage.objects.filter(stock=stock).order_by('-date', '-time')
 
     # 질문리포트
     from .models import StockQuestionReport
