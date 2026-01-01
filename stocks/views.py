@@ -744,6 +744,14 @@ def stock_detail(request, code):
     from .models import StockQuestionReport
     question_reports = StockQuestionReport.objects.filter(stock=stock).order_by('-created_at')
 
+    # 거래량 변동률 계산 (전일 대비)
+    volume_change_rate = None
+    if len(daily_charts) >= 2:
+        today_volume = daily_charts[-1].trading_volume
+        prev_volume = daily_charts[-2].trading_volume
+        if prev_volume and prev_volume > 0:
+            volume_change_rate = round((today_volume - prev_volume) / prev_volume * 100, 1)
+
     # 주가 vs 목표가 차트 데이터 (리포트 탭용)
     price_chart_data = []
     target_chart_data = []
@@ -769,6 +777,7 @@ def stock_detail(request, code):
         'stock': stock,
         'sectors': sectors,
         'analysis_html_exists': analysis_html_exists,
+        'volume_change_rate': volume_change_rate,
         'annual_labels': json.dumps(annual_labels),
         'annual_revenue': json.dumps(annual_revenue),
         'annual_op': json.dumps(annual_op),

@@ -108,53 +108,48 @@
             {% endif %}
         </table>
 
-        <!-- 가격 정보 카드 -->
-        <div class="card mb-3">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-6 col-md-3">
-                        <small class="text-muted">현재가</small>
-                        <div class="fs-4 fw-bold" id="currentPrice">
-                            {% if stock.current_price %}
-                                {{ stock.current_price|intcomma }}
-                            {% else %}
-                                -
-                            {% endif %}
+        <!-- 가격 정보 + 메모 -->
+        <div class="row mb-3">
+            <!-- 가격 정보 카드 (40%) -->
+            <div class="col-12 col-md-5 col-lg-4 mb-3 mb-md-0">
+                <div class="card h-100">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <small class="text-muted d-block">현재가</small>
+                                <span class="fs-4 fw-bold" id="currentPrice">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</span>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted d-block">등락율</small>
+                                <span class="fs-5 fw-bold {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}" id="changeRate">{% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <small class="text-muted">등락율</small>
-                        <div class="fs-4 fw-bold {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}" id="changeRate">
-                            {% if stock.change_rate %}
-                                {% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%
-                            {% else %}
-                                -
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <small class="text-muted">전일대비</small>
-                        <div class="{% if stock.price_change > 0 %}text-up{% elif stock.price_change < 0 %}text-down{% endif %}" id="priceChange">
-                            {% if stock.price_change %}
-                                {% if stock.price_change > 0 %}+{% endif %}{{ stock.price_change|intcomma }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <small class="text-muted">거래량</small>
-                        <div id="volume">
-                            {% if stock.volume %}
-                                {{ stock.volume|intcomma }}
-                            {% else %}
-                                -
+                        <div class="border-top pt-2">
+                            <small class="text-muted">거래량</small>
+                            <span class="ms-2" id="volume">{% if stock.volume %}{{ stock.volume|intcomma }}{% else %}-{% endif %}</span>
+                            {% if volume_change_rate is not None %}
+                            <span class="ms-1 small {% if volume_change_rate > 0 %}text-up{% elif volume_change_rate < 0 %}text-down{% endif %}" id="volumeChange">({% if volume_change_rate > 0 %}+{% endif %}{{ volume_change_rate }}%)</span>
                             {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
+            <!-- 메모 카드 (60%) -->
+            <div class="col-12 col-md-7 col-lg-8">
+                <div class="card h-100">
+                    <div class="card-header py-1 d-flex justify-content-between align-items-center">
+                        <strong class="small">메모</strong>
+                        {% if stock.memo_updated_at %}<small class="text-muted">{{ stock.memo_updated_at|date:"m.d" }}</small>{% endif %}
+                    </div>
+                    <div class="card-body py-2" style="max-height: 100px; overflow-y: auto;">
+                        <div class="content markdown-content small" id="memoMarkdown"></div>
+                        <script type="text/plain" id="memoRaw">{{ stock.memo|default:"-"|safe }}</script>
+                    </div>
+                </div>
+            </div>
         </div>
+        <!-- 숨김 요소들 (새로고침 시 필요) -->
+        <span id="priceChange" style="display:none;">{% if stock.price_change %}{{ stock.price_change }}{% endif %}</span>
 
         <!-- 인사이트 (투자포인트/리스크/일정 통합) -->
         {% if stock.insight_summary_html or stock.insight_report_html %}
@@ -190,17 +185,6 @@
         </div>
         {% endif %}
 
-        <!-- 메모 -->
-        <div class="card mb-3">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <strong>메모</strong>
-                {% if stock.memo_updated_at %}<small class="text-muted">update: {{ stock.memo_updated_at|date:"Y-m-d" }}</small>{% endif %}
-            </div>
-            <div class="card-body">
-                <div class="content markdown-content" id="memoMarkdown"></div>
-                <script type="text/plain" id="memoRaw">{{ stock.memo|default:"-"|safe }}</script>
-            </div>
-        </div>
 
         <!-- 질문리포트 -->
         {% if question_reports %}
