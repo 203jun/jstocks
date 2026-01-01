@@ -133,7 +133,8 @@
                         </div>
                         <!-- 최근 5거래일 정보/리포트/노다지/공시 -->
                         <div class="border-top pt-2 mt-2">
-                            <div class="d-flex flex-wrap gap-1 small">
+                            <div class="d-flex flex-wrap align-items-center gap-1 small">
+                                <span class="text-muted">5거래일</span>
                                 {% if has_recent_report %}<span class="badge bg-primary">리포트</span>{% endif %}
                                 {% if has_recent_nodaji %}<span class="badge bg-warning text-dark">노다지</span>{% endif %}
                                 {% if has_recent_gongsi %}<span class="badge bg-info">공시</span>{% endif %}
