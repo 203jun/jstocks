@@ -28,6 +28,9 @@
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="news-tab" data-bs-toggle="tab" data-bs-target="#news-content" type="button" role="tab">뉴스</button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="nodaji-tab" data-bs-toggle="tab" data-bs-target="#nodaji-content" type="button" role="tab">노다지</button>
+    </li>
 </ul>
 
 <div class="tab-content" id="mainTabContent">
@@ -424,6 +427,60 @@
                 <div id="newsResult">
                     <div class="text-muted">검색어를 입력하고 검색 버튼을 클릭하세요.</div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 노다지 탭 -->
+    <div class="tab-pane fade" id="nodaji-content" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2">
+                <strong>노다지 IR노트</strong>
+                <small class="text-muted ms-2">{{ nodaji_list|length }}개{% if total_nodaji > 20 %} / {{ total_nodaji }}개{% endif %}</small>
+            </div>
+            <div class="card-body {% if nodaji_list %}p-0{% endif %}">
+                {% if nodaji_list %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0" id="nodajiTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3" style="width:100px;">날짜</th>
+                                <th>제목</th>
+                                <th style="width:80px;" class="text-center">요약</th>
+                            </tr>
+                        </thead>
+                        <tbody id="nodajiTableBody">
+                            {% for article in nodaji_list %}
+                            <tr>
+                                <td class="text-muted small ps-3">{{ article.date|date:"y/m/d"|default:"-" }}</td>
+                                <td><a href="{{ article.link }}" target="_blank" class="text-decoration-none">{{ article.title }}</a></td>
+                                <td class="text-center text-nowrap">
+                                    {% if article.summary %}
+                                    <button type="button" class="btn btn-sm p-0 border-0 btn-view-nodaji" data-summary="{{ article.summary|escapejs }}" title="새창에서 보기">
+                                        <span class="badge bg-success">O</span>
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-sm p-0 border-0 btn-toggle-nodaji ms-1" data-id="{{ article.id }}" title="편집">
+                                        <span class="badge bg-secondary">✎</span>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="nodaji-edit-row d-none" data-id="{{ article.id }}">
+                                <td colspan="3" class="bg-light p-3">
+                                    <textarea class="form-control form-control-sm nodaji-textarea" rows="5" placeholder="HTML 형식으로 입력...">{{ article.summary }}</textarea>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <small class="text-muted">HTML 붙여넣기 후 저장</small>
+                                        <button type="button" class="btn btn-primary btn-sm btn-save-nodaji" data-id="{{ article.id }}">저장</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-muted p-3">노다지 기사가 없습니다.</div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -1312,6 +1369,98 @@ async function searchNews() {
 btnNews?.addEventListener('click', searchNews);
 newsSearchInput?.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') searchNews();
+});
+
+// ============ 노다지 요약 보기/편집/저장 ============
+
+// 노다지 요약 새창에서 보기
+document.querySelectorAll('.btn-view-nodaji').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const html = this.dataset.summary;
+        if (html) {
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(html);
+            newWindow.document.close();
+        }
+    });
+});
+
+// 노다지 요약 편집 토글
+document.querySelectorAll('.btn-toggle-nodaji').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = this.dataset.id;
+        const row = document.querySelector(`.nodaji-edit-row[data-id="${id}"]`);
+        row.classList.toggle('d-none');
+    });
+});
+
+// 노다지 요약 저장
+document.querySelectorAll('.btn-save-nodaji').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const id = this.dataset.id;
+        const row = document.querySelector(`.nodaji-edit-row[data-id="${id}"]`);
+        const textarea = row.querySelector('.nodaji-textarea');
+        const summary = textarea.value;
+
+        this.disabled = true;
+        this.textContent = '저장 중...';
+
+        try {
+            const response = await fetch(`/nodaji/${id}/summary/`, {
+                method: 'POST',
+                body: new URLSearchParams({ summary: summary }),
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            });
+
+            if (response.ok) {
+                // 보기 버튼 업데이트
+                const btnCell = document.querySelector(`.btn-toggle-nodaji[data-id="${id}"]`).parentElement;
+                let viewBtn = btnCell.querySelector('.btn-view-nodaji');
+
+                if (summary) {
+                    if (!viewBtn) {
+                        viewBtn = document.createElement('button');
+                        viewBtn.type = 'button';
+                        viewBtn.className = 'btn btn-sm p-0 border-0 btn-view-nodaji';
+                        viewBtn.dataset.summary = summary;
+                        viewBtn.title = '새창에서 보기';
+                        viewBtn.innerHTML = '<span class="badge bg-success">O</span>';
+                        btnCell.insertBefore(viewBtn, btnCell.firstChild);
+                        viewBtn.addEventListener('click', function() {
+                            const newWindow = window.open('', '_blank');
+                            newWindow.document.write(summary);
+                            newWindow.document.close();
+                        });
+                    } else {
+                        viewBtn.dataset.summary = summary;
+                    }
+                } else {
+                    if (viewBtn) viewBtn.remove();
+                }
+
+                this.textContent = '저장됨';
+                this.classList.remove('btn-primary');
+                this.classList.add('btn-success');
+                setTimeout(() => {
+                    this.textContent = '저장';
+                    this.classList.remove('btn-success');
+                    this.classList.add('btn-primary');
+                    this.disabled = false;
+                }, 1500);
+            } else {
+                alert('저장 실패');
+                this.disabled = false;
+                this.textContent = '저장';
+            }
+        } catch (err) {
+            alert('오류: ' + err.message);
+            this.disabled = false;
+            this.textContent = '저장';
+        }
+    });
 });
 </script>
 <style>
