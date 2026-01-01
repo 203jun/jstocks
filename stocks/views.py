@@ -4145,10 +4145,20 @@ def youtube_video_save_by_link(request):
             else:
                 views = f'조회수 {view_count}회'
 
-        # 업로드 날짜 추출
+        # 업로드 날짜 추출 (여러 패턴 시도)
         date_match = re.search(r'"publishDate":"(\d{4}-\d{2}-\d{2})"', response.text)
         if date_match:
             published = date_match.group(1)
+        else:
+            # 대체 패턴 1: uploadDate
+            date_match = re.search(r'"uploadDate":"(\d{4}-\d{2}-\d{2})"', response.text)
+            if date_match:
+                published = date_match.group(1)
+            else:
+                # 대체 패턴 2: dateText
+                date_match = re.search(r'"dateText":\{"simpleText":"([^"]+)"\}', response.text)
+                if date_match:
+                    published = date_match.group(1)
 
         if not title:
             return JsonResponse({'error': '영상 정보를 가져올 수 없습니다.'}, status=400)
@@ -5506,10 +5516,20 @@ def sector_youtube_video_save_by_link(request):
             else:
                 views = f'조회수 {view_count}회'
 
-        # 업로드 날짜 추출
+        # 업로드 날짜 추출 (여러 패턴 시도)
         date_match = re.search(r'"publishDate":"(\d{4}-\d{2}-\d{2})"', response.text)
         if date_match:
             published = date_match.group(1)
+        else:
+            # 대체 패턴 1: uploadDate
+            date_match = re.search(r'"uploadDate":"(\d{4}-\d{2}-\d{2})"', response.text)
+            if date_match:
+                published = date_match.group(1)
+            else:
+                # 대체 패턴 2: dateText
+                date_match = re.search(r'"dateText":\{"simpleText":"([^"]+)"\}', response.text)
+                if date_match:
+                    published = date_match.group(1)
 
         if not title:
             return JsonResponse({'error': '영상 정보를 가져올 수 없습니다.'}, status=400)
