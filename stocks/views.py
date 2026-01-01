@@ -653,6 +653,20 @@ def stock_detail(request, code):
     total_reports = reports_queryset.count()
     reports = list(reports_queryset[:20])
 
+    # 리포트별 괴리율 계산 (목표가 vs 해당일 종가)
+    if reports:
+        report_dates = [r.date for r in reports if r.date]
+        price_by_date = {
+            dc.date: dc.closing_price
+            for dc in DailyChart.objects.filter(stock=stock, date__in=report_dates)
+        }
+        for r in reports:
+            if r.target_price and r.date in price_by_date:
+                closing = price_by_date[r.date]
+                r.gap_rate = round((r.target_price / closing - 1) * 100, 1)
+            else:
+                r.gap_rate = None
+
     # 노다지 (최근 20개)
     nodaji_queryset = Nodaji.objects.filter(
         stock=stock,
