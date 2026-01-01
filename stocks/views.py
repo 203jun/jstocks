@@ -1070,6 +1070,7 @@ def stock_edit(request, code):
     ).order_by('-date')
     total_nodaji = nodaji_queryset.count()
     nodaji_list = list(nodaji_queryset[:20])
+    nodaji_summary_count = sum(1 for n in nodaji_list if n.summary)
 
     # 공시 (최근 20개)
     gongsi_list = Gongsi.objects.filter(stock=stock).order_by('-date')[:20]
@@ -1179,6 +1180,7 @@ def stock_edit(request, code):
         'gap_chart_data': json.dumps(gap_chart_data),
         'nodaji_list': nodaji_list,
         'total_nodaji': total_nodaji,
+        'nodaji_summary_count': nodaji_summary_count,
         'gongsi_list': gongsi_list,
         'investor_trends': investor_trends,
         'investor_chart_data': json.dumps(investor_chart_data),

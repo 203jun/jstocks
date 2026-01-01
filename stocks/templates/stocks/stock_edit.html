@@ -23,16 +23,16 @@
         <button class="nav-link" id="question-report-tab" data-bs-toggle="tab" data-bs-target="#question-report-content" type="button" role="tab">질문리포트</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="telegram-tab" data-bs-toggle="tab" data-bs-target="#telegram-content" type="button" role="tab">텔레그램</button>
+        <button class="nav-link" id="telegram-tab" data-bs-toggle="tab" data-bs-target="#telegram-content" type="button" role="tab">텔레그램{% if telegram_messages %}<span class="badge bg-primary ms-1">{{ telegram_messages|length }}</span>{% endif %}</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="news-tab" data-bs-toggle="tab" data-bs-target="#news-content" type="button" role="tab">뉴스</button>
+        <button class="nav-link" id="news-tab" data-bs-toggle="tab" data-bs-target="#news-content" type="button" role="tab">뉴스{% if news_articles %}<span class="badge bg-primary ms-1">{{ news_articles|length }}</span>{% endif %}</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="nodaji-tab" data-bs-toggle="tab" data-bs-target="#nodaji-content" type="button" role="tab">노다지</button>
+        <button class="nav-link" id="nodaji-tab" data-bs-toggle="tab" data-bs-target="#nodaji-content" type="button" role="tab">노다지{% if nodaji_summary_count %}<span class="badge bg-success ms-1">{{ nodaji_summary_count }}</span>{% endif %}</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="youtube-tab" data-bs-toggle="tab" data-bs-target="#youtube-content" type="button" role="tab">유튜브</button>
+        <button class="nav-link" id="youtube-tab" data-bs-toggle="tab" data-bs-target="#youtube-content" type="button" role="tab">유튜브{% if youtube_videos %}<span class="badge bg-primary ms-1">{{ youtube_videos|length }}</span>{% endif %}</button>
     </li>
 </ul>
 
