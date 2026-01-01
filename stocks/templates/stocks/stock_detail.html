@@ -840,11 +840,13 @@
                                 <td class="text-muted small ps-3">{{ article.date|date:"y/m/d"|default:"-" }}</td>
                                 <td><a href="{{ article.link }}" target="_blank" class="text-decoration-none">{{ article.title }}</a></td>
                                 <td class="text-center">
-                                    {% if article.summary %}
-                                    <button type="button" class="btn btn-sm p-0 border-0 btn-view-nodaji-summary" data-id="{{ article.id }}" title="요약 보기">
+                                    <a href="{% url 'stocks:nodaji_summary' article.id %}" class="text-decoration-none" title="요약">
+                                        {% if article.summary %}
                                         <span class="badge bg-success">O</span>
-                                    </button>
-                                    {% endif %}
+                                        {% else %}
+                                        <span class="badge bg-secondary">-</span>
+                                        {% endif %}
+                                    </a>
                                 </td>
                             </tr>
                             {% endfor %}
