@@ -131,6 +131,35 @@
                             <span class="ms-1 small {% if volume_change_rate > 0 %}text-up{% elif volume_change_rate < 0 %}text-down{% endif %}" id="volumeChange">({% if volume_change_rate > 0 %}+{% endif %}{{ volume_change_rate }}%)</span>
                             {% endif %}
                         </div>
+                        <!-- 최근 5거래일 정보/리포트/노다지/공시 -->
+                        <div class="border-top pt-2 mt-2">
+                            <div class="d-flex flex-wrap gap-1 small">
+                                {% if has_recent_report %}<span class="badge bg-primary">리포트</span>{% endif %}
+                                {% if has_recent_nodaji %}<span class="badge bg-warning text-dark">노다지</span>{% endif %}
+                                {% if has_recent_gongsi %}<span class="badge bg-info">공시</span>{% endif %}
+                                {% if not has_recent_report and not has_recent_nodaji and not has_recent_gongsi %}<span class="text-muted">없음</span>{% endif %}
+                            </div>
+                        </div>
+                        <!-- 수급/공매도 -->
+                        <div class="border-top pt-2 mt-2">
+                            <div class="row small">
+                                <div class="col-6">
+                                    <span class="text-muted">수급</span>
+                                    {% if latest_investor %}
+                                    <div class="d-flex gap-2">
+                                        <span class="{% if latest_investor.foreign > 0 %}text-up{% elif latest_investor.foreign < 0 %}text-down{% endif %}">외{% if latest_investor.foreign > 0 %}+{% endif %}{{ latest_investor.foreign|intcomma }}</span>
+                                        <span class="{% if latest_investor.institution > 0 %}text-up{% elif latest_investor.institution < 0 %}text-down{% endif %}">기{% if latest_investor.institution > 0 %}+{% endif %}{{ latest_investor.institution|intcomma }}</span>
+                                    </div>
+                                    {% else %}<div class="text-muted">-</div>{% endif %}
+                                </div>
+                                <div class="col-6">
+                                    <span class="text-muted">공매도</span>
+                                    {% if latest_short %}
+                                    <div>{{ latest_short.weight }}%</div>
+                                    {% else %}<div class="text-muted">-</div>{% endif %}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

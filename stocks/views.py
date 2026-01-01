@@ -752,6 +752,29 @@ def stock_detail(request, code):
         if prev_volume and prev_volume > 0:
             volume_change_rate = round((today_volume - prev_volume) / prev_volume * 100, 1)
 
+    # 최근 5거래일 기준 리포트/노다지/공시 존재 여부
+    recent_5_dates = [d.date for d in daily_charts[-5:]] if len(daily_charts) >= 5 else [d.date for d in daily_charts]
+    has_recent_report = any(r.date in recent_5_dates for r in reports if r.date)
+    has_recent_nodaji = any(n.date in recent_5_dates for n in nodaji_list if n.date)
+    has_recent_gongsi = any(g.date in recent_5_dates for g in gongsi_list if g.date)
+
+    # 최근 수급 (다음 기준, 외국인/기관)
+    latest_investor = None
+    if investor_trends_daum:
+        latest_investor = {
+            'date': investor_trends_daum[0].date,
+            'foreign': investor_trends_daum[0].daum_foreign,
+            'institution': investor_trends_daum[0].daum_institution,
+        }
+
+    # 최근 공매도 비중
+    latest_short = None
+    if short_sellings:
+        latest_short = {
+            'date': short_sellings[0].date,
+            'weight': short_sellings[0].trading_weight,
+        }
+
     # 주가 vs 목표가 차트 데이터 (리포트 탭용)
     price_chart_data = []
     target_chart_data = []
@@ -778,6 +801,11 @@ def stock_detail(request, code):
         'sectors': sectors,
         'analysis_html_exists': analysis_html_exists,
         'volume_change_rate': volume_change_rate,
+        'has_recent_report': has_recent_report,
+        'has_recent_nodaji': has_recent_nodaji,
+        'has_recent_gongsi': has_recent_gongsi,
+        'latest_investor': latest_investor,
+        'latest_short': latest_short,
         'annual_labels': json.dumps(annual_labels),
         'annual_revenue': json.dumps(annual_revenue),
         'annual_op': json.dumps(annual_op),
