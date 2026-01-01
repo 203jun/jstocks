@@ -83,47 +83,30 @@
         {% endif %}
 
         <!-- 질문리포트 -->
+        {% if question_reports %}
         <div class="card mb-3">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+            <div class="card-header py-2">
                 <strong>질문리포트</strong>
-                <span class="badge bg-secondary">{{ question_reports|length }}건</span>
+                <span class="badge bg-primary ms-1">{{ question_reports|length }}</span>
             </div>
             <div class="card-body p-0">
-                {% if question_reports %}
-                <div class="accordion accordion-flush" id="questionReportAccordion">
+                <div class="list-group list-group-flush">
                     {% for qr in question_reports %}
-                    <div class="accordion-item">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#qr{{ qr.id }}" aria-expanded="false">
-                                <span class="small">{{ qr.question|truncatechars:80 }}</span>
-                            </button>
-                        </h2>
-                        <div id="qr{{ qr.id }}" class="accordion-collapse collapse" data-bs-parent="#questionReportAccordion">
-                            <div class="accordion-body p-2">
-                                {% if qr.report %}
-                                <iframe id="qrFrame{{ qr.id }}" style="width: 100%; border: none; min-height: 200px;" onload="adjustIframeHeight(this)"></iframe>
-                                {% else %}
-                                <div class="text-center text-muted py-2">
-                                    <small>리포트가 없습니다.</small>
-                                </div>
-                                {% endif %}
-                            </div>
+                    <a href="#" class="list-group-item list-group-item-action py-2 btn-view-qr" data-qr-id="{{ qr.id }}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-truncate" style="max-width: 90%;">{{ qr.question|truncatechars:80 }}</span>
+                            <small class="text-muted">{{ qr.created_at|date:"m.d" }}</small>
                         </div>
-                    </div>
+                    </a>
                     {% endfor %}
                 </div>
-                {% else %}
-                <div class="text-center text-muted py-4">
-                    <small>등록된 질문리포트가 없습니다.</small>
-                </div>
-                {% endif %}
             </div>
         </div>
         {% for qr in question_reports %}
-        {% if qr.report %}
-        <template id="qrContent{{ qr.id }}">{{ qr.report|safe }}</template>
-        {% endif %}
+        <textarea id="qr-question-{{ qr.id }}" style="display:none;">{{ qr.question }}</textarea>
+        <textarea id="qr-report-{{ qr.id }}" style="display:none;">{{ qr.report }}</textarea>
         {% endfor %}
+        {% endif %}
 
         <!-- 메모 -->
         <div class="card">
@@ -455,15 +438,42 @@ function adjustIframeHeight(iframe) {
     }
 })();
 
-// 질문리포트 아코디언 열릴 때 iframe 로드
-document.querySelectorAll('.accordion-collapse').forEach(function(collapse) {
-    collapse.addEventListener('shown.bs.collapse', function() {
-        var id = this.id.replace('qr', '');
-        var template = document.getElementById('qrContent' + id);
-        var frame = document.getElementById('qrFrame' + id);
-        if (template && frame && !frame.srcdoc) {
-            frame.srcdoc = template.innerHTML;
-        }
+// 질문리포트 새창 열기
+document.querySelectorAll('.btn-view-qr').forEach(el => {
+    el.addEventListener('click', (e) => {
+        e.preventDefault();
+        const qrId = el.dataset.qrId;
+        const questionEl = document.getElementById(`qr-question-${qrId}`);
+        const reportEl = document.getElementById(`qr-report-${qrId}`);
+        const question = questionEl ? questionEl.value : '';
+        const report = reportEl ? reportEl.value : '';
+
+        const previewWindow = window.open('', '_blank', 'width=800,height=600');
+        previewWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>${question.substring(0, 50)}</title>
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                <style>
+                    body { padding: 20px; }
+                    .question { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+                </style>
+            </head>
+            <body>
+                <div class="question">
+                    <strong>질문:</strong><br>
+                    ${question.replace(/\n/g, '<br>')}
+                </div>
+                <hr>
+                <div class="report">
+                    ${report || '<span class="text-muted">리포트가 없습니다.</span>'}
+                </div>
+            </body>
+            </html>
+        `);
+        previewWindow.document.close();
     });
 });
 
