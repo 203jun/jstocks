@@ -742,13 +742,13 @@ def stock_detail(request, code):
     # 공매도 (최근 60일)
     short_sellings = ShortSelling.objects.filter(stock=stock).order_by('-date')[:60]
 
-    # 저장된 유튜브 영상
+    # 저장된 유튜브 영상 (최신순)
     from .models import YoutubeVideo
-    youtube_videos = YoutubeVideo.objects.filter(stock=stock)
+    youtube_videos = YoutubeVideo.objects.filter(stock=stock).order_by('-created_at')
 
-    # 저장된 뉴스
+    # 저장된 뉴스 (최신순)
     from .models import News
-    news_articles = News.objects.filter(stock=stock)
+    news_articles = News.objects.filter(stock=stock).order_by('-created_at')
 
     # 저장된 텔레그램 메시지 (최신순)
     from .models import TelegramMessage
@@ -1146,12 +1146,12 @@ def stock_edit(request, code):
     # 관심섹터 (전체)
     custom_sectors = CustomSector.objects.all()
 
-    # 저장된 유튜브 영상
-    youtube_videos = YoutubeVideo.objects.filter(stock=stock)
+    # 저장된 유튜브 영상 (최신순)
+    youtube_videos = YoutubeVideo.objects.filter(stock=stock).order_by('-created_at')
 
-    # 저장된 뉴스
+    # 저장된 뉴스 (최신순)
     from .models import News
-    news_articles = News.objects.filter(stock=stock)
+    news_articles = News.objects.filter(stock=stock).order_by('-created_at')
 
     # 저장된 텔레그램 메시지 (최신순)
     from .models import TelegramMessage
