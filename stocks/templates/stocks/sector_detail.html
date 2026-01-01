@@ -186,8 +186,7 @@
 
     <!-- 뉴스 탭 -->
     <div class="tab-pane fade" id="news-content" role="tabpanel">
-        <!-- 저장된 뉴스 -->
-        <div class="card mb-3">
+        <div class="card">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <strong>저장된 뉴스</strong>
                 <span class="badge bg-primary">{{ news_articles|length }}</span>
@@ -214,32 +213,6 @@
                     {% empty %}
                     <div class="text-center text-muted py-3">저장된 뉴스가 없습니다.</div>
                     {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Google 뉴스 검색 -->
-        <div class="card">
-            <div class="card-header py-2">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>Google 뉴스</strong>
-                    </div>
-                </div>
-                <div class="mt-2 d-flex gap-2">
-                    <input type="text" id="newsSearchInput" class="form-control form-control-sm" value="{{ sector.name }}" placeholder="검색어 입력">
-                    <button type="button" id="btnSearchNews" class="btn btn-sm btn-outline-info" style="white-space: nowrap;">
-                        검색
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
-                <div id="newsLoading" class="text-center py-3 d-none">
-                    <div class="spinner-border spinner-border-sm text-info" role="status"></div>
-                    <span class="ms-2">검색 중... (5~10초 소요)</span>
-                </div>
-                <div id="newsResult">
-                    <div class="text-muted">검색어를 입력하고 검색 버튼을 클릭하세요.</div>
                 </div>
             </div>
         </div>
@@ -578,53 +551,6 @@ document.getElementById('btnSearchReport').addEventListener('click', async funct
     } finally {
         loading.classList.add('d-none');
     }
-});
-
-// 뉴스 검색
-async function searchNews() {
-    const searchQuery = document.getElementById('newsSearchInput').value.trim();
-    if (!searchQuery) {
-        alert('검색어를 입력하세요.');
-        return;
-    }
-
-    const loading = document.getElementById('newsLoading');
-    const result = document.getElementById('newsResult');
-
-    loading.classList.remove('d-none');
-    result.innerHTML = '';
-
-    try {
-        const response = await fetch(`/api/news/search/?keyword=${encodeURIComponent(searchQuery)}`);
-        const data = await response.json();
-
-        if (data.error) {
-            result.innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
-        } else if (data.results.length === 0) {
-            result.innerHTML = '<div class="text-muted">검색 결과가 없습니다.</div>';
-        } else {
-            let html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0">';
-            html += '<thead class="table-light"><tr><th class="ps-3" style="width:100px;">날짜</th><th>제목</th><th style="width:100px;" class="d-none d-md-table-cell">출처</th></tr></thead><tbody>';
-            data.results.forEach(item => {
-                html += `<tr>`;
-                html += `<td class="text-muted ps-3" style="font-size:0.75rem;">${(item.date || '').slice(0, 10) || '-'}</td>`;
-                html += `<td><a href="${item.link}" target="_blank" class="text-decoration-none">${item.title}</a></td>`;
-                html += `<td class="text-muted d-none d-md-table-cell" style="font-size:0.75rem;">${item.source || ''}</td>`;
-                html += `</tr>`;
-            });
-            html += '</tbody></table></div>';
-            result.innerHTML = html;
-        }
-    } catch (err) {
-        result.innerHTML = '<div class="text-danger">오류: ' + err.message + '</div>';
-    } finally {
-        loading.classList.add('d-none');
-    }
-}
-
-document.getElementById('btnSearchNews').addEventListener('click', searchNews);
-document.getElementById('newsSearchInput').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') searchNews();
 });
 
 // 유튜브 검색 모드
