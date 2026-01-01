@@ -275,8 +275,8 @@ def index(request):
     # 카드 A, B, D에 포함된 종목 코드 (중복 제거용)
     card_abd_codes = card_ab_codes | {item['stock'].code for item in card_d_stocks}
 
-    # 카드 C: 신호 추적 (최근 5일 내 조건 충족)
-    # 조건: 최근 5일 내 60일 OR 20일 신고거래량 + 양봉 + MA20 위
+    # 카드 C: 신호 추적 (최근 5거래일 내 조건 충족)
+    # 조건: 최근 5거래일 내 60일 OR 20일 신고거래량 + 양봉 + MA20 위
     card_c_stocks = []
 
     for stock in target_stocks:
@@ -2632,7 +2632,7 @@ def etf(request):
 
     card_abd_codes = card_ab_codes | {item['etf'].code for item in card_d_etfs}
 
-    # 카드 C: 신호 추적 (최근 5일 내 조건 충족)
+    # 카드 C: 신호 추적 (최근 5거래일 내 조건 충족)
     card_c_etfs = []
 
     for etf_item in etfs:
