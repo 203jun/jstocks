@@ -1639,6 +1639,18 @@ if (btnCloseReportSearch) {
     });
 }
 
+// 전체 문구로 필터링
+function filterByKeyword(channelData, keyword) {
+    const result = {};
+    for (const date in channelData) {
+        const filtered = channelData[date].filter(item => item.text.includes(keyword));
+        if (filtered.length > 0) {
+            result[date] = filtered;
+        }
+    }
+    return result;
+}
+
 function renderReportChannelContent(channelData, keyword) {
     const dates = Object.keys(channelData).sort().reverse();
     if (dates.length === 0) return '<div class="text-muted">검색 결과가 없습니다.</div>';
@@ -1691,37 +1703,42 @@ document.querySelectorAll('.report-search-link').forEach(link => {
             const channels = Object.keys(data.results);
             const channelNames = data.channel_names || {};
 
-            if (channels.length === 0) {
-                reportSearchEmpty.classList.remove('d-none');
-                return;
-            }
-
             let tabsHtml = '';
             let contentHtml = '';
 
-            channels.forEach((channel, idx) => {
+            // 전체 문구가 포함된 메시지만 필터링한 결과로 탭 생성
+            channels.forEach((channel) => {
+                const channelData = data.results[channel];
+                const filteredData = filterByKeyword(channelData, keyword);
+                const totalCount = Object.values(filteredData).reduce((sum, arr) => sum + arr.length, 0);
+
+                if (totalCount === 0) return;
+
                 const channelId = 'rpt_' + channel.replace('@', '');
                 const displayName = channelNames[channel] || channel;
-                const isActive = idx === 0;
-                const msgCount = Object.values(data.results[channel]).flat().length;
+                const isFirst = tabsHtml === '';
 
                 tabsHtml += `
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link ${isActive ? 'active' : ''}" id="${channelId}-tab"
+                        <button class="nav-link ${isFirst ? 'active' : ''}" id="${channelId}-tab"
                             data-bs-toggle="tab" data-bs-target="#${channelId}-content" type="button" role="tab">
-                            ${displayName} <span class="badge bg-secondary">${msgCount}</span>
+                            ${displayName} <span class="badge bg-secondary">${totalCount}</span>
                         </button>
                     </li>`;
 
                 contentHtml += `
-                    <div class="tab-pane fade ${isActive ? 'show active' : ''}" id="${channelId}-content" role="tabpanel">
-                        ${renderReportChannelContent(data.results[channel], keyword)}
+                    <div class="tab-pane fade ${isFirst ? 'show active' : ''}" id="${channelId}-content" role="tabpanel">
+                        ${renderReportChannelContent(filteredData, keyword)}
                     </div>`;
             });
 
-            reportChannelTabs.innerHTML = tabsHtml;
-            reportChannelTabContent.innerHTML = contentHtml;
-            reportSearchTabs.classList.remove('d-none');
+            if (tabsHtml) {
+                reportChannelTabs.innerHTML = tabsHtml;
+                reportChannelTabContent.innerHTML = contentHtml;
+                reportSearchTabs.classList.remove('d-none');
+            } else {
+                reportSearchEmpty.classList.remove('d-none');
+            }
 
         } catch (err) {
             reportChannelTabContent.innerHTML = `<div class="alert alert-danger">오류: ${err.message}</div>`;
