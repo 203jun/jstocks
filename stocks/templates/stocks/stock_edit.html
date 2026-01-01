@@ -553,11 +553,14 @@
                             <button type="button" id="btnYoutubeGeneral" class="btn btn-outline-secondary active">일반</button>
                             <button type="button" id="btnYoutubePreferred" class="btn btn-outline-secondary">선호</button>
                         </div>
-                        <button type="button" id="btnSearchYoutube" class="btn btn-sm btn-danger">검색</button>
                     </div>
                 </div>
+                <div class="mt-2 d-flex gap-2">
+                    <input type="text" id="youtubeSearchInput" class="form-control form-control-sm" value="{{ stock.name }}" placeholder="검색어 입력">
+                    <button type="button" id="btnSearchYoutube" class="btn btn-sm btn-danger" style="white-space: nowrap;">검색</button>
+                </div>
                 <div class="mt-1">
-                    <small class="text-muted" id="youtubeSearchInfo">"{{ stock.name }} 주식" 검색 · 조회수 1,000회 이상 · 최신순</small>
+                    <small class="text-muted" id="youtubeSearchInfo">조회수 1,000회 이상 · 최신순</small>
                 </div>
             </div>
             <div class="card-body">
@@ -1562,6 +1565,7 @@ const btnYoutubeGeneral = document.getElementById('btnYoutubeGeneral');
 const btnYoutubePreferred = document.getElementById('btnYoutubePreferred');
 const youtubeSearchInfo = document.getElementById('youtubeSearchInfo');
 const youtubeLoadingText = document.getElementById('youtubeLoadingText');
+const youtubeSearchInput = document.getElementById('youtubeSearchInput');
 
 let youtubeSearchMode = 'general';
 
@@ -1570,14 +1574,14 @@ btnYoutubeGeneral?.addEventListener('click', () => {
     youtubeSearchMode = 'general';
     btnYoutubeGeneral.classList.add('active');
     btnYoutubePreferred.classList.remove('active');
-    youtubeSearchInfo.textContent = `"${stockName} 주식" 검색 · 조회수 1,000회 이상 · 최신순`;
+    youtubeSearchInfo.textContent = '조회수 1,000회 이상 · 최신순';
 });
 
 btnYoutubePreferred?.addEventListener('click', () => {
     youtubeSearchMode = 'preferred';
     btnYoutubePreferred.classList.add('active');
     btnYoutubeGeneral.classList.remove('active');
-    youtubeSearchInfo.textContent = `선호 채널에서 "${stockName}" 검색 · 조회수 1,000회 이상 · 최신순`;
+    youtubeSearchInfo.textContent = '선호 채널 검색 · 조회수 1,000회 이상 · 최신순';
 });
 
 // 저장된 video_id 목록 (중복 체크용)
@@ -1724,7 +1728,13 @@ function renderYoutubeResults(data) {
 }
 
 // 유튜브 검색
-btnYoutube?.addEventListener('click', async () => {
+async function searchYoutube() {
+    const searchQuery = youtubeSearchInput.value.trim();
+    if (!searchQuery) {
+        alert('검색어를 입력하세요.');
+        return;
+    }
+
     btnYoutube.disabled = true;
     youtubeLoading.classList.remove('d-none');
     youtubeResult.innerHTML = '';
@@ -1733,10 +1743,10 @@ btnYoutube?.addEventListener('click', async () => {
         let url;
         if (youtubeSearchMode === 'preferred') {
             youtubeLoadingText.textContent = '선호 채널 검색 중... (20~40초 소요)';
-            url = `/api/youtube/search/preferred/?keyword=${encodeURIComponent(stockName)}&min_views=1000`;
+            url = `/api/youtube/search/preferred/?keyword=${encodeURIComponent(searchQuery)}&min_views=1000`;
         } else {
             youtubeLoadingText.textContent = '검색 중...';
-            url = `/api/youtube/search/?keyword=${encodeURIComponent(stockName + ' 주식')}&min_views=1000`;
+            url = `/api/youtube/search/?keyword=${encodeURIComponent(searchQuery + ' 주식')}&min_views=1000`;
         }
 
         const response = await fetch(url);
@@ -1748,6 +1758,11 @@ btnYoutube?.addEventListener('click', async () => {
         btnYoutube.disabled = false;
         youtubeLoading.classList.add('d-none');
     }
+}
+
+btnYoutube?.addEventListener('click', searchYoutube);
+youtubeSearchInput?.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') searchYoutube();
 });
 
 // 유튜브 영상 저장 (검색 결과에서)
