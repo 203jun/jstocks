@@ -4262,6 +4262,44 @@ def news_save_by_link(request):
         if og_site and og_site.get('content'):
             source = og_site['content']
 
+        # 날짜 추출 (여러 메타 태그 시도)
+        published = ''
+        date_metas = [
+            ('meta', {'property': 'article:published_time'}),
+            ('meta', {'property': 'og:article:published_time'}),
+            ('meta', {'name': 'article:published_time'}),
+            ('meta', {'name': 'publishdate'}),
+            ('meta', {'name': 'date'}),
+            ('meta', {'property': 'og:regDate'}),
+        ]
+        for tag, attrs in date_metas:
+            meta = soup.find(tag, attrs)
+            if meta and meta.get('content'):
+                published = meta['content'][:10]  # YYYY-MM-DD 형식만
+                break
+
+        # JSON-LD에서 datePublished 추출 시도
+        if not published:
+            import json
+            import re
+            for script in soup.find_all('script', type='application/ld+json'):
+                try:
+                    data = json.loads(script.string or '')
+                    if isinstance(data, dict):
+                        date_val = data.get('datePublished') or data.get('dateCreated')
+                        if date_val:
+                            published = str(date_val)[:10]
+                            break
+                    elif isinstance(data, list):
+                        for item in data:
+                            if isinstance(item, dict):
+                                date_val = item.get('datePublished') or item.get('dateCreated')
+                                if date_val:
+                                    published = str(date_val)[:10]
+                                    break
+                except:
+                    pass
+
         if not title:
             return JsonResponse({'error': '뉴스 정보를 가져올 수 없습니다.'}, status=400)
 
@@ -4270,6 +4308,7 @@ def news_save_by_link(request):
             title=title,
             link=link,
             source=source,
+            published=published,
         )
 
         return JsonResponse({
