@@ -22,6 +22,9 @@
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="question-report-tab" data-bs-toggle="tab" data-bs-target="#question-report-content" type="button" role="tab">질문리포트</button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="telegram-tab" data-bs-toggle="tab" data-bs-target="#telegram-content" type="button" role="tab">텔레그램</button>
+    </li>
 </ul>
 
 <div class="tab-content" id="mainTabContent">
@@ -280,6 +283,88 @@
         </div>
     </div>
 
+    <!-- 텔레그램 탭 -->
+    <div class="tab-pane fade" id="telegram-content" role="tabpanel">
+        <!-- 저장된 메시지 -->
+        <div class="card mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>저장된 메시지</strong>
+                <span class="badge bg-primary" id="savedTelegramCount">{{ telegram_messages|length }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div id="savedTelegramList" class="list-group list-group-flush">
+                    {% for msg in telegram_messages %}
+                    <div class="list-group-item py-2" data-id="{{ msg.id }}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="badge bg-secondary">{{ msg.channel_name|default:msg.channel }}</span>
+                                    <small class="text-muted">{{ msg.date }} {{ msg.time }}</small>
+                                </div>
+                                <div class="small text-truncate-2" style="white-space: pre-wrap; max-height: 3em; overflow: hidden;">{{ msg.text|truncatechars:150 }}</div>
+                            </div>
+                            <div class="d-flex gap-2 ms-2" style="white-space: nowrap;">
+                                <button type="button" class="btn btn-sm btn-outline-primary btn-view-telegram"
+                                    data-channel="{{ msg.channel_name|default:msg.channel }}"
+                                    data-date="{{ msg.date }} {{ msg.time }}"
+                                    data-text="{{ msg.text|escapejs }}">전체보기</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-telegram" data-id="{{ msg.id }}">삭제</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-3" id="noSavedTelegram">저장된 메시지가 없습니다.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 검색 -->
+        <div class="card">
+            <div class="card-header py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>텔레그램 검색</strong>
+                        <small class="text-muted ms-2">1주일 데이터</small>
+                    </div>
+                </div>
+                <div class="mt-2 d-flex gap-2">
+                    <input type="text" id="telegramSearchInput" class="form-control form-control-sm" value="{{ stock.name }}" placeholder="검색어 입력">
+                    <button type="button" id="btnSearchTelegram" class="btn btn-sm btn-outline-primary" style="white-space: nowrap;">
+                        검색
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="telegramLoading" class="text-center py-3 d-none">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span class="ms-2">검색 중...</span>
+                </div>
+                <div id="telegramTabs" class="d-none">
+                    <ul class="nav nav-tabs" id="channelTabs" role="tablist"></ul>
+                    <div class="tab-content pt-3" id="channelTabContent"></div>
+                </div>
+                <div id="telegramEmpty" class="text-muted">검색어를 입력하고 검색 버튼을 클릭하세요.</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 텔레그램 메시지 전체보기 모달 -->
+<div class="modal fade" id="telegramModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <div>
+                    <span class="badge bg-secondary" id="telegramModalChannel"></span>
+                    <small class="text-muted ms-2" id="telegramModalDate"></small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="white-space: pre-wrap; max-height: 70vh; overflow-y: auto;" id="telegramModalText"></div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -611,5 +696,346 @@ document.addEventListener('click', async (e) => {
         btn.disabled = false;
     }
 });
+
+// ============ 텔레그램 검색/저장/삭제 ============
+
+// 공통 함수
+function linkify(text) {
+    const urlRegex = /(https?:\/\/[^\s<]+)/g;
+    return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
+
+function highlightKeyword(text, keyword) {
+    if (!keyword) return text;
+    const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(regex, '<span class="highlight">$1</span>');
+}
+
+function countMessages(channelData) {
+    let total = 0;
+    let recent = 0;
+    const today = new Date();
+    const threeDaysAgo = new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const threeDaysAgoStr = threeDaysAgo.toISOString().split('T')[0];
+
+    for (const date in channelData) {
+        const count = channelData[date].length;
+        total += count;
+        if (date >= threeDaysAgoStr) {
+            recent += count;
+        }
+    }
+    return { total, recent };
+}
+
+function renderChannelContent(channel, channelName, channelData, keyword) {
+    const dates = Object.keys(channelData).sort().reverse();
+    if (dates.length === 0) {
+        return '<div class="text-muted">검색 결과가 없습니다.</div>';
+    }
+
+    let html = '';
+    for (const date of dates) {
+        const items = channelData[date];
+        html += `<div class="mb-3">`;
+        html += `<h6 class="text-primary mb-2">${date} (${items.length}건)</h6>`;
+        items.forEach((item, idx) => {
+            let text = item.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            text = linkify(text);
+            text = highlightKeyword(text, keyword);
+
+            html += `<div class="border-start border-2 border-primary ps-2 py-2 small bg-light mb-0">`;
+            html += `<div class="d-flex justify-content-between align-items-start mb-1">`;
+            html += `<span class="text-muted">[${item.time}]</span>`;
+            html += `<button type="button" class="btn btn-sm btn-outline-success btn-save-telegram-msg py-0 px-2"
+                data-channel="${channel}"
+                data-channel-name="${channelName}"
+                data-date="${date}"
+                data-time="${item.time}"
+                data-text="${encodeURIComponent(item.text)}">저장</button>`;
+            html += `</div>`;
+            html += `<span style="white-space: pre-wrap;">${text}</span>`;
+            html += `</div>`;
+            if (idx < items.length - 1) html += `<hr class="my-2">`;
+        });
+        html += `</div>`;
+    }
+    return html;
+}
+
+// 텔레그램 검색
+async function searchTelegram() {
+    const searchQuery = document.getElementById('telegramSearchInput').value.trim();
+    if (!searchQuery) {
+        alert('검색어를 입력하세요.');
+        return;
+    }
+
+    const loading = document.getElementById('telegramLoading');
+    const tabs = document.getElementById('telegramTabs');
+    const channelTabs = document.getElementById('channelTabs');
+    const channelTabContent = document.getElementById('channelTabContent');
+    const empty = document.getElementById('telegramEmpty');
+
+    loading.classList.remove('d-none');
+    tabs.classList.add('d-none');
+    channelTabs.innerHTML = '';
+    channelTabContent.innerHTML = '';
+    empty.classList.add('d-none');
+
+    try {
+        const response = await fetch(`/api/telegram/search/?keyword=${encodeURIComponent(searchQuery)}&limit=30`);
+        const data = await response.json();
+
+        if (data.error) {
+            channelTabContent.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            tabs.classList.remove('d-none');
+            return;
+        }
+
+        const channels = Object.keys(data.results);
+        const channelNames = data.channel_names || {};
+
+        if (channels.length === 0) {
+            empty.textContent = '검색 결과가 없습니다.';
+            empty.classList.remove('d-none');
+            return;
+        }
+
+        let tabsHtml = '';
+        let contentHtml = '';
+
+        channels.forEach((channel, idx) => {
+            const channelId = channel.replace('@', '');
+            const displayName = channelNames[channel] || channel;
+            const isActive = idx === 0;
+            const { total, recent } = countMessages(data.results[channel]);
+
+            const recentBadge = recent > 0 ? `<span class="badge bg-danger">${recent}</span>` : '';
+            const totalBadge = total > 0 ? `<span class="badge bg-secondary">${total}</span>` : '';
+
+            tabsHtml += `
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link ${isActive ? 'active' : ''}"
+                            id="${channelId}-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#${channelId}-content"
+                            type="button" role="tab">
+                        ${displayName} ${recentBadge}${totalBadge}
+                    </button>
+                </li>`;
+
+            contentHtml += `
+                <div class="tab-pane fade ${isActive ? 'show active' : ''}"
+                     id="${channelId}-content" role="tabpanel">
+                    ${renderChannelContent(channel, displayName, data.results[channel], searchQuery)}
+                </div>`;
+        });
+
+        channelTabs.innerHTML = tabsHtml;
+        channelTabContent.innerHTML = contentHtml;
+        tabs.classList.remove('d-none');
+
+    } catch (err) {
+        channelTabContent.innerHTML = `<div class="alert alert-danger">오류: ${err.message}</div>`;
+        tabs.classList.remove('d-none');
+    } finally {
+        loading.classList.add('d-none');
+    }
+}
+
+document.getElementById('btnSearchTelegram')?.addEventListener('click', searchTelegram);
+document.getElementById('telegramSearchInput')?.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') searchTelegram();
+});
+
+// 텔레그램 메시지 저장
+document.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-save-telegram-msg')) return;
+
+    const btn = e.target;
+    const channel = btn.dataset.channel;
+    const channelName = btn.dataset.channelName;
+    const date = btn.dataset.date;
+    const time = btn.dataset.time;
+    const text = decodeURIComponent(btn.dataset.text);
+
+    btn.disabled = true;
+    btn.textContent = '저장 중...';
+
+    try {
+        const formData = new FormData();
+        formData.append('stock_code', stockCode);
+        formData.append('channel', channel);
+        formData.append('channel_name', channelName);
+        formData.append('date', date);
+        formData.append('time', time);
+        formData.append('text', text);
+
+        const response = await fetch('/api/telegram/message/save/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: formData
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            btn.textContent = '저장됨';
+            btn.classList.remove('btn-outline-success');
+            btn.classList.add('btn-success');
+
+            // 저장된 메시지 목록에 추가
+            const noSaved = document.getElementById('noSavedTelegram');
+            if (noSaved) noSaved.remove();
+
+            const savedList = document.getElementById('savedTelegramList');
+            const newItem = document.createElement('div');
+            newItem.className = 'list-group-item py-2';
+            newItem.dataset.id = data.id;
+            newItem.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1 overflow-hidden">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge bg-secondary">${channelName}</span>
+                            <small class="text-muted">${date} ${time}</small>
+                        </div>
+                        <div class="small text-truncate-2" style="white-space: pre-wrap; max-height: 3em; overflow: hidden;">${text.substring(0, 150)}</div>
+                    </div>
+                    <div class="d-flex gap-2 ms-2" style="white-space: nowrap;">
+                        <button type="button" class="btn btn-sm btn-outline-primary btn-view-telegram"
+                            data-channel="${channelName}"
+                            data-date="${date} ${time}"
+                            data-text="${encodeURIComponent(text).replace(/'/g, "\\'")}">전체보기</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-telegram" data-id="${data.id}">삭제</button>
+                    </div>
+                </div>`;
+            savedList.insertBefore(newItem, savedList.firstChild);
+
+            // 카운트 업데이트
+            const countEl = document.getElementById('savedTelegramCount');
+            countEl.textContent = parseInt(countEl.textContent) + 1;
+        } else {
+            alert(data.error || '저장 실패');
+            btn.textContent = '저장';
+            btn.disabled = false;
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        btn.textContent = '저장';
+        btn.disabled = false;
+    }
+});
+
+// 텔레그램 메시지 삭제
+document.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-delete-telegram')) return;
+
+    if (!confirm('삭제하시겠습니까?')) return;
+
+    const btn = e.target;
+    const msgId = btn.dataset.id;
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(`/api/telegram/message/${msgId}/delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            const item = btn.closest('.list-group-item');
+            item.remove();
+
+            const countEl = document.getElementById('savedTelegramCount');
+            const newCount = parseInt(countEl.textContent) - 1;
+            countEl.textContent = newCount;
+
+            if (newCount === 0) {
+                document.getElementById('savedTelegramList').innerHTML = `
+                    <div class="text-center text-muted py-3" id="noSavedTelegram">저장된 메시지가 없습니다.</div>`;
+            }
+        } else {
+            alert(data.error || '삭제 실패');
+            btn.disabled = false;
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        btn.disabled = false;
+    }
+});
+
+// 텔레그램 메시지 전체보기
+document.addEventListener('click', function(e) {
+    if (!e.target.classList.contains('btn-view-telegram')) return;
+
+    const btn = e.target;
+    let text = btn.dataset.text;
+
+    // URL 인코딩된 경우 디코딩
+    try {
+        text = decodeURIComponent(text);
+    } catch (err) {
+        // 이미 디코딩된 경우
+    }
+
+    text = text.replace(/\\u([0-9a-fA-F]{4})/g, (m, cc) => String.fromCharCode(parseInt(cc, 16)));
+    text = text.replace(/\\n/g, '\n');
+    text = text.replace(/\\\n/g, '\n');
+    text = text.replace(/\\$/gm, '');
+
+    document.getElementById('telegramModalChannel').textContent = btn.dataset.channel;
+    document.getElementById('telegramModalDate').textContent = btn.dataset.date;
+    document.getElementById('telegramModalText').textContent = text;
+
+    new bootstrap.Modal(document.getElementById('telegramModal')).show();
+});
 </script>
+<style>
+.highlight {
+    background-color: #fff3cd;
+    padding: 0 2px;
+    border-radius: 2px;
+    font-weight: bold;
+}
+#channelTabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    border-bottom: none;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #dee2e6;
+}
+@media (min-width: 768px) {
+    #channelTabs {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+#channelTabs .nav-item {
+    margin: 0;
+}
+#channelTabs .nav-link {
+    display: block;
+    width: 100%;
+    padding: 4px 6px;
+    font-size: 0.7rem;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    background: #f8f9fa;
+    color: #495057;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#channelTabs .nav-link:hover {
+    background: #e9ecef;
+}
+#channelTabs .nav-link.active {
+    background: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+</style>
 {% endblock %}
