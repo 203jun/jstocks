@@ -746,9 +746,9 @@ def stock_detail(request, code):
     from .models import YoutubeVideo
     youtube_videos = YoutubeVideo.objects.filter(stock=stock).order_by('-created_at')
 
-    # 저장된 뉴스 (최신순)
+    # 저장된 뉴스 (게시일 최신순)
     from .models import News
-    news_articles = News.objects.filter(stock=stock).order_by('-created_at')
+    news_articles = News.objects.filter(stock=stock).order_by('-published', '-created_at')
 
     # 저장된 텔레그램 메시지 (최신순)
     from .models import TelegramMessage
@@ -1149,9 +1149,9 @@ def stock_edit(request, code):
     # 저장된 유튜브 영상 (최신순)
     youtube_videos = YoutubeVideo.objects.filter(stock=stock).order_by('-created_at')
 
-    # 저장된 뉴스 (최신순)
+    # 저장된 뉴스 (게시일 최신순)
     from .models import News
-    news_articles = News.objects.filter(stock=stock).order_by('-created_at')
+    news_articles = News.objects.filter(stock=stock).order_by('-published', '-created_at')
 
     # 저장된 텔레그램 메시지 (최신순)
     from .models import TelegramMessage
