@@ -230,6 +230,12 @@
                 <button class="nav-link" id="stock-classify-tab" data-bs-toggle="pill" data-bs-target="#stock-classify-panel" type="button" role="tab">종목분류</button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="html-convert-tab" data-bs-toggle="pill" data-bs-target="#html-convert-panel" type="button" role="tab">HTML변환</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="sector-prompt-tab" data-bs-toggle="pill" data-bs-target="#sector-prompt-panel" type="button" role="tab">관심섹터</button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="stock-analysis-tab" data-bs-toggle="pill" data-bs-target="#stock-analysis-panel" type="button" role="tab">기업분석</button>
             </li>
             <li class="nav-item" role="presentation">
@@ -237,9 +243,6 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="question-report-tab" data-bs-toggle="pill" data-bs-target="#question-report-panel" type="button" role="tab">질문리포트</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="sector-prompt-tab" data-bs-toggle="pill" data-bs-target="#sector-prompt-panel" type="button" role="tab">관심섹터</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="nodaji-tab" data-bs-toggle="pill" data-bs-target="#nodaji-panel" type="button" role="tab">노다지</button>
@@ -396,13 +399,35 @@
                 </div>
             </div>
 
+            <!-- HTML변환 탭 -->
+            <div class="tab-pane fade" id="html-convert-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <strong>HTML 변환 프롬프트</strong>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveHtmlPrompt">저장</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-secondary py-2 mb-3">
+                            <small>
+                                <strong>도구:</strong> Gemini 사고모드<br>
+                                <strong>사용:</strong> Deep Research 결과를 복사한 후 이 프롬프트와 함께 사용하세요.
+                            </small>
+                        </div>
+                        <textarea class="form-control" id="promptHtml" rows="8" placeholder="HTML 변환용 프롬프트...">{{ saved_prompts.prompt_html }}</textarea>
+                        <small class="text-muted">리포트 결과를 HTML 파일로 변환하는 프롬프트</small>
+                        <div class="alert alert-warning py-2 mt-2 mb-0">
+                            <small>
+                                <strong>생성 실패 시:</strong> 가끔 HTML을 만들지 못하는 경우가 있습니다.<br>
+                                → 일반 프롬프트로 이동 후 아래 프롬프트 실행:<br>
+                                <code class="d-block mt-1 p-2 bg-light">{deep research가 뽑아준 결과 복사(공유 및 내보내기 -> 컨텐츠 복사)}<br>---<br>html 형태로 정리해줘.</code>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 기업분석 탭 -->
             <div class="tab-pane fade" id="stock-analysis-panel" role="tabpanel">
-                <!-- 주의사항 -->
-                <div class="alert alert-warning py-2 mb-3">
-                    <strong>⚠️ 주의:</strong> STEP 2에서 웹페이지를 만들면 STEP 1 리포트 원본이 사라집니다. 반드시 STEP 1(HTML 저장)을 먼저 완료하세요!
-                </div>
-
                 <!-- STEP 1: 리포트 만들기 -->
                 <div class="card mb-3">
                     <div class="card-header py-2">
@@ -413,9 +438,11 @@
                         <div class="alert alert-secondary py-2 mb-3">
                             <small>
                                 <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
-                                <strong>소요:</strong> 10~30분<br>
                                 <strong>저장:</strong> 종목 편집 → 기업분석 → <code>리포트</code> 탭
                             </small>
+                        </div>
+                        <div class="alert alert-danger py-2 mb-3">
+                            <strong>⚠️ 중요:</strong> 반드시 <strong>사업보고서 PDF 파일</strong>을 첨부하여 사용하세요!
                         </div>
 
                         <!-- 프롬프트 1: 리포트 생성 -->
@@ -428,20 +455,13 @@
                             <small class="text-muted">Deep Research에 입력할 프롬프트</small>
                         </div>
 
-                        <!-- 프롬프트 2: HTML 파일 만들기 -->
+                        <!-- HTML 변환 탭으로 이동 -->
                         <div>
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="form-label fw-bold small mb-0">1-2. HTML 변환 프롬프트</label>
-                                <button type="button" class="btn btn-sm btn-primary" id="btnSaveAnalysisHtmlPrompt">저장</button>
-                            </div>
-                            <textarea class="form-control" id="promptAnalysisHtml" rows="8" placeholder="HTML 변환용 프롬프트...">{{ saved_prompts.prompt_analysis_html }}</textarea>
-                            <small class="text-muted">리포트 결과를 HTML 파일로 변환하는 프롬프트</small>
-                            <div class="alert alert-warning py-2 mt-2 mb-0">
-                                <small>
-                                    <strong>⚠️ 생성 실패 시:</strong> 가끔 HTML을 만들지 못하는 경우가 있습니다.<br>
-                                    → 일반 프롬프트로 이동 후 아래 프롬프트 실행:<br>
-                                    <code class="d-block mt-1 p-2 bg-light">{deep research가 뽑아준 결과 복사(컨텐츠 복사가 아니라 마우스 드래그로 복사)}<br>---<br>html 형태로 정리해줘.</code>
-                                </small>
+                            <label class="form-label fw-bold small mb-1">1-2. HTML 변환 프롬프트</label>
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('html-convert-tab').click();">
+                                    HTML변환 탭으로 이동 →
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -454,15 +474,15 @@
                         <strong>요약 만들기</strong>
                     </div>
                     <div class="card-body">
-                        <div class="alert alert-info py-2 mb-3">
+                        <div class="alert alert-secondary py-2 mb-3">
                             <small>
-                                <strong>방법:</strong> Gemini 리포트 결과에서 <code>웹페이지 만들기</code> 클릭<br>
-                                <strong>저장:</strong> 생성된 HTML → 종목 편집 → 기업분석 → <code>요약</code> 탭
+                                <strong>도구:</strong> Deep Research 리포트 결과에서 <code>웹페이지 만들기</code> 클릭<br>
+                                <strong>저장:</strong> 종목 편집 → 기업분석 → <code>요약</code> 탭
                             </small>
                         </div>
                         <div class="alert alert-warning py-2 mb-0">
                             <small>
-                                <strong>⚠️ 생성 실패 시:</strong> 가끔 HTML을 만들지 못하고 HTML 비슷한 결과만 나오는 경우가 있습니다.<br>
+                                <strong>생성 실패 시:</strong> 가끔 HTML을 만들지 못하고 HTML 비슷한 결과만 나오는 경우가 있습니다.<br>
                                 → 일반 프롬프트로 이동 후 아래 프롬프트 실행:<br>
                                 <code class="d-block mt-1 p-2 bg-light">{잘못된 html 파일 복사}<br>---<br>html 형태로 정리해줘.</code>
                             </small>
@@ -473,11 +493,6 @@
 
             <!-- 투자포인트 탭 -->
             <div class="tab-pane fade" id="stock-summary-panel" role="tabpanel">
-                <!-- 주의사항 -->
-                <div class="alert alert-warning py-2 mb-3">
-                    <strong>⚠️ 주의:</strong> STEP 2에서 웹페이지를 만들면 STEP 1 리포트 원본이 사라집니다. 반드시 STEP 1(HTML 저장)을 먼저 완료하세요!
-                </div>
-
                 <!-- STEP 1: 리포트 만들기 -->
                 <div class="card mb-3">
                     <div class="card-header py-2">
@@ -488,7 +503,6 @@
                         <div class="alert alert-secondary py-2 mb-3">
                             <small>
                                 <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
-                                <strong>소요:</strong> 10~30분<br>
                                 <strong>저장:</strong> 종목 편집 → 인사이트 → <code>리포트</code> 탭
                             </small>
                         </div>
@@ -511,20 +525,13 @@
                             <small class="text-muted">Deep Research에 입력할 프롬프트</small>
                         </div>
 
-                        <!-- 프롬프트 2: HTML 파일 만들기 -->
+                        <!-- HTML 변환 탭으로 이동 -->
                         <div>
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="form-label fw-bold small mb-0">1-2. HTML 변환 프롬프트</label>
-                                <button type="button" class="btn btn-sm btn-primary" id="btnSaveSummaryHtmlPrompt">저장</button>
-                            </div>
-                            <textarea class="form-control" id="promptSummaryHtml" rows="8" placeholder="HTML 변환용 프롬프트...">{{ saved_prompts.prompt_summary_html }}</textarea>
-                            <small class="text-muted">리포트 결과를 HTML 파일로 변환하는 프롬프트</small>
-                            <div class="alert alert-warning py-2 mt-2 mb-0">
-                                <small>
-                                    <strong>⚠️ 생성 실패 시:</strong> 가끔 HTML을 만들지 못하는 경우가 있습니다.<br>
-                                    → 일반 프롬프트로 이동 후 아래 프롬프트 실행:<br>
-                                    <code class="d-block mt-1 p-2 bg-light">{deep research가 뽑아준 결과 복사(컨텐츠 복사가 아니라 마우스 드래그로 복사)}<br>---<br>html 형태로 정리해줘.</code>
-                                </small>
+                            <label class="form-label fw-bold small mb-1">1-2. HTML 변환 프롬프트</label>
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('html-convert-tab').click();">
+                                    HTML변환 탭으로 이동 →
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -537,15 +544,15 @@
                         <strong>요약 만들기</strong>
                     </div>
                     <div class="card-body">
-                        <div class="alert alert-info py-2 mb-3">
+                        <div class="alert alert-secondary py-2 mb-3">
                             <small>
-                                <strong>방법:</strong> Gemini 리포트 결과에서 <code>웹페이지 만들기</code> 클릭<br>
-                                <strong>저장:</strong> 생성된 HTML → 종목 편집 → 인사이트 → <code>요약</code> 탭
+                                <strong>도구:</strong> Deep Research 리포트 결과에서 <code>웹페이지 만들기</code> 클릭<br>
+                                <strong>저장:</strong> 종목 편집 → 인사이트 → <code>요약</code> 탭
                             </small>
                         </div>
                         <div class="alert alert-warning py-2 mb-0">
                             <small>
-                                <strong>⚠️ 생성 실패 시:</strong> 가끔 HTML을 만들지 못하고 HTML 비슷한 결과만 나오는 경우가 있습니다.<br>
+                                <strong>생성 실패 시:</strong> 가끔 HTML을 만들지 못하고 HTML 비슷한 결과만 나오는 경우가 있습니다.<br>
                                 → 일반 프롬프트로 이동 후 아래 프롬프트 실행:<br>
                                 <code class="d-block mt-1 p-2 bg-light">{잘못된 html 파일 복사}<br>---<br>html 형태로 정리해줘.</code>
                             </small>
@@ -578,20 +585,13 @@
                             <small class="text-muted">질문에 대한 리포트를 생성하는 프롬프트</small>
                         </div>
 
-                        <!-- 프롬프트 2: HTML 변환 -->
+                        <!-- HTML 변환 탭으로 이동 -->
                         <div>
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="form-label fw-bold small mb-0">2. HTML 변환 프롬프트</label>
-                                <button type="button" class="btn btn-sm btn-primary" id="btnSaveQuestionReportHtmlPrompt">저장</button>
-                            </div>
-                            <textarea class="form-control" id="promptQuestionReportHtml" rows="8" placeholder="HTML 변환 프롬프트...">{{ saved_prompts.prompt_question_report_html }}</textarea>
-                            <small class="text-muted">리포트 결과를 HTML 형식으로 변환하는 프롬프트</small>
-                            <div class="alert alert-warning py-2 mt-2 mb-0">
-                                <small>
-                                    <strong>⚠️ 생성 실패 시:</strong> 가끔 HTML을 만들지 못하는 경우가 있습니다.<br>
-                                    → 일반 프롬프트로 이동 후 아래 프롬프트 실행:<br>
-                                    <code class="d-block mt-1 p-2 bg-light">{deep research가 뽑아준 결과 복사(컨텐츠 복사가 아니라 마우스 드래그로 복사)}<br>---<br>html 형태로 정리해줘.</code>
-                                </small>
+                            <label class="form-label fw-bold small mb-1">2. HTML 변환 프롬프트</label>
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('html-convert-tab').click();">
+                                    HTML변환 탭으로 이동 →
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -600,18 +600,16 @@
 
             <!-- 노다지 탭 -->
             <div class="tab-pane fade" id="nodaji-panel" role="tabpanel">
-                <!-- STEP 1: 리포트 만들기 -->
+                <!-- 리포트 만들기 -->
                 <div class="card">
                     <div class="card-header py-2">
-                        <span class="badge bg-primary me-2">STEP 1</span>
                         <strong>리포트 만들기</strong>
                     </div>
                     <div class="card-body">
                         <div class="alert alert-secondary py-2 mb-3">
                             <small>
                                 <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
-                                <strong>소요:</strong> 10~30분<br>
-                                <strong>저장:</strong> 노다지 편집 → <code>요약</code> 탭
+                                <strong>저장:</strong> 종목 편집 → 노다지 → <code>요약</code> 탭
                             </small>
                         </div>
                         <div class="alert alert-danger py-2 mb-3">
@@ -628,20 +626,13 @@
                             <small class="text-muted">Deep Research에 입력할 프롬프트 (PDF 첨부 필수)</small>
                         </div>
 
-                        <!-- 프롬프트 2: HTML 파일 만들기 -->
+                        <!-- HTML 변환 탭으로 이동 -->
                         <div>
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="form-label fw-bold small mb-0">1-2. HTML 변환 프롬프트</label>
-                                <button type="button" class="btn btn-sm btn-primary" id="btnSaveNodajiHtmlPrompt">저장</button>
-                            </div>
-                            <textarea class="form-control" id="promptNodajiHtml" rows="8" placeholder="HTML 변환용 프롬프트...">{{ saved_prompts.prompt_nodaji_html }}</textarea>
-                            <small class="text-muted">리포트 결과를 HTML 파일로 변환하는 프롬프트</small>
-                            <div class="alert alert-warning py-2 mt-2 mb-0">
-                                <small>
-                                    <strong>⚠️ 생성 실패 시:</strong> 가끔 HTML을 만들지 못하는 경우가 있습니다.<br>
-                                    → 일반 프롬프트로 이동 후 아래 프롬프트 실행:<br>
-                                    <code class="d-block mt-1 p-2 bg-light">{deep research가 뽑아준 결과 복사(컨텐츠 복사가 아니라 마우스 드래그로 복사)}<br>---<br>html 형태로 정리해줘.</code>
-                                </small>
+                            <label class="form-label fw-bold small mb-1">1-2. HTML 변환 프롬프트</label>
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('html-convert-tab').click();">
+                                    HTML변환 탭으로 이동 →
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -676,27 +667,20 @@
                         <strong>Deep Research 실행</strong>
                     </div>
                     <div class="card-body">
-                        <div class="alert alert-info py-2 mb-3">
+                        <div class="alert alert-secondary py-2 mb-3">
                             <small>
                                 <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
-                                <strong>방법:</strong> 1-1에서 만든 프롬프트 사용하여 작성<br>
-                                <strong>저장:</strong> 관심섹터 → 편집 → 기초리포트 저장
+                                <strong>사용:</strong> 1-1에서 만든 프롬프트를 Deep Research로 실행<br>
+                                <strong>저장:</strong> 관심섹터 → 편집 → <code class="text-danger">기초리포트</code> 탭
                             </small>
                         </div>
 
-                        <!-- HTML 변환 프롬프트 -->
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label class="form-label fw-bold small mb-0">2-1. HTML 변환 프롬프트</label>
-                            <button type="button" class="btn btn-sm btn-primary" id="btnSaveSectorHtmlPrompt">저장</button>
-                        </div>
-                        <textarea class="form-control" id="promptSectorHtml" rows="8" placeholder="HTML 변환용 프롬프트...">{{ saved_prompts.prompt_sector_html }}</textarea>
-                        <small class="text-muted">리포트 결과를 HTML 파일로 변환하는 프롬프트</small>
-                        <div class="alert alert-warning py-2 mt-2 mb-0">
-                            <small>
-                                <strong>⚠️ 생성 실패 시:</strong> 가끔 HTML을 만들지 못하는 경우가 있습니다.<br>
-                                → 일반 프롬프트로 이동 후 아래 프롬프트 실행:<br>
-                                <code class="d-block mt-1 p-2 bg-light">{deep research가 뽑아준 결과 복사(컨텐츠 복사가 아니라 마우스 드래그로 복사)}<br>---<br>html 형태로 정리해줘.</code>
-                            </small>
+                        <!-- HTML 변환 탭으로 이동 -->
+                        <label class="form-label fw-bold small mb-1">2-1. HTML 변환 프롬프트</label>
+                        <div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('html-convert-tab').click();">
+                                HTML변환 탭으로 이동 →
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -709,7 +693,10 @@
                     </div>
                     <div class="card-body">
                         <div class="alert alert-secondary py-2 mb-3">
-                            <small>섹터 관련 질문이나 의문점 업데이트 사항이 있을 경우 → Gemini가 이해하기 쉬운 형태로 변경하는 과정</small>
+                            <small>
+                                <strong>도구:</strong> Gemini 사고모드<br>
+                                <strong>사용:</strong> 섹터 관련 질문이나 의문점 업데이트 사항이 있을 경우 → Gemini가 이해하기 쉬운 형태로 변경하는 과정
+                            </small>
                         </div>
 
                         <!-- 관심섹터 기초리포트 조회 버튼 -->
@@ -739,7 +726,7 @@
                         <div class="alert alert-secondary py-2 mb-3">
                             <small>
                                 <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
-                                <strong>저장:</strong> 아래 폼에서 직접 저장 (여러 개 저장 가능)
+                                <strong>저장:</strong> 섹터 편집 → <code class="text-danger">질문리포트</code> 탭
                             </small>
                         </div>
 
@@ -751,26 +738,23 @@
                             <small class="text-muted ms-2">기초리포트를 참고하여 질문리포트를 작성하세요.</small>
                         </div>
 
-                        <!-- 4-1. 프롬프트 -->
+                        <!-- 4-1. 리포트 프롬프트 -->
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="form-label fw-bold small mb-0">4-1. 프롬프트 (Deep Research에서 수행)</label>
+                                <label class="form-label fw-bold small mb-0">4-1. 리포트 프롬프트</label>
                                 <button type="button" class="btn btn-sm btn-primary" id="btnSaveSectorIntegratedPrompt">저장</button>
-                            </div>
-                            <div class="alert alert-info py-2 mb-2">
-                                <small><strong>고도화질문:</strong> STEP 3에서 Gemini가 알려준 결과입니다. 질문이 여러 개일 수 있으며, 하나씩 수행합니다.</small>
                             </div>
                             <textarea class="form-control" id="promptSectorIntegrated" rows="8" placeholder="질문리포트 생성용 프롬프트...">{{ saved_prompts.prompt_sector_integrated }}</textarea>
                         </div>
 
-                        <!-- 4-2. HTML 변환 프롬프트 -->
+                        <!-- HTML 변환 탭으로 이동 -->
                         <div>
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="form-label fw-bold small mb-0">4-2. HTML 변환 프롬프트</label>
-                                <button type="button" class="btn btn-sm btn-primary" id="btnSaveSectorIntegratedHtmlPrompt">저장</button>
+                            <label class="form-label fw-bold small mb-1">4-2. HTML 변환 프롬프트</label>
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('html-convert-tab').click();">
+                                    HTML변환 탭으로 이동 →
+                                </button>
                             </div>
-                            <textarea class="form-control" id="promptSectorIntegratedHtml" rows="8" placeholder="HTML 변환용 프롬프트...">{{ saved_prompts.prompt_sector_integrated_html }}</textarea>
-                            <small class="text-muted">리포트 결과를 HTML 파일로 변환하는 프롬프트</small>
                         </div>
                     </div>
                 </div>
@@ -779,37 +763,48 @@
 
             <!-- 유튜브 탭 -->
             <div class="tab-pane fade" id="youtube-prompt-panel" role="tabpanel">
-                <div class="alert alert-secondary py-2 mb-3">
-                    <small><strong>도구:</strong> Gemini + 사고모드</small>
-                </div>
-
                 <!-- Case 1: 시장/시황 분석 -->
                 <div class="card mb-3">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <strong>Case 1. 시장/시황 분석 프롬프트</strong>
-                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveYoutubePrompt1">저장</button>
+                    <div class="card-header py-2">
+                        <span class="badge bg-primary me-2">Case 1</span>
+                        <strong>시장/시황 분석</strong>
                     </div>
                     <div class="card-body">
+                        <div class="alert alert-secondary py-2 mb-3">
+                            <small>
+                                <strong>도구:</strong> Gemini + 사고모드<br>
+                                <strong>저장:</strong> 종목/섹터 편집 → 유튜브 → <code>요약</code> 탭<br>
+                                <strong>사용:</strong> 시장/시황 유튜브에 사용
+                            </small>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold small mb-0">프롬프트</label>
+                            <button type="button" class="btn btn-sm btn-primary" id="btnSaveYoutubePrompt1">저장</button>
+                        </div>
                         <textarea class="form-control" id="promptYoutube1" rows="8" placeholder="시장/시황 분석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_youtube_market }}</textarea>
                     </div>
                 </div>
 
                 <!-- Case 2: 기업/섹터 딥다이브 -->
-                <div class="card mb-3">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <strong>Case 2. 기업/섹터 딥다이브 프롬프트</strong>
-                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveYoutubePrompt2">저장</button>
+                <div class="card">
+                    <div class="card-header py-2">
+                        <span class="badge bg-success me-2">Case 2</span>
+                        <strong>기업/섹터 딥다이브</strong>
                     </div>
                     <div class="card-body">
+                        <div class="alert alert-secondary py-2 mb-3">
+                            <small>
+                                <strong>도구:</strong> Gemini + 사고모드<br>
+                                <strong>저장:</strong> 종목/섹터 편집 → 유튜브 → <code>요약</code> 탭<br>
+                                <strong>사용:</strong> 기업/섹터 유튜브에 사용
+                            </small>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold small mb-0">프롬프트</label>
+                            <button type="button" class="btn btn-sm btn-primary" id="btnSaveYoutubePrompt2">저장</button>
+                        </div>
                         <textarea class="form-control" id="promptYoutube2" rows="8" placeholder="기업/섹터 딥다이브용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_youtube_deepdive }}</textarea>
                     </div>
-                </div>
-
-                <div class="alert alert-info">
-                    <strong>사용법:</strong><br>
-                    1. 영상 유형에 맞는 프롬프트를 Gemini에 입력하고 유튜브 영상 링크를 함께 전달합니다.<br>
-                    2. Gemini가 결과를 생성하면 하단의 <strong>「대답복사」</strong> 버튼을 클릭합니다.<br>
-                    3. 종목/섹터 편집 → 유튜브 → 요약 페이지에서 붙여넣기 후 저장합니다.
                 </div>
             </div>
 
@@ -822,18 +817,14 @@
                     </div>
                     <div class="card-body">
                         <div class="alert alert-secondary py-2 mb-3">
-                            <small><strong>도구:</strong> Gemini + 사고모드</small>
+                            <small>
+                                <strong>도구:</strong> Gemini + 사고모드<br>
+                                <strong>저장:</strong> 종목/섹터 편집 → 뉴스 → <code>요약</code> 탭
+                            </small>
                         </div>
 
                         <textarea class="form-control" id="promptNews" rows="10" placeholder="뉴스 요약 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_news }}</textarea>
                     </div>
-                </div>
-
-                <div class="alert alert-info mt-3">
-                    <strong>사용법:</strong><br>
-                    1. 위 프롬프트를 Gemini에 입력하고 뉴스 링크를 함께 전달합니다.<br>
-                    2. Gemini가 결과를 생성하면 하단의 <strong>「대답복사」</strong> 버튼을 클릭합니다.<br>
-                    3. 종목/섹터 편집 → 뉴스 → 요약 페이지에서 붙여넣기 후 저장합니다.
                 </div>
             </div>
         </div>
@@ -1418,6 +1409,12 @@ document.getElementById('btnSaveClassifyPrompt').addEventListener('click', funct
     savePrompt('prompt_classify', value, this);
 });
 
+// HTML 변환 프롬프트 저장
+document.getElementById('btnSaveHtmlPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptHtml').value;
+    savePrompt('prompt_html', value, this);
+});
+
 // 클립보드 복사 함수 (HTTPS/HTTP 모두 지원)
 function copyToClipboard(text) {
     // 1. navigator.clipboard 사용 시도 (HTTPS 환경)
@@ -1466,64 +1463,34 @@ document.getElementById('btnCopyAll').addEventListener('click', async function()
     }
 });
 
-// 기업분석 1-1: 리포트 생성 프롬프트 저장
+// 기업분석: 리포트 생성 프롬프트 저장
 document.getElementById('btnSaveAnalysisPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptAnalysis').value;
     savePrompt('prompt_analysis', value, this);
 });
 
-// 기업분석 1-2: HTML 변환 프롬프트 저장
-document.getElementById('btnSaveAnalysisHtmlPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptAnalysisHtml').value;
-    savePrompt('prompt_analysis_html', value, this);
-});
-
-// 투자포인트 1-1: 리포트 생성 프롬프트 저장
+// 투자포인트: 리포트 생성 프롬프트 저장
 document.getElementById('btnSaveSummaryPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptSummary').value;
     savePrompt('prompt_summary', value, this);
 });
 
-// 투자포인트 1-2: HTML 변환 프롬프트 저장
-document.getElementById('btnSaveSummaryHtmlPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptSummaryHtml').value;
-    savePrompt('prompt_summary_html', value, this);
-});
-
-// 노다지 1-1: 리포트 생성 프롬프트 저장
+// 노다지: 리포트 생성 프롬프트 저장
 document.getElementById('btnSaveNodajiPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptNodaji').value;
     savePrompt('prompt_nodaji', value, this);
 });
 
-// 노다지 1-2: HTML 변환 프롬프트 저장
-document.getElementById('btnSaveNodajiHtmlPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptNodajiHtml').value;
-    savePrompt('prompt_nodaji_html', value, this);
-});
-
-// 질문리포트 1: 리포트 생성 프롬프트 저장
+// 질문리포트: 리포트 생성 프롬프트 저장
 document.getElementById('btnSaveQuestionReportPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptQuestionReport').value;
     savePrompt('prompt_question_report', value, this);
-});
-
-// 질문리포트 2: HTML 변환 프롬프트 저장
-document.getElementById('btnSaveQuestionReportHtmlPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptQuestionReportHtml').value;
-    savePrompt('prompt_question_report_html', value, this);
 });
 
 // 관심섹터 1-1: 프롬프트 저장
 document.getElementById('btnSaveSectorPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptSectorBasic').value;
     savePrompt('prompt_sector_basic', value, this);
-});
-
-// 관심섹터 2-1: HTML 변환 프롬프트 저장
-document.getElementById('btnSaveSectorHtmlPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptSectorHtml').value;
-    savePrompt('prompt_sector_html', value, this);
 });
 
 // 관심섹터 3-1: 질문 프롬프트 저장
@@ -1536,12 +1503,6 @@ document.getElementById('btnSaveSectorQuestionPrompt').addEventListener('click',
 document.getElementById('btnSaveSectorIntegratedPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptSectorIntegrated').value;
     savePrompt('prompt_sector_integrated', value, this);
-});
-
-// 관심섹터 4-2: 통합리포트 HTML 변환 프롬프트 저장
-document.getElementById('btnSaveSectorIntegratedHtmlPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptSectorIntegratedHtml').value;
-    savePrompt('prompt_sector_integrated_html', value, this);
 });
 
 // 유튜브 프롬프트 저장 - Case 1: 시장/시황 분석
