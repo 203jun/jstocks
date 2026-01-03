@@ -19,6 +19,11 @@ fi
 cd /home/stock/jstocks
 source venv/bin/activate
 
+# 텔레그램 알림 함수
+send_telegram() {
+    python manage.py tele_api_test -m "$1" > /dev/null 2>&1
+}
+
 echo "========================================"
 echo "다음 금융 수급 업데이트 시작: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "========================================"
@@ -30,3 +35,6 @@ python manage.py save_investor_daum --code fav --mode last --log-level info
 echo "========================================"
 echo "다음 금융 수급 업데이트 완료: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "========================================"
+
+# 완료 알림
+send_telegram "✅ 다음 금융 수급 업데이트 완료 ($(date '+%H:%M'))"
