@@ -1589,13 +1589,15 @@ let savedVideoIds = new Set([
     {% for video in youtube_videos %}'{{ video.video_id }}',{% endfor %}
 ]);
 
-// video_id 추출 함수
+// video_id 추출 함수 (shorts 포함)
 function extractVideoId(link) {
     let match = link.match(/[?&]v=([^&]+)/);
     if (match) return match[1];
     match = link.match(/youtu\.be\/([^?&]+)/);
     if (match) return match[1];
     match = link.match(/embed\/([^?&]+)/);
+    if (match) return match[1];
+    match = link.match(/shorts\/([^?&]+)/);
     if (match) return match[1];
     return '';
 }

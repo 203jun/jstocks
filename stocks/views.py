@@ -4087,6 +4087,11 @@ def youtube_video_save_by_link(request):
             match = re.search(r'embed/([^?&]+)', link)
             if match:
                 video_id = match.group(1)
+            else:
+                # youtube.com/shorts/VIDEO_ID
+                match = re.search(r'shorts/([^?&]+)', link)
+                if match:
+                    video_id = match.group(1)
 
     if not video_id:
         return JsonResponse({'error': '올바른 유튜브 링크가 아닙니다.'}, status=400)
@@ -5501,6 +5506,11 @@ def sector_youtube_video_save_by_link(request):
             match = re.search(r'embed/([^?&]+)', link)
             if match:
                 video_id = match.group(1)
+            else:
+                # youtube.com/shorts/VIDEO_ID
+                match = re.search(r'shorts/([^?&]+)', link)
+                if match:
+                    video_id = match.group(1)
 
     if not video_id:
         return JsonResponse({'error': '올바른 유튜브 링크가 아닙니다.'}, status=400)
