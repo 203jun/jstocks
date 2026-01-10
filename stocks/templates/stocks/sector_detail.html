@@ -175,7 +175,7 @@
                         </div>
                         {% if report.summary %}
                         <div class="file-report-summary mt-2 p-2 bg-light rounded d-none" id="fileReportSummary{{ report.id }}">
-                            <div class="markdown-content">{{ report.summary|linebreaks }}</div>
+                            <div class="markdown-content" data-markdown="{{ report.summary|escapejs }}"></div>
                         </div>
                         {% endif %}
                     </div>
@@ -366,6 +366,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 const sectorName = "{{ sector.name|escapejs }}";
 const sectorId = {{ sector.id }};
@@ -584,6 +585,12 @@ document.querySelectorAll('.btn-view-file-report-summary').forEach(btn => {
         const reportId = this.dataset.reportId;
         const summaryDiv = document.getElementById('fileReportSummary' + reportId);
         if (summaryDiv) {
+            // 마크다운 렌더링 (최초 1회)
+            const markdownEl = summaryDiv.querySelector('.markdown-content');
+            if (markdownEl && markdownEl.dataset.markdown && !markdownEl.dataset.rendered) {
+                markdownEl.innerHTML = marked.parse(markdownEl.dataset.markdown);
+                markdownEl.dataset.rendered = 'true';
+            }
             summaryDiv.classList.toggle('d-none');
             this.textContent = summaryDiv.classList.contains('d-none') ? '요약' : '닫기';
         }
