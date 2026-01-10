@@ -347,6 +347,7 @@
                             <!-- 불러오기 버튼 -->
                             <div class="mb-3">
                                 <button type="button" class="btn btn-primary" id="btnLoadData">불러오기</button>
+                                <button type="button" class="btn btn-success ms-2" id="btnLoadDataWithSummary">투포,리스크,일정 프롬프트 만들기</button>
                             </div>
 
                             <!-- 로딩 -->
@@ -1759,6 +1760,41 @@ btnLoadData.addEventListener('click', async () => {
         alert('오류: ' + err.message);
         dataLoaderLoading.classList.add('d-none');
     } finally {
+        btnLoadData.disabled = false;
+    }
+});
+
+// 투포,리스크,일정 프롬프트 만들기 (모든 데이터 + 요약 포함)
+const btnLoadDataWithSummary = document.getElementById('btnLoadDataWithSummary');
+btnLoadDataWithSummary.addEventListener('click', async () => {
+    if (!selectedDataLoaderCode) {
+        alert('종목을 선택해주세요.');
+        return;
+    }
+
+    // UI 업데이트
+    dataLoaderLoading.classList.remove('d-none');
+    dataLoaderResult.classList.add('d-none');
+    btnLoadDataWithSummary.disabled = true;
+    btnLoadData.disabled = true;
+
+    try {
+        const response = await fetch(`/api/stock/${selectedDataLoaderCode}/data-loader-with-summary/`);
+        const data = await response.json();
+
+        if (data.success) {
+            dataLoaderContent.value = data.data;
+            dataLoaderLoading.classList.add('d-none');
+            dataLoaderResult.classList.remove('d-none');
+        } else {
+            alert('데이터 조회 실패');
+            dataLoaderLoading.classList.add('d-none');
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        dataLoaderLoading.classList.add('d-none');
+    } finally {
+        btnLoadDataWithSummary.disabled = false;
         btnLoadData.disabled = false;
     }
 });

@@ -2179,6 +2179,221 @@ def fetch_stock_data_loader(request, code):
     })
 
 
+@require_GET
+def fetch_stock_data_loader_with_summary(request, code):
+    """종목 데이터 불러오기 API (모든 데이터 + 요약 포함)
+
+    투포,리스크,일정 프롬프트 만들기용
+    - 모든 데이터 타입 불러오기 (체크박스 선택 무시)
+    - 리포트, 노다지, 유튜브, 뉴스, 텔레그램 등의 요약 정보도 가져옴
+    """
+    import re
+    from bs4 import BeautifulSoup
+    from .models import YoutubeVideo, News, TelegramMessage, StockQuestionReport, StockUploadedReport
+
+    stock = get_object_or_404(Info, code=code)
+
+    def html_to_text(html):
+        """HTML을 텍스트로 변환"""
+        if not html:
+            return ''
+        soup = BeautifulSoup(html, 'html.parser')
+        text = soup.get_text(separator='\n')
+        # 연속된 빈 줄 정리
+        text = re.sub(r'\n\s*\n+', '\n\n', text)
+        # citation 제거
+        text = re.sub(r'\[cite_start\]', '', text)
+        text = re.sub(r'\[cite_end\]', '', text)
+        text = re.sub(r'\[cite:\s*[\d,\s]+\]', '', text)
+        text = re.sub(r'\[/cite\]', '', text)
+        return text.strip()
+
+    lines = []
+    lines.append(f"=== {stock.name} ({stock.code}) 전체 데이터 (요약 포함) ===\n")
+
+    # 1. 기업분석
+    lines.append("## 기업분석")
+    if stock.analysis_text:
+        lines.append(html_to_text(stock.analysis_text))
+    else:
+        lines.append("- 저장된 데이터가 없습니다.")
+    lines.append("")
+
+    # 2. 투자포인트 (인사이트)
+    lines.append("## 투자포인트")
+    if stock.insight_summary_html:
+        lines.append(html_to_text(stock.insight_summary_html))
+    elif stock.insight_report_html:
+        lines.append(html_to_text(stock.insight_report_html))
+    else:
+        lines.append("- 저장된 데이터가 없습니다.")
+    lines.append("")
+
+    # 3. 질문리포트 (최대 10개)
+    lines.append("## 질문리포트 (최대 10개)")
+    qr_list = StockQuestionReport.objects.filter(stock=stock).order_by('-id')[:10]
+    if qr_list:
+        for qr in qr_list:
+            lines.append(f"\n### Q: {qr.question}")
+            if qr.report:
+                lines.append(html_to_text(qr.report))
+    else:
+        lines.append("- 저장된 데이터가 없습니다.")
+    lines.append("")
+
+    # 4. 파일 리포트 (요약 포함, 최대 10개)
+    lines.append("## 파일 리포트 (최대 10개, 요약 포함)")
+    file_reports = StockUploadedReport.objects.filter(stock=stock).order_by('-created_at')[:10]
+    if file_reports:
+        for fr in file_reports:
+            title = fr.title if fr.title else fr.original_filename
+            date_str = fr.created_at.strftime('%Y-%m-%d') if fr.created_at else '-'
+            lines.append(f"\n### [{date_str}] {title}")
+            if fr.summary:
+                summary_text = html_to_text(fr.summary)
+                lines.append(f"요약:\n{summary_text}")
+            else:
+                lines.append("요약: (요약 없음)")
+    else:
+        lines.append("- 저장된 데이터가 없습니다.")
+    lines.append("")
+
+    # 5. 노다지 (요약 포함, 최대 5개)
+    lines.append("## 노다지 IR노트 (최대 5개, 요약 포함)")
+    nodaji_list = Nodaji.objects.filter(
+        stock=stock,
+        title__contains=stock.name
+    ).exclude(summary__isnull=True).exclude(summary='').order_by('-date')[:5]
+    if nodaji_list:
+        for n in nodaji_list:
+            date_str = n.date.strftime('%Y-%m-%d') if n.date else '-'
+            lines.append(f"\n### [{date_str}] {n.title}")
+            if n.summary:
+                summary = html_to_text(n.summary)
+                lines.append(f"요약:\n{summary}")
+    else:
+        lines.append("- 저장된 데이터가 없습니다.")
+    lines.append("")
+
+    # 6. 리포트 (요약 포함, 최신 10개)
+    lines.append("## 애널리스트 리포트 (최신 10개, 요약 포함)")
+    all_reports = Report.objects.filter(stock=stock).order_by('-date')
+    seen_dates = set()
+    reports = []
+    for r in all_reports:
+        if r.date not in seen_dates:
+            reports.append(r)
+            seen_dates.add(r.date)
+            if len(reports) >= 10:
+                break
+    if reports:
+        for r in reports:
+            date_str = r.date.strftime('%Y-%m-%d') if r.date else '-'
+            lines.append(f"\n### [{date_str}] {r.title}")
+            lines.append(f"작성자: {r.author} / 증권사: {r.provider}")
+            if r.summary:
+                summary_text = html_to_text(r.summary)
+                lines.append(f"요약:\n{summary_text}")
+            else:
+                lines.append("요약: (요약 없음)")
+    else:
+        lines.append("- 저장된 데이터가 없습니다.")
+    lines.append("")
+
+    # 7. 유튜브 (요약 포함, 최대 10개)
+    lines.append("## 유튜브 (최대 10개, 요약 포함)")
+    youtube_list = YoutubeVideo.objects.filter(stock=stock).order_by('-id')[:10]
+    if youtube_list:
+        for v in youtube_list:
+            lines.append(f"\n### {v.title}")
+            if v.channel:
+                lines.append(f"채널: {v.channel}")
+            lines.append(f"링크: {v.link}")
+            if v.summary:
+                summary_text = html_to_text(v.summary)
+                lines.append(f"요약:\n{summary_text}")
+            else:
+                lines.append("요약: (요약 없음)")
+    else:
+        lines.append("- 저장된 데이터가 없습니다.")
+    lines.append("")
+
+    # 8. 뉴스 (요약 포함, 최대 10개)
+    lines.append("## 뉴스 (최대 10개, 요약 포함)")
+    news_list = News.objects.filter(stock=stock).order_by('-id')[:10]
+    if news_list:
+        for n in news_list:
+            lines.append(f"\n### {n.title}")
+            lines.append(f"링크: {n.link}")
+            if n.summary:
+                summary_text = html_to_text(n.summary)
+                lines.append(f"요약:\n{summary_text}")
+            else:
+                lines.append("요약: (요약 없음)")
+    else:
+        lines.append("- 저장된 데이터가 없습니다.")
+    lines.append("")
+
+    # 9. 텔레그램 (요약 포함, 최대 10개)
+    lines.append("## 텔레그램 (최대 10개, 요약 포함)")
+    telegram_list = TelegramMessage.objects.filter(stock=stock).order_by('-id')[:10]
+    if telegram_list:
+        for t in telegram_list:
+            channel_name = t.channel_name or t.channel
+            lines.append(f"\n### {channel_name}")
+            lines.append(t.text[:500] if t.text else '')
+            if t.summary:
+                summary_text = html_to_text(t.summary)
+                lines.append(f"요약:\n{summary_text}")
+    else:
+        lines.append("- 저장된 데이터가 없습니다.")
+    lines.append("")
+
+    # 10. 메모
+    lines.append("## 메모")
+    if stock.memo:
+        lines.append(html_to_text(stock.memo))
+    else:
+        lines.append("- 저장된 데이터가 없습니다.")
+    lines.append("")
+
+    # 프롬프트 템플릿 추가
+    prompt_template = """---
+# Role: 데이터 중심의 수석 투자 전략가 (Senior Investment Strategist)
+# Task: 하단에 제공된 데이터셋을 분석하여 종목의 '투자포인트', '리스크', '일정'을 데이터 기반으로 정밀 추출하라.
+
+이 프롬프트 상단에는 해당 종목의 리포트, 재무 데이터, 뉴스, IR 노트 등이 포함된 [데이터셋]이 이미 제공되어 있다. 해당 데이터를 샅샅이 분석하여 투자 판단을 돕는 핵심 정보를 다음 포맷에 맞춰 정리해줘.
+
+---
+
+## 🎯 1. 핵심 투자 포인트 (Investment Points)
+- **구조적 경쟁 우위:** 독점적 기술력, 압도적인 원가 구조(BEP), 시장 점유율, 또는 강력한 대주주 파트너십 등 타사 대비 우위에 있는 근거를 숫자로 제시할 것.
+- **성장성 및 실적 모멘텀:** 실적 턴어라운드의 질적 분석(이익의 질)과 향후 매출/EBITDA 성장률 전망치를 포함할 것.
+- **신사업 및 업사이드 촉매:** 현재 진행 중인 신규 사업의 진척도와 그것이 기업 가치 재평가(Re-rating)에 미칠 잠재력을 설명할 것.
+
+## ⚠️ 2. 주요 리스크 요인 (Risk Factors)
+- **재무적 리스크:** 대규모 투자(CAPEX)에 따른 부채 급증, 이자 비용 부담, 현금 흐름 악화 등 재무제표상의 경고 시그널을 데이터로 명시할 것.
+- **업황 및 대외 변수:** 산업 사이클의 하락 가능성, 경쟁 심화에 따른 마진 압박, 규제 리스크, 매크로 변수(금리, 환율 등)가 실적에 미치는 부정적 영향력을 서술할 것.
+- **주주 가치 훼손:** 배당 성향의 하락, 오버행 이슈, 또는 자본 조달(유상증자 등) 가능성이 언급되었다면 포함할 것.
+
+## 🗓️ 3. 주요 일정 및 마일스톤 (Schedule & Catalysts)
+- 리포트 및 데이터 내에 언급된 모든 미래 시점의 날짜와 이벤트를 타임라인 순으로 정리할 것.
+- **포맷:** | 시기 | 이벤트 명 | 예상 영향 및 체크포인트 | 형태로 작성.
+
+---
+**[출력 지침]**
+1. **데이터 기반 추출:** "수익성이 좋다"는 표현보다는 "영업이익률 XX% 달성"과 같이 데이터 내의 **구체적인 숫자**를 우선적으로 사용할 것.
+2. **인용(Citation) 필수:** 모든 정보의 끝에는 반드시 해당 데이터의 출처 번호나 섹션명을 `` 형식으로 표기할 것.
+3. **전문적 가독성:** 중요한 수치나 결론은 **굵게(Bold)** 처리하고, 불필요한 미사여구는 배제한 채 팩트 위주로 간결하게 답변할 것."""
+
+    lines.append(prompt_template)
+
+    return JsonResponse({
+        'success': True,
+        'data': '\n'.join(lines)
+    })
+
+
 def youtube_summary(request, video_id):
     """유튜브 영상 요약 편집 페이지"""
     from .models import YoutubeVideo

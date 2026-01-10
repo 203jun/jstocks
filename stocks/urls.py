@@ -30,6 +30,7 @@ urlpatterns = [
     path('api/stock/search/', views.search_stock, name='search_stock'),
     path('api/stock/<str:code>/prompt-data/', views.fetch_stock_prompt_data, name='fetch_stock_prompt_data'),
     path('api/stock/<str:code>/data-loader/', views.fetch_stock_data_loader, name='fetch_stock_data_loader'),
+    path('api/stock/<str:code>/data-loader-with-summary/', views.fetch_stock_data_loader_with_summary, name='fetch_stock_data_loader_with_summary'),
     path('youtube/<int:video_id>/summary/', views.youtube_summary, name='youtube_summary'),
     path('api/telegram/search/', views.search_telegram, name='search_telegram'),
     path('api/disclosure/search/', views.search_disclosure, name='search_disclosure'),
