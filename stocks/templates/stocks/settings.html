@@ -245,6 +245,9 @@
                 <button class="nav-link" id="question-report-tab" data-bs-toggle="pill" data-bs-target="#question-report-panel" type="button" role="tab">질문리포트</button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="report-prompt-tab" data-bs-toggle="pill" data-bs-target="#report-prompt-panel" type="button" role="tab">리포트</button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="nodaji-tab" data-bs-toggle="pill" data-bs-target="#nodaji-panel" type="button" role="tab">노다지</button>
             </li>
             <li class="nav-item" role="presentation">
@@ -757,6 +760,53 @@
                     </div>
                 </div>
 
+            </div>
+
+            <!-- 리포트 탭 -->
+            <div class="tab-pane fade" id="report-prompt-panel" role="tabpanel">
+                <!-- Case 1: 종목 리포트 -->
+                <div class="card mb-3">
+                    <div class="card-header py-2">
+                        <span class="badge bg-primary me-2">Case 1</span>
+                        <strong>종목 리포트</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-secondary py-2 mb-3">
+                            <small>
+                                <strong>도구:</strong> Gemini + 사고모드<br>
+                                <strong>저장:</strong> 종목 편집 → 리포트 → <code>요약</code> 탭<br>
+                                <strong>사용:</strong> 종목 리포트
+                            </small>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold small mb-0">프롬프트</label>
+                            <button type="button" class="btn btn-sm btn-primary" id="btnSaveReportPrompt1">저장</button>
+                        </div>
+                        <textarea class="form-control" id="promptReport1" rows="8" placeholder="종목 리포트용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_report_stock }}</textarea>
+                    </div>
+                </div>
+
+                <!-- Case 2: 섹터 리포트 -->
+                <div class="card">
+                    <div class="card-header py-2">
+                        <span class="badge bg-success me-2">Case 2</span>
+                        <strong>섹터 리포트</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-secondary py-2 mb-3">
+                            <small>
+                                <strong>도구:</strong> Gemini + 사고모드<br>
+                                <strong>저장:</strong> 섹터 편집 → 리포트 → <code>요약</code> 탭<br>
+                                <strong>사용:</strong> 섹터 리포트
+                            </small>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold small mb-0">프롬프트</label>
+                            <button type="button" class="btn btn-sm btn-primary" id="btnSaveReportPrompt2">저장</button>
+                        </div>
+                        <textarea class="form-control" id="promptReport2" rows="8" placeholder="섹터 리포트용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_report_sector }}</textarea>
+                    </div>
+                </div>
             </div>
 
             <!-- 유튜브 탭 -->
@@ -1465,6 +1515,18 @@ document.getElementById('btnSaveYoutubePrompt1').addEventListener('click', funct
 document.getElementById('btnSaveYoutubePrompt2').addEventListener('click', function() {
     const value = document.getElementById('promptYoutube2').value;
     savePrompt('prompt_youtube_deepdive', value, this);
+});
+
+// 리포트 프롬프트 저장 - Case 1: 종목 리포트
+document.getElementById('btnSaveReportPrompt1').addEventListener('click', function() {
+    const value = document.getElementById('promptReport1').value;
+    savePrompt('prompt_report_stock', value, this);
+});
+
+// 리포트 프롬프트 저장 - Case 2: 섹터 리포트
+document.getElementById('btnSaveReportPrompt2').addEventListener('click', function() {
+    const value = document.getElementById('promptReport2').value;
+    savePrompt('prompt_report_sector', value, this);
 });
 
 // 뉴스 프롬프트 저장
