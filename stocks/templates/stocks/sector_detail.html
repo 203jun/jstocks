@@ -169,15 +169,10 @@
                             <div class="d-flex gap-1">
                                 <a href="{{ report.file.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">파일</a>
                                 {% if report.summary %}
-                                <button type="button" class="btn btn-sm btn-outline-primary btn-view-file-report-summary" data-report-id="{{ report.id }}">요약</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary btn-view-file-report-summary" data-summary="{{ report.summary|escapejs }}" data-title="{{ report.display_title }}">요약</button>
                                 {% endif %}
                             </div>
                         </div>
-                        {% if report.summary %}
-                        <div class="file-report-summary mt-2 p-2 bg-light rounded d-none" id="fileReportSummary{{ report.id }}">
-                            <div class="markdown-content" data-markdown="{{ report.summary|escapejs }}"></div>
-                        </div>
-                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>
@@ -579,24 +574,46 @@ document.querySelectorAll('.btn-view-telegram').forEach(btn => {
     });
 });
 
-// 파일 리포트 요약 토글
+// 파일 리포트 요약 새 창으로 보기
 document.querySelectorAll('.btn-view-file-report-summary').forEach(btn => {
     btn.addEventListener('click', function() {
-        const reportId = this.dataset.reportId;
-        const summaryDiv = document.getElementById('fileReportSummary' + reportId);
-        if (summaryDiv) {
-            // 마크다운 렌더링 (최초 1회)
-            const markdownEl = summaryDiv.querySelector('.markdown-content');
-            if (markdownEl && markdownEl.dataset.markdown && !markdownEl.dataset.rendered) {
-                // 유니코드 이스케이프 시퀀스 디코딩
-                let md = markdownEl.dataset.markdown;
-                md = md.replace(/\\u([0-9a-fA-F]{4})/g, (m, cc) => String.fromCharCode(parseInt(cc, 16)));
-                markdownEl.innerHTML = marked.parse(md);
-                markdownEl.dataset.rendered = 'true';
-            }
-            summaryDiv.classList.toggle('d-none');
-            this.textContent = summaryDiv.classList.contains('d-none') ? '요약' : '닫기';
-        }
+        let summary = this.dataset.summary || '';
+        const title = this.dataset.title || '리포트 요약';
+
+        // 유니코드 이스케이프 시퀀스 디코딩
+        summary = summary.replace(/\\u([0-9a-fA-F]{4})/g, (m, cc) => String.fromCharCode(parseInt(cc, 16)));
+
+        const previewWindow = window.open('', '_blank', 'width=900,height=700');
+        previewWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>${title}</title>
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>
+                <style>
+                    body { padding: 30px; }
+                    pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+                    code { background: #f8f9fa; padding: 2px 4px; border-radius: 2px; }
+                    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+                    th, td { border: 1px solid #dee2e6; padding: 8px; text-align: left; }
+                    th { background: #f8f9fa; }
+                    h1, h2, h3, h4 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
+                    ul, ol { margin-bottom: 1rem; }
+                </style>
+            </head>
+            <body>
+                <h4 class="mb-4 pb-2 border-bottom">${title}</h4>
+                <div id="content"></div>
+                <script>
+                    const md = ${JSON.stringify(summary || '요약이 없습니다.')};
+                    document.getElementById('content').innerHTML = marked.parse(md);
+                <\/script>
+            </body>
+            </html>
+        `);
+        previewWindow.document.close();
     });
 });
 </script>
