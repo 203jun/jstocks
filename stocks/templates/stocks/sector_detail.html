@@ -588,7 +588,10 @@ document.querySelectorAll('.btn-view-file-report-summary').forEach(btn => {
             // 마크다운 렌더링 (최초 1회)
             const markdownEl = summaryDiv.querySelector('.markdown-content');
             if (markdownEl && markdownEl.dataset.markdown && !markdownEl.dataset.rendered) {
-                markdownEl.innerHTML = marked.parse(markdownEl.dataset.markdown);
+                // 유니코드 이스케이프 시퀀스 디코딩
+                let md = markdownEl.dataset.markdown;
+                md = md.replace(/\\u([0-9a-fA-F]{4})/g, (m, cc) => String.fromCharCode(parseInt(cc, 16)));
+                markdownEl.innerHTML = marked.parse(md);
                 markdownEl.dataset.rendered = 'true';
             }
             summaryDiv.classList.toggle('d-none');
