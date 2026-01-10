@@ -196,7 +196,10 @@
         <div class="card mb-3">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <strong>인사이트</strong>
-                {% if stock.insight_updated_at %}<small class="text-muted">update: {{ stock.insight_updated_at|date:"Y-m-d" }}</small>{% endif %}
+                <div class="d-flex align-items-center gap-2">
+                    {% if stock.insight_updated_at %}<small class="text-muted">update: {{ stock.insight_updated_at|date:"Y-m-d" }}</small>{% endif %}
+                    <button type="button" class="btn btn-sm btn-outline-secondary btn-open-insight-window" title="새창보기">🔗</button>
+                </div>
             </div>
             <div class="card-body p-0">
                 {% if stock.insight_summary_html and stock.insight_report_html %}
@@ -394,7 +397,10 @@
         <div class="card mb-3">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <strong>기업분석</strong>
-                {% if stock.analysis_updated_at %}<small class="text-muted">update: {{ stock.analysis_updated_at|date:"Y-m-d" }}</small>{% endif %}
+                <div class="d-flex align-items-center gap-2">
+                    {% if stock.analysis_updated_at %}<small class="text-muted">update: {{ stock.analysis_updated_at|date:"Y-m-d" }}</small>{% endif %}
+                    <button type="button" class="btn btn-sm btn-outline-secondary btn-open-analysis-window" title="새창보기">🔗</button>
+                </div>
             </div>
             <div class="card-body p-0">
                 {% if stock.analysis_text and analysis_html_exists %}
@@ -1856,6 +1862,26 @@ document.querySelectorAll('.btn-view-file-report-summary').forEach(btn => {
             this.textContent = summaryDiv.classList.contains('d-none') ? '요약보기' : '요약닫기';
         }
     });
+});
+
+// 인사이트 새창보기
+document.querySelector('.btn-open-insight-window')?.addEventListener('click', function() {
+    const card = this.closest('.card');
+    const activePane = card.querySelector('.tab-pane.active') || card.querySelector('.card-body');
+    const iframe = activePane.querySelector('iframe');
+    if (iframe) {
+        window.open(iframe.src, '_blank');
+    }
+});
+
+// 기업분석 새창보기
+document.querySelector('.btn-open-analysis-window')?.addEventListener('click', function() {
+    const card = this.closest('.card');
+    const activePane = card.querySelector('.tab-pane.active') || card.querySelector('.card-body');
+    const iframe = activePane.querySelector('iframe');
+    if (iframe) {
+        window.open(iframe.src, '_blank');
+    }
 });
 </script>
 <style>
