@@ -48,3 +48,8 @@ htmlcov/
 
 # Test files
 test.py
+
+# Custom folders
+사업보고서/
+jemu/
+nodaji/

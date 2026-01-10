@@ -1333,6 +1333,126 @@ class StockQuestionReport(models.Model):
         return f"{self.stock.name}: {self.question[:30]}"
 
 
+class StockUploadedReport(models.Model):
+    """
+    종목 업로드 리포트
+
+    사용자가 직접 업로드한 PDF 등의 리포트 파일
+    파일 업로드 후 요약을 추가할 수 있음
+    """
+    stock = models.ForeignKey(
+        Info,
+        on_delete=models.CASCADE,
+        related_name='uploaded_reports',
+        verbose_name='종목',
+        help_text='관련 종목'
+    )
+    file = models.FileField(
+        upload_to='uploaded_reports/stock/%Y/%m/',
+        verbose_name='파일',
+        help_text='업로드된 리포트 파일 (PDF 등)'
+    )
+    original_filename = models.CharField(
+        max_length=255,
+        verbose_name='원본파일명',
+        help_text='업로드 시 원본 파일명'
+    )
+    title = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='제목',
+        help_text='사용자 지정 제목 (비어있으면 원본파일명 사용)'
+    )
+    summary = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='요약',
+        help_text='리포트 요약 내용 (HTML 형식)'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='수정일시'
+    )
+
+    @property
+    def display_title(self):
+        return self.title if self.title else self.original_filename
+
+    class Meta:
+        db_table = 'stock_uploaded_report'
+        verbose_name = '종목업로드리포트'
+        verbose_name_plural = '종목업로드리포트'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.stock.name}: {self.original_filename}"
+
+
+class SectorUploadedReport(models.Model):
+    """
+    섹터 업로드 리포트
+
+    사용자가 직접 업로드한 PDF 등의 리포트 파일
+    파일 업로드 후 요약을 추가할 수 있음
+    """
+    sector = models.ForeignKey(
+        CustomSector,
+        on_delete=models.CASCADE,
+        related_name='uploaded_reports',
+        verbose_name='섹터',
+        help_text='관련 섹터'
+    )
+    file = models.FileField(
+        upload_to='uploaded_reports/sector/%Y/%m/',
+        verbose_name='파일',
+        help_text='업로드된 리포트 파일 (PDF 등)'
+    )
+    original_filename = models.CharField(
+        max_length=255,
+        verbose_name='원본파일명',
+        help_text='업로드 시 원본 파일명'
+    )
+    title = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='제목',
+        help_text='사용자 지정 제목 (비어있으면 원본파일명 사용)'
+    )
+    summary = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='요약',
+        help_text='리포트 요약 내용 (HTML 형식)'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='수정일시'
+    )
+
+    @property
+    def display_title(self):
+        return self.title if self.title else self.original_filename
+
+    class Meta:
+        db_table = 'sector_uploaded_report'
+        verbose_name = '섹터업로드리포트'
+        verbose_name_plural = '섹터업로드리포트'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.sector.name}: {self.original_filename}"
+
+
 class Report(models.Model):
     """
     애널리스트 리포트 데이터

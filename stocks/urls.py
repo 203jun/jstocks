@@ -94,4 +94,14 @@ urlpatterns = [
     path('api/stock/<str:code>/investor-trend/', views.fetch_investor_trend, name='fetch_investor_trend'),
     path('api/stock/<str:code>/short-selling/', views.fetch_short_selling, name='fetch_short_selling'),
     path('api/setting/save/', views.save_setting, name='save_setting'),
+    # 파일 업로드 리포트 (종목)
+    path('api/stock/uploaded-report/upload/', views.stock_uploaded_report_upload, name='stock_uploaded_report_upload'),
+    path('api/stock/uploaded-report/<int:report_id>/delete/', views.stock_uploaded_report_delete, name='stock_uploaded_report_delete'),
+    path('api/stock/uploaded-report/<int:report_id>/summary/', views.stock_uploaded_report_summary, name='stock_uploaded_report_summary'),
+    path('api/stock/uploaded-report/<int:report_id>/title/', views.stock_uploaded_report_title, name='stock_uploaded_report_title'),
+    # 파일 업로드 리포트 (섹터)
+    path('api/sector/uploaded-report/upload/', views.sector_uploaded_report_upload, name='sector_uploaded_report_upload'),
+    path('api/sector/uploaded-report/<int:report_id>/delete/', views.sector_uploaded_report_delete, name='sector_uploaded_report_delete'),
+    path('api/sector/uploaded-report/<int:report_id>/summary/', views.sector_uploaded_report_summary, name='sector_uploaded_report_summary'),
+    path('api/sector/uploaded-report/<int:report_id>/title/', views.sector_uploaded_report_title, name='sector_uploaded_report_title'),
 ]

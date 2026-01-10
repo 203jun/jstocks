@@ -759,6 +759,10 @@ def stock_detail(request, code):
     from .models import StockQuestionReport
     question_reports = StockQuestionReport.objects.filter(stock=stock).order_by('-created_at')
 
+    # 업로드 리포트
+    from .models import StockUploadedReport
+    uploaded_reports = StockUploadedReport.objects.filter(stock=stock).order_by('-created_at')
+
     # 거래량 변동률 계산 (전일 대비)
     volume_change_rate = None
     if len(daily_charts) >= 2:
@@ -864,6 +868,7 @@ def stock_detail(request, code):
         'news_articles': news_articles,
         'telegram_messages': telegram_messages,
         'question_reports': question_reports,
+        'uploaded_reports': uploaded_reports,
         'price_chart_data': json.dumps(price_chart_data),
         'target_chart_data': json.dumps(target_chart_data),
         'gap_chart_data': json.dumps(gap_chart_data),
@@ -1169,6 +1174,10 @@ def stock_edit(request, code):
     from .models import StockQuestionReport
     question_reports = StockQuestionReport.objects.filter(stock=stock)
 
+    # 업로드 리포트
+    from .models import StockUploadedReport
+    uploaded_reports = StockUploadedReport.objects.filter(stock=stock)
+
     # 기업분석 HTML 파일 확인
     html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
     analysis_html_exists = html_path.exists()
@@ -1198,6 +1207,7 @@ def stock_edit(request, code):
         'news_articles': news_articles,
         'telegram_messages': telegram_messages,
         'question_reports': question_reports,
+        'uploaded_reports': uploaded_reports,
         'analysis_html_exists': analysis_html_exists,
         'analysis_html_content': analysis_html_content,
     }
@@ -2326,10 +2336,13 @@ def sector(request):
 
 def sector_detail(request, sector_id):
     """섹터 상세 페이지"""
-    from .models import CustomSector, SectorTelegramMessage, SectorNews, SectorYoutubeVideo, SectorQuestionReport, Info, InfoETF
+    from .models import CustomSector, SectorTelegramMessage, SectorNews, SectorYoutubeVideo, SectorQuestionReport, SectorUploadedReport, Info, InfoETF
     from itertools import chain
 
     sector = get_object_or_404(CustomSector, id=sector_id)
+
+    # 업로드된 리포트
+    uploaded_reports = SectorUploadedReport.objects.filter(sector=sector).order_by('-created_at')
 
     # 해당 섹터에 연결된 종목과 ETF
     related_stocks = Info.objects.filter(custom_sectors=sector).order_by('name')
@@ -2405,13 +2418,14 @@ def sector_detail(request, sector_id):
         'telegram_messages': telegram_messages,
         'news_articles': news_articles,
         'youtube_videos': youtube_videos,
+        'uploaded_reports': uploaded_reports,
     }
     return render(request, 'stocks/sector_detail.html', context)
 
 
 def sector_edit(request, sector_id):
     """섹터 편집 페이지"""
-    from .models import CustomSector, SectorTelegramMessage, SectorNews, SectorYoutubeVideo, SectorQuestionReport
+    from .models import CustomSector, SectorTelegramMessage, SectorNews, SectorYoutubeVideo, SectorQuestionReport, SectorUploadedReport
 
     sector = get_object_or_404(CustomSector, id=sector_id)
 
@@ -2427,6 +2441,7 @@ def sector_edit(request, sector_id):
     news_articles = SectorNews.objects.filter(sector=sector).order_by('-created_at')
     youtube_videos = SectorYoutubeVideo.objects.filter(sector=sector).order_by('-created_at')
     question_reports = SectorQuestionReport.objects.filter(sector=sector).order_by('-created_at')
+    uploaded_reports = SectorUploadedReport.objects.filter(sector=sector).order_by('-created_at')
 
     context = {
         'sector': sector,
@@ -2434,6 +2449,7 @@ def sector_edit(request, sector_id):
         'news_articles': news_articles,
         'youtube_videos': youtube_videos,
         'question_reports': question_reports,
+        'uploaded_reports': uploaded_reports,
     }
     return render(request, 'stocks/sector_edit.html', context)
 
@@ -5644,3 +5660,165 @@ def sector_youtube_summary(request, video_id):
     return render(request, 'stocks/sector_youtube_summary.html', {
         'video': video,
     })
+
+
+# ============ 파일 업로드 리포트 (종목) ============
+
+@require_POST
+def stock_uploaded_report_upload(request):
+    """종목 파일 업로드 리포트 API"""
+    from .models import Info, StockUploadedReport
+
+    stock_code = request.POST.get('stock_code', '').strip()
+    uploaded_file = request.FILES.get('file')
+
+    if not stock_code:
+        return JsonResponse({'error': '종목 코드가 필요합니다.'}, status=400)
+
+    if not uploaded_file:
+        return JsonResponse({'error': '파일을 선택해주세요.'}, status=400)
+
+    stock = get_object_or_404(Info, code=stock_code)
+
+    report = StockUploadedReport.objects.create(
+        stock=stock,
+        file=uploaded_file,
+        original_filename=uploaded_file.name,
+    )
+
+    return JsonResponse({
+        'success': True,
+        'id': report.id,
+        'original_filename': report.original_filename,
+        'file_url': report.file.url,
+        'created_at': report.created_at.strftime('%Y-%m-%d %H:%M'),
+    })
+
+
+@require_POST
+def stock_uploaded_report_delete(request, report_id):
+    """종목 파일 업로드 리포트 삭제 API"""
+    from .models import StockUploadedReport
+
+    report = get_object_or_404(StockUploadedReport, id=report_id)
+
+    # 파일도 함께 삭제
+    if report.file:
+        report.file.delete(save=False)
+
+    report.delete()
+
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def stock_uploaded_report_summary(request, report_id):
+    """종목 파일 업로드 리포트 요약 저장 API"""
+    from .models import StockUploadedReport
+
+    summary = request.POST.get('summary', '')
+
+    try:
+        report = StockUploadedReport.objects.get(id=report_id)
+        report.summary = summary
+        report.save()
+        return JsonResponse({'success': True})
+    except StockUploadedReport.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '리포트를 찾을 수 없습니다.'})
+
+
+@require_POST
+def stock_uploaded_report_title(request, report_id):
+    """종목 파일 업로드 리포트 제목 저장 API"""
+    from .models import StockUploadedReport
+
+    title = request.POST.get('title', '')
+
+    try:
+        report = StockUploadedReport.objects.get(id=report_id)
+        report.title = title
+        report.save()
+        return JsonResponse({'success': True})
+    except StockUploadedReport.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '리포트를 찾을 수 없습니다.'})
+
+
+# ============ 파일 업로드 리포트 (섹터) ============
+
+@require_POST
+def sector_uploaded_report_upload(request):
+    """섹터 파일 업로드 리포트 API"""
+    from .models import CustomSector, SectorUploadedReport
+
+    sector_id = request.POST.get('sector_id', '').strip()
+    uploaded_file = request.FILES.get('file')
+
+    if not sector_id:
+        return JsonResponse({'error': '섹터 ID가 필요합니다.'}, status=400)
+
+    if not uploaded_file:
+        return JsonResponse({'error': '파일을 선택해주세요.'}, status=400)
+
+    sector = get_object_or_404(CustomSector, id=sector_id)
+
+    report = SectorUploadedReport.objects.create(
+        sector=sector,
+        file=uploaded_file,
+        original_filename=uploaded_file.name,
+    )
+
+    return JsonResponse({
+        'success': True,
+        'id': report.id,
+        'original_filename': report.original_filename,
+        'file_url': report.file.url,
+        'created_at': report.created_at.strftime('%Y-%m-%d %H:%M'),
+    })
+
+
+@require_POST
+def sector_uploaded_report_delete(request, report_id):
+    """섹터 파일 업로드 리포트 삭제 API"""
+    from .models import SectorUploadedReport
+
+    report = get_object_or_404(SectorUploadedReport, id=report_id)
+
+    # 파일도 함께 삭제
+    if report.file:
+        report.file.delete(save=False)
+
+    report.delete()
+
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def sector_uploaded_report_summary(request, report_id):
+    """섹터 파일 업로드 리포트 요약 저장 API"""
+    from .models import SectorUploadedReport
+
+    summary = request.POST.get('summary', '')
+
+    try:
+        report = SectorUploadedReport.objects.get(id=report_id)
+        report.summary = summary
+        report.save()
+        return JsonResponse({'success': True})
+    except SectorUploadedReport.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '리포트를 찾을 수 없습니다.'})
+
+
+@require_POST
+def sector_uploaded_report_title(request, report_id):
+    """섹터 파일 업로드 리포트 제목 저장 API"""
+    from .models import SectorUploadedReport
+
+    title = request.POST.get('title', '')
+
+    try:
+        report = SectorUploadedReport.objects.get(id=report_id)
+        report.title = title
+        report.save()
+        return JsonResponse({'success': True})
+    except SectorUploadedReport.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '리포트를 찾을 수 없습니다.'})
