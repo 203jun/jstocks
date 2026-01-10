@@ -191,6 +191,20 @@
         <!-- 숨김 요소들 (새로고침 시 필요) -->
         <span id="priceChange" style="display:none;">{% if stock.price_change %}{{ stock.price_change }}{% endif %}</span>
 
+        <!-- 핵심 브리핑 -->
+        {% if stock.key_briefing %}
+        <div class="card mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>핵심 브리핑</strong>
+                {% if stock.key_briefing_updated_at %}<small class="text-muted">update: {{ stock.key_briefing_updated_at|date:"Y-m-d" }}</small>{% endif %}
+            </div>
+            <div class="card-body py-2" style="max-height: 400px; overflow-y: auto;">
+                <div class="content markdown-content" id="keyBriefingMarkdown"></div>
+                <script type="text/plain" id="keyBriefingRaw">{{ stock.key_briefing|default:""|safe }}</script>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- 인사이트 (투자포인트/리스크/일정 통합) -->
         {% if stock.insight_summary_html or stock.insight_report_html %}
         <div class="card mb-3">
@@ -1070,6 +1084,9 @@ function renderContent(rawId, markdownId) {
 
 // 메모 렌더링
 renderContent('memoRaw', 'memoMarkdown');
+
+// 핵심 브리핑 렌더링
+renderContent('keyBriefingRaw', 'keyBriefingMarkdown');
 
 // 텔레그램 메시지 전체보기
 document.querySelectorAll('.btn-view-telegram').forEach(btn => {

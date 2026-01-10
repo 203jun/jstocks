@@ -953,6 +953,14 @@ def stock_edit(request, code):
             from datetime import date
             stock.insight_updated_at = date.today()
 
+        # 핵심 브리핑 저장 (변경 시 날짜 업데이트)
+        new_key_briefing = request.POST.get('key_briefing', '').strip()
+        old_key_briefing = (stock.key_briefing or '').strip()
+        if new_key_briefing != old_key_briefing:
+            stock.key_briefing = new_key_briefing
+            from datetime import date
+            stock.key_briefing_updated_at = date.today()
+
         # 메모 저장 (변경 시 날짜 업데이트)
         new_memo = request.POST.get('memo', '').strip()
         old_memo = (stock.memo or '').strip()
@@ -2063,9 +2071,18 @@ def fetch_stock_data_loader(request, code):
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
 
-    # 투자포인트 (인사이트)
+    # 핵심 브리핑
+    if 'key_briefing' in types:
+        lines.append("## 핵심 브리핑")
+        if stock.key_briefing:
+            lines.append(stock.key_briefing)
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    # 인사이트
     if 'insight' in types:
-        lines.append("## 투자포인트")
+        lines.append("## 인사이트")
         if stock.insight_summary_html:
             lines.append(html_to_text(stock.insight_summary_html))
         elif stock.insight_report_html:
@@ -2219,8 +2236,16 @@ def fetch_stock_data_loader_with_summary(request, code):
         lines.append("- 저장된 데이터가 없습니다.")
     lines.append("")
 
-    # 2. 투자포인트 (인사이트)
-    lines.append("## 투자포인트")
+    # 2. 핵심 브리핑
+    lines.append("## 핵심 브리핑")
+    if stock.key_briefing:
+        lines.append(stock.key_briefing)
+    else:
+        lines.append("- 저장된 데이터가 없습니다.")
+    lines.append("")
+
+    # 3. 인사이트
+    lines.append("## 인사이트")
     if stock.insight_summary_html:
         lines.append(html_to_text(stock.insight_summary_html))
     elif stock.insight_report_html:
@@ -2229,7 +2254,7 @@ def fetch_stock_data_loader_with_summary(request, code):
         lines.append("- 저장된 데이터가 없습니다.")
     lines.append("")
 
-    # 3. 질문리포트 (최대 10개)
+    # 4. 질문리포트 (최대 10개)
     lines.append("## 질문리포트 (최대 10개)")
     qr_list = StockQuestionReport.objects.filter(stock=stock).order_by('-id')[:10]
     if qr_list:
@@ -2241,7 +2266,7 @@ def fetch_stock_data_loader_with_summary(request, code):
         lines.append("- 저장된 데이터가 없습니다.")
     lines.append("")
 
-    # 4. 파일 리포트 (요약 포함, 최대 10개)
+    # 5. 파일 리포트 (요약 포함, 최대 10개)
     lines.append("## 파일 리포트 (최대 10개, 요약 포함)")
     file_reports = StockUploadedReport.objects.filter(stock=stock).order_by('-created_at')[:10]
     if file_reports:
@@ -2258,7 +2283,7 @@ def fetch_stock_data_loader_with_summary(request, code):
         lines.append("- 저장된 데이터가 없습니다.")
     lines.append("")
 
-    # 5. 노다지 (요약 포함, 최대 5개)
+    # 6. 노다지 (요약 포함, 최대 5개)
     lines.append("## 노다지 IR노트 (최대 5개, 요약 포함)")
     nodaji_list = Nodaji.objects.filter(
         stock=stock,
@@ -2275,7 +2300,7 @@ def fetch_stock_data_loader_with_summary(request, code):
         lines.append("- 저장된 데이터가 없습니다.")
     lines.append("")
 
-    # 6. 리포트 (요약 포함, 최신 10개)
+    # 7. 리포트 (요약 포함, 최신 10개)
     lines.append("## 애널리스트 리포트 (최신 10개, 요약 포함)")
     all_reports = Report.objects.filter(stock=stock).order_by('-date')
     seen_dates = set()
@@ -2300,7 +2325,7 @@ def fetch_stock_data_loader_with_summary(request, code):
         lines.append("- 저장된 데이터가 없습니다.")
     lines.append("")
 
-    # 7. 유튜브 (요약 포함, 최대 10개)
+    # 8. 유튜브 (요약 포함, 최대 10개)
     lines.append("## 유튜브 (최대 10개, 요약 포함)")
     youtube_list = YoutubeVideo.objects.filter(stock=stock).order_by('-id')[:10]
     if youtube_list:
@@ -2318,7 +2343,7 @@ def fetch_stock_data_loader_with_summary(request, code):
         lines.append("- 저장된 데이터가 없습니다.")
     lines.append("")
 
-    # 8. 뉴스 (요약 포함, 최대 10개)
+    # 9. 뉴스 (요약 포함, 최대 10개)
     lines.append("## 뉴스 (최대 10개, 요약 포함)")
     news_list = News.objects.filter(stock=stock).order_by('-id')[:10]
     if news_list:
@@ -2334,7 +2359,7 @@ def fetch_stock_data_loader_with_summary(request, code):
         lines.append("- 저장된 데이터가 없습니다.")
     lines.append("")
 
-    # 9. 텔레그램 (요약 포함, 최대 10개)
+    # 10. 텔레그램 (요약 포함, 최대 10개)
     lines.append("## 텔레그램 (최대 10개, 요약 포함)")
     telegram_list = TelegramMessage.objects.filter(stock=stock).order_by('-id')[:10]
     if telegram_list:
@@ -2349,7 +2374,7 @@ def fetch_stock_data_loader_with_summary(request, code):
         lines.append("- 저장된 데이터가 없습니다.")
     lines.append("")
 
-    # 10. 메모
+    # 11. 메모
     lines.append("## 메모")
     if stock.memo:
         lines.append(html_to_text(stock.memo))
@@ -2360,31 +2385,34 @@ def fetch_stock_data_loader_with_summary(request, code):
     # 프롬프트 템플릿 추가
     prompt_template = """---
 # Role: 데이터 중심의 수석 투자 전략가 (Senior Investment Strategist)
-# Task: 하단에 제공된 데이터셋을 분석하여 종목의 '투자포인트', '리스크', '일정'을 데이터 기반으로 정밀 추출하라.
+# Task: 하단에 제공된 데이터셋을 분석하여 종목의 '투자포인트', '리스크', '일정'을 최신 데이터 기반으로 정밀 추출 및 업데이트하라.
 
-이 프롬프트 상단에는 해당 종목의 리포트, 재무 데이터, 뉴스, IR 노트 등이 포함된 [데이터셋]이 이미 제공되어 있다. 해당 데이터를 샅샅이 분석하여 투자 판단을 돕는 핵심 정보를 다음 포맷에 맞춰 정리해줘.
+이 프롬프트 상단 [데이터셋]에는 과거 요약본인 **[핵심 브리핑]**과 최신 애널리스트 리포트, 재무 데이터 등이 포함되어 있다.
+
+당신의 주된 임무는 **과거의 '핵심 브리핑'에 머물지 않고, 최신 리포트와 뉴스 데이터를 우선적으로 반영하여 정보를 갱신(Update)**하는 것이다. 다음 포맷에 맞춰 정리해줘.
 
 ---
 
 ## 🎯 1. 핵심 투자 포인트 (Investment Points)
-- **구조적 경쟁 우위:** 독점적 기술력, 압도적인 원가 구조(BEP), 시장 점유율, 또는 강력한 대주주 파트너십 등 타사 대비 우위에 있는 근거를 숫자로 제시할 것.
-- **성장성 및 실적 모멘텀:** 실적 턴어라운드의 질적 분석(이익의 질)과 향후 매출/EBITDA 성장률 전망치를 포함할 것.
-- **신사업 및 업사이드 촉매:** 현재 진행 중인 신규 사업의 진척도와 그것이 기업 가치 재평가(Re-rating)에 미칠 잠재력을 설명할 것.
+- **구조적 경쟁 우위:** 독점적 기술력, 시장 점유율, 또는 강력한 파트너십 등 타사 대비 우위에 있는 근거를 숫자로 제시할 것.
+- **최신 실적 및 성장 모멘텀:** 가장 최근 발행된 리포트의 수치를 최우선으로 반영하여 실적 턴어라운드의 질적 분석과 향후 전망치를 포함할 것.
+- **신사업 및 리레이팅 촉매:** 현재 진행 중인 신규 사업의 진척도와 가치 재평가 잠재력을 설명할 것.
 
 ## ⚠️ 2. 주요 리스크 요인 (Risk Factors)
-- **재무적 리스크:** 대규모 투자(CAPEX)에 따른 부채 급증, 이자 비용 부담, 현금 흐름 악화 등 재무제표상의 경고 시그널을 데이터로 명시할 것.
-- **업황 및 대외 변수:** 산업 사이클의 하락 가능성, 경쟁 심화에 따른 마진 압박, 규제 리스크, 매크로 변수(금리, 환율 등)가 실적에 미치는 부정적 영향력을 서술할 것.
-- **주주 가치 훼손:** 배당 성향의 하락, 오버행 이슈, 또는 자본 조달(유상증자 등) 가능성이 언급되었다면 포함할 것.
+- **재무적/운영적 리스크:** 대규모 투자(CAPEX)에 따른 부채, 현금 흐름, 혹은 최근 리포트에서 새롭게 경고한 리스크 시그널을 데이터로 명시할 것.
+- **업황 및 매크로 변수:** 산업 사이클 변화, 경쟁 심화, 규제 등 실적에 미치는 부정적 영향력을 서술할 것.
+- **최신 업데이트:** 과거 '핵심 브리핑'에는 없었으나 최신 데이터에서 발견된 새로운 리스크가 있다면 반드시 강조할 것.
 
 ## 🗓️ 3. 주요 일정 및 마일스톤 (Schedule & Catalysts)
-- 리포트 및 데이터 내에 언급된 모든 미래 시점의 날짜와 이벤트를 타임라인 순으로 정리할 것.
+- 과거 데이터와 최신 데이터를 대조하여 이미 지난 일정은 삭제하고, **미래 시점의 날짜와 이벤트**만 타임라인 순으로 정리할 것.
 - **포맷:** | 시기 | 이벤트 명 | 예상 영향 및 체크포인트 | 형태로 작성.
 
 ---
 **[출력 지침]**
-1. **데이터 기반 추출:** "수익성이 좋다"는 표현보다는 "영업이익률 XX% 달성"과 같이 데이터 내의 **구체적인 숫자**를 우선적으로 사용할 것.
-2. **인용(Citation) 필수:** 모든 정보의 끝에는 반드시 해당 데이터의 출처 번호나 섹션명을 `` 형식으로 표기할 것.
-3. **전문적 가독성:** 중요한 수치나 결론은 **굵게(Bold)** 처리하고, 불필요한 미사여구는 배제한 채 팩트 위주로 간결하게 답변할 것."""
+1. **최신성 우선:** 동일한 항목에 대해 과거 데이터와 최신 데이터가 충돌할 경우, **가장 최근 날짜의 리포트 수치**를 사용하고 이를 명시할 것.
+2. **데이터 기반 추출:** 구체적인 **숫자(%, 금액, 배수)**를 반드시 포함할 것.
+3. **인용(Citation) 필수:** 정보의 끝에 해당 데이터의 출처 리포트 날짜나 섹션명을 `` 형식으로 표기할 것.
+4. **전문적 가독성:** 중요한 수치나 결론은 **굵게(Bold)** 처리하고 팩트 위주로 간결하게 답변할 것."""
 
     lines.append(prompt_template)
 

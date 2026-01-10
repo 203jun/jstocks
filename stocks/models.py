@@ -194,6 +194,20 @@ class Info(models.Model):
         help_text='기업분석 마지막 수정일'
     )
 
+    # === 핵심 브리핑 ===
+    key_briefing = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='핵심 브리핑',
+        help_text='투자포인트/리스크/일정 핵심 요약 (마크다운 형식)'
+    )
+    key_briefing_updated_at = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='핵심 브리핑 업데이트일',
+        help_text='핵심 브리핑 마지막 수정일'
+    )
+
     # === 인사이트 (투자포인트/리스크/일정 통합) ===
     insight_summary_html = models.TextField(
         blank=True,
