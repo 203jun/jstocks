@@ -1283,7 +1283,14 @@ class SectorQuestionReport(models.Model):
         blank=True,
         default='',
         verbose_name='리포트',
-        help_text='리포트 (HTML 형식)'
+        help_text='리포트 내용 (HTML 또는 마크다운)'
+    )
+    report_type = models.CharField(
+        max_length=10,
+        choices=[('html', 'HTML'), ('markdown', '마크다운')],
+        default='html',
+        verbose_name='리포트 형식',
+        help_text='리포트의 형식 (HTML 또는 마크다운)'
     )
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -1326,7 +1333,14 @@ class StockQuestionReport(models.Model):
         blank=True,
         default='',
         verbose_name='리포트',
-        help_text='리포트 내용'
+        help_text='리포트 내용 (HTML 또는 마크다운)'
+    )
+    report_type = models.CharField(
+        max_length=10,
+        choices=[('html', 'HTML'), ('markdown', '마크다운')],
+        default='html',
+        verbose_name='리포트 형식',
+        help_text='리포트의 형식 (HTML 또는 마크다운)'
     )
     created_at = models.DateTimeField(
         auto_now_add=True,

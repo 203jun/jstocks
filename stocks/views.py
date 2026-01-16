@@ -2099,7 +2099,11 @@ def fetch_stock_data_loader(request, code):
             for qr in qr_list:
                 lines.append(f"\n### Q: {qr.question}")
                 if qr.report:
-                    lines.append(html_to_text(qr.report))
+                    # 마크다운은 그대로, HTML은 텍스트로 변환
+                    if qr.report_type == 'markdown':
+                        lines.append(qr.report)
+                    else:
+                        lines.append(html_to_text(qr.report))
         else:
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
@@ -3612,12 +3616,17 @@ def sector_question_report_save(request):
     sector_id = request.POST.get('sector_id', '')
     question = request.POST.get('question', '').strip()
     report = request.POST.get('report', '')
+    report_type = request.POST.get('report_type', 'html')
 
     if not sector_id:
         return JsonResponse({'success': False, 'error': '섹터를 선택해주세요.'})
 
     if not question:
         return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
+
+    # report_type 유효성 검사
+    if report_type not in ('html', 'markdown'):
+        report_type = 'html'
 
     try:
         sector = CustomSector.objects.get(id=sector_id)
@@ -3627,12 +3636,14 @@ def sector_question_report_save(request):
     qr = SectorQuestionReport.objects.create(
         sector=sector,
         question=question,
-        report=report
+        report=report,
+        report_type=report_type
     )
 
     return JsonResponse({
         'success': True,
         'id': qr.id,
+        'report_type': qr.report_type,
         'message': '질문리포트가 저장되었습니다.'
     })
 
@@ -3657,6 +3668,7 @@ def sector_question_report_update(request, report_id):
 
     question = request.POST.get('question', '').strip()
     report = request.POST.get('report', '')
+    report_type = request.POST.get('report_type', None)
 
     if not question:
         return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
@@ -3665,6 +3677,8 @@ def sector_question_report_update(request, report_id):
         qr = SectorQuestionReport.objects.get(id=report_id)
         qr.question = question
         qr.report = report
+        if report_type in ('html', 'markdown'):
+            qr.report_type = report_type
         qr.save()
         return JsonResponse({'success': True})
     except SectorQuestionReport.DoesNotExist:
@@ -3679,12 +3693,17 @@ def stock_question_report_save(request):
     stock_code = request.POST.get('stock_code', '')
     question = request.POST.get('question', '').strip()
     report = request.POST.get('report', '')
+    report_type = request.POST.get('report_type', 'html')
 
     if not stock_code:
         return JsonResponse({'success': False, 'error': '종목코드가 필요합니다.'})
 
     if not question:
         return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
+
+    # report_type 유효성 검사
+    if report_type not in ('html', 'markdown'):
+        report_type = 'html'
 
     try:
         stock = Info.objects.get(code=stock_code)
@@ -3694,10 +3713,11 @@ def stock_question_report_save(request):
     qr = StockQuestionReport.objects.create(
         stock=stock,
         question=question,
-        report=report
+        report=report,
+        report_type=report_type
     )
 
-    return JsonResponse({'success': True, 'id': qr.id})
+    return JsonResponse({'success': True, 'id': qr.id, 'report_type': qr.report_type})
 
 
 @require_POST
@@ -3720,6 +3740,7 @@ def stock_question_report_update(request, report_id):
 
     question = request.POST.get('question', '').strip()
     report = request.POST.get('report', '')
+    report_type = request.POST.get('report_type', None)
 
     if not question:
         return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
@@ -3728,6 +3749,8 @@ def stock_question_report_update(request, report_id):
         qr = StockQuestionReport.objects.get(id=report_id)
         qr.question = question
         qr.report = report
+        if report_type in ('html', 'markdown'):
+            qr.report_type = report_type
         qr.save()
         return JsonResponse({'success': True})
     except StockQuestionReport.DoesNotExist:
