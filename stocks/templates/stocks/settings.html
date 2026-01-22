@@ -239,9 +239,6 @@
                 <button class="nav-link" id="stock-analysis-tab" data-bs-toggle="pill" data-bs-target="#stock-analysis-panel" type="button" role="tab">기업분석</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="stock-summary-tab" data-bs-toggle="pill" data-bs-target="#stock-summary-panel" type="button" role="tab">투자포인트</button>
-            </li>
-            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="question-report-tab" data-bs-toggle="pill" data-bs-target="#question-report-panel" type="button" role="tab">질문리포트</button>
             </li>
             <li class="nav-item" role="presentation">
@@ -297,12 +294,6 @@
                                         <div class="form-check">
                                             <input class="form-check-input data-loader-check" type="checkbox" id="chkKeyBriefing" value="key_briefing" checked>
                                             <label class="form-check-label" for="chkKeyBriefing">핵심브리핑</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input data-loader-check" type="checkbox" id="chkInsight" value="insight" checked>
-                                            <label class="form-check-label" for="chkInsight">인사이트</label>
                                         </div>
                                     </div>
                                     <div class="col-6 col-md-4">
@@ -477,93 +468,6 @@
                     </div>
                 </div>
 
-                <!-- STEP 2: 요약 만들기 -->
-                <div class="card">
-                    <div class="card-header py-2">
-                        <span class="badge bg-success me-2">STEP 2</span>
-                        <strong>요약 만들기</strong>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-secondary py-2 mb-3">
-                            <small>
-                                <strong>도구:</strong> Deep Research 리포트 결과에서 <code>웹페이지 만들기</code> 클릭<br>
-                                <strong>저장:</strong> 종목 편집 → 기업분석 → <code>요약</code> 탭
-                            </small>
-                        </div>
-                        <div class="alert alert-warning py-2 mb-0">
-                            <small>
-                                <strong>생성 실패 시:</strong> 가끔 HTML을 만들지 못하고 HTML 비슷한 결과만 나오는 경우가 있습니다.<br>
-                                → 일반 프롬프트로 이동 후 아래 프롬프트 실행:<br>
-                                <code class="d-block mt-1 p-2 bg-light">{잘못된 html 파일 복사}<br>---<br>html 형태로 정리해줘.</code>
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 투자포인트 탭 -->
-            <div class="tab-pane fade" id="stock-summary-panel" role="tabpanel">
-                <!-- STEP 1: 리포트 만들기 -->
-                <div class="card mb-3">
-                    <div class="card-header py-2">
-                        <span class="badge bg-primary me-2">STEP 1</span>
-                        <strong>리포트 만들기</strong>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-secondary py-2 mb-3">
-                            <small>
-                                <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
-                                <strong>저장:</strong> 종목 편집 → 인사이트 → <code>리포트</code> 탭
-                            </small>
-                        </div>
-                        <div class="alert alert-danger py-2 mb-3">
-                            <strong>⚠️ 중요:</strong> <strong>데이터 불러오기</strong>에서 가져온 텍스트 블록(모두 체크)을 프롬프트에 추가하세요.
-                        </div>
-
-                        <!-- 프롬프트 1: 리포트 생성 -->
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="form-label fw-bold small mb-0">1-1. 리포트 생성 프롬프트</label>
-                                <button type="button" class="btn btn-sm btn-primary" id="btnSaveSummaryPrompt">저장</button>
-                            </div>
-                            <textarea class="form-control" id="promptSummary" rows="8" placeholder="Deep Research용 프롬프트...">{{ saved_prompts.prompt_summary }}</textarea>
-                            <small class="text-muted">Deep Research에 입력할 프롬프트</small>
-                        </div>
-
-                        <!-- HTML 변환 탭으로 이동 -->
-                        <div>
-                            <label class="form-label fw-bold small mb-1">1-2. HTML 변환 프롬프트</label>
-                            <div>
-                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('html-convert-tab').click();">
-                                    HTML변환 탭으로 이동 →
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- STEP 2: 요약 만들기 -->
-                <div class="card">
-                    <div class="card-header py-2">
-                        <span class="badge bg-success me-2">STEP 2</span>
-                        <strong>요약 만들기</strong>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-secondary py-2 mb-3">
-                            <small>
-                                <strong>도구:</strong> Deep Research 리포트 결과에서 <code>웹페이지 만들기</code> 클릭<br>
-                                <strong>저장:</strong> 종목 편집 → 인사이트 → <code>요약</code> 탭
-                            </small>
-                        </div>
-                        <div class="alert alert-warning py-2 mb-0">
-                            <small>
-                                <strong>생성 실패 시:</strong> 가끔 HTML을 만들지 못하고 HTML 비슷한 결과만 나오는 경우가 있습니다.<br>
-                                → 일반 프롬프트로 이동 후 아래 프롬프트 실행:<br>
-                                <code class="d-block mt-1 p-2 bg-light">{잘못된 html 파일 복사}<br>---<br>html 형태로 정리해줘.</code>
-                            </small>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- 질문리포트 탭 -->
@@ -1498,12 +1402,6 @@ document.getElementById('btnCopyAll').addEventListener('click', async function()
 document.getElementById('btnSaveAnalysisPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptAnalysis').value;
     savePrompt('prompt_analysis', value, this);
-});
-
-// 투자포인트: 리포트 생성 프롬프트 저장
-document.getElementById('btnSaveSummaryPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptSummary').value;
-    savePrompt('prompt_summary', value, this);
 });
 
 // 노다지: 탐방노트 프롬프트 저장
