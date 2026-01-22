@@ -409,7 +409,7 @@
         </div>
 
         <!-- 기업분석 -->
-        {% if stock.analysis_text or analysis_html_exists %}
+        {% if analysis_html_exists %}
         <div class="card mb-3">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <strong>기업분석</strong>
@@ -419,28 +419,7 @@
                 </div>
             </div>
             <div class="card-body p-0">
-                {% if stock.analysis_text and analysis_html_exists %}
-                <ul class="nav nav-tabs nav-tabs-sm px-3 pt-2" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="analysis-summary-view-tab" data-bs-toggle="tab" data-bs-target="#analysis-summary-view-panel" type="button" role="tab">요약</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="analysis-report-view-tab" data-bs-toggle="tab" data-bs-target="#analysis-report-view-panel" type="button" role="tab">리포트</button>
-                    </li>
-                </ul>
-                <div class="tab-content">
-                    <div class="tab-pane fade show active" id="analysis-summary-view-panel" role="tabpanel">
-                        <iframe src="{% url 'stocks:stock_analysis_summary_html' stock.code %}" style="width: 100%; height: 500px; border: none;"></iframe>
-                    </div>
-                    <div class="tab-pane fade" id="analysis-report-view-panel" role="tabpanel">
-                        <iframe src="{% url 'stocks:stock_analysis_html' stock.code %}" style="width: 100%; height: 600px; border: none;"></iframe>
-                    </div>
-                </div>
-                {% elif stock.analysis_text %}
-                <iframe src="{% url 'stocks:stock_analysis_summary_html' stock.code %}" style="width: 100%; height: 500px; border: none;"></iframe>
-                {% else %}
                 <iframe src="{% url 'stocks:stock_analysis_html' stock.code %}" style="width: 100%; height: 600px; border: none;"></iframe>
-                {% endif %}
             </div>
         </div>
         {% endif %}
