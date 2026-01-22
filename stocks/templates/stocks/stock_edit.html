@@ -192,35 +192,6 @@
 
             <div class="card mb-3">
                 <div class="card-header py-2">
-                    <strong>인사이트</strong>
-                </div>
-                <div class="card-body">
-                    <!-- 인사이트 탭 -->
-                    <ul class="nav nav-tabs nav-tabs-sm mb-3" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="insight-summary-tab" data-bs-toggle="tab" data-bs-target="#insight-summary-panel" type="button" role="tab">요약</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="insight-report-tab" data-bs-toggle="tab" data-bs-target="#insight-report-panel" type="button" role="tab">리포트</button>
-                        </li>
-                    </ul>
-                    <div class="tab-content">
-                        <!-- 요약 탭 -->
-                        <div class="tab-pane fade show active" id="insight-summary-panel" role="tabpanel">
-                            <textarea class="form-control font-monospace" name="insight_summary_html" id="insightSummaryInput" rows="10" style="font-size: 0.85em;" placeholder="요약 HTML 코드를 붙여넣으세요...">{{ stock.insight_summary_html }}</textarea>
-                            <small class="text-muted">HTML 코드를 붙여넣으면 요약으로 저장됩니다.</small>
-                        </div>
-                        <!-- 리포트 탭 -->
-                        <div class="tab-pane fade" id="insight-report-panel" role="tabpanel">
-                            <textarea class="form-control font-monospace" name="insight_report_html" id="insightReportInput" rows="10" style="font-size: 0.85em;" placeholder="리포트 HTML 코드를 붙여넣으세요...">{{ stock.insight_report_html }}</textarea>
-                            <small class="text-muted">HTML 코드를 붙여넣으면 리포트로 저장됩니다. 딥리서치로 생성 실패할 경우 리서치 결과와 프롬프트만 가져와서 도구 없이 요청해도 됩니다.</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card mb-3">
-                <div class="card-header py-2">
                     <strong>메모</strong>
                     <small class="text-muted ms-2">(마크다운 지원)</small>
                 </div>
@@ -234,27 +205,8 @@
                     <strong>기업분석</strong>
                 </div>
                 <div class="card-body">
-                    <!-- 기업분석 탭 -->
-                    <ul class="nav nav-tabs nav-tabs-sm mb-3" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="analysis-summary-tab" data-bs-toggle="tab" data-bs-target="#analysis-summary-panel" type="button" role="tab">요약</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="analysis-report-tab" data-bs-toggle="tab" data-bs-target="#analysis-report-panel" type="button" role="tab">리포트</button>
-                        </li>
-                    </ul>
-                    <div class="tab-content">
-                        <!-- 요약 탭 -->
-                        <div class="tab-pane fade show active" id="analysis-summary-panel" role="tabpanel">
-                            <textarea class="form-control font-monospace" name="analysis_text" id="analysisSummaryInput" rows="10" style="font-size: 0.85em;" placeholder="요약 HTML 코드를 붙여넣으세요...">{{ stock.analysis_text }}</textarea>
-                            <small class="text-muted">HTML 코드를 붙여넣으면 요약으로 저장됩니다.</small>
-                        </div>
-                        <!-- 리포트 탭 -->
-                        <div class="tab-pane fade" id="analysis-report-panel" role="tabpanel">
-                            <textarea class="form-control font-monospace" name="analysis_html" id="analysisReportInput" rows="10" style="font-size: 0.85em;" placeholder="리포트 HTML 코드를 붙여넣으세요...">{{ analysis_html_content }}</textarea>
-                            <small class="text-muted">HTML 코드를 붙여넣으면 리포트로 저장됩니다.</small>
-                        </div>
-                    </div>
+                    <textarea class="form-control font-monospace" name="analysis_html" id="analysisReportInput" rows="10" style="font-size: 0.85em;" placeholder="기업분석 HTML 코드를 붙여넣으세요...">{{ analysis_html_content }}</textarea>
+                    <small class="text-muted">HTML 코드를 붙여넣으면 기업분석으로 저장됩니다.</small>
                 </div>
             </div>
 

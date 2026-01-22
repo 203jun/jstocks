@@ -206,42 +206,6 @@
         </div>
         {% endif %}
 
-        <!-- 인사이트 (투자포인트/리스크/일정 통합) -->
-        {% if stock.insight_summary_html or stock.insight_report_html %}
-        <div class="card mb-3">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <strong>인사이트</strong>
-                <div class="d-flex align-items-center gap-2">
-                    {% if stock.insight_updated_at %}<small class="text-muted">update: {{ stock.insight_updated_at|date:"Y-m-d" }}</small>{% endif %}
-                    <button type="button" class="btn btn-sm btn-outline-secondary btn-open-insight-window" title="새창보기">🔗</button>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                {% if stock.insight_summary_html and stock.insight_report_html %}
-                <ul class="nav nav-tabs nav-tabs-sm px-3 pt-2" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="insight-summary-tab" data-bs-toggle="tab" data-bs-target="#insight-summary-panel" type="button" role="tab">요약</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="insight-report-tab" data-bs-toggle="tab" data-bs-target="#insight-report-panel" type="button" role="tab">리포트</button>
-                    </li>
-                </ul>
-                <div class="tab-content">
-                    <div class="tab-pane fade show active" id="insight-summary-panel" role="tabpanel">
-                        <iframe src="{% url 'stocks:stock_insight_summary_html' stock.code %}" style="width: 100%; height: 500px; border: none;"></iframe>
-                    </div>
-                    <div class="tab-pane fade" id="insight-report-panel" role="tabpanel">
-                        <iframe src="{% url 'stocks:stock_insight_report_html' stock.code %}" style="width: 100%; height: 600px; border: none;"></iframe>
-                    </div>
-                </div>
-                {% elif stock.insight_summary_html %}
-                <iframe src="{% url 'stocks:stock_insight_summary_html' stock.code %}" style="width: 100%; height: 500px; border: none;"></iframe>
-                {% else %}
-                <iframe src="{% url 'stocks:stock_insight_report_html' stock.code %}" style="width: 100%; height: 600px; border: none;"></iframe>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
 
 
         <!-- 질문리포트 -->
@@ -1927,16 +1891,6 @@ document.querySelectorAll('.btn-view-file-report-summary').forEach(btn => {
         `);
         previewWindow.document.close();
     });
-});
-
-// 인사이트 새창보기
-document.querySelector('.btn-open-insight-window')?.addEventListener('click', function() {
-    const card = this.closest('.card');
-    const activePane = card.querySelector('.tab-pane.active') || card.querySelector('.card-body');
-    const iframe = activePane.querySelector('iframe');
-    if (iframe) {
-        window.open(iframe.src, '_blank');
-    }
 });
 
 // 기업분석 새창보기
