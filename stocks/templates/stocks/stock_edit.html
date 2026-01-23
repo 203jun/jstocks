@@ -323,7 +323,7 @@
                                             {% endif %}
                                         </td>
                                         <td class="text-center pe-3">
-                                            <a href="{% url 'stocks:report_summary' report.id %}" class="badge bg-secondary text-decoration-none">요약</a>
+                                            <a href="{% url 'stocks:report_summary' report.id %}" class="badge {% if report.summary %}bg-success{% else %}bg-secondary{% endif %} text-decoration-none">요약</a>
                                         </td>
                                     </tr>
                                     {% endfor %}
