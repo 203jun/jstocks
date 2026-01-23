@@ -2606,9 +2606,9 @@ def sector_detail(request, sector_id):
     question_reports = SectorQuestionReport.objects.filter(sector=sector)
 
     # 텔레그램, 뉴스, 유튜브 통합 리스트 (최신순)
-    telegram_messages = SectorTelegramMessage.objects.filter(sector=sector)
-    news_articles = SectorNews.objects.filter(sector=sector)
-    youtube_videos = SectorYoutubeVideo.objects.filter(sector=sector)
+    telegram_messages = SectorTelegramMessage.objects.filter(sector=sector).order_by('-date', '-time')
+    news_articles = SectorNews.objects.filter(sector=sector).order_by('-published', '-created_at')
+    youtube_videos = SectorYoutubeVideo.objects.filter(sector=sector).order_by('-created_at')
 
     # 통합 리스트 생성
     all_items = []
