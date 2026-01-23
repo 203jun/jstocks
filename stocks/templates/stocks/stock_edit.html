@@ -280,36 +280,59 @@
             <!-- 증권사 리포트 탭 -->
             <div class="tab-pane fade show active" id="analyst-report-panel" role="tabpanel">
                 <div class="card">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <strong>증권사 리포트</strong>
-                        <button type="button" class="btn btn-sm btn-primary" id="btnLoadAnalystReports">불러오기</button>
+                    <div class="card-header py-2">
+                        <strong>애널리스트 리포트</strong>
+                        <small class="text-muted ms-2">{{ reports|length }}개{% if total_reports > 20 %} / {{ total_reports }}개{% endif %}</small>
                     </div>
-                    <div class="card-body p-0">
-                        <div id="analystReportLoading" class="text-center py-4 d-none">
-                            <div class="spinner-border spinner-border-sm text-primary"></div>
-                            <span class="ms-2">리포트 불러오는 중...</span>
-                        </div>
-                        <div id="analystReportTable" class="table-responsive">
+                    <div class="card-body {% if reports %}p-0{% endif %}">
+                        {% if reports %}
+                        <div class="table-responsive">
                             <table class="table table-sm table-hover mb-0">
                                 <thead class="table-light">
                                     <tr>
-                                        <th style="width: 100px;">날짜</th>
+                                        <th class="ps-3" style="width: 80px;">일자</th>
                                         <th>제목</th>
-                                        <th style="width: 80px;">증권사</th>
-                                        <th style="width: 80px;">목표가</th>
-                                        <th style="width: 70px;">괴리율</th>
-                                        <th style="width: 60px;"></th>
+                                        <th style="width: 80px;" class="d-none d-md-table-cell">증권사</th>
+                                        <th style="width: 90px;" class="text-end">목표가</th>
+                                        <th style="width: 70px;" class="text-end">괴리율</th>
+                                        <th style="width: 50px;" class="text-center pe-3"></th>
                                     </tr>
                                 </thead>
-                                <tbody id="analystReportBody">
+                                <tbody>
+                                    {% for report in reports %}
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">
-                                            '불러오기' 버튼을 클릭하여 증권사 리포트를 조회하세요.
+                                        <td class="text-muted small ps-3">{{ report.date|date:"y/m/d" }}</td>
+                                        <td class="text-truncate" style="max-width: 250px;" title="{{ report.title }}">
+                                            <a href="#" class="text-decoration-none report-search-link" data-title="{{ report.title }}">{{ report.title }}</a>
+                                        </td>
+                                        <td class="small d-none d-md-table-cell">{{ report.provider }}</td>
+                                        <td class="text-end">
+                                            {% if report.target_price %}
+                                            <strong class="text-danger">{{ report.target_price|intcomma }}</strong>
+                                            {% else %}
+                                            <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            {% if report.gap_rate != None %}
+                                            <span class="{% if report.gap_rate > 0 %}text-danger{% elif report.gap_rate < 0 %}text-primary{% endif %}">
+                                                {% if report.gap_rate > 0 %}+{% endif %}{{ report.gap_rate }}%
+                                            </span>
+                                            {% else %}
+                                            <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center pe-3">
+                                            <span class="badge bg-secondary btn-analyst-summary" data-title="{{ report.title }}" data-provider="{{ report.provider }}" style="cursor:pointer;">요약</span>
                                         </td>
                                     </tr>
+                                    {% endfor %}
                                 </tbody>
                             </table>
                         </div>
+                        {% else %}
+                        <div class="text-muted">리포트가 없습니다.</div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -2102,66 +2125,17 @@ document.addEventListener('click', async (e) => {
     }
 });
 
-// ============ 증권사 리포트 ============
-
-// 증권사 리포트 불러오기
-document.getElementById('btnLoadAnalystReports')?.addEventListener('click', async () => {
-    const btn = document.getElementById('btnLoadAnalystReports');
-    const loading = document.getElementById('analystReportLoading');
-    const tbody = document.getElementById('analystReportBody');
-
-    btn.disabled = true;
-    loading.classList.remove('d-none');
-
-    try {
-        const response = await fetch(`/api/report/search/?code=${stockCode}&count=30`);
-        const data = await response.json();
-
-        if (data.success && data.reports.length > 0) {
-            tbody.innerHTML = data.reports.map(r => {
-                const date = r.date || '';
-                const title = r.title || '';
-                const provider = r.prv || '';
-                const targetPrice = r.tp ? parseInt(r.tp).toLocaleString() : '-';
-                const diff = r.diff || '-';
-                const pdfLink = r.link || '';
-
-                return `
-                    <tr>
-                        <td class="small">${date}</td>
-                        <td>
-                            <a href="${pdfLink}" target="_blank" class="text-decoration-none small">${title}</a>
-                        </td>
-                        <td class="small">${provider}</td>
-                        <td class="small text-end">${targetPrice}</td>
-                        <td class="small text-end">${diff}</td>
-                        <td class="text-center">
-                            <span class="badge bg-secondary btn-analyst-summary" data-title="${title.replace(/"/g, '&quot;')}" data-provider="${provider}" data-link="${pdfLink}" style="cursor:pointer;">요약</span>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        } else {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">리포트가 없습니다.</td></tr>';
-        }
-    } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">오류: ${err.message}</td></tr>`;
-    } finally {
-        btn.disabled = false;
-        loading.classList.add('d-none');
-    }
-});
+// ============ 증권사 리포트 요약 ============
 
 // 증권사 리포트 요약 버튼 클릭
-document.getElementById('analystReportBody')?.addEventListener('click', async (e) => {
+document.addEventListener('click', async (e) => {
     if (!e.target.classList.contains('btn-analyst-summary')) return;
 
     const title = e.target.dataset.title;
     const provider = e.target.dataset.provider;
-    const link = e.target.dataset.link;
     const prompt = savedPrompts.prompt_report_summary || '';
 
-    const text = `종목: ${stockName}\n증권사: ${provider}\n제목: ${title}\n링크: ${link}\n\n${prompt}`;
+    const text = `종목: ${stockName}\n증권사: ${provider}\n제목: ${title}\n\n${prompt}`;
 
     try {
         await copyToClipboard(text);
