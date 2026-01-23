@@ -749,7 +749,18 @@ def stock_detail(request, code):
 
     # 저장된 뉴스 (게시일 최신순)
     from .models import News
-    news_articles = News.objects.filter(stock=stock).order_by('-published', '-created_at')
+    def parse_news_date_detail(news):
+        try:
+            pub = news.published or ''
+            date_part = pub.split(' ')[0] if pub else ''
+            if date_part:
+                parts = date_part.split('-')
+                if len(parts) == 3:
+                    return (int(parts[0]), int(parts[1]), int(parts[2]))
+            return (0, 0, 0)
+        except:
+            return (0, 0, 0)
+    news_articles = sorted(News.objects.filter(stock=stock), key=parse_news_date_detail, reverse=True)
 
     # 저장된 텔레그램 메시지 (최신순)
     from .models import TelegramMessage
@@ -1172,7 +1183,20 @@ def stock_edit(request, code):
 
     # 저장된 뉴스 (게시일 최신순)
     from .models import News
-    news_articles = News.objects.filter(stock=stock).order_by('-published', '-created_at')
+    def parse_news_date(news):
+        """뉴스 게시일 문자열을 정렬용 키로 변환"""
+        try:
+            pub = news.published or ''
+            # "2026-01-05" 또는 "2026-01-05 12:30" 형식
+            date_part = pub.split(' ')[0] if pub else ''
+            if date_part:
+                parts = date_part.split('-')
+                if len(parts) == 3:
+                    return (int(parts[0]), int(parts[1]), int(parts[2]))
+            return (0, 0, 0)
+        except:
+            return (0, 0, 0)
+    news_articles = sorted(News.objects.filter(stock=stock), key=parse_news_date, reverse=True)
 
     # 저장된 텔레그램 메시지 (최신순)
     from .models import TelegramMessage
@@ -2607,7 +2631,18 @@ def sector_detail(request, sector_id):
 
     # 텔레그램, 뉴스, 유튜브 통합 리스트 (최신순)
     telegram_messages = SectorTelegramMessage.objects.filter(sector=sector).order_by('-date', '-time')
-    news_articles = SectorNews.objects.filter(sector=sector).order_by('-published', '-created_at')
+    def parse_sector_news_date(news):
+        try:
+            pub = news.published or ''
+            date_part = pub.split(' ')[0] if pub else ''
+            if date_part:
+                parts = date_part.split('-')
+                if len(parts) == 3:
+                    return (int(parts[0]), int(parts[1]), int(parts[2]))
+            return (0, 0, 0)
+        except:
+            return (0, 0, 0)
+    news_articles = sorted(SectorNews.objects.filter(sector=sector), key=parse_sector_news_date, reverse=True)
     youtube_videos = SectorYoutubeVideo.objects.filter(sector=sector).order_by('-created_at')
 
     # 통합 리스트 생성
@@ -2692,7 +2727,18 @@ def sector_edit(request, sector_id):
         return redirect('stocks:sector_edit', sector_id=sector_id)
 
     telegram_messages = SectorTelegramMessage.objects.filter(sector=sector).order_by('-date', '-time')
-    news_articles = SectorNews.objects.filter(sector=sector).order_by('-published', '-created_at')
+    def parse_sector_news_date_edit(news):
+        try:
+            pub = news.published or ''
+            date_part = pub.split(' ')[0] if pub else ''
+            if date_part:
+                parts = date_part.split('-')
+                if len(parts) == 3:
+                    return (int(parts[0]), int(parts[1]), int(parts[2]))
+            return (0, 0, 0)
+        except:
+            return (0, 0, 0)
+    news_articles = sorted(SectorNews.objects.filter(sector=sector), key=parse_sector_news_date_edit, reverse=True)
     youtube_videos = SectorYoutubeVideo.objects.filter(sector=sector).order_by('-created_at')
     question_reports = SectorQuestionReport.objects.filter(sector=sector).order_by('-created_at')
     uploaded_reports = SectorUploadedReport.objects.filter(sector=sector).order_by('-created_at')
