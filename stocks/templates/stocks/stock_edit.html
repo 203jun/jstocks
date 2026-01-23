@@ -424,15 +424,20 @@
                                 <small class="text-muted">{{ news.source }}</small>
                                 <small class="text-muted ms-2">{{ news.published|slice:":10" }}</small>
                             </div>
-                            <div class="d-flex gap-2 ms-2">
-                                <a href="{% url 'stocks:news_summary' news.id %}" class="text-decoration-none" title="요약">
-                                    {% if news.summary %}
-                                    <span class="badge bg-success">요약</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">요약</span>
-                                    {% endif %}
-                                </a>
-                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-news" data-id="{{ news.id }}">삭제</button>
+                            <div class="d-flex flex-column gap-1 ms-2 align-items-end">
+                                <div class="d-flex gap-1">
+                                    <a href="{% url 'stocks:news_summary' news.id %}" class="text-decoration-none" title="요약">
+                                        {% if news.summary %}
+                                        <span class="badge bg-success">요약</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">요약</span>
+                                        {% endif %}
+                                    </a>
+                                    <span class="badge bg-danger btn-delete-news" data-id="{{ news.id }}" style="cursor:pointer;">삭제</span>
+                                </div>
+                                <div>
+                                    <span class="badge bg-info btn-copy-prompt-news" data-id="{{ news.id }}" data-title="{{ news.title }}" style="cursor:pointer;">프롬프트</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -559,15 +564,20 @@
                             <small class="text-muted ms-2">{{ video.views }}</small>
                             <small class="text-muted ms-2">{{ video.published }}</small>
                         </div>
-                        <div class="d-flex gap-2 align-self-center">
-                            <a href="{% url 'stocks:youtube_summary' video.id %}" class="text-decoration-none" title="요약">
-                                {% if video.summary %}
-                                <span class="badge bg-success">요약</span>
-                                {% else %}
-                                <span class="badge bg-secondary">요약</span>
-                                {% endif %}
-                            </a>
-                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-video" data-id="{{ video.id }}">삭제</button>
+                        <div class="d-flex flex-column gap-1 align-self-center align-items-end">
+                            <div class="d-flex gap-1">
+                                <a href="{% url 'stocks:youtube_summary' video.id %}" class="text-decoration-none" title="요약">
+                                    {% if video.summary %}
+                                    <span class="badge bg-success">요약</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">요약</span>
+                                    {% endif %}
+                                </a>
+                                <span class="badge bg-danger btn-delete-video" data-id="{{ video.id }}" style="cursor:pointer;">삭제</span>
+                            </div>
+                            <div>
+                                <span class="badge bg-info btn-copy-prompt-video" data-id="{{ video.id }}" data-title="{{ video.title }}" style="cursor:pointer;">프롬프트</span>
+                            </div>
                         </div>
                     </div>
                     {% empty %}
