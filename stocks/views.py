@@ -747,13 +747,13 @@ def stock_detail(request, code):
     from .models import YoutubeVideo
     import re
     def parse_youtube_date_detail(video):
-        """유튜브 상대 날짜를 정렬용 타임스탬프로 변환"""
+        """유튜브 날짜를 정렬용 타임스탬프로 변환"""
         try:
             pub = (video.published or '').strip()
             if not pub:
                 return video.created_at.timestamp() if video.created_at else 0
-            # "3일 전", "2시간 전", "17시간 전", "1주 전", "2개월 전", "1년 전" 등 처리
             now = datetime.now()
+            # "3일 전", "2시간 전" 등 상대 날짜 처리
             match = re.search(r'(\d+)\s*(초|분|시간|일|주|개월|년)\s*전', pub)
             if match:
                 num = int(match.group(1))
@@ -772,12 +772,14 @@ def stock_detail(request, code):
                     return (now - timedelta(days=num*30)).timestamp()
                 elif unit == '년':
                     return (now - timedelta(days=num*365)).timestamp()
-            # YYYY-MM-DD 형식 시도
-            date_part = pub.split(' ')[0]
-            if '-' in date_part:
-                parts = date_part.split('-')
-                if len(parts) == 3:
-                    return datetime(int(parts[0]), int(parts[1]), int(parts[2])).timestamp()
+            # "2025. 10. 22." 또는 "2025.10.22" 형식 (점 구분)
+            dot_match = re.search(r'(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})', pub)
+            if dot_match:
+                return datetime(int(dot_match.group(1)), int(dot_match.group(2)), int(dot_match.group(3))).timestamp()
+            # "2025-10-22" 형식 (하이픈 구분)
+            dash_match = re.search(r'(\d{4})-(\d{1,2})-(\d{1,2})', pub)
+            if dash_match:
+                return datetime(int(dash_match.group(1)), int(dash_match.group(2)), int(dash_match.group(3))).timestamp()
             return video.created_at.timestamp() if video.created_at else 0
         except:
             return video.created_at.timestamp() if video.created_at else 0
@@ -1217,12 +1219,13 @@ def stock_edit(request, code):
     # 저장된 유튜브 영상 (업로드일 최신순)
     import re as re_youtube
     def parse_youtube_date(video):
-        """유튜브 상대 날짜를 정렬용 타임스탬프로 변환"""
+        """유튜브 날짜를 정렬용 타임스탬프로 변환"""
         try:
             pub = (video.published or '').strip()
             if not pub:
                 return video.created_at.timestamp() if video.created_at else 0
             now = datetime.now()
+            # "3일 전", "2시간 전" 등 상대 날짜 처리
             match = re_youtube.search(r'(\d+)\s*(초|분|시간|일|주|개월|년)\s*전', pub)
             if match:
                 num = int(match.group(1))
@@ -1241,11 +1244,14 @@ def stock_edit(request, code):
                     return (now - timedelta(days=num*30)).timestamp()
                 elif unit == '년':
                     return (now - timedelta(days=num*365)).timestamp()
-            date_part = pub.split(' ')[0]
-            if '-' in date_part:
-                parts = date_part.split('-')
-                if len(parts) == 3:
-                    return datetime(int(parts[0]), int(parts[1]), int(parts[2])).timestamp()
+            # "2025. 10. 22." 또는 "2025.10.22" 형식 (점 구분)
+            dot_match = re_youtube.search(r'(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})', pub)
+            if dot_match:
+                return datetime(int(dot_match.group(1)), int(dot_match.group(2)), int(dot_match.group(3))).timestamp()
+            # "2025-10-22" 형식 (하이픈 구분)
+            dash_match = re_youtube.search(r'(\d{4})-(\d{1,2})-(\d{1,2})', pub)
+            if dash_match:
+                return datetime(int(dash_match.group(1)), int(dash_match.group(2)), int(dash_match.group(3))).timestamp()
             return video.created_at.timestamp() if video.created_at else 0
         except:
             return video.created_at.timestamp() if video.created_at else 0
@@ -2715,12 +2721,13 @@ def sector_detail(request, sector_id):
     news_articles = sorted(SectorNews.objects.filter(sector=sector), key=parse_sector_news_date, reverse=True)
     import re as re_sector_yt
     def parse_sector_youtube_date(video):
-        """유튜브 상대 날짜를 정렬용 타임스탬프로 변환"""
+        """유튜브 날짜를 정렬용 타임스탬프로 변환"""
         try:
             pub = (video.published or '').strip()
             if not pub:
                 return video.created_at.timestamp() if video.created_at else 0
             now = datetime.now()
+            # "3일 전", "2시간 전" 등 상대 날짜 처리
             match = re_sector_yt.search(r'(\d+)\s*(초|분|시간|일|주|개월|년)\s*전', pub)
             if match:
                 num = int(match.group(1))
@@ -2739,11 +2746,14 @@ def sector_detail(request, sector_id):
                     return (now - timedelta(days=num*30)).timestamp()
                 elif unit == '년':
                     return (now - timedelta(days=num*365)).timestamp()
-            date_part = pub.split(' ')[0]
-            if '-' in date_part:
-                parts = date_part.split('-')
-                if len(parts) == 3:
-                    return datetime(int(parts[0]), int(parts[1]), int(parts[2])).timestamp()
+            # "2025. 10. 22." 또는 "2025.10.22" 형식 (점 구분)
+            dot_match = re_sector_yt.search(r'(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})', pub)
+            if dot_match:
+                return datetime(int(dot_match.group(1)), int(dot_match.group(2)), int(dot_match.group(3))).timestamp()
+            # "2025-10-22" 형식 (하이픈 구분)
+            dash_match = re_sector_yt.search(r'(\d{4})-(\d{1,2})-(\d{1,2})', pub)
+            if dash_match:
+                return datetime(int(dash_match.group(1)), int(dash_match.group(2)), int(dash_match.group(3))).timestamp()
             return video.created_at.timestamp() if video.created_at else 0
         except:
             return video.created_at.timestamp() if video.created_at else 0
@@ -2845,12 +2855,13 @@ def sector_edit(request, sector_id):
     news_articles = sorted(SectorNews.objects.filter(sector=sector), key=parse_sector_news_date_edit, reverse=True)
     import re as re_sector_yt_edit
     def parse_sector_youtube_date_edit(video):
-        """유튜브 상대 날짜를 정렬용 타임스탬프로 변환"""
+        """유튜브 날짜를 정렬용 타임스탬프로 변환"""
         try:
             pub = (video.published or '').strip()
             if not pub:
                 return video.created_at.timestamp() if video.created_at else 0
             now = datetime.now()
+            # "3일 전", "2시간 전" 등 상대 날짜 처리
             match = re_sector_yt_edit.search(r'(\d+)\s*(초|분|시간|일|주|개월|년)\s*전', pub)
             if match:
                 num = int(match.group(1))
@@ -2869,11 +2880,14 @@ def sector_edit(request, sector_id):
                     return (now - timedelta(days=num*30)).timestamp()
                 elif unit == '년':
                     return (now - timedelta(days=num*365)).timestamp()
-            date_part = pub.split(' ')[0]
-            if '-' in date_part:
-                parts = date_part.split('-')
-                if len(parts) == 3:
-                    return datetime(int(parts[0]), int(parts[1]), int(parts[2])).timestamp()
+            # "2025. 10. 22." 또는 "2025.10.22" 형식 (점 구분)
+            dot_match = re_sector_yt_edit.search(r'(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})', pub)
+            if dot_match:
+                return datetime(int(dot_match.group(1)), int(dot_match.group(2)), int(dot_match.group(3))).timestamp()
+            # "2025-10-22" 형식 (하이픈 구분)
+            dash_match = re_sector_yt_edit.search(r'(\d{4})-(\d{1,2})-(\d{1,2})', pub)
+            if dash_match:
+                return datetime(int(dash_match.group(1)), int(dash_match.group(2)), int(dash_match.group(3))).timestamp()
             return video.created_at.timestamp() if video.created_at else 0
         except:
             return video.created_at.timestamp() if video.created_at else 0
