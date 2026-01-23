@@ -239,7 +239,7 @@
                 <button class="nav-link" id="stock-analysis-tab" data-bs-toggle="pill" data-bs-target="#stock-analysis-panel" type="button" role="tab">기업분석</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="question-report-tab" data-bs-toggle="pill" data-bs-target="#question-report-panel" type="button" role="tab">질문리포트</button>
+                <button class="nav-link" id="question-report-tab" data-bs-toggle="pill" data-bs-target="#question-report-panel" type="button" role="tab">리서치</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="report-prompt-tab" data-bs-toggle="pill" data-bs-target="#report-prompt-panel" type="button" role="tab">리포트</button>
@@ -299,7 +299,7 @@
                                     <div class="col-6 col-md-4">
                                         <div class="form-check">
                                             <input class="form-check-input data-loader-check" type="checkbox" id="chkQuestionReport" value="question_report" checked>
-                                            <label class="form-check-label" for="chkQuestionReport">질문리포트 (10개)</label>
+                                            <label class="form-check-label" for="chkQuestionReport">리서치 (10개)</label>
                                         </div>
                                     </div>
                                     <div class="col-6 col-md-4">
@@ -470,17 +470,17 @@
 
             </div>
 
-            <!-- 질문리포트 탭 -->
+            <!-- 리서치 탭 -->
             <div class="tab-pane fade" id="question-report-panel" role="tabpanel">
                 <div class="card">
                     <div class="card-header py-2">
-                        <strong>질문리포트 프롬프트</strong>
+                        <strong>리서치 프롬프트</strong>
                     </div>
                     <div class="card-body">
                         <div class="alert alert-secondary py-2 mb-3">
                             <small>
                                 <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
-                                <strong>저장:</strong> 종목 편집 → <code>질문리포트</code> 탭
+                                <strong>저장:</strong> 종목 편집 → <code>리서치</code> 탭
                             </small>
                         </div>
                         <div class="alert alert-danger py-2 mb-3">
@@ -650,17 +650,17 @@
                     </div>
                 </div>
 
-                <!-- STEP 4: 질문리포트 만들기 -->
+                <!-- STEP 4: 리서치 만들기 -->
                 <div class="card mt-3">
                     <div class="card-header py-2">
                         <span class="badge bg-danger me-2">STEP 4</span>
-                        <strong>질문리포트 만들기</strong>
+                        <strong>리서치 만들기</strong>
                     </div>
                     <div class="card-body">
                         <div class="alert alert-secondary py-2 mb-3">
                             <small>
                                 <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
-                                <strong>저장:</strong> 섹터 편집 → <code class="text-danger">질문리포트</code> 탭
+                                <strong>저장:</strong> 섹터 편집 → <code class="text-danger">리서치</code> 탭
                             </small>
                         </div>
 
@@ -669,7 +669,7 @@
                             <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sectorReportModal">
                                 관심섹터 기초리포트 조회
                             </button>
-                            <small class="text-muted ms-2">기초리포트를 참고하여 질문리포트를 작성하세요.</small>
+                            <small class="text-muted ms-2">기초리포트를 참고하여 리서치를 작성하세요.</small>
                         </div>
 
                         <!-- 4-1. 리포트 프롬프트 -->
@@ -678,7 +678,7 @@
                                 <label class="form-label fw-bold small mb-0">4-1. 리포트 프롬프트</label>
                                 <button type="button" class="btn btn-sm btn-primary" id="btnSaveSectorIntegratedPrompt">저장</button>
                             </div>
-                            <textarea class="form-control" id="promptSectorIntegrated" rows="8" placeholder="질문리포트 생성용 프롬프트...">{{ saved_prompts.prompt_sector_integrated }}</textarea>
+                            <textarea class="form-control" id="promptSectorIntegrated" rows="8" placeholder="리서치 생성용 프롬프트...">{{ saved_prompts.prompt_sector_integrated }}</textarea>
                         </div>
 
                         <!-- HTML 변환 탭으로 이동 -->
@@ -1416,7 +1416,7 @@ document.getElementById('btnSaveNodajiConcallPrompt').addEventListener('click', 
     savePrompt('prompt_nodaji_concall', value, this);
 });
 
-// 질문리포트: 리포트 생성 프롬프트 저장
+// 리서치: 리포트 생성 프롬프트 저장
 document.getElementById('btnSaveQuestionReportPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptQuestionReport').value;
     savePrompt('prompt_question_report', value, this);

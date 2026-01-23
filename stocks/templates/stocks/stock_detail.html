@@ -208,11 +208,11 @@
 
 
 
-        <!-- 질문리포트 -->
+        <!-- 리서치 -->
         {% if question_reports %}
         <div class="card mb-3">
             <div class="card-header py-2">
-                <strong>질문리포트</strong>
+                <strong>리서치</strong>
                 <span class="badge bg-primary ms-1">{{ question_reports|length }}</span>
             </div>
             <div class="card-body p-0">
@@ -921,7 +921,7 @@
 const stockName = "{{ stock.name }}";
 const stockCode = "{{ stock.code }}";
 
-// 질문리포트 클릭 시 새 창에서 리포트 보기 (HTML 또는 마크다운)
+// 리서치 클릭 시 새 창에서 리포트 보기 (HTML 또는 마크다운)
 document.querySelectorAll('.btn-view-qr').forEach(el => {
     el.addEventListener('click', (e) => {
         e.preventDefault();

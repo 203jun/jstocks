@@ -64,7 +64,7 @@
         <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-content" type="button" role="tab">기본정보</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="question-report-tab" data-bs-toggle="tab" data-bs-target="#question-report-content" type="button" role="tab">질문리포트</button>
+        <button class="nav-link" id="question-report-tab" data-bs-toggle="tab" data-bs-target="#question-report-content" type="button" role="tab">리서치</button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="uploaded-report-tab" data-bs-toggle="tab" data-bs-target="#uploaded-report-content" type="button" role="tab">파일리포트{% if uploaded_reports %}<span class="badge bg-secondary ms-1">{{ uploaded_reports|length }}</span>{% endif %}</button>
@@ -114,12 +114,12 @@
         </form>
     </div>
 
-    <!-- 질문리포트 탭 -->
+    <!-- 리서치 탭 -->
     <div class="tab-pane fade" id="question-report-content" role="tabpanel">
         <div class="card">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <div>
-                    <strong>질문리포트 목록</strong>
+                    <strong>리서치 목록</strong>
                     <span class="badge bg-primary ms-1" id="questionReportCount">{{ question_reports|length }}</span>
                 </div>
                 <button type="button" class="btn btn-sm btn-primary" id="btnAddQuestionReport">+ 추가</button>
@@ -153,7 +153,7 @@
                     </div>
                     {% empty %}
                     <div class="text-center text-muted py-4" id="noQuestionReport">
-                        저장된 질문리포트가 없습니다.<br>
+                        저장된 리서치가 없습니다.<br>
                         <small>위의 "+ 추가" 버튼을 클릭하여 추가하세요.</small>
                     </div>
                     {% endfor %}
@@ -470,9 +470,9 @@
 const sectorName = "{{ sector.name|escapejs }}";
 const sectorId = {{ sector.id }};
 
-// ============ 질문리포트 추가/저장/삭제/미리보기 ============
+// ============ 리서치 추가/저장/삭제/미리보기 ============
 
-// 질문리포트 추가
+// 리서치 추가
 document.getElementById('btnAddQuestionReport')?.addEventListener('click', async () => {
     const btn = document.getElementById('btnAddQuestionReport');
     btn.disabled = true;
@@ -545,7 +545,7 @@ document.getElementById('btnAddQuestionReport')?.addEventListener('click', async
     }
 });
 
-// 질문리포트 미리보기 (HTML 또는 마크다운 렌더링)
+// 리서치 미리보기 (HTML 또는 마크다운 렌더링)
 document.addEventListener('click', (e) => {
     if (!e.target.classList.contains('btn-preview-qr')) return;
 
@@ -612,7 +612,7 @@ document.addEventListener('click', (e) => {
     previewWindow.document.close();
 });
 
-// 질문리포트 저장
+// 리서치 저장
 document.addEventListener('click', async (e) => {
     if (!e.target.classList.contains('btn-save-qr')) return;
 
@@ -666,7 +666,7 @@ document.addEventListener('click', async (e) => {
     }
 });
 
-// 질문리포트 삭제
+// 리서치 삭제
 document.addEventListener('click', async (e) => {
     if (!e.target.classList.contains('btn-delete-qr')) return;
 
@@ -694,7 +694,7 @@ document.addEventListener('click', async (e) => {
             if (newCount === 0) {
                 document.getElementById('questionReportList').innerHTML = `
                     <div class="text-center text-muted py-4" id="noQuestionReport">
-                        저장된 질문리포트가 없습니다.<br>
+                        저장된 리서치가 없습니다.<br>
                         <small>위의 "+ 추가" 버튼을 클릭하여 추가하세요.</small>
                     </div>`;
             }
