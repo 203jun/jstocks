@@ -2692,7 +2692,7 @@ def sector_edit(request, sector_id):
         return redirect('stocks:sector_edit', sector_id=sector_id)
 
     telegram_messages = SectorTelegramMessage.objects.filter(sector=sector).order_by('-date', '-time')
-    news_articles = SectorNews.objects.filter(sector=sector).order_by('-created_at')
+    news_articles = SectorNews.objects.filter(sector=sector).order_by('-published', '-created_at')
     youtube_videos = SectorYoutubeVideo.objects.filter(sector=sector).order_by('-created_at')
     question_reports = SectorQuestionReport.objects.filter(sector=sector).order_by('-created_at')
     uploaded_reports = SectorUploadedReport.objects.filter(sector=sector).order_by('-created_at')
