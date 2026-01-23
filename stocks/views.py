@@ -812,6 +812,11 @@ def stock_detail(request, code):
     from .models import StockUploadedReport
     uploaded_reports = StockUploadedReport.objects.filter(stock=stock).order_by('-created_at')
 
+    # 리포트 요약 개수 (애널리스트 리포트 + 파일 리포트)
+    report_summary_count = sum(1 for r in reports if r.summary)
+    uploaded_summary_count = sum(1 for r in uploaded_reports if r.summary)
+    total_summary_count = report_summary_count + uploaded_summary_count
+
     # 거래량 변동률 계산 (전일 대비)
     volume_change_rate = None
     if len(daily_charts) >= 2:
@@ -918,6 +923,7 @@ def stock_detail(request, code):
         'telegram_messages': telegram_messages,
         'question_reports': question_reports,
         'uploaded_reports': uploaded_reports,
+        'total_summary_count': total_summary_count,
         'price_chart_data': json.dumps(price_chart_data),
         'target_chart_data': json.dumps(target_chart_data),
         'gap_chart_data': json.dumps(gap_chart_data),
@@ -4994,6 +5000,23 @@ def report_file_delete(request, report_id):
         report.save()
 
     return JsonResponse({'success': True})
+
+
+def uploaded_report_summary_page(request, report_id):
+    """파일 업로드 리포트 요약 페이지"""
+    from .models import StockUploadedReport
+
+    report = get_object_or_404(StockUploadedReport, id=report_id)
+
+    if request.method == 'POST':
+        report.summary = request.POST.get('summary', '')
+        report.save()
+        messages.success(request, '저장되었습니다.')
+        return redirect('stocks:uploaded_report_summary_page', report_id=report_id)
+
+    return render(request, 'stocks/uploaded_report_summary.html', {
+        'report': report,
+    })
 
 
 @require_POST

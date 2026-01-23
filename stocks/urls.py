@@ -100,6 +100,7 @@ urlpatterns = [
     path('api/stock/<str:code>/short-selling/', views.fetch_short_selling, name='fetch_short_selling'),
     path('api/setting/save/', views.save_setting, name='save_setting'),
     # 파일 업로드 리포트 (종목)
+    path('uploaded-report/<int:report_id>/summary/', views.uploaded_report_summary_page, name='uploaded_report_summary_page'),
     path('api/stock/uploaded-report/upload/', views.stock_uploaded_report_upload, name='stock_uploaded_report_upload'),
     path('api/stock/uploaded-report/<int:report_id>/delete/', views.stock_uploaded_report_delete, name='stock_uploaded_report_delete'),
     path('api/stock/uploaded-report/<int:report_id>/summary/', views.stock_uploaded_report_summary, name='stock_uploaded_report_summary'),

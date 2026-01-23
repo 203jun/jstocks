@@ -1,0 +1,115 @@
+{% extends 'stocks/base.html' %}
+
+{% block title %}요약 - {{ report.display_title }} - JStocks{% endblock %}
+
+{% block extra_css %}
+<style>
+#summary {
+    width: 100%;
+    height: 300px;
+    font-family: monospace;
+    font-size: 14px;
+    resize: vertical;
+}
+#preview {
+    min-height: 100px;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    line-height: 1.7;
+    color: #333;
+}
+#preview h1 { font-size: 1.5rem; font-weight: 700; margin: 1.5rem 0 0.75rem; padding-bottom: 0.3rem; border-bottom: 2px solid #e9ecef; }
+#preview h2 { font-size: 1.3rem; font-weight: 700; margin: 1.25rem 0 0.5rem; padding-bottom: 0.25rem; border-bottom: 1px solid #e9ecef; }
+#preview h3 { font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+#preview h4 { font-size: 1rem; font-weight: 600; margin: 0.75rem 0 0.5rem; }
+#preview p { margin: 0.5rem 0; }
+#preview ul, #preview ol { padding-left: 1.75rem; margin: 0.5rem 0; }
+#preview li { margin: 0.25rem 0; }
+#preview table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+#preview th, #preview td { border: 1px solid #dee2e6; padding: 10px 12px; text-align: left; }
+#preview th { background: #f8f9fa; font-weight: 600; }
+#preview tr:hover { background: #f8f9fa; }
+#preview blockquote { border-left: 4px solid #6c757d; padding: 0.5rem 1rem; margin: 1rem 0; background: #f8f9fa; color: #555; }
+#preview code { background: #f1f3f4; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: #d63384; }
+#preview pre { background: #282c34; color: #abb2bf; padding: 1rem; border-radius: 6px; overflow-x: auto; }
+#preview pre code { background: none; color: inherit; padding: 0; }
+#preview strong { font-weight: 600; }
+#preview hr { border: none; border-top: 1px solid #e9ecef; margin: 1.5rem 0; }
+#preview a { color: #0d6efd; text-decoration: none; }
+#preview a:hover { text-decoration: underline; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">파일 리포트 요약</h4>
+    <a href="{% url 'stocks:stock_detail' report.stock.code %}#report-content" class="btn btn-outline-secondary btn-sm">목록으로</a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+        <div>
+            <strong>{{ report.stock.name }}</strong>
+            <small class="text-muted ms-2">{{ report.display_title }}</small>
+        </div>
+        {% if report.file %}
+        <a href="{{ report.file.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">파일 보기</a>
+        {% endif %}
+    </div>
+    <div class="card-body py-2">
+        <div class="small text-muted">
+            {{ report.created_at|date:"Y-m-d H:i" }}
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+<div class="mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-2" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <strong>미리보기</strong>
+    </div>
+    <div class="card-body p-2">
+        <div id="preview"></div>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="card">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+            <strong>마크다운 입력</strong>
+            <button type="submit" class="btn btn-primary btn-sm">저장</button>
+        </div>
+        <div class="card-body p-2">
+            <textarea name="summary" id="summary" placeholder="마크다운으로 요약 내용을 입력하세요...">{{ report.summary }}</textarea>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+const textarea = document.getElementById('summary');
+const preview = document.getElementById('preview');
+
+function updatePreview() {
+    preview.innerHTML = marked.parse(textarea.value || '');
+}
+
+textarea.addEventListener('input', updatePreview);
+updatePreview();
+</script>
+{% endblock %}

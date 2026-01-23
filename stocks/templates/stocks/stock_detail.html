@@ -49,7 +49,7 @@
         <button class="nav-link" id="disclosure-tab" data-bs-toggle="tab" data-bs-target="#disclosure-content" type="button" role="tab">공시</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab">리포트{% if uploaded_reports %}<span class="badge bg-secondary ms-1">{{ uploaded_reports|length }}</span>{% endif %}</button>
+        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab">리포트{% if total_summary_count %}<span class="badge bg-secondary ms-1">{{ total_summary_count }}</span>{% endif %}</button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="telegram-tab" data-bs-toggle="tab" data-bs-target="#telegram-content" type="button" role="tab">텔레그램{% if telegram_messages %}<span class="badge bg-secondary ms-1">{{ telegram_messages|length }}</span>{% endif %}</button>
@@ -653,7 +653,8 @@
                                 <th style="width: 100px;" class="d-none d-md-table-cell">애널리스트</th>
                                 <th style="width: 90px;" class="d-none d-md-table-cell">증권사</th>
                                 <th style="width: 90px;" class="text-end">목표가</th>
-                                <th style="width: 70px;" class="text-end pe-3">괴리율</th>
+                                <th style="width: 70px;" class="text-end">괴리율</th>
+                                <th style="width: 50px;" class="text-center pe-3">요약</th>
                             </tr>
                         </thead>
                         <tbody id="reportTableBody">
@@ -672,11 +673,18 @@
                                     <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
-                                <td class="text-end pe-3">
+                                <td class="text-end">
                                     {% if report.gap_rate != None %}
                                     <span class="{% if report.gap_rate > 0 %}text-danger{% elif report.gap_rate < 0 %}text-primary{% endif %}">
                                         {% if report.gap_rate > 0 %}+{% endif %}{{ report.gap_rate }}%
                                     </span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center pe-3">
+                                    {% if report.summary %}
+                                    <a href="{% url 'stocks:report_summary' report.id %}" class="btn btn-sm btn-outline-success py-0 px-1" title="요약 보기">✓</a>
                                     {% else %}
                                     <span class="text-muted">-</span>
                                     {% endif %}
@@ -743,9 +751,7 @@
                             </div>
                             <div class="d-flex gap-1">
                                 <a href="{{ report.file.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">파일</a>
-                                {% if report.summary %}
-                                <button type="button" class="btn btn-sm btn-outline-primary btn-view-file-report-summary" data-summary="{{ report.summary|escapejs }}" data-title="{{ report.display_title }}">요약</button>
-                                {% endif %}
+                                <a href="{% url 'stocks:uploaded_report_summary_page' report.id %}" class="btn btn-sm {% if report.summary %}btn-outline-success{% else %}btn-outline-secondary{% endif %}">{% if report.summary %}요약{% else %}요약+{% endif %}</a>
                             </div>
                         </div>
                     </div>
