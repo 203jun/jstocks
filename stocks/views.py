@@ -743,15 +743,26 @@ def stock_detail(request, code):
     # 공매도 (최근 60일)
     short_sellings = ShortSelling.objects.filter(stock=stock).order_by('-date')[:60]
 
-    # 저장된 유튜브 영상 (최신순)
+    # 저장된 유튜브 영상 (업로드일 최신순)
     from .models import YoutubeVideo
-    youtube_videos = YoutubeVideo.objects.filter(stock=stock).order_by('-created_at')
+    def parse_youtube_date_detail(video):
+        try:
+            pub = (video.published or '').strip()
+            date_part = pub.split(' ')[0] if pub else ''
+            if date_part:
+                parts = date_part.split('-')
+                if len(parts) == 3:
+                    return (int(parts[0]), int(parts[1]), int(parts[2]))
+            return (0, 0, 0)
+        except:
+            return (0, 0, 0)
+    youtube_videos = sorted(YoutubeVideo.objects.filter(stock=stock), key=parse_youtube_date_detail, reverse=True)
 
     # 저장된 뉴스 (게시일 최신순)
     from .models import News
     def parse_news_date_detail(news):
         try:
-            pub = news.published or ''
+            pub = (news.published or '').strip()
             date_part = pub.split(' ')[0] if pub else ''
             if date_part:
                 parts = date_part.split('-')
@@ -1178,15 +1189,26 @@ def stock_edit(request, code):
     # 관심섹터 (전체)
     custom_sectors = CustomSector.objects.all()
 
-    # 저장된 유튜브 영상 (최신순)
-    youtube_videos = YoutubeVideo.objects.filter(stock=stock).order_by('-created_at')
+    # 저장된 유튜브 영상 (업로드일 최신순)
+    def parse_youtube_date(video):
+        try:
+            pub = (video.published or '').strip()
+            date_part = pub.split(' ')[0] if pub else ''
+            if date_part:
+                parts = date_part.split('-')
+                if len(parts) == 3:
+                    return (int(parts[0]), int(parts[1]), int(parts[2]))
+            return (0, 0, 0)
+        except:
+            return (0, 0, 0)
+    youtube_videos = sorted(YoutubeVideo.objects.filter(stock=stock), key=parse_youtube_date, reverse=True)
 
     # 저장된 뉴스 (게시일 최신순)
     from .models import News
     def parse_news_date(news):
         """뉴스 게시일 문자열을 정렬용 키로 변환"""
         try:
-            pub = news.published or ''
+            pub = (news.published or '').strip()
             # "2026-01-05" 또는 "2026-01-05 12:30" 형식
             date_part = pub.split(' ')[0] if pub else ''
             if date_part:
@@ -2633,7 +2655,7 @@ def sector_detail(request, sector_id):
     telegram_messages = SectorTelegramMessage.objects.filter(sector=sector).order_by('-date', '-time')
     def parse_sector_news_date(news):
         try:
-            pub = news.published or ''
+            pub = (news.published or '').strip()
             date_part = pub.split(' ')[0] if pub else ''
             if date_part:
                 parts = date_part.split('-')
@@ -2643,7 +2665,18 @@ def sector_detail(request, sector_id):
         except:
             return (0, 0, 0)
     news_articles = sorted(SectorNews.objects.filter(sector=sector), key=parse_sector_news_date, reverse=True)
-    youtube_videos = SectorYoutubeVideo.objects.filter(sector=sector).order_by('-created_at')
+    def parse_sector_youtube_date(video):
+        try:
+            pub = (video.published or '').strip()
+            date_part = pub.split(' ')[0] if pub else ''
+            if date_part:
+                parts = date_part.split('-')
+                if len(parts) == 3:
+                    return (int(parts[0]), int(parts[1]), int(parts[2]))
+            return (0, 0, 0)
+        except:
+            return (0, 0, 0)
+    youtube_videos = sorted(SectorYoutubeVideo.objects.filter(sector=sector), key=parse_sector_youtube_date, reverse=True)
 
     # 통합 리스트 생성
     all_items = []
@@ -2729,7 +2762,7 @@ def sector_edit(request, sector_id):
     telegram_messages = SectorTelegramMessage.objects.filter(sector=sector).order_by('-date', '-time')
     def parse_sector_news_date_edit(news):
         try:
-            pub = news.published or ''
+            pub = (news.published or '').strip()
             date_part = pub.split(' ')[0] if pub else ''
             if date_part:
                 parts = date_part.split('-')
@@ -2739,7 +2772,18 @@ def sector_edit(request, sector_id):
         except:
             return (0, 0, 0)
     news_articles = sorted(SectorNews.objects.filter(sector=sector), key=parse_sector_news_date_edit, reverse=True)
-    youtube_videos = SectorYoutubeVideo.objects.filter(sector=sector).order_by('-created_at')
+    def parse_sector_youtube_date_edit(video):
+        try:
+            pub = (video.published or '').strip()
+            date_part = pub.split(' ')[0] if pub else ''
+            if date_part:
+                parts = date_part.split('-')
+                if len(parts) == 3:
+                    return (int(parts[0]), int(parts[1]), int(parts[2]))
+            return (0, 0, 0)
+        except:
+            return (0, 0, 0)
+    youtube_videos = sorted(SectorYoutubeVideo.objects.filter(sector=sector), key=parse_sector_youtube_date_edit, reverse=True)
     question_reports = SectorQuestionReport.objects.filter(sector=sector).order_by('-created_at')
     uploaded_reports = SectorUploadedReport.objects.filter(sector=sector).order_by('-created_at')
 
@@ -3969,7 +4013,7 @@ def search_google_news(request):
 
             # 날짜순 정렬 (최신순)
             def parse_news_date(item):
-                date_str = item.get('date', '')
+                date_str = (item.get('date', '') or '').strip()
                 if not date_str:
                     return datetime.min
                 try:
