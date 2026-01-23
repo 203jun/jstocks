@@ -242,10 +242,10 @@ class Info(models.Model):
 
     @property
     def has_insight_and_analysis(self):
-        """인사이트와 기업분석 둘 다 있는지 확인"""
-        has_insight = bool(self.insight_summary_html or self.insight_report_html)
+        """기업분석과 핵심 브리핑 둘 다 있는지 확인"""
         has_analysis = bool(self.analysis_text)
-        return has_insight and has_analysis
+        has_key_briefing = bool(self.key_briefing)
+        return has_analysis and has_key_briefing
 
     class Meta:
         db_table = 'info'
