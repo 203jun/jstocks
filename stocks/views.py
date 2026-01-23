@@ -1191,6 +1191,12 @@ def stock_edit(request, code):
     analysis_html_exists = html_path.exists()
     analysis_html_content = html_path.read_text(encoding='utf-8') if analysis_html_exists else ''
 
+    # 저장된 프롬프트 가져오기
+    from .models import SavedPrompt
+    saved_prompts = {}
+    for setting in SavedPrompt.objects.all():
+        saved_prompts[setting.key] = setting.value
+
     context = {
         'stock': stock,
         'interest_choices': interest_choices,
@@ -1218,6 +1224,7 @@ def stock_edit(request, code):
         'uploaded_reports': uploaded_reports,
         'analysis_html_exists': analysis_html_exists,
         'analysis_html_content': analysis_html_content,
+        'saved_prompts': saved_prompts,
     }
     return render(request, 'stocks/stock_edit.html', context)
 

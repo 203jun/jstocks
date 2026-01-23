@@ -436,7 +436,7 @@
                                     <span class="badge bg-danger btn-delete-news" data-id="{{ news.id }}" style="cursor:pointer;">삭제</span>
                                 </div>
                                 <div>
-                                    <span class="badge bg-secondary btn-copy-prompt-news" data-id="{{ news.id }}" data-title="{{ news.title }}" style="cursor:pointer;">프롬프트 복사</span>
+                                    <span class="badge bg-secondary btn-copy-prompt-news" data-id="{{ news.id }}" data-link="{{ news.link }}" style="cursor:pointer;">프롬프트 복사</span>
                                 </div>
                             </div>
                         </div>
@@ -640,6 +640,10 @@
 <script>
 const stockName = "{{ stock.name }}";
 const stockCode = "{{ stock.code }}";
+const savedPrompts = {
+    prompt_news: `{{ saved_prompts.prompt_news|default:""|escapejs }}`,
+    prompt_youtube: `{{ saved_prompts.prompt_youtube|default:""|escapejs }}`
+};
 
 // ============ 업종(테마) 추가/제거 ============
 document.getElementById('btnAddThemeToStock')?.addEventListener('click', function() {
@@ -1476,6 +1480,24 @@ document.addEventListener('click', async (e) => {
     } catch (err) {
         alert('오류: ' + err.message);
         e.target.disabled = false;
+    }
+});
+
+// 뉴스 프롬프트 복사
+document.getElementById('savedNewsList')?.addEventListener('click', async function(e) {
+    if (!e.target.classList.contains('btn-copy-prompt-news')) return;
+
+    const link = e.target.dataset.link;
+    const prompt = savedPrompts.prompt_news || '';
+    const text = `종목: ${stockName}\n링크: ${link}\n\n${prompt}`;
+
+    try {
+        await navigator.clipboard.writeText(text);
+        const original = e.target.textContent;
+        e.target.textContent = '복사됨!';
+        setTimeout(() => { e.target.textContent = original; }, 1500);
+    } catch (err) {
+        alert('복사 실패: ' + err.message);
     }
 });
 
