@@ -712,17 +712,14 @@
                     <ul class="nav nav-tabs" id="reportChannelTabs" role="tablist"></ul>
                     <div class="tab-content pt-3" id="reportChannelTabContent"></div>
                 </div>
-                <!-- 구글 검색 결과 -->
+                <!-- 구글 검색 링크 -->
                 <div id="googleSearchResult" class="mt-3 pt-3 border-top d-none">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="text-muted mb-0"><small>구글 검색</small></h6>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnGoogleSearch">검색</button>
-                    </div>
-                    <div id="googleSearchLoading" class="text-center py-3 d-none">
-                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                        <span class="ms-2">구글 검색 중...</span>
-                    </div>
-                    <div id="googleSearchList" class="list-group list-group-flush"></div>
+                    <a href="#" target="_blank" class="btn btn-sm btn-outline-primary" id="btnGoogleSearch">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-google me-1" viewBox="0 0 16 16">
+                            <path d="M15.545 6.558a9.4 9.4 0 0 1 .139 1.626c0 2.434-.87 4.492-2.384 5.885h.002C11.978 15.292 10.158 16 8 16A8 8 0 1 1 8 0a7.7 7.7 0 0 1 5.352 2.082l-2.284 2.284A4.35 4.35 0 0 0 8 3.166c-2.087 0-3.86 1.408-4.492 3.304a4.8 4.8 0 0 0 0 3.063h.003c.635 1.893 2.405 3.301 4.492 3.301 1.078 0 2.004-.276 2.722-.764h-.003a3.7 3.7 0 0 0 1.599-2.431H8v-3.08z"/>
+                        </svg>
+                        구글에서 검색
+                    </a>
                 </div>
                 <div id="reportSearchEmpty" class="text-muted d-none">검색 결과가 없습니다.</div>
             </div>
@@ -1748,49 +1745,11 @@ const reportChannelTabContent = document.getElementById('reportChannelTabContent
 const reportSearchEmpty = document.getElementById('reportSearchEmpty');
 const btnCloseReportSearch = document.getElementById('btnCloseReportSearch');
 const googleSearchResult = document.getElementById('googleSearchResult');
-const googleSearchLoading = document.getElementById('googleSearchLoading');
-const googleSearchList = document.getElementById('googleSearchList');
 const btnGoogleSearch = document.getElementById('btnGoogleSearch');
-
-let currentSearchKeyword = '';
 
 if (btnCloseReportSearch) {
     btnCloseReportSearch.addEventListener('click', () => {
         reportSearchResult.classList.add('d-none');
-    });
-}
-
-// 구글 검색 버튼 클릭
-if (btnGoogleSearch) {
-    btnGoogleSearch.addEventListener('click', async () => {
-        if (!currentSearchKeyword) return;
-
-        btnGoogleSearch.disabled = true;
-        btnGoogleSearch.textContent = '검색 중...';
-        googleSearchLoading.classList.remove('d-none');
-        googleSearchList.innerHTML = '';
-
-        try {
-            const response = await fetch(`/api/google/search/?keyword=${encodeURIComponent(currentSearchKeyword)}&limit=5`);
-            const data = await response.json();
-
-            if (data.success && data.results.length > 0) {
-                googleSearchList.innerHTML = data.results.map(r => `
-                    <a href="${r.link}" target="_blank" class="list-group-item list-group-item-action py-2">
-                        <div class="fw-semibold text-primary">${r.title}</div>
-                        <div class="small text-muted text-truncate">${r.snippet || r.link}</div>
-                    </a>
-                `).join('');
-            } else {
-                googleSearchList.innerHTML = '<div class="text-muted py-2">구글 검색 결과가 없습니다.</div>';
-            }
-        } catch (err) {
-            googleSearchList.innerHTML = `<div class="text-danger py-2">오류: ${err.message}</div>`;
-        } finally {
-            googleSearchLoading.classList.add('d-none');
-            btnGoogleSearch.disabled = false;
-            btnGoogleSearch.textContent = '검색';
-        }
     });
 }
 
@@ -1835,7 +1794,6 @@ document.querySelectorAll('.report-search-link').forEach(link => {
         e.preventDefault();
         const keyword = link.dataset.title;
 
-        currentSearchKeyword = keyword;
         reportSearchKeyword.textContent = `"${keyword}"`;
         reportSearchResult.classList.remove('d-none');
         reportSearchLoading.classList.remove('d-none');
@@ -1844,7 +1802,11 @@ document.querySelectorAll('.report-search-link').forEach(link => {
         googleSearchResult.classList.add('d-none');
         reportChannelTabs.innerHTML = '';
         reportChannelTabContent.innerHTML = '';
-        googleSearchList.innerHTML = '';
+
+        // 구글 검색 링크 설정
+        if (btnGoogleSearch) {
+            btnGoogleSearch.href = `https://www.google.com/search?q=${encodeURIComponent(keyword)}`;
+        }
 
         reportSearchResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
