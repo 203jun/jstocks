@@ -977,17 +977,27 @@ document.querySelectorAll('.btn-view-qr').forEach(el => {
                 <style>
                     body { padding: 20px; }
                     .question { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+                    .report { line-height: 1.7; color: #333; }
                     .report img { max-width: 100%; }
-                    .report pre { background: #f4f4f4; padding: 12px; border-radius: 4px; overflow-x: auto; }
-                    .report code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
-                    .report pre code { padding: 0; background: none; }
-                    .report blockquote { border-left: 4px solid #ddd; padding-left: 16px; margin-left: 0; color: #666; }
-                    .report table { border-collapse: collapse; width: 100%; margin: 16px 0; }
-                    .report th, .report td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                    .report th { background: #f8f9fa; }
-                    .report ul, .report ol { padding-left: 24px; }
-                    .report ul ul, .report ol ol, .report ul ol, .report ol ul { margin: 4px 0; }
-                    .report li { margin: 4px 0; }
+                    .report h1 { font-size: 1.5rem; font-weight: 700; margin: 1.5rem 0 0.75rem; padding-bottom: 0.3rem; border-bottom: 2px solid #e9ecef; }
+                    .report h2 { font-size: 1.3rem; font-weight: 700; margin: 1.25rem 0 0.5rem; padding-bottom: 0.25rem; border-bottom: 1px solid #e9ecef; }
+                    .report h3 { font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+                    .report h4 { font-size: 1rem; font-weight: 600; margin: 0.75rem 0 0.5rem; }
+                    .report p { margin: 0.5rem 0; }
+                    .report ul, .report ol { padding-left: 1.75rem; margin: 0.5rem 0; }
+                    .report li { margin: 0.25rem 0; }
+                    .report table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+                    .report th, .report td { border: 1px solid #dee2e6; padding: 10px 12px; text-align: left; }
+                    .report th { background: #f8f9fa; font-weight: 600; }
+                    .report tr:hover { background: #f8f9fa; }
+                    .report blockquote { border-left: 4px solid #6c757d; padding: 0.5rem 1rem; margin: 1rem 0; background: #f8f9fa; color: #555; }
+                    .report code { background: #f1f3f4; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: #d63384; }
+                    .report pre { background: #282c34; color: #abb2bf; padding: 1rem; border-radius: 6px; overflow-x: auto; }
+                    .report pre code { background: none; color: inherit; padding: 0; }
+                    .report strong { font-weight: 600; }
+                    .report hr { border: none; border-top: 1px solid #e9ecef; margin: 1.5rem 0; }
+                    .report a { color: #0d6efd; text-decoration: none; }
+                    .report a:hover { text-decoration: underline; }
                 </style>
             </head>
             <body>
