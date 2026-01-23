@@ -409,9 +409,9 @@
                                             <small class="text-muted ms-2">{{ report.created_at|date:"Y-m-d H:i" }}</small>
                                         </div>
                                     </div>
-                                    <div class="d-flex gap-2">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary btn-toggle-summary" title="요약 편집">요약</button>
-                                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-uploaded" data-id="{{ report.id }}">삭제</button>
+                                    <div class="d-flex gap-1">
+                                        <span class="badge {% if report.summary %}bg-success{% else %}bg-secondary{% endif %} btn-toggle-summary" style="cursor:pointer;">요약</span>
+                                        <span class="badge bg-danger btn-delete-uploaded" data-id="{{ report.id }}" style="cursor:pointer;">삭제</span>
                                     </div>
                                 </div>
                                 <div class="summary-section d-none">
@@ -2355,9 +2355,9 @@ document.getElementById('btnUploadReport')?.addEventListener('click', async () =
                             <small class="text-muted ms-2">${data.created_at}</small>
                         </div>
                     </div>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary btn-toggle-summary" title="요약 편집">요약</button>
-                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-uploaded" data-id="${data.id}">삭제</button>
+                    <div class="d-flex gap-1">
+                        <span class="badge bg-secondary btn-toggle-summary" style="cursor:pointer;">요약</span>
+                        <span class="badge bg-danger btn-delete-uploaded" data-id="${data.id}" style="cursor:pointer;">삭제</span>
                     </div>
                 </div>
                 <div class="summary-section d-none">
@@ -2457,6 +2457,15 @@ document.addEventListener('click', async (e) => {
             btn.textContent = '저장됨!';
             btn.classList.remove('btn-primary');
             btn.classList.add('btn-success');
+            // 요약 배지 색상 업데이트
+            const summaryBadge = item.querySelector('.btn-toggle-summary');
+            if (summary.trim()) {
+                summaryBadge.classList.remove('bg-secondary');
+                summaryBadge.classList.add('bg-success');
+            } else {
+                summaryBadge.classList.remove('bg-success');
+                summaryBadge.classList.add('bg-secondary');
+            }
             setTimeout(() => {
                 btn.textContent = '저장';
                 btn.classList.remove('btn-success');
