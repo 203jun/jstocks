@@ -239,9 +239,6 @@
                 <button class="nav-link" id="stock-analysis-tab" data-bs-toggle="pill" data-bs-target="#stock-analysis-panel" type="button" role="tab">기업분석</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="question-report-tab" data-bs-toggle="pill" data-bs-target="#question-report-panel" type="button" role="tab">리서치</button>
-            </li>
-            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="report-prompt-tab" data-bs-toggle="pill" data-bs-target="#report-prompt-panel" type="button" role="tab">리포트</button>
             </li>
             <li class="nav-item" role="presentation">
@@ -294,12 +291,6 @@
                                         <div class="form-check">
                                             <input class="form-check-input data-loader-check" type="checkbox" id="chkKeyBriefing" value="key_briefing" checked>
                                             <label class="form-check-label" for="chkKeyBriefing">핵심브리핑</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input data-loader-check" type="checkbox" id="chkQuestionReport" value="question_report" checked>
-                                            <label class="form-check-label" for="chkQuestionReport">리서치 (10개)</label>
                                         </div>
                                     </div>
                                     <div class="col-6 col-md-4">
@@ -468,46 +459,6 @@
                     </div>
                 </div>
 
-            </div>
-
-            <!-- 리서치 탭 -->
-            <div class="tab-pane fade" id="question-report-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header py-2">
-                        <strong>리서치 프롬프트</strong>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-secondary py-2 mb-3">
-                            <small>
-                                <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
-                                <strong>저장:</strong> 종목 편집 → <code>리서치</code> 탭
-                            </small>
-                        </div>
-                        <div class="alert alert-danger py-2 mb-3">
-                            <strong>⚠️ 중요:</strong> <strong>데이터 불러오기</strong>에서 가져온 텍스트 블록(모두 체크)을 프롬프트에 추가하세요.
-                        </div>
-
-                        <!-- 프롬프트 1: 리포트 생성 -->
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="form-label fw-bold small mb-0">1. 리포트 생성 프롬프트</label>
-                                <button type="button" class="btn btn-sm btn-primary" id="btnSaveQuestionReportPrompt">저장</button>
-                            </div>
-                            <textarea class="form-control" id="promptQuestionReport" rows="8" placeholder="리포트 생성 프롬프트...">{{ saved_prompts.prompt_question_report }}</textarea>
-                            <small class="text-muted">질문에 대한 리포트를 생성하는 프롬프트</small>
-                        </div>
-
-                        <!-- HTML 변환 탭으로 이동 -->
-                        <div>
-                            <label class="form-label fw-bold small mb-1">2. HTML 변환 프롬프트</label>
-                            <div>
-                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('html-convert-tab').click();">
-                                    HTML변환 탭으로 이동 →
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- 노다지 탭 -->
@@ -1359,12 +1310,6 @@ document.getElementById('btnSaveNodajiVisitPrompt').addEventListener('click', fu
 document.getElementById('btnSaveNodajiConcallPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptNodajiConcall').value;
     savePrompt('prompt_nodaji_concall', value, this);
-});
-
-// 리서치: 리포트 생성 프롬프트 저장
-document.getElementById('btnSaveQuestionReportPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptQuestionReport').value;
-    savePrompt('prompt_question_report', value, this);
 });
 
 // 관심섹터 1-1: 프롬프트 저장
