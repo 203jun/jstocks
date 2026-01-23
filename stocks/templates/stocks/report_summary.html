@@ -50,12 +50,9 @@
 </div>
 
 <div class="card mb-3">
-    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-        <div>
-            <strong>{{ report.stock.name }}</strong>
-            <small class="text-muted ms-2">{{ report.provider }}</small>
-        </div>
-        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCopyPrompt">프롬프트 복사</button>
+    <div class="card-header py-2">
+        <strong>{{ report.stock.name }}</strong>
+        <small class="text-muted ms-2">{{ report.provider }}</small>
     </div>
     <div class="card-body py-2">
         <div class="fw-semibold">{{ report.title }}</div>
@@ -133,49 +130,6 @@ function updatePreview() {
 
 textarea.addEventListener('input', updatePreview);
 updatePreview();
-
-// 프롬프트 복사
-const savedPrompt = `{{ saved_prompt|default:""|escapejs }}`;
-
-function copyToClipboard(text) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        return navigator.clipboard.writeText(text);
-    }
-    return new Promise((resolve, reject) => {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.left = '-9999px';
-        document.body.appendChild(textarea);
-        textarea.select();
-        try {
-            document.execCommand('copy');
-            resolve();
-        } catch (err) {
-            reject(err);
-        } finally {
-            document.body.removeChild(textarea);
-        }
-    });
-}
-
-document.getElementById('btnCopyPrompt').addEventListener('click', async function() {
-    const stockName = `{{ report.stock.name }}`;
-    const provider = `{{ report.provider }}`;
-    const title = `{{ report.title|escapejs }}`;
-
-    const text = `종목: ${stockName}\n증권사: ${provider}\n제목: ${title}\n\n${savedPrompt}`;
-
-    try {
-        await copyToClipboard(text);
-        const btn = this;
-        const original = btn.textContent;
-        btn.textContent = '복사됨!';
-        setTimeout(() => { btn.textContent = original; }, 1500);
-    } catch (err) {
-        alert('복사 실패: ' + err.message);
-    }
-});
 
 // 파일 삭제
 const btnDeleteFile = document.getElementById('btnDeleteFile');
