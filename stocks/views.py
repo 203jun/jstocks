@@ -745,17 +745,42 @@ def stock_detail(request, code):
 
     # 저장된 유튜브 영상 (업로드일 최신순)
     from .models import YoutubeVideo
+    import re
     def parse_youtube_date_detail(video):
+        """유튜브 상대 날짜를 정렬용 타임스탬프로 변환"""
         try:
             pub = (video.published or '').strip()
-            date_part = pub.split(' ')[0] if pub else ''
-            if date_part:
+            if not pub:
+                return video.created_at.timestamp() if video.created_at else 0
+            # "3일 전", "2시간 전", "17시간 전", "1주 전", "2개월 전", "1년 전" 등 처리
+            now = datetime.now()
+            match = re.search(r'(\d+)\s*(초|분|시간|일|주|개월|년)\s*전', pub)
+            if match:
+                num = int(match.group(1))
+                unit = match.group(2)
+                if unit == '초':
+                    return (now - timedelta(seconds=num)).timestamp()
+                elif unit == '분':
+                    return (now - timedelta(minutes=num)).timestamp()
+                elif unit == '시간':
+                    return (now - timedelta(hours=num)).timestamp()
+                elif unit == '일':
+                    return (now - timedelta(days=num)).timestamp()
+                elif unit == '주':
+                    return (now - timedelta(weeks=num)).timestamp()
+                elif unit == '개월':
+                    return (now - timedelta(days=num*30)).timestamp()
+                elif unit == '년':
+                    return (now - timedelta(days=num*365)).timestamp()
+            # YYYY-MM-DD 형식 시도
+            date_part = pub.split(' ')[0]
+            if '-' in date_part:
                 parts = date_part.split('-')
                 if len(parts) == 3:
-                    return (int(parts[0]), int(parts[1]), int(parts[2]))
-            return (0, 0, 0)
+                    return datetime(int(parts[0]), int(parts[1]), int(parts[2])).timestamp()
+            return video.created_at.timestamp() if video.created_at else 0
         except:
-            return (0, 0, 0)
+            return video.created_at.timestamp() if video.created_at else 0
     youtube_videos = sorted(YoutubeVideo.objects.filter(stock=stock), key=parse_youtube_date_detail, reverse=True)
 
     # 저장된 뉴스 (게시일 최신순)
@@ -1190,17 +1215,40 @@ def stock_edit(request, code):
     custom_sectors = CustomSector.objects.all()
 
     # 저장된 유튜브 영상 (업로드일 최신순)
+    import re as re_youtube
     def parse_youtube_date(video):
+        """유튜브 상대 날짜를 정렬용 타임스탬프로 변환"""
         try:
             pub = (video.published or '').strip()
-            date_part = pub.split(' ')[0] if pub else ''
-            if date_part:
+            if not pub:
+                return video.created_at.timestamp() if video.created_at else 0
+            now = datetime.now()
+            match = re_youtube.search(r'(\d+)\s*(초|분|시간|일|주|개월|년)\s*전', pub)
+            if match:
+                num = int(match.group(1))
+                unit = match.group(2)
+                if unit == '초':
+                    return (now - timedelta(seconds=num)).timestamp()
+                elif unit == '분':
+                    return (now - timedelta(minutes=num)).timestamp()
+                elif unit == '시간':
+                    return (now - timedelta(hours=num)).timestamp()
+                elif unit == '일':
+                    return (now - timedelta(days=num)).timestamp()
+                elif unit == '주':
+                    return (now - timedelta(weeks=num)).timestamp()
+                elif unit == '개월':
+                    return (now - timedelta(days=num*30)).timestamp()
+                elif unit == '년':
+                    return (now - timedelta(days=num*365)).timestamp()
+            date_part = pub.split(' ')[0]
+            if '-' in date_part:
                 parts = date_part.split('-')
                 if len(parts) == 3:
-                    return (int(parts[0]), int(parts[1]), int(parts[2]))
-            return (0, 0, 0)
+                    return datetime(int(parts[0]), int(parts[1]), int(parts[2])).timestamp()
+            return video.created_at.timestamp() if video.created_at else 0
         except:
-            return (0, 0, 0)
+            return video.created_at.timestamp() if video.created_at else 0
     youtube_videos = sorted(YoutubeVideo.objects.filter(stock=stock), key=parse_youtube_date, reverse=True)
 
     # 저장된 뉴스 (게시일 최신순)
@@ -2665,17 +2713,40 @@ def sector_detail(request, sector_id):
         except:
             return (0, 0, 0)
     news_articles = sorted(SectorNews.objects.filter(sector=sector), key=parse_sector_news_date, reverse=True)
+    import re as re_sector_yt
     def parse_sector_youtube_date(video):
+        """유튜브 상대 날짜를 정렬용 타임스탬프로 변환"""
         try:
             pub = (video.published or '').strip()
-            date_part = pub.split(' ')[0] if pub else ''
-            if date_part:
+            if not pub:
+                return video.created_at.timestamp() if video.created_at else 0
+            now = datetime.now()
+            match = re_sector_yt.search(r'(\d+)\s*(초|분|시간|일|주|개월|년)\s*전', pub)
+            if match:
+                num = int(match.group(1))
+                unit = match.group(2)
+                if unit == '초':
+                    return (now - timedelta(seconds=num)).timestamp()
+                elif unit == '분':
+                    return (now - timedelta(minutes=num)).timestamp()
+                elif unit == '시간':
+                    return (now - timedelta(hours=num)).timestamp()
+                elif unit == '일':
+                    return (now - timedelta(days=num)).timestamp()
+                elif unit == '주':
+                    return (now - timedelta(weeks=num)).timestamp()
+                elif unit == '개월':
+                    return (now - timedelta(days=num*30)).timestamp()
+                elif unit == '년':
+                    return (now - timedelta(days=num*365)).timestamp()
+            date_part = pub.split(' ')[0]
+            if '-' in date_part:
                 parts = date_part.split('-')
                 if len(parts) == 3:
-                    return (int(parts[0]), int(parts[1]), int(parts[2]))
-            return (0, 0, 0)
+                    return datetime(int(parts[0]), int(parts[1]), int(parts[2])).timestamp()
+            return video.created_at.timestamp() if video.created_at else 0
         except:
-            return (0, 0, 0)
+            return video.created_at.timestamp() if video.created_at else 0
     youtube_videos = sorted(SectorYoutubeVideo.objects.filter(sector=sector), key=parse_sector_youtube_date, reverse=True)
 
     # 통합 리스트 생성
@@ -2772,17 +2843,40 @@ def sector_edit(request, sector_id):
         except:
             return (0, 0, 0)
     news_articles = sorted(SectorNews.objects.filter(sector=sector), key=parse_sector_news_date_edit, reverse=True)
+    import re as re_sector_yt_edit
     def parse_sector_youtube_date_edit(video):
+        """유튜브 상대 날짜를 정렬용 타임스탬프로 변환"""
         try:
             pub = (video.published or '').strip()
-            date_part = pub.split(' ')[0] if pub else ''
-            if date_part:
+            if not pub:
+                return video.created_at.timestamp() if video.created_at else 0
+            now = datetime.now()
+            match = re_sector_yt_edit.search(r'(\d+)\s*(초|분|시간|일|주|개월|년)\s*전', pub)
+            if match:
+                num = int(match.group(1))
+                unit = match.group(2)
+                if unit == '초':
+                    return (now - timedelta(seconds=num)).timestamp()
+                elif unit == '분':
+                    return (now - timedelta(minutes=num)).timestamp()
+                elif unit == '시간':
+                    return (now - timedelta(hours=num)).timestamp()
+                elif unit == '일':
+                    return (now - timedelta(days=num)).timestamp()
+                elif unit == '주':
+                    return (now - timedelta(weeks=num)).timestamp()
+                elif unit == '개월':
+                    return (now - timedelta(days=num*30)).timestamp()
+                elif unit == '년':
+                    return (now - timedelta(days=num*365)).timestamp()
+            date_part = pub.split(' ')[0]
+            if '-' in date_part:
                 parts = date_part.split('-')
                 if len(parts) == 3:
-                    return (int(parts[0]), int(parts[1]), int(parts[2]))
-            return (0, 0, 0)
+                    return datetime(int(parts[0]), int(parts[1]), int(parts[2])).timestamp()
+            return video.created_at.timestamp() if video.created_at else 0
         except:
-            return (0, 0, 0)
+            return video.created_at.timestamp() if video.created_at else 0
     youtube_videos = sorted(SectorYoutubeVideo.objects.filter(sector=sector), key=parse_sector_youtube_date_edit, reverse=True)
     question_reports = SectorQuestionReport.objects.filter(sector=sector).order_by('-created_at')
     uploaded_reports = SectorUploadedReport.objects.filter(sector=sector).order_by('-created_at')
