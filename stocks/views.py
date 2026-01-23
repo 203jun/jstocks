@@ -3949,6 +3949,77 @@ def search_google_news(request):
 
 
 @require_GET
+def search_google(request):
+    """Google 웹 검색 API - Playwright 사용"""
+    from urllib.parse import quote
+
+    keyword = request.GET.get('keyword', '')
+    limit = int(request.GET.get('limit', 5))
+
+    if not keyword:
+        return JsonResponse({'error': '검색어가 필요합니다.'}, status=400)
+
+    url = f'https://www.google.com/search?q={quote(keyword)}&hl=ko&gl=KR'
+
+    try:
+        from playwright.sync_api import sync_playwright
+        from bs4 import BeautifulSoup
+
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.set_extra_http_headers({
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            })
+            page.goto(url, wait_until='networkidle', timeout=30000)
+            page.wait_for_timeout(2000)
+
+            html = page.content()
+            browser.close()
+
+            soup = BeautifulSoup(html, 'html.parser')
+            results = []
+
+            # Google 검색 결과 파싱
+            for g in soup.select('div.g'):
+                # 제목과 링크
+                title_el = g.select_one('h3')
+                link_el = g.select_one('a[href^="http"]')
+
+                if not title_el or not link_el:
+                    continue
+
+                title = title_el.get_text(strip=True)
+                link = link_el.get('href', '')
+
+                # 설명
+                snippet = ''
+                snippet_el = g.select_one('div[data-sncf], div.VwiC3b, span.aCOpRe')
+                if snippet_el:
+                    snippet = snippet_el.get_text(strip=True)
+
+                if title and link:
+                    results.append({
+                        'title': title,
+                        'link': link,
+                        'snippet': snippet,
+                    })
+
+                if len(results) >= limit:
+                    break
+
+        return JsonResponse({
+            'success': True,
+            'keyword': keyword,
+            'results': results,
+        })
+
+    except Exception as e:
+        import traceback
+        return JsonResponse({'error': str(e), 'trace': traceback.format_exc()}, status=500)
+
+
+@require_GET
 def search_youtube(request):
     """유튜브 검색 API"""
     import requests as http_requests

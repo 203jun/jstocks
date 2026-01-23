@@ -696,7 +696,7 @@
         <div id="reportSearchResult" class="card mt-3 d-none">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <div>
-                    <strong>텔레그램 검색</strong>
+                    <strong>리포트 검색</strong>
                     <small class="text-muted ms-2" id="reportSearchKeyword"></small>
                 </div>
                 <button type="button" class="btn-close btn-sm" id="btnCloseReportSearch"></button>
@@ -706,9 +706,20 @@
                     <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
                     <span class="ms-2">검색 중...</span>
                 </div>
+                <!-- 텔레그램 검색 결과 -->
                 <div id="reportSearchTabs" class="d-none">
+                    <h6 class="text-muted mb-2"><small>텔레그램</small></h6>
                     <ul class="nav nav-tabs" id="reportChannelTabs" role="tablist"></ul>
                     <div class="tab-content pt-3" id="reportChannelTabContent"></div>
+                </div>
+                <!-- 구글 검색 결과 -->
+                <div id="googleSearchResult" class="d-none">
+                    <h6 class="text-muted mb-2"><small>구글 검색</small></h6>
+                    <div id="googleSearchLoading" class="text-center py-3 d-none">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span class="ms-2">구글 검색 중...</span>
+                    </div>
+                    <div id="googleSearchList" class="list-group list-group-flush"></div>
                 </div>
                 <div id="reportSearchEmpty" class="text-muted d-none">검색 결과가 없습니다.</div>
             </div>
@@ -1733,11 +1744,42 @@ const reportChannelTabs = document.getElementById('reportChannelTabs');
 const reportChannelTabContent = document.getElementById('reportChannelTabContent');
 const reportSearchEmpty = document.getElementById('reportSearchEmpty');
 const btnCloseReportSearch = document.getElementById('btnCloseReportSearch');
+const googleSearchResult = document.getElementById('googleSearchResult');
+const googleSearchLoading = document.getElementById('googleSearchLoading');
+const googleSearchList = document.getElementById('googleSearchList');
 
 if (btnCloseReportSearch) {
     btnCloseReportSearch.addEventListener('click', () => {
         reportSearchResult.classList.add('d-none');
+        googleSearchResult.classList.add('d-none');
     });
+}
+
+// 구글 검색 실행
+async function searchGoogle(keyword) {
+    googleSearchResult.classList.remove('d-none');
+    googleSearchLoading.classList.remove('d-none');
+    googleSearchList.innerHTML = '';
+
+    try {
+        const response = await fetch(`/api/google/search/?keyword=${encodeURIComponent(keyword)}&limit=5`);
+        const data = await response.json();
+
+        if (data.success && data.results.length > 0) {
+            googleSearchList.innerHTML = data.results.map(r => `
+                <a href="${r.link}" target="_blank" class="list-group-item list-group-item-action py-2">
+                    <div class="fw-semibold text-primary">${r.title}</div>
+                    <div class="small text-muted text-truncate">${r.snippet || r.link}</div>
+                </a>
+            `).join('');
+        } else {
+            googleSearchList.innerHTML = '<div class="text-muted py-2">구글 검색 결과가 없습니다.</div>';
+        }
+    } catch (err) {
+        googleSearchList.innerHTML = `<div class="text-danger py-2">오류: ${err.message}</div>`;
+    } finally {
+        googleSearchLoading.classList.add('d-none');
+    }
 }
 
 // 전체 문구로 필터링
@@ -1786,8 +1828,10 @@ document.querySelectorAll('.report-search-link').forEach(link => {
         reportSearchLoading.classList.remove('d-none');
         reportSearchTabs.classList.add('d-none');
         reportSearchEmpty.classList.add('d-none');
+        googleSearchResult.classList.add('d-none');
         reportChannelTabs.innerHTML = '';
         reportChannelTabContent.innerHTML = '';
+        googleSearchList.innerHTML = '';
 
         reportSearchResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -1837,13 +1881,18 @@ document.querySelectorAll('.report-search-link').forEach(link => {
                 reportChannelTabs.innerHTML = tabsHtml;
                 reportChannelTabContent.innerHTML = contentHtml;
                 reportSearchTabs.classList.remove('d-none');
+                // 텔레그램 결과가 있어도 구글 검색 결과도 보여줌
+                searchGoogle(keyword);
             } else {
-                reportSearchEmpty.classList.remove('d-none');
+                // 텔레그램 결과가 없으면 구글 검색만 실행
+                searchGoogle(keyword);
             }
 
         } catch (err) {
             reportChannelTabContent.innerHTML = `<div class="alert alert-danger">오류: ${err.message}</div>`;
             reportSearchTabs.classList.remove('d-none');
+            // 오류 시에도 구글 검색 시도
+            searchGoogle(keyword);
         } finally {
             reportSearchLoading.classList.add('d-none');
         }

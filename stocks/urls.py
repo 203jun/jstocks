@@ -50,6 +50,7 @@ urlpatterns = [
     path('api/custom-sector/<int:sector_id>/basic-report/', views.custom_sector_basic_report, name='custom_sector_basic_report'),
     path('api/custom-sector/<int:sector_id>/integrated-report/', views.custom_sector_integrated_report, name='custom_sector_integrated_report'),
     path('api/news/search/', views.search_google_news, name='search_google_news'),
+    path('api/google/search/', views.search_google, name='search_google'),
     path('api/youtube/search/', views.search_youtube, name='search_youtube'),
     path('api/youtube/search/preferred/', views.search_youtube_preferred, name='search_youtube_preferred'),
     path('api/youtube/channel/add/', views.youtube_channel_add, name='youtube_channel_add'),
