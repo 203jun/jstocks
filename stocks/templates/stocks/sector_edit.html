@@ -320,15 +320,20 @@
                                 <small class="text-muted">{{ news.source }}</small>
                                 <small class="text-muted ms-2">{{ news.published|slice:":10" }}</small>
                             </div>
-                            <div class="d-flex gap-2 ms-2">
-                                <a href="{% url 'stocks:sector_news_summary' news.id %}" class="text-decoration-none" title="요약">
-                                    {% if news.summary %}
-                                    <span class="badge bg-success">요약</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">요약</span>
-                                    {% endif %}
-                                </a>
-                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-news" data-id="{{ news.id }}">삭제</button>
+                            <div class="d-flex flex-column gap-1 ms-2 align-items-end">
+                                <div class="d-flex gap-1">
+                                    <a href="{% url 'stocks:sector_news_summary' news.id %}" class="text-decoration-none" title="요약">
+                                        {% if news.summary %}
+                                        <span class="badge bg-success">요약</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">요약</span>
+                                        {% endif %}
+                                    </a>
+                                    <span class="badge bg-danger btn-delete-news" data-id="{{ news.id }}" style="cursor:pointer;">삭제</span>
+                                </div>
+                                <div>
+                                    <span class="badge bg-secondary btn-copy-prompt-news" data-id="{{ news.id }}" data-link="{{ news.link }}" style="cursor:pointer;">프롬프트 복사</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -469,6 +474,33 @@
 <script>
 const sectorName = "{{ sector.name|escapejs }}";
 const sectorId = {{ sector.id }};
+const savedPrompts = {
+    prompt_news: `{{ saved_prompts.prompt_news|default:""|escapejs }}`,
+    prompt_youtube: `{{ saved_prompts.prompt_youtube|default:""|escapejs }}`
+};
+
+// 클립보드 복사 함수 (HTTP/HTTPS 호환)
+function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+    }
+    return new Promise((resolve, reject) => {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            resolve();
+        } catch (err) {
+            reject(err);
+        } finally {
+            document.body.removeChild(textarea);
+        }
+    });
+}
 
 // ============ 리서치 추가/저장/삭제/미리보기 ============
 
@@ -1167,6 +1199,24 @@ document.addEventListener('click', async (e) => {
     } catch (err) {
         alert('오류: ' + err.message);
         e.target.disabled = false;
+    }
+});
+
+// 뉴스 프롬프트 복사
+document.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-copy-prompt-news')) return;
+
+    const link = e.target.dataset.link;
+    const prompt = savedPrompts.prompt_news || '';
+    const text = `섹터: ${sectorName}\n링크: ${link}\n\n${prompt}`;
+
+    try {
+        await copyToClipboard(text);
+        const original = e.target.textContent;
+        e.target.textContent = '복사됨!';
+        setTimeout(() => { e.target.textContent = original; }, 1500);
+    } catch (err) {
+        alert('복사 실패: ' + err.message);
     }
 });
 

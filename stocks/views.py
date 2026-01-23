@@ -2697,6 +2697,12 @@ def sector_edit(request, sector_id):
     question_reports = SectorQuestionReport.objects.filter(sector=sector).order_by('-created_at')
     uploaded_reports = SectorUploadedReport.objects.filter(sector=sector).order_by('-created_at')
 
+    # 저장된 프롬프트 가져오기
+    from .models import SystemSetting
+    saved_prompts = {}
+    for setting in SystemSetting.objects.filter(key__startswith='prompt_'):
+        saved_prompts[setting.key] = setting.value
+
     context = {
         'sector': sector,
         'telegram_messages': telegram_messages,
@@ -2704,6 +2710,7 @@ def sector_edit(request, sector_id):
         'youtube_videos': youtube_videos,
         'question_reports': question_reports,
         'uploaded_reports': uploaded_reports,
+        'saved_prompts': saved_prompts,
     }
     return render(request, 'stocks/sector_edit.html', context)
 
