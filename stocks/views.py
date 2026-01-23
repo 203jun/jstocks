@@ -1192,9 +1192,9 @@ def stock_edit(request, code):
     analysis_html_content = html_path.read_text(encoding='utf-8') if analysis_html_exists else ''
 
     # 저장된 프롬프트 가져오기
-    from .models import SavedPrompt
+    from .models import SystemSetting
     saved_prompts = {}
-    for setting in SavedPrompt.objects.all():
+    for setting in SystemSetting.objects.filter(key__startswith='prompt_'):
         saved_prompts[setting.key] = setting.value
 
     context = {
