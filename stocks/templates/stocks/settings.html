@@ -463,63 +463,22 @@
 
             <!-- 노다지 탭 -->
             <div class="tab-pane fade" id="nodaji-panel" role="tabpanel">
-                <div class="alert alert-secondary py-2 mb-3">
-                    <small>
-                        <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
-                        <strong>저장:</strong> 종목 편집 → 노다지 → <code>요약</code> 탭
-                    </small>
-                </div>
-                <div class="alert alert-danger py-2 mb-3">
-                    <strong>⚠️ 중요:</strong> 반드시 <strong>노다지 PDF 파일</strong>을 첨부하여 사용하세요!
-                </div>
-
-                <!-- 탐방노트 프롬프트 -->
-                <div class="card mb-3">
-                    <div class="card-header py-2">
-                        <strong>1. 탐방노트</strong>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="form-label fw-bold small mb-0">1-1. 리포트 생성 프롬프트</label>
-                                <button type="button" class="btn btn-sm btn-primary" id="btnSaveNodajiVisitPrompt">저장</button>
-                            </div>
-                            <textarea class="form-control" id="promptNodajiVisit" rows="8" placeholder="탐방노트용 프롬프트...">{{ saved_prompts.prompt_nodaji_visit }}</textarea>
-                            <small class="text-muted">탐방노트 PDF를 첨부하여 사용</small>
-                        </div>
-                        <div>
-                            <label class="form-label fw-bold small mb-1">1-2. HTML 변환 프롬프트</label>
-                            <div>
-                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('html-convert-tab').click();">
-                                    HTML변환 탭으로 이동 →
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 컨콜/IR통화 프롬프트 -->
                 <div class="card">
-                    <div class="card-header py-2">
-                        <strong>2. 컨콜/IR통화</strong>
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <strong>노다지 프롬프트</strong>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveNodajiPrompt">저장</button>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="form-label fw-bold small mb-0">2-1. 리포트 생성 프롬프트</label>
-                                <button type="button" class="btn btn-sm btn-primary" id="btnSaveNodajiConcallPrompt">저장</button>
-                            </div>
-                            <textarea class="form-control" id="promptNodajiConcall" rows="8" placeholder="컨콜/IR통화용 프롬프트...">{{ saved_prompts.prompt_nodaji_concall }}</textarea>
-                            <small class="text-muted">컨콜/IR통화 PDF를 첨부하여 사용</small>
+                        <div class="alert alert-secondary py-2 mb-3">
+                            <small>
+                                <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
+                                <strong>저장:</strong> 종목 편집 → 노다지 → <code>요약</code> 탭
+                            </small>
                         </div>
-                        <div>
-                            <label class="form-label fw-bold small mb-1">2-2. HTML 변환 프롬프트</label>
-                            <div>
-                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('html-convert-tab').click();">
-                                    HTML변환 탭으로 이동 →
-                                </button>
-                            </div>
+                        <div class="alert alert-danger py-2 mb-3">
+                            <strong>⚠️ 중요:</strong> 반드시 <strong>노다지 PDF 파일</strong>을 첨부하여 사용하세요!
                         </div>
+                        <textarea class="form-control" id="promptNodaji" rows="8" placeholder="노다지 요약 프롬프트...">{{ saved_prompts.prompt_nodaji }}</textarea>
                     </div>
                 </div>
             </div>
@@ -1300,16 +1259,10 @@ document.getElementById('btnSaveAnalysisPrompt').addEventListener('click', funct
     savePrompt('prompt_analysis', value, this);
 });
 
-// 노다지: 탐방노트 프롬프트 저장
-document.getElementById('btnSaveNodajiVisitPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptNodajiVisit').value;
-    savePrompt('prompt_nodaji_visit', value, this);
-});
-
-// 노다지: 컨콜/IR통화 프롬프트 저장
-document.getElementById('btnSaveNodajiConcallPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptNodajiConcall').value;
-    savePrompt('prompt_nodaji_concall', value, this);
+// 노다지 프롬프트 저장
+document.getElementById('btnSaveNodajiPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptNodaji').value;
+    savePrompt('prompt_nodaji', value, this);
 });
 
 // 관심섹터 1-1: 프롬프트 저장
