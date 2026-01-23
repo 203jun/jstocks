@@ -90,7 +90,10 @@
     <div class="card">
         <div class="card-header py-2 d-flex justify-content-between align-items-center">
             <strong>마크다운 입력</strong>
-            <button type="submit" class="btn btn-primary btn-sm">저장</button>
+            <div>
+                <button type="button" class="btn btn-outline-secondary btn-sm me-1" id="btnCleanup">정리</button>
+                <button type="submit" class="btn btn-primary btn-sm">저장</button>
+            </div>
         </div>
         <div class="card-body p-2">
             <textarea name="summary" id="summary" placeholder="마크다운으로 요약 내용을 입력하세요...">{{ report.summary }}</textarea>
@@ -105,9 +108,32 @@
 const textarea = document.getElementById('summary');
 const preview = document.getElementById('preview');
 
-function updatePreview() {
-    preview.innerHTML = marked.parse(textarea.value || '');
+// 마크다운 정리 함수
+function cleanupMarkdown(text) {
+    if (!text) return '';
+    let result = text;
+    // 리스트 항목 뒤의 불필요한 줄바꿈 제거 (* \n** → * **)
+    result = result.replace(/(\*\s*)\n+(\*\*)/g, '$1$2');
+    result = result.replace(/(-\s*)\n+(\*\*)/g, '$1$2');
+    result = result.replace(/(\d+\.\s*)\n+(\*\*)/g, '$1$2');
+    // 3개 이상 연속 줄바꿈을 2개로 제한
+    result = result.replace(/\n{3,}/g, '\n\n');
+    // 리스트 항목 사이의 빈 줄 제거
+    result = result.replace(/(\*\*[^*]+\*\*[^\n]*)\n\n+(\*\s)/g, '$1\n$2');
+    result = result.replace(/(\*\*[^*]+\*\*[^\n]*)\n\n+(-\s)/g, '$1\n$2');
+    return result.trim();
 }
+
+function updatePreview() {
+    const cleaned = cleanupMarkdown(textarea.value);
+    preview.innerHTML = marked.parse(cleaned || '');
+}
+
+// 정리 버튼
+document.getElementById('btnCleanup').addEventListener('click', function() {
+    textarea.value = cleanupMarkdown(textarea.value);
+    updatePreview();
+});
 
 textarea.addEventListener('input', updatePreview);
 updatePreview();
