@@ -185,7 +185,14 @@ class Info(models.Model):
         blank=True,
         default='',
         verbose_name='기업분석(텍스트)',
-        help_text='기업분석 내용 (마크다운 형식)'
+        help_text='기업분석 내용'
+    )
+    analysis_type = models.CharField(
+        max_length=10,
+        default='html',
+        choices=[('html', 'HTML'), ('markdown', '마크다운')],
+        verbose_name='기업분석 타입',
+        help_text='HTML 또는 마크다운'
     )
     analysis_updated_at = models.DateField(
         null=True,

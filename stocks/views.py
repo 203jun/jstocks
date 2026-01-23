@@ -644,9 +644,12 @@ def stock_detail(request, code):
     # 섹터 (업종) - 고유한 이름만 추출
     sectors = stock.sectors.values('code', 'name').distinct().order_by('name')
 
-    # 기업분석 HTML 파일 확인
+    # 기업분석 확인 (타입에 따라 파일 또는 DB)
     html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
-    analysis_html_exists = html_path.exists()
+    if stock.analysis_type == 'markdown':
+        analysis_html_exists = bool(stock.analysis_text)
+    else:
+        analysis_html_exists = html_path.exists()
 
     # 리포트 (최근 20개)
     reports_queryset = Report.objects.filter(stock=stock).order_by('-date')
@@ -1034,20 +1037,38 @@ def stock_edit(request, code):
 
         stock.save()
 
-        # 기업분석 HTML 파일 저장 (변경 시 날짜 업데이트)
-        analysis_html = request.POST.get('analysis_html', '').strip()
+        # 기업분석 저장 (타입에 따라 파일 또는 DB에 저장)
+        analysis_content = request.POST.get('analysis_html', '').strip()
+        analysis_type = request.POST.get('analysis_type', 'html')
         analysis_dir = Path(django_settings.MEDIA_ROOT) / 'analysis'
         analysis_dir.mkdir(parents=True, exist_ok=True)
         html_path = analysis_dir / f'{code}.html'
-        old_analysis_html = (html_path.read_text(encoding='utf-8') if html_path.exists() else '').strip()
-        if analysis_html != old_analysis_html:
-            if analysis_html:
-                html_path.write_text(analysis_html, encoding='utf-8')
-            elif html_path.exists():
-                html_path.unlink()  # 빈 값이면 파일 삭제
+
+        # 기존 내용과 비교
+        if analysis_type == 'html':
+            old_content = (html_path.read_text(encoding='utf-8') if html_path.exists() else '').strip()
+        else:
+            old_content = (stock.analysis_text or '').strip()
+
+        if analysis_content != old_content or stock.analysis_type != analysis_type:
             from datetime import date
+            stock.analysis_type = analysis_type
+
+            if analysis_type == 'html':
+                # HTML: 파일로 저장, DB 필드 비우기
+                if analysis_content:
+                    html_path.write_text(analysis_content, encoding='utf-8')
+                elif html_path.exists():
+                    html_path.unlink()
+                stock.analysis_text = ''
+            else:
+                # 마크다운: DB에 저장, 파일 삭제
+                stock.analysis_text = analysis_content
+                if html_path.exists():
+                    html_path.unlink()
+
             stock.analysis_updated_at = date.today()
-            stock.save(update_fields=['analysis_updated_at'])
+            stock.save(update_fields=['analysis_type', 'analysis_text', 'analysis_updated_at'])
 
         # 업종 저장 (ManyToMany)
         from .models import Theme
@@ -1292,10 +1313,14 @@ def stock_edit(request, code):
     from .models import StockUploadedReport
     uploaded_reports = StockUploadedReport.objects.filter(stock=stock)
 
-    # 기업분석 HTML 파일 확인
+    # 기업분석 내용 (타입에 따라 파일 또는 DB에서 불러오기)
     html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
-    analysis_html_exists = html_path.exists()
-    analysis_html_content = html_path.read_text(encoding='utf-8') if analysis_html_exists else ''
+    if stock.analysis_type == 'markdown':
+        analysis_html_content = stock.analysis_text or ''
+        analysis_html_exists = bool(analysis_html_content)
+    else:
+        analysis_html_exists = html_path.exists()
+        analysis_html_content = html_path.read_text(encoding='utf-8') if analysis_html_exists else ''
 
     # 저장된 프롬프트 가져오기
     from .models import SystemSetting

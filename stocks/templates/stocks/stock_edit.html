@@ -201,12 +201,17 @@
             </div>
 
             <div class="card mb-3">
-                <div class="card-header py-2">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
                     <strong>기업분석</strong>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <input type="radio" class="btn-check" name="analysis_type" id="analysisTypeHtml" value="html" {% if stock.analysis_type != 'markdown' %}checked{% endif %}>
+                        <label class="btn btn-outline-secondary" for="analysisTypeHtml">HTML</label>
+                        <input type="radio" class="btn-check" name="analysis_type" id="analysisTypeMarkdown" value="markdown" {% if stock.analysis_type == 'markdown' %}checked{% endif %}>
+                        <label class="btn btn-outline-secondary" for="analysisTypeMarkdown">마크다운</label>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <textarea class="form-control font-monospace" name="analysis_html" id="analysisReportInput" rows="10" style="font-size: 0.85em;" placeholder="기업분석 HTML 코드를 붙여넣으세요...">{{ analysis_html_content }}</textarea>
-                    <small class="text-muted">HTML 코드를 붙여넣으면 기업분석으로 저장됩니다.</small>
+                    <textarea class="form-control font-monospace" name="analysis_html" id="analysisReportInput" rows="10" style="font-size: 0.85em;" placeholder="기업분석 내용을 붙여넣으세요...">{{ analysis_html_content }}</textarea>
                 </div>
             </div>
 
