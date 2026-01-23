@@ -4953,6 +4953,15 @@ def report_summary(request, report_id):
 
     if request.method == 'POST':
         report.summary = request.POST.get('summary', '')
+
+        # 파일 업로드 처리
+        if 'file' in request.FILES:
+            uploaded_file = request.FILES['file']
+            # 기존 파일 삭제
+            if report.file:
+                report.file.delete(save=False)
+            report.file = uploaded_file
+
         report.save()
         from django.contrib import messages
         messages.success(request, '저장되었습니다.')
@@ -4970,6 +4979,21 @@ def report_summary(request, report_id):
         'report': report,
         'saved_prompt': saved_prompt,
     })
+
+
+@require_POST
+def report_file_delete(request, report_id):
+    """애널리스트 리포트 첨부파일 삭제 API"""
+    from .models import Report
+
+    report = get_object_or_404(Report, id=report_id)
+
+    if report.file:
+        report.file.delete(save=False)
+        report.file = None
+        report.save()
+
+    return JsonResponse({'success': True})
 
 
 @require_POST

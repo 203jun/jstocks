@@ -88,8 +88,27 @@
     </div>
 </div>
 
-<form method="post">
+<form method="post" enctype="multipart/form-data">
     {% csrf_token %}
+    <div class="card mb-3">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+            <strong>첨부파일</strong>
+            {% if report.file %}
+            <a href="{{ report.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">파일 보기</a>
+            {% endif %}
+        </div>
+        <div class="card-body p-2">
+            {% if report.file %}
+            <div class="mb-2">
+                <span class="text-muted small">현재 파일:</span>
+                <a href="{{ report.file.url }}" target="_blank" class="ms-1">{{ report.file.name|cut:"reports/" }}</a>
+                <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="btnDeleteFile">삭제</button>
+            </div>
+            {% endif %}
+            <input type="file" name="file" class="form-control form-control-sm" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp">
+            <small class="text-muted">PDF, 이미지 파일 업로드 가능</small>
+        </div>
+    </div>
     <div class="card">
         <div class="card-header py-2 d-flex justify-content-between align-items-center">
             <strong>마크다운 입력</strong>
@@ -157,5 +176,30 @@ document.getElementById('btnCopyPrompt').addEventListener('click', async functio
         alert('복사 실패: ' + err.message);
     }
 });
+
+// 파일 삭제
+const btnDeleteFile = document.getElementById('btnDeleteFile');
+if (btnDeleteFile) {
+    btnDeleteFile.addEventListener('click', async function() {
+        if (!confirm('첨부파일을 삭제하시겠습니까?')) return;
+
+        try {
+            const response = await fetch('{% url "stocks:report_file_delete" report.id %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            });
+            const data = await response.json();
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('삭제 실패: ' + (data.error || '알 수 없는 오류'));
+            }
+        } catch (err) {
+            alert('삭제 실패: ' + err.message);
+        }
+    });
+}
 </script>
 {% endblock %}

@@ -1557,6 +1557,15 @@ class Report(models.Model):
         help_text='리포트 요약 내용'
     )
 
+    # === 첨부 파일 ===
+    file = models.FileField(
+        upload_to='reports/%Y/%m/',
+        null=True,
+        blank=True,
+        verbose_name='첨부파일',
+        help_text='리포트 PDF 파일'
+    )
+
     # === 메타 정보 ===
     created_at = models.DateTimeField(
         auto_now_add=True,
