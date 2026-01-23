@@ -20,7 +20,7 @@
         <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-content" type="button" role="tab">기본정보</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="question-report-tab" data-bs-toggle="tab" data-bs-target="#question-report-content" type="button" role="tab">리서치</button>
+        <button class="nav-link" id="question-report-tab" data-bs-toggle="tab" data-bs-target="#question-report-content" type="button" role="tab">리서치{% if question_reports %}<span class="badge bg-secondary ms-1">{{ question_reports|length }}</span>{% endif %}</button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab">리포트{% if uploaded_reports %}<span class="badge bg-secondary ms-1">{{ uploaded_reports|length }}</span>{% endif %}</button>
