@@ -576,7 +576,7 @@
                                 <span class="badge bg-danger btn-delete-video" data-id="{{ video.id }}" style="cursor:pointer;">삭제</span>
                             </div>
                             <div>
-                                <span class="badge bg-secondary btn-copy-prompt-video" data-id="{{ video.id }}" data-title="{{ video.title }}" style="cursor:pointer;">프롬프트 복사</span>
+                                <span class="badge bg-secondary btn-copy-prompt-video" data-id="{{ video.id }}" data-link="{{ video.link }}" style="cursor:pointer;">프롬프트 복사</span>
                             </div>
                         </div>
                     </div>
@@ -1409,11 +1409,16 @@ function addNewsToList(data) {
                 <small class="text-muted">${data.source || ''}</small>
                 <small class="text-muted ms-2">${(data.published || '').slice(0, 10)}</small>
             </div>
-            <div class="d-flex gap-2 ms-2">
-                <a href="/news/${data.id}/summary/" class="text-decoration-none" title="요약">
-                    <span class="badge bg-secondary">요약</span>
-                </a>
-                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-news" data-id="${data.id}">삭제</button>
+            <div class="d-flex flex-column gap-1 ms-2 align-items-end">
+                <div class="d-flex gap-1">
+                    <a href="/news/${data.id}/summary/" class="text-decoration-none" title="요약">
+                        <span class="badge bg-secondary">요약</span>
+                    </a>
+                    <span class="badge bg-danger btn-delete-news" data-id="${data.id}" style="cursor:pointer;">삭제</span>
+                </div>
+                <div>
+                    <span class="badge bg-secondary btn-copy-prompt-news" data-id="${data.id}" data-link="${data.link}" style="cursor:pointer;">프롬프트 복사</span>
+                </div>
             </div>
         </div>
     `;
@@ -1512,6 +1517,24 @@ document.getElementById('savedNewsList')?.addEventListener('click', async functi
 
     const link = e.target.dataset.link;
     const prompt = savedPrompts.prompt_news || '';
+    const text = `종목: ${stockName}\n링크: ${link}\n\n${prompt}`;
+
+    try {
+        await copyToClipboard(text);
+        const original = e.target.textContent;
+        e.target.textContent = '복사됨!';
+        setTimeout(() => { e.target.textContent = original; }, 1500);
+    } catch (err) {
+        alert('복사 실패: ' + err.message);
+    }
+});
+
+// 유튜브 프롬프트 복사
+document.getElementById('savedVideoList')?.addEventListener('click', async function(e) {
+    if (!e.target.classList.contains('btn-copy-prompt-video')) return;
+
+    const link = e.target.dataset.link;
+    const prompt = savedPrompts.prompt_youtube || '';
     const text = `종목: ${stockName}\n링크: ${link}\n\n${prompt}`;
 
     try {
@@ -1780,19 +1803,25 @@ btnSaveYoutubeLink?.addEventListener('click', async () => {
             const newItem = document.createElement('div');
             newItem.className = 'list-group-item d-flex gap-3 py-2';
             newItem.dataset.id = data.id;
+            const videoLink = `https://www.youtube.com/watch?v=${data.video_id}`;
             newItem.innerHTML = `
-                ${data.thumbnail ? `<a href="https://www.youtube.com/watch?v=${data.video_id}" target="_blank"><img src="${data.thumbnail}" alt="" style="width:120px; height:68px; object-fit:cover; border-radius:4px;"></a>` : ''}
+                ${data.thumbnail ? `<a href="${videoLink}" target="_blank"><img src="${data.thumbnail}" alt="" style="width:120px; height:68px; object-fit:cover; border-radius:4px;"></a>` : ''}
                 <div class="flex-grow-1 overflow-hidden">
-                    <a href="https://www.youtube.com/watch?v=${data.video_id}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">${data.title}</a>
+                    <a href="${videoLink}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">${data.title}</a>
                     <small class="text-muted">${data.channel || ''}</small>
                     <small class="text-muted ms-2">${data.views || ''}</small>
                     <small class="text-muted ms-2">${data.published || ''}</small>
                 </div>
-                <div class="d-flex gap-2 align-self-center">
-                    <a href="/youtube/${data.id}/summary/" class="text-decoration-none" title="요약">
-                        <span class="badge bg-secondary">요약</span>
-                    </a>
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-video" data-id="${data.id}">삭제</button>
+                <div class="d-flex flex-column gap-1 align-self-center align-items-end">
+                    <div class="d-flex gap-1">
+                        <a href="/youtube/${data.id}/summary/" class="text-decoration-none" title="요약">
+                            <span class="badge bg-secondary">요약</span>
+                        </a>
+                        <span class="badge bg-danger btn-delete-video" data-id="${data.id}" style="cursor:pointer;">삭제</span>
+                    </div>
+                    <div>
+                        <span class="badge bg-secondary btn-copy-prompt-video" data-id="${data.id}" data-link="${videoLink}" style="cursor:pointer;">프롬프트 복사</span>
+                    </div>
                 </div>
             `;
             savedList.insertBefore(newItem, savedList.firstChild);
@@ -1933,19 +1962,25 @@ document.addEventListener('click', async (e) => {
             const newItem = document.createElement('div');
             newItem.className = 'list-group-item d-flex gap-3 py-2';
             newItem.dataset.id = data.id;
+            const videoLink = `https://www.youtube.com/watch?v=${videoId}`;
             newItem.innerHTML = `
-                ${btn.dataset.thumbnail ? `<a href="https://www.youtube.com/watch?v=${videoId}" target="_blank"><img src="${btn.dataset.thumbnail}" alt="" style="width:120px; height:68px; object-fit:cover; border-radius:4px;"></a>` : ''}
+                ${btn.dataset.thumbnail ? `<a href="${videoLink}" target="_blank"><img src="${btn.dataset.thumbnail}" alt="" style="width:120px; height:68px; object-fit:cover; border-radius:4px;"></a>` : ''}
                 <div class="flex-grow-1 overflow-hidden">
-                    <a href="https://www.youtube.com/watch?v=${videoId}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">${btn.dataset.title}</a>
+                    <a href="${videoLink}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">${btn.dataset.title}</a>
                     <small class="text-muted">${btn.dataset.channel}</small>
                     <small class="text-muted ms-2">${btn.dataset.views}</small>
                     <small class="text-muted ms-2">${btn.dataset.published}</small>
                 </div>
-                <div class="d-flex gap-2 align-self-center">
-                    <a href="/youtube/${data.id}/summary/" class="text-decoration-none" title="요약">
-                        <span class="badge bg-secondary">요약</span>
-                    </a>
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-video" data-id="${data.id}">삭제</button>
+                <div class="d-flex flex-column gap-1 align-self-center align-items-end">
+                    <div class="d-flex gap-1">
+                        <a href="/youtube/${data.id}/summary/" class="text-decoration-none" title="요약">
+                            <span class="badge bg-secondary">요약</span>
+                        </a>
+                        <span class="badge bg-danger btn-delete-video" data-id="${data.id}" style="cursor:pointer;">삭제</span>
+                    </div>
+                    <div>
+                        <span class="badge bg-secondary btn-copy-prompt-video" data-id="${data.id}" data-link="${videoLink}" style="cursor:pointer;">프롬프트 복사</span>
+                    </div>
                 </div>
             `;
             savedList.insertBefore(newItem, savedList.firstChild);
