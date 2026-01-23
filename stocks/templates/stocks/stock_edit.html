@@ -23,7 +23,7 @@
         <button class="nav-link" id="question-report-tab" data-bs-toggle="tab" data-bs-target="#question-report-content" type="button" role="tab">리서치</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="uploaded-report-tab" data-bs-toggle="tab" data-bs-target="#uploaded-report-content" type="button" role="tab">파일리포트{% if uploaded_reports %}<span class="badge bg-secondary ms-1">{{ uploaded_reports|length }}</span>{% endif %}</button>
+        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab">리포트{% if uploaded_reports %}<span class="badge bg-secondary ms-1">{{ uploaded_reports|length }}</span>{% endif %}</button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="telegram-tab" data-bs-toggle="tab" data-bs-target="#telegram-content" type="button" role="tab">텔레그램{% if telegram_messages %}<span class="badge bg-secondary ms-1">{{ telegram_messages|length }}</span>{% endif %}</button>
@@ -264,63 +264,115 @@
         </div>
     </div>
 
-    <!-- 파일리포트 탭 -->
-    <div class="tab-pane fade" id="uploaded-report-content" role="tabpanel">
-        <!-- 파일 업로드 -->
-        <div class="card mb-3">
-            <div class="card-header py-2">
-                <strong>파일 업로드</strong>
-                <small class="text-muted ms-2">PDF, 이미지 등</small>
-            </div>
-            <div class="card-body py-2">
-                <div class="input-group input-group-sm">
-                    <input type="file" class="form-control" id="uploadReportFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif">
-                    <button type="button" class="btn btn-primary" id="btnUploadReport">업로드</button>
+    <!-- 리포트 탭 -->
+    <div class="tab-pane fade" id="report-content" role="tabpanel">
+        <!-- 서브 탭 -->
+        <ul class="nav nav-pills mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="analyst-report-tab" data-bs-toggle="pill" data-bs-target="#analyst-report-panel" type="button" role="tab">증권사</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="file-report-tab" data-bs-toggle="pill" data-bs-target="#file-report-panel" type="button" role="tab">파일{% if uploaded_reports %}<span class="badge bg-secondary ms-1">{{ uploaded_reports|length }}</span>{% endif %}</button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- 증권사 리포트 탭 -->
+            <div class="tab-pane fade show active" id="analyst-report-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <strong>증권사 리포트</strong>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnLoadAnalystReports">불러오기</button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="analystReportLoading" class="text-center py-4 d-none">
+                            <div class="spinner-border spinner-border-sm text-primary"></div>
+                            <span class="ms-2">리포트 불러오는 중...</span>
+                        </div>
+                        <div id="analystReportTable" class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 100px;">날짜</th>
+                                        <th>제목</th>
+                                        <th style="width: 80px;">증권사</th>
+                                        <th style="width: 80px;">목표가</th>
+                                        <th style="width: 70px;">괴리율</th>
+                                        <th style="width: 60px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="analystReportBody">
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">
+                                            '불러오기' 버튼을 클릭하여 증권사 리포트를 조회하세요.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- 업로드된 리포트 목록 -->
-        <div class="card">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <strong>업로드된 리포트</strong>
-                <span class="badge bg-primary" id="uploadedReportCount">{{ uploaded_reports|length }}</span>
-            </div>
-            <div class="card-body p-0">
-                <div id="uploadedReportList" class="list-group list-group-flush">
-                    {% for report in uploaded_reports %}
-                    <div class="list-group-item py-3" data-id="{{ report.id }}">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div class="flex-grow-1 me-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <input type="text" class="form-control form-control-sm ur-title" value="{{ report.display_title }}" placeholder="제목 입력" style="max-width: 300px;">
-                                    <button type="button" class="btn btn-sm btn-outline-primary btn-save-title" data-id="{{ report.id }}" title="제목 저장">저장</button>
-                                </div>
-                                <div class="mt-1">
-                                    <a href="{{ report.file.url }}" target="_blank" class="small text-decoration-none text-muted">
-                                        📎 {{ report.original_filename }}
-                                    </a>
-                                    <small class="text-muted ms-2">{{ report.created_at|date:"Y-m-d H:i" }}</small>
-                                </div>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary btn-toggle-summary" title="요약 편집">요약</button>
-                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-uploaded" data-id="{{ report.id }}">삭제</button>
-                            </div>
-                        </div>
-                        <div class="summary-section d-none">
-                            <textarea class="form-control form-control-sm font-monospace ur-summary" rows="6" placeholder="요약 내용을 마크다운 형식으로 입력하세요...">{{ report.summary }}</textarea>
-                            <div class="d-flex justify-content-between align-items-center mt-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary btn-preview-summary">미리보기</button>
-                                <button type="button" class="btn btn-sm btn-primary btn-save-summary" data-id="{{ report.id }}">저장</button>
-                            </div>
+            <!-- 파일 리포트 탭 -->
+            <div class="tab-pane fade" id="file-report-panel" role="tabpanel">
+                <!-- 파일 업로드 -->
+                <div class="card mb-3">
+                    <div class="card-header py-2">
+                        <strong>파일 업로드</strong>
+                        <small class="text-muted ms-2">PDF, 이미지 등</small>
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="input-group input-group-sm">
+                            <input type="file" class="form-control" id="uploadReportFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif">
+                            <button type="button" class="btn btn-primary" id="btnUploadReport">업로드</button>
                         </div>
                     </div>
-                    {% empty %}
-                    <div class="text-center text-muted py-4" id="noUploadedReport">
-                        업로드된 리포트가 없습니다.
+                </div>
+
+                <!-- 업로드된 리포트 목록 -->
+                <div class="card">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <strong>업로드된 리포트</strong>
+                        <span class="badge bg-primary" id="uploadedReportCount">{{ uploaded_reports|length }}</span>
                     </div>
-                    {% endfor %}
+                    <div class="card-body p-0">
+                        <div id="uploadedReportList" class="list-group list-group-flush">
+                            {% for report in uploaded_reports %}
+                            <div class="list-group-item py-3" data-id="{{ report.id }}">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div class="flex-grow-1 me-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <input type="text" class="form-control form-control-sm ur-title" value="{{ report.display_title }}" placeholder="제목 입력" style="max-width: 300px;">
+                                            <button type="button" class="btn btn-sm btn-outline-primary btn-save-title" data-id="{{ report.id }}" title="제목 저장">저장</button>
+                                        </div>
+                                        <div class="mt-1">
+                                            <a href="{{ report.file.url }}" target="_blank" class="small text-decoration-none text-muted">
+                                                📎 {{ report.original_filename }}
+                                            </a>
+                                            <small class="text-muted ms-2">{{ report.created_at|date:"Y-m-d H:i" }}</small>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary btn-toggle-summary" title="요약 편집">요약</button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-uploaded" data-id="{{ report.id }}">삭제</button>
+                                    </div>
+                                </div>
+                                <div class="summary-section d-none">
+                                    <textarea class="form-control form-control-sm font-monospace ur-summary" rows="6" placeholder="요약 내용을 마크다운 형식으로 입력하세요...">{{ report.summary }}</textarea>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary btn-preview-summary">미리보기</button>
+                                        <button type="button" class="btn btn-sm btn-primary btn-save-summary" data-id="{{ report.id }}">저장</button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="text-center text-muted py-4" id="noUploadedReport">
+                                업로드된 리포트가 없습니다.
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -665,7 +717,8 @@ function copyToClipboard(text) {
 }
 const savedPrompts = {
     prompt_news: `{{ saved_prompts.prompt_news|default:""|escapejs }}`,
-    prompt_youtube: `{{ saved_prompts.prompt_youtube|default:""|escapejs }}`
+    prompt_youtube: `{{ saved_prompts.prompt_youtube|default:""|escapejs }}`,
+    prompt_report_summary: `{{ saved_prompts.prompt_report_summary|default:""|escapejs }}`
 };
 
 // ============ 업종(테마) 추가/제거 ============
@@ -2046,6 +2099,77 @@ document.addEventListener('click', async (e) => {
     } catch (err) {
         alert('오류: ' + err.message);
         btn.disabled = false;
+    }
+});
+
+// ============ 증권사 리포트 ============
+
+// 증권사 리포트 불러오기
+document.getElementById('btnLoadAnalystReports')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btnLoadAnalystReports');
+    const loading = document.getElementById('analystReportLoading');
+    const tbody = document.getElementById('analystReportBody');
+
+    btn.disabled = true;
+    loading.classList.remove('d-none');
+
+    try {
+        const response = await fetch(`/api/report/search/?code=${stockCode}&count=30`);
+        const data = await response.json();
+
+        if (data.success && data.reports.length > 0) {
+            tbody.innerHTML = data.reports.map(r => {
+                const date = r.date || '';
+                const title = r.title || '';
+                const provider = r.prv || '';
+                const targetPrice = r.tp ? parseInt(r.tp).toLocaleString() : '-';
+                const diff = r.diff || '-';
+                const pdfLink = r.link || '';
+
+                return `
+                    <tr>
+                        <td class="small">${date}</td>
+                        <td>
+                            <a href="${pdfLink}" target="_blank" class="text-decoration-none small">${title}</a>
+                        </td>
+                        <td class="small">${provider}</td>
+                        <td class="small text-end">${targetPrice}</td>
+                        <td class="small text-end">${diff}</td>
+                        <td class="text-center">
+                            <span class="badge bg-secondary btn-analyst-summary" data-title="${title.replace(/"/g, '&quot;')}" data-provider="${provider}" data-link="${pdfLink}" style="cursor:pointer;">요약</span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">리포트가 없습니다.</td></tr>';
+        }
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">오류: ${err.message}</td></tr>`;
+    } finally {
+        btn.disabled = false;
+        loading.classList.add('d-none');
+    }
+});
+
+// 증권사 리포트 요약 버튼 클릭
+document.getElementById('analystReportBody')?.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-analyst-summary')) return;
+
+    const title = e.target.dataset.title;
+    const provider = e.target.dataset.provider;
+    const link = e.target.dataset.link;
+    const prompt = savedPrompts.prompt_report_summary || '';
+
+    const text = `종목: ${stockName}\n증권사: ${provider}\n제목: ${title}\n링크: ${link}\n\n${prompt}`;
+
+    try {
+        await copyToClipboard(text);
+        const original = e.target.textContent;
+        e.target.textContent = '복사됨!';
+        setTimeout(() => { e.target.textContent = original; }, 1500);
+    } catch (err) {
+        alert('복사 실패: ' + err.message);
     }
 });
 
