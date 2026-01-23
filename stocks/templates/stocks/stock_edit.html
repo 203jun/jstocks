@@ -323,7 +323,7 @@
                                             {% endif %}
                                         </td>
                                         <td class="text-center pe-3">
-                                            <span class="badge bg-secondary btn-analyst-summary" data-title="{{ report.title }}" data-provider="{{ report.provider }}" style="cursor:pointer;">요약</span>
+                                            <a href="{% url 'stocks:report_summary' report.id %}" class="badge bg-secondary text-decoration-none">요약</a>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -773,8 +773,7 @@ function copyToClipboard(text) {
 }
 const savedPrompts = {
     prompt_news: `{{ saved_prompts.prompt_news|default:""|escapejs }}`,
-    prompt_youtube: `{{ saved_prompts.prompt_youtube|default:""|escapejs }}`,
-    prompt_report_summary: `{{ saved_prompts.prompt_report_summary|default:""|escapejs }}`
+    prompt_youtube: `{{ saved_prompts.prompt_youtube|default:""|escapejs }}`
 };
 
 // ============ 업종(테마) 추가/제거 ============
@@ -2155,28 +2154,6 @@ document.addEventListener('click', async (e) => {
     } catch (err) {
         alert('오류: ' + err.message);
         btn.disabled = false;
-    }
-});
-
-// ============ 증권사 리포트 요약 ============
-
-// 증권사 리포트 요약 버튼 클릭
-document.addEventListener('click', async (e) => {
-    if (!e.target.classList.contains('btn-analyst-summary')) return;
-
-    const title = e.target.dataset.title;
-    const provider = e.target.dataset.provider;
-    const prompt = savedPrompts.prompt_report_summary || '';
-
-    const text = `종목: ${stockName}\n증권사: ${provider}\n제목: ${title}\n\n${prompt}`;
-
-    try {
-        await copyToClipboard(text);
-        const original = e.target.textContent;
-        e.target.textContent = '복사됨!';
-        setTimeout(() => { e.target.textContent = original; }, 1500);
-    } catch (err) {
-        alert('복사 실패: ' + err.message);
     }
 });
 

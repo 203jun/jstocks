@@ -63,6 +63,8 @@ urlpatterns = [
     # 뉴스
     path('news/<int:news_id>/summary/', views.news_summary, name='news_summary'),
     path('api/news/save/', views.news_save, name='news_save'),
+    # 애널리스트 리포트
+    path('report/<int:report_id>/summary/', views.report_summary, name='report_summary'),
     path('api/news/save-by-link/', views.news_save_by_link, name='news_save_by_link'),
     path('api/news/<int:news_id>/delete/', views.news_delete, name='news_delete'),
     # 텔레그램 (종목)

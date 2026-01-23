@@ -4747,6 +4747,33 @@ def news_summary(request, news_id):
     })
 
 
+def report_summary(request, report_id):
+    """애널리스트 리포트 요약 페이지"""
+    from .models import Report, SystemSetting
+
+    report = get_object_or_404(Report, id=report_id)
+
+    if request.method == 'POST':
+        report.summary = request.POST.get('summary', '')
+        report.save()
+        from django.contrib import messages
+        messages.success(request, '저장되었습니다.')
+        return redirect('stocks:report_summary', report_id=report_id)
+
+    # 프롬프트 가져오기
+    saved_prompt = ''
+    try:
+        setting = SystemSetting.objects.get(key='prompt_report_summary')
+        saved_prompt = setting.value
+    except SystemSetting.DoesNotExist:
+        pass
+
+    return render(request, 'stocks/report_summary.html', {
+        'report': report,
+        'saved_prompt': saved_prompt,
+    })
+
+
 @require_POST
 def telegram_message_save(request):
     """텔레그램 메시지 저장 API"""
