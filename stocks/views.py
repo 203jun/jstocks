@@ -2528,8 +2528,18 @@ def fetch_stock_data_loader_with_summary(request, code):
         lines.append("- 저장된 데이터가 없습니다.")
     lines.append("")
 
-    # 프롬프트 템플릿 추가
-    prompt_template = """---
+    # 프롬프트 템플릿 추가 (DB에서 가져오기)
+    from .models import SystemSetting
+    try:
+        saved_prompt = SystemSetting.objects.get(key='prompt_briefing').value
+    except SystemSetting.DoesNotExist:
+        saved_prompt = None
+
+    if saved_prompt:
+        prompt_template = saved_prompt
+    else:
+        # 기본 프롬프트 템플릿
+        prompt_template = """---
 # Role: 데이터 중심의 수석 투자 전략가 (Senior Investment Strategist)
 # Task: 하단에 제공된 데이터셋을 분석하여 종목의 '투자포인트', '리스크', '일정'을 최신 데이터 기반으로 정밀 추출 및 업데이트하라.
 
@@ -2560,7 +2570,7 @@ def fetch_stock_data_loader_with_summary(request, code):
 3. **인용(Citation) 필수:** 정보의 끝에 해당 데이터의 출처 리포트 날짜나 섹션명을 `` 형식으로 표기할 것.
 4. **전문적 가독성:** 중요한 수치나 결론은 **굵게(Bold)** 처리하고 팩트 위주로 간결하게 답변할 것."""
 
-    lines.append(prompt_template)
+    lines.insert(0, prompt_template + "\n\n")
 
     return JsonResponse({
         'success': True,

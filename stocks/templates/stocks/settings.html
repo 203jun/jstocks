@@ -317,14 +317,15 @@
             <!-- 핵심브리핑 탭 -->
             <div class="tab-pane fade" id="data-loader-panel" role="tabpanel">
                 <div class="card">
-                    <div class="card-header py-2">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
                         <strong>핵심브리핑 프롬프트</strong>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveBriefingPrompt">저장</button>
                     </div>
                     <div class="card-body">
                         <div class="alert alert-secondary py-2 mb-3">
                             <small>
                                 <strong>사용:</strong> 종목 편집 → 핵심 브리핑 → <code>프롬프트 복사</code> 버튼을 사용하세요.<br>
-                                아래 체크박스로 포함할 데이터를 선택할 수 있습니다.
+                                아래 프롬프트가 데이터 앞에 추가됩니다.
                             </small>
                         </div>
                         <!-- 데이터 선택 체크박스 -->
@@ -384,7 +385,8 @@
                         <!-- 프롬프트 -->
                         <div>
                             <label class="form-label small fw-bold">프롬프트</label>
-                            <textarea class="form-control" id="dataLoaderContent" rows="10" style="font-size: 0.85rem; font-family: monospace;" readonly placeholder="종목 편집 페이지에서 '프롬프트 복사' 버튼을 사용하세요."></textarea>
+                            <textarea class="form-control" id="promptBriefing" rows="10" placeholder="핵심브리핑 생성 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_briefing }}</textarea>
+                            <small class="text-muted">이 프롬프트가 종목 데이터 앞에 추가되어 복사됩니다.</small>
                         </div>
                     </div>
                 </div>
@@ -1268,8 +1270,10 @@ document.getElementById('btnSaveNewsPrompt').addEventListener('click', function(
 });
 
 // === 핵심브리핑 탭 ===
-// 체크박스 상태는 종목 편집 페이지의 '프롬프트 복사' 기능에서 사용됨
-const dataLoaderContent = document.getElementById('dataLoaderContent');
+document.getElementById('btnSaveBriefingPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptBriefing').value;
+    savePrompt('prompt_briefing', value, this);
+});
 
 // === 섹터 관리 ===
 const customSectorName = document.getElementById('customSectorName');
