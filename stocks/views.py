@@ -1105,6 +1105,7 @@ def stock_edit(request, code):
     reports_queryset = Report.objects.filter(stock=stock).order_by('-date')
     total_reports = reports_queryset.count()
     reports = list(reports_queryset[:20])
+    report_summary_count = sum(1 for r in reports_queryset if r.summary)
 
     # 목표가 차트 데이터 (리포트 날짜 범위의 주가 + 목표가)
     if reports:
@@ -1312,6 +1313,7 @@ def stock_edit(request, code):
     # 업로드 리포트
     from .models import StockUploadedReport
     uploaded_reports = StockUploadedReport.objects.filter(stock=stock)
+    uploaded_summary_count = sum(1 for r in uploaded_reports if r.summary)
 
     # 기업분석 내용 (타입에 따라 파일 또는 DB에서 불러오기)
     html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
@@ -1353,6 +1355,8 @@ def stock_edit(request, code):
         'telegram_messages': telegram_messages,
         'question_reports': question_reports,
         'uploaded_reports': uploaded_reports,
+        'report_summary_count': report_summary_count,
+        'uploaded_summary_count': uploaded_summary_count,
         'analysis_html_exists': analysis_html_exists,
         'analysis_html_content': analysis_html_content,
         'saved_prompts': saved_prompts,
