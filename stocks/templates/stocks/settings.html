@@ -224,13 +224,13 @@
         <!-- 프롬프트 하위 탭 -->
         <ul class="nav nav-pills mb-3" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="data-loader-tab" data-bs-toggle="pill" data-bs-target="#data-loader-panel" type="button" role="tab">핵심브리핑</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="stock-classify-tab" data-bs-toggle="pill" data-bs-target="#stock-classify-panel" type="button" role="tab">종목분류</button>
+                <button class="nav-link active" id="stock-classify-tab" data-bs-toggle="pill" data-bs-target="#stock-classify-panel" type="button" role="tab">종목분류</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="html-convert-tab" data-bs-toggle="pill" data-bs-target="#html-convert-panel" type="button" role="tab">HTML변환</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="data-loader-tab" data-bs-toggle="pill" data-bs-target="#data-loader-panel" type="button" role="tab">핵심브리핑</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="research-prompt-tab" data-bs-toggle="pill" data-bs-target="#research-prompt-panel" type="button" role="tab">리서치</button>
@@ -253,106 +253,8 @@
         </ul>
 
         <div class="tab-content">
-            <!-- 핵심브리핑 탭 -->
-            <div class="tab-pane fade show active" id="data-loader-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header py-2">
-                        <strong>핵심브리핑 프롬프트</strong>
-                    </div>
-                    <div class="card-body">
-                        <!-- 종목 검색 -->
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">종목 검색</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="dataLoaderSearchInput" placeholder="종목명 또는 코드 검색...">
-                                <button type="button" class="btn btn-outline-primary" id="btnDataLoaderSearch">검색</button>
-                            </div>
-                            <div id="dataLoaderSearchResults" class="list-group mt-2 d-none" style="max-height: 200px; overflow-y: auto;"></div>
-                        </div>
-
-                        <!-- 선택된 종목 -->
-                        <div id="dataLoaderSelectedStock" class="d-none">
-                            <div class="alert alert-info py-2 mb-3">
-                                <strong id="dataLoaderStockName"></strong>
-                                <span class="text-muted ms-2" id="dataLoaderStockCode"></span>
-                            </div>
-
-                            <!-- 데이터 선택 체크박스 -->
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">불러올 데이터 선택</label>
-                                <div class="row">
-                                    <div class="col-6 col-md-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input data-loader-check" type="checkbox" id="chkAnalysis" value="analysis" checked>
-                                            <label class="form-check-label" for="chkAnalysis">기업분석</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input data-loader-check" type="checkbox" id="chkKeyBriefing" value="key_briefing" checked>
-                                            <label class="form-check-label" for="chkKeyBriefing">핵심브리핑</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input data-loader-check" type="checkbox" id="chkNodaji" value="nodaji" checked>
-                                            <label class="form-check-label" for="chkNodaji">노다지 (5개)</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input data-loader-check" type="checkbox" id="chkReport" value="report" checked>
-                                            <label class="form-check-label" for="chkReport">리포트 (10개)</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input data-loader-check" type="checkbox" id="chkYoutube" value="youtube" checked>
-                                            <label class="form-check-label" for="chkYoutube">유튜브 (10개)</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input data-loader-check" type="checkbox" id="chkNews" value="news" checked>
-                                            <label class="form-check-label" for="chkNews">뉴스 (10개)</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input data-loader-check" type="checkbox" id="chkTelegram" value="telegram" checked>
-                                            <label class="form-check-label" for="chkTelegram">텔레그램 (10개)</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input data-loader-check" type="checkbox" id="chkMemo" value="memo" checked>
-                                            <label class="form-check-label" for="chkMemo">메모</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 로딩 -->
-                            <div id="dataLoaderLoading" class="text-center py-4 d-none">
-                                <div class="spinner-border text-primary"></div>
-                                <p class="mt-2 mb-0">데이터 불러오는 중...</p>
-                            </div>
-
-                            <!-- 결과 -->
-                            <div id="dataLoaderResult" class="d-none">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <label class="form-label small fw-bold mb-0">결과</label>
-                                    <button type="button" class="btn btn-sm btn-success" id="btnCopyDataLoader">복사</button>
-                                </div>
-                                <textarea class="form-control" id="dataLoaderContent" rows="15" style="font-size: 0.85rem; font-family: monospace;" readonly></textarea>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- 종목분류 탭 -->
-            <div class="tab-pane fade" id="stock-classify-panel" role="tabpanel">
+            <div class="tab-pane fade show active" id="stock-classify-panel" role="tabpanel">
                 <!-- 프롬프트 영역 -->
                 <div class="card mb-3">
                     <div class="card-header py-2 d-flex justify-content-between align-items-center">
@@ -407,6 +309,82 @@
                                 → 일반 프롬프트로 이동 후 아래 프롬프트 실행:<br>
                                 <code class="d-block mt-1 p-2 bg-light">{deep research가 뽑아준 결과 복사(공유 및 내보내기 -> 컨텐츠 복사)}<br>---<br>html 형태로 정리해줘.</code>
                             </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 핵심브리핑 탭 -->
+            <div class="tab-pane fade" id="data-loader-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header py-2">
+                        <strong>핵심브리핑 프롬프트</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-secondary py-2 mb-3">
+                            <small>
+                                <strong>사용:</strong> 종목 편집 → 핵심 브리핑 → <code>프롬프트 복사</code> 버튼을 사용하세요.<br>
+                                아래 체크박스로 포함할 데이터를 선택할 수 있습니다.
+                            </small>
+                        </div>
+                        <!-- 데이터 선택 체크박스 -->
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">불러올 데이터 선택</label>
+                            <div class="row">
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkAnalysis" value="analysis" checked>
+                                        <label class="form-check-label" for="chkAnalysis">기업분석</label>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkKeyBriefing" value="key_briefing" checked>
+                                        <label class="form-check-label" for="chkKeyBriefing">핵심브리핑</label>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkNodaji" value="nodaji" checked>
+                                        <label class="form-check-label" for="chkNodaji">노다지 (5개)</label>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkReport" value="report" checked>
+                                        <label class="form-check-label" for="chkReport">리포트 (10개)</label>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkYoutube" value="youtube" checked>
+                                        <label class="form-check-label" for="chkYoutube">유튜브 (10개)</label>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkNews" value="news" checked>
+                                        <label class="form-check-label" for="chkNews">뉴스 (10개)</label>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkTelegram" value="telegram" checked>
+                                        <label class="form-check-label" for="chkTelegram">텔레그램 (10개)</label>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkMemo" value="memo" checked>
+                                        <label class="form-check-label" for="chkMemo">메모</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 프롬프트 -->
+                        <div>
+                            <label class="form-label small fw-bold">프롬프트</label>
+                            <textarea class="form-control" id="dataLoaderContent" rows="10" style="font-size: 0.85rem; font-family: monospace;" readonly placeholder="종목 편집 페이지에서 '프롬프트 복사' 버튼을 사용하세요."></textarea>
                         </div>
                     </div>
                 </div>
@@ -1289,131 +1267,9 @@ document.getElementById('btnSaveNewsPrompt').addEventListener('click', function(
     savePrompt('prompt_news', value, this);
 });
 
-// === 데이터 불러오기 탭 ===
-const dataLoaderSearchInput = document.getElementById('dataLoaderSearchInput');
-const btnDataLoaderSearch = document.getElementById('btnDataLoaderSearch');
-const dataLoaderSearchResults = document.getElementById('dataLoaderSearchResults');
-const dataLoaderSelectedStock = document.getElementById('dataLoaderSelectedStock');
-const dataLoaderStockName = document.getElementById('dataLoaderStockName');
-const dataLoaderStockCode = document.getElementById('dataLoaderStockCode');
-const dataLoaderLoading = document.getElementById('dataLoaderLoading');
-const dataLoaderResult = document.getElementById('dataLoaderResult');
+// === 핵심브리핑 탭 ===
+// 체크박스 상태는 종목 편집 페이지의 '프롬프트 복사' 기능에서 사용됨
 const dataLoaderContent = document.getElementById('dataLoaderContent');
-const btnCopyDataLoader = document.getElementById('btnCopyDataLoader');
-
-let selectedDataLoaderCode = '';
-
-// 종목 검색
-btnDataLoaderSearch.addEventListener('click', searchDataLoaderStock);
-dataLoaderSearchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') searchDataLoaderStock();
-});
-
-async function searchDataLoaderStock() {
-    const query = dataLoaderSearchInput.value.trim();
-    if (!query) return;
-
-    try {
-        const response = await fetch(`/api/stock/search/?q=${encodeURIComponent(query)}`);
-        const data = await response.json();
-
-        if (data.success && data.stocks.length > 0) {
-            dataLoaderSearchResults.innerHTML = data.stocks.map(s => `
-                <button type="button" class="list-group-item list-group-item-action" data-code="${s.code}" data-name="${s.name}">
-                    <strong>${s.name}</strong> <small class="text-muted">${s.code}</small>
-                </button>
-            `).join('');
-            dataLoaderSearchResults.classList.remove('d-none');
-        } else {
-            dataLoaderSearchResults.innerHTML = '<div class="list-group-item text-muted">검색 결과가 없습니다.</div>';
-            dataLoaderSearchResults.classList.remove('d-none');
-        }
-    } catch (err) {
-        alert('검색 오류: ' + err.message);
-    }
-}
-
-// 종목 선택
-dataLoaderSearchResults.addEventListener('click', (e) => {
-    const btn = e.target.closest('button[data-code]');
-    if (!btn) return;
-
-    selectedDataLoaderCode = btn.dataset.code;
-    const name = btn.dataset.name;
-
-    // UI 업데이트
-    dataLoaderStockName.textContent = name;
-    dataLoaderStockCode.textContent = selectedDataLoaderCode;
-    dataLoaderSelectedStock.classList.remove('d-none');
-    dataLoaderSearchResults.classList.add('d-none');
-
-    // 자동으로 데이터 불러오기
-    loadBriefingData();
-});
-
-// 체크박스 변경 시 자동으로 데이터 다시 불러오기
-document.querySelectorAll('.data-loader-check').forEach(cb => {
-    cb.addEventListener('change', () => {
-        if (selectedDataLoaderCode) {
-            loadBriefingData();
-        }
-    });
-});
-
-// 데이터 불러오기 함수
-async function loadBriefingData() {
-    if (!selectedDataLoaderCode) return;
-
-    // 선택된 체크박스 수집
-    const checkboxes = document.querySelectorAll('.data-loader-check:checked');
-    if (checkboxes.length === 0) {
-        dataLoaderContent.value = '';
-        dataLoaderResult.classList.add('d-none');
-        return;
-    }
-
-    const types = Array.from(checkboxes).map(cb => cb.value).join(',');
-
-    // UI 업데이트
-    dataLoaderLoading.classList.remove('d-none');
-    dataLoaderResult.classList.add('d-none');
-
-    try {
-        const response = await fetch(`/api/stock/${selectedDataLoaderCode}/data-loader/?types=${types}`);
-        const data = await response.json();
-
-        if (data.success) {
-            dataLoaderContent.value = data.data;
-            dataLoaderLoading.classList.add('d-none');
-            dataLoaderResult.classList.remove('d-none');
-        } else {
-            alert('데이터 조회 실패');
-            dataLoaderLoading.classList.add('d-none');
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-        dataLoaderLoading.classList.add('d-none');
-    }
-}
-
-// 복사
-btnCopyDataLoader.addEventListener('click', async () => {
-    const text = dataLoaderContent.value;
-
-    try {
-        await copyToClipboard(text);
-        btnCopyDataLoader.textContent = '복사됨!';
-        btnCopyDataLoader.classList.remove('btn-success');
-        btnCopyDataLoader.classList.add('btn-secondary');
-        setTimeout(() => {
-            btnCopyDataLoader.textContent = '복사';
-            btnCopyDataLoader.classList.remove('btn-secondary');
-            btnCopyDataLoader.classList.add('btn-success');
-        }, 1500);
-    } catch (err) {
-        alert('복사에 실패했습니다: ' + err.message);
-    }
-});
 
 // === 섹터 관리 ===
 const customSectorName = document.getElementById('customSectorName');
