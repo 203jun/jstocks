@@ -181,9 +181,12 @@
 
             <!-- 핵심 브리핑 -->
             <div class="card mb-3">
-                <div class="card-header py-2">
-                    <strong>핵심 브리핑</strong>
-                    <small class="text-muted ms-2">(마크다운 지원)</small>
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>핵심 브리핑</strong>
+                        <small class="text-muted ms-2">(마크다운 지원)</small>
+                    </div>
+                    <span class="badge bg-success" role="button" id="btnCopyBriefingPrompt" style="cursor: pointer;">프롬프트 복사</span>
                 </div>
                 <div class="card-body">
                     <textarea class="form-control" name="key_briefing" id="keyBriefingInput" rows="8" placeholder="투자포인트, 리스크, 일정 핵심 요약을 마크다운 형식으로 입력하세요...">{{ stock.key_briefing }}</textarea>
@@ -2572,6 +2575,40 @@ document.addEventListener('click', async (e) => {
     } catch (err) {
         alert('오류: ' + err.message);
         btn.disabled = false;
+    }
+});
+
+// 핵심 브리핑 프롬프트 복사
+const btnCopyBriefingPrompt = document.getElementById('btnCopyBriefingPrompt');
+btnCopyBriefingPrompt.addEventListener('click', async () => {
+    const originalText = btnCopyBriefingPrompt.textContent;
+    btnCopyBriefingPrompt.textContent = '로딩...';
+    btnCopyBriefingPrompt.classList.remove('bg-success');
+    btnCopyBriefingPrompt.classList.add('bg-secondary');
+
+    try {
+        const response = await fetch('/api/stock/{{ stock.code }}/data-loader-with-summary/');
+        const data = await response.json();
+
+        if (data.success) {
+            await copyToClipboard(data.data);
+            btnCopyBriefingPrompt.textContent = '복사됨!';
+            setTimeout(() => {
+                btnCopyBriefingPrompt.textContent = originalText;
+                btnCopyBriefingPrompt.classList.remove('bg-secondary');
+                btnCopyBriefingPrompt.classList.add('bg-success');
+            }, 1500);
+        } else {
+            alert('데이터 조회 실패');
+            btnCopyBriefingPrompt.textContent = originalText;
+            btnCopyBriefingPrompt.classList.remove('bg-secondary');
+            btnCopyBriefingPrompt.classList.add('bg-success');
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        btnCopyBriefingPrompt.textContent = originalText;
+        btnCopyBriefingPrompt.classList.remove('bg-secondary');
+        btnCopyBriefingPrompt.classList.add('bg-success');
     }
 });
 </script>
