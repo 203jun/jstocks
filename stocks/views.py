@@ -2358,7 +2358,10 @@ def fetch_stock_data_loader_with_summary(request, code):
 
     # 저장된 데이터 타입 가져오기
     try:
-        data_types = SystemSetting.objects.get(key='briefing_data_types').value.split(',')
+        saved_types = SystemSetting.objects.get(key='briefing_data_types').value
+        data_types = [t for t in saved_types.split(',') if t]  # 빈 문자열 제거
+        if not data_types:
+            data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
     except SystemSetting.DoesNotExist:
         data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
 
@@ -2949,7 +2952,10 @@ def settings(request):
 
     # 핵심브리핑 데이터 타입 불러오기
     try:
-        briefing_data_types = SystemSetting.objects.get(key='briefing_data_types').value.split(',')
+        saved_types = SystemSetting.objects.get(key='briefing_data_types').value
+        briefing_data_types = [t for t in saved_types.split(',') if t]  # 빈 문자열 제거
+        if not briefing_data_types:
+            briefing_data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
     except SystemSetting.DoesNotExist:
         # 기본값: 모든 타입 선택
         briefing_data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
