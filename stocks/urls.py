@@ -99,6 +99,11 @@ urlpatterns = [
     path('api/stock/<str:code>/investor-trend/', views.fetch_investor_trend, name='fetch_investor_trend'),
     path('api/stock/<str:code>/short-selling/', views.fetch_short_selling, name='fetch_short_selling'),
     path('api/setting/save/', views.save_setting, name='save_setting'),
+    # 리서치 프롬프트
+    path('api/research-prompt/', views.research_prompt_list, name='research_prompt_list'),
+    path('api/research-prompt/add/', views.research_prompt_add, name='research_prompt_add'),
+    path('api/research-prompt/<int:prompt_id>/update/', views.research_prompt_update, name='research_prompt_update'),
+    path('api/research-prompt/<int:prompt_id>/delete/', views.research_prompt_delete, name='research_prompt_delete'),
     # 파일 업로드 리포트 (종목)
     path('uploaded-report/<int:report_id>/summary/', views.uploaded_report_summary_page, name='uploaded_report_summary_page'),
     path('api/stock/uploaded-report/upload/', views.stock_uploaded_report_upload, name='stock_uploaded_report_upload'),

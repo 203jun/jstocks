@@ -2395,3 +2395,34 @@ class SystemSetting(models.Model):
 
     def __str__(self):
         return self.key
+
+
+class ResearchPrompt(models.Model):
+    """
+    리서치 프롬프트 (질문-프롬프트 쌍)
+    """
+    question = models.CharField(
+        max_length=200,
+        verbose_name='질문'
+    )
+    prompt = models.TextField(
+        blank=True,
+        verbose_name='프롬프트'
+    )
+    order = models.IntegerField(
+        default=0,
+        verbose_name='순서'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+
+    class Meta:
+        db_table = 'research_prompt'
+        verbose_name = '리서치 프롬프트'
+        verbose_name_plural = '리서치 프롬프트'
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return self.question

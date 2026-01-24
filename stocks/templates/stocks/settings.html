@@ -488,10 +488,17 @@
                 <div class="card">
                     <div class="card-header py-2 d-flex justify-content-between align-items-center">
                         <strong>리서치 프롬프트</strong>
-                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveResearchPrompt">저장</button>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnAddResearchPrompt">+ 추가</button>
                     </div>
-                    <div class="card-body">
-                        <textarea class="form-control" id="promptResearch" rows="10" placeholder="리서치 프롬프트를 입력하세요...">{{ saved_prompts.prompt_research }}</textarea>
+                    <div class="card-body p-0">
+                        <!-- 프롬프트 목록 -->
+                        <div id="researchPromptList">
+                            <!-- JS로 동적 렌더링 -->
+                        </div>
+                        <!-- 빈 상태 -->
+                        <div id="researchPromptEmpty" class="text-center text-muted py-4 d-none">
+                            등록된 리서치 프롬프트가 없습니다.
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1103,11 +1110,166 @@ document.getElementById('btnSaveNodajiPrompt').addEventListener('click', functio
     savePrompt('prompt_nodaji', value, this);
 });
 
-// 리서치 프롬프트 저장
-document.getElementById('btnSaveResearchPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptResearch').value;
-    savePrompt('prompt_research', value, this);
+// === 리서치 프롬프트 관리 ===
+const researchPromptList = document.getElementById('researchPromptList');
+const researchPromptEmpty = document.getElementById('researchPromptEmpty');
+const btnAddResearchPrompt = document.getElementById('btnAddResearchPrompt');
+
+// 리서치 프롬프트 목록 로드
+async function loadResearchPrompts() {
+    try {
+        const response = await fetch('/api/research-prompt/');
+        const data = await response.json();
+
+        if (data.success) {
+            renderResearchPrompts(data.prompts);
+        }
+    } catch (err) {
+        console.error('리서치 프롬프트 로드 실패:', err);
+    }
+}
+
+// 리서치 프롬프트 렌더링
+function renderResearchPrompts(prompts) {
+    if (prompts.length === 0) {
+        researchPromptList.innerHTML = '';
+        researchPromptEmpty.classList.remove('d-none');
+        return;
+    }
+
+    researchPromptEmpty.classList.add('d-none');
+    researchPromptList.innerHTML = prompts.map((p, idx) => `
+        <div class="border-bottom p-3" data-id="${p.id}">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="badge bg-secondary">${idx + 1}</span>
+                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-research" data-id="${p.id}">삭제</button>
+            </div>
+            <div class="mb-2">
+                <label class="form-label small fw-bold mb-1">질문</label>
+                <input type="text" class="form-control form-control-sm research-question" data-id="${p.id}" value="${escapeHtml(p.question)}" placeholder="질문 입력...">
+            </div>
+            <div class="mb-2">
+                <label class="form-label small fw-bold mb-1">프롬프트</label>
+                <textarea class="form-control form-control-sm research-prompt" data-id="${p.id}" rows="4" placeholder="프롬프트 입력...">${escapeHtml(p.prompt)}</textarea>
+            </div>
+            <div class="text-end">
+                <button type="button" class="btn btn-sm btn-primary btn-save-research" data-id="${p.id}">저장</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 리서치 프롬프트 추가
+btnAddResearchPrompt.addEventListener('click', async () => {
+    btnAddResearchPrompt.disabled = true;
+
+    try {
+        const formData = new FormData();
+        formData.append('question', '새 질문');
+        formData.append('prompt', '');
+
+        const response = await fetch('/api/research-prompt/add/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': getCsrfToken() }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            loadResearchPrompts();
+        } else {
+            alert(data.error || '추가에 실패했습니다.');
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+    } finally {
+        btnAddResearchPrompt.disabled = false;
+    }
 });
+
+// 리서치 프롬프트 저장 (이벤트 위임)
+researchPromptList.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-save-research')) return;
+
+    const btn = e.target;
+    const id = btn.dataset.id;
+    const container = btn.closest('[data-id]');
+    const question = container.querySelector('.research-question').value.trim();
+    const prompt = container.querySelector('.research-prompt').value.trim();
+
+    if (!question) {
+        alert('질문을 입력해주세요.');
+        return;
+    }
+
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = '저장 중...';
+
+    try {
+        const formData = new FormData();
+        formData.append('question', question);
+        formData.append('prompt', prompt);
+
+        const response = await fetch(`/api/research-prompt/${id}/update/`, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': getCsrfToken() }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            btn.textContent = '저장됨';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 1500);
+        } else {
+            alert(data.error || '저장에 실패했습니다.');
+            btn.textContent = originalText;
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        btn.textContent = originalText;
+    } finally {
+        btn.disabled = false;
+    }
+});
+
+// 리서치 프롬프트 삭제 (이벤트 위임)
+researchPromptList.addEventListener('click', async (e) => {
+    if (!e.target.classList.contains('btn-delete-research')) return;
+
+    const btn = e.target;
+    const id = btn.dataset.id;
+
+    if (!confirm('이 프롬프트를 삭제하시겠습니까?')) return;
+
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(`/api/research-prompt/${id}/delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrfToken() }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            loadResearchPrompts();
+        } else {
+            alert(data.error || '삭제에 실패했습니다.');
+            btn.disabled = false;
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        btn.disabled = false;
+    }
+});
+
+// 페이지 로드 시 리서치 프롬프트 로드
+loadResearchPrompts();
 
 // 유튜브 프롬프트 저장
 document.getElementById('btnSaveYoutubePrompt').addEventListener('click', function() {

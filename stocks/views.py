@@ -5861,6 +5861,88 @@ def save_setting(request):
     return JsonResponse({'success': True})
 
 
+# ============ 리서치 프롬프트 ============
+
+def research_prompt_list(request):
+    """리서치 프롬프트 목록 조회"""
+    from .models import ResearchPrompt
+
+    prompts = ResearchPrompt.objects.all()
+    data = [{
+        'id': p.id,
+        'question': p.question,
+        'prompt': p.prompt,
+        'order': p.order
+    } for p in prompts]
+
+    return JsonResponse({'success': True, 'prompts': data})
+
+
+@require_POST
+def research_prompt_add(request):
+    """리서치 프롬프트 추가"""
+    from django.db.models import Max
+    from .models import ResearchPrompt
+
+    question = request.POST.get('question', '').strip()
+    prompt = request.POST.get('prompt', '').strip()
+
+    if not question:
+        return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
+
+    # 순서는 가장 마지막으로
+    max_order = ResearchPrompt.objects.aggregate(Max('order'))['order__max'] or 0
+    obj = ResearchPrompt.objects.create(
+        question=question,
+        prompt=prompt,
+        order=max_order + 1
+    )
+
+    return JsonResponse({
+        'success': True,
+        'id': obj.id,
+        'question': obj.question,
+        'prompt': obj.prompt,
+        'order': obj.order
+    })
+
+
+@require_POST
+def research_prompt_update(request, prompt_id):
+    """리서치 프롬프트 수정"""
+    from .models import ResearchPrompt
+
+    try:
+        obj = ResearchPrompt.objects.get(id=prompt_id)
+    except ResearchPrompt.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '프롬프트를 찾을 수 없습니다.'})
+
+    question = request.POST.get('question', '').strip()
+    prompt = request.POST.get('prompt', '').strip()
+
+    if not question:
+        return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
+
+    obj.question = question
+    obj.prompt = prompt
+    obj.save()
+
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def research_prompt_delete(request, prompt_id):
+    """리서치 프롬프트 삭제"""
+    from .models import ResearchPrompt
+
+    try:
+        obj = ResearchPrompt.objects.get(id=prompt_id)
+        obj.delete()
+        return JsonResponse({'success': True})
+    except ResearchPrompt.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '프롬프트를 찾을 수 없습니다.'})
+
+
 # ============ 섹터 텔레그램 메시지 ============
 
 @require_POST
