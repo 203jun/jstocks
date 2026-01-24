@@ -1194,7 +1194,7 @@ researchPromptList.addEventListener('click', async (e) => {
 
     const btn = e.target;
     const id = btn.dataset.id;
-    const container = btn.closest('[data-id]');
+    const container = btn.closest('.border-bottom');
     const question = container.querySelector('.research-question').value.trim();
     const prompt = container.querySelector('.research-prompt').value.trim();
 
