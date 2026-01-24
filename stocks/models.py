@@ -2413,6 +2413,10 @@ class ResearchPrompt(models.Model):
         default=0,
         verbose_name='순서'
     )
+    needs_attachment = models.BooleanField(
+        default=False,
+        verbose_name='첨부파일 필요'
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='생성일시'

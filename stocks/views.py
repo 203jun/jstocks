@@ -5872,7 +5872,8 @@ def research_prompt_list(request):
         'id': p.id,
         'question': p.question,
         'prompt': p.prompt,
-        'order': p.order
+        'order': p.order,
+        'needs_attachment': p.needs_attachment
     } for p in prompts]
 
     return JsonResponse({'success': True, 'prompts': data})
@@ -5886,6 +5887,7 @@ def research_prompt_add(request):
 
     question = request.POST.get('question', '').strip()
     prompt = request.POST.get('prompt', '').strip()
+    needs_attachment = request.POST.get('needs_attachment') == 'true'
 
     if not question:
         return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
@@ -5895,7 +5897,8 @@ def research_prompt_add(request):
     obj = ResearchPrompt.objects.create(
         question=question,
         prompt=prompt,
-        order=max_order + 1
+        order=max_order + 1,
+        needs_attachment=needs_attachment
     )
 
     return JsonResponse({
@@ -5903,7 +5906,8 @@ def research_prompt_add(request):
         'id': obj.id,
         'question': obj.question,
         'prompt': obj.prompt,
-        'order': obj.order
+        'order': obj.order,
+        'needs_attachment': obj.needs_attachment
     })
 
 
@@ -5919,12 +5923,14 @@ def research_prompt_update(request, prompt_id):
 
     question = request.POST.get('question', '').strip()
     prompt = request.POST.get('prompt', '').strip()
+    needs_attachment = request.POST.get('needs_attachment') == 'true'
 
     if not question:
         return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
 
     obj.question = question
     obj.prompt = prompt
+    obj.needs_attachment = needs_attachment
     obj.save()
 
     return JsonResponse({'success': True})
