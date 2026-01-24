@@ -334,49 +334,49 @@
                             <div class="row">
                                 <div class="col-6 col-md-4">
                                     <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkAnalysis" value="analysis" checked>
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkAnalysis" value="analysis" {% if 'analysis' in briefing_data_types %}checked{% endif %}>
                                         <label class="form-check-label" for="chkAnalysis">기업분석</label>
                                     </div>
                                 </div>
                                 <div class="col-6 col-md-4">
                                     <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkKeyBriefing" value="key_briefing" checked>
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkKeyBriefing" value="key_briefing" {% if 'key_briefing' in briefing_data_types %}checked{% endif %}>
                                         <label class="form-check-label" for="chkKeyBriefing">핵심브리핑</label>
                                     </div>
                                 </div>
                                 <div class="col-6 col-md-4">
                                     <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkNodaji" value="nodaji" checked>
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkNodaji" value="nodaji" {% if 'nodaji' in briefing_data_types %}checked{% endif %}>
                                         <label class="form-check-label" for="chkNodaji">노다지 (5개)</label>
                                     </div>
                                 </div>
                                 <div class="col-6 col-md-4">
                                     <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkReport" value="report" checked>
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkReport" value="report" {% if 'report' in briefing_data_types %}checked{% endif %}>
                                         <label class="form-check-label" for="chkReport">리포트 (10개)</label>
                                     </div>
                                 </div>
                                 <div class="col-6 col-md-4">
                                     <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkYoutube" value="youtube" checked>
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkYoutube" value="youtube" {% if 'youtube' in briefing_data_types %}checked{% endif %}>
                                         <label class="form-check-label" for="chkYoutube">유튜브 (10개)</label>
                                     </div>
                                 </div>
                                 <div class="col-6 col-md-4">
                                     <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkNews" value="news" checked>
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkNews" value="news" {% if 'news' in briefing_data_types %}checked{% endif %}>
                                         <label class="form-check-label" for="chkNews">뉴스 (10개)</label>
                                     </div>
                                 </div>
                                 <div class="col-6 col-md-4">
                                     <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkTelegram" value="telegram" checked>
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkTelegram" value="telegram" {% if 'telegram' in briefing_data_types %}checked{% endif %}>
                                         <label class="form-check-label" for="chkTelegram">텔레그램 (10개)</label>
                                     </div>
                                 </div>
                                 <div class="col-6 col-md-4">
                                     <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkMemo" value="memo" checked>
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkMemo" value="memo" {% if 'memo' in briefing_data_types %}checked{% endif %}>
                                         <label class="form-check-label" for="chkMemo">메모</label>
                                     </div>
                                 </div>
@@ -1270,10 +1270,51 @@ document.getElementById('btnSaveNewsPrompt').addEventListener('click', function(
 });
 
 // === 핵심브리핑 탭 ===
-document.getElementById('btnSaveBriefingPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptBriefing').value;
-    savePrompt('prompt_briefing', value, this);
+document.getElementById('btnSaveBriefingPrompt').addEventListener('click', async function() {
+    const btn = this;
+    btn.disabled = true;
+    btn.textContent = '저장 중...';
+
+    try {
+        // 프롬프트 저장
+        const promptValue = document.getElementById('promptBriefing').value;
+        await savePromptAsync('prompt_briefing', promptValue);
+
+        // 체크박스 상태 저장
+        const checkedTypes = Array.from(document.querySelectorAll('.data-loader-check:checked'))
+            .map(cb => cb.value).join(',');
+        await savePromptAsync('briefing_data_types', checkedTypes);
+
+        btn.textContent = '저장됨!';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-success');
+        setTimeout(() => {
+            btn.textContent = '저장';
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-primary');
+        }, 1500);
+    } catch (err) {
+        alert('저장 실패: ' + err.message);
+        btn.textContent = '저장';
+    } finally {
+        btn.disabled = false;
+    }
 });
+
+// 비동기 프롬프트 저장 함수
+async function savePromptAsync(key, value) {
+    const formData = new FormData();
+    formData.append('key', key);
+    formData.append('value', value);
+    const response = await fetch('/api/prompt/save/', {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': getCsrfToken() }
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.error || '저장 실패');
+    return data;
+}
 
 // === 섹터 관리 ===
 const customSectorName = document.getElementById('customSectorName');
