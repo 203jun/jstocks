@@ -2385,6 +2385,7 @@ def fetch_stock_data_loader_with_summary(request, code):
     if 'analysis' in data_types:
         lines.append("## 기업분석")
         analysis_content = None
+        analysis_type = stock.analysis_type or 'html'
         # analysis_text 필드 확인
         if stock.analysis_text:
             analysis_content = stock.analysis_text
@@ -2396,11 +2397,16 @@ def fetch_stock_data_loader_with_summary(request, code):
             if html_path.exists():
                 try:
                     analysis_content = html_path.read_text(encoding='utf-8')
+                    analysis_type = 'html'  # 파일은 항상 HTML
                 except:
                     pass
 
         if analysis_content:
-            lines.append(html_to_text(analysis_content))
+            # 마크다운은 그대로, HTML은 텍스트로 변환
+            if analysis_type == 'markdown':
+                lines.append(analysis_content)
+            else:
+                lines.append(html_to_text(analysis_content))
         else:
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
@@ -2513,6 +2519,23 @@ def fetch_stock_data_loader_with_summary(request, code):
         lines.append("## 메모")
         if stock.memo:
             lines.append(html_to_text(stock.memo))
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    # 9. 리서치 (질문리포트, 최대 10개)
+    if 'research' in data_types:
+        lines.append("## 리서치 (최대 10개)")
+        qr_list = StockQuestionReport.objects.filter(stock=stock).order_by('-id')[:10]
+        if qr_list:
+            for qr in qr_list:
+                lines.append(f"\n### Q: {qr.question}")
+                if qr.report:
+                    # 마크다운은 그대로, HTML은 텍스트로 변환
+                    if qr.report_type == 'markdown':
+                        lines.append(qr.report)
+                    else:
+                        lines.append(html_to_text(qr.report))
         else:
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
