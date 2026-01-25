@@ -1306,7 +1306,7 @@ async function savePromptAsync(key, value) {
     const formData = new FormData();
     formData.append('key', key);
     formData.append('value', value);
-    const response = await fetch('/api/prompt/save/', {
+    const response = await fetch('/api/setting/save/', {
         method: 'POST',
         body: formData,
         headers: { 'X-CSRFToken': getCsrfToken() }
