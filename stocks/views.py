@@ -2384,8 +2384,23 @@ def fetch_stock_data_loader_with_summary(request, code):
     # 1. 기업분석
     if 'analysis' in data_types:
         lines.append("## 기업분석")
+        analysis_content = None
+        # analysis_text 필드 확인
         if stock.analysis_text:
-            lines.append(html_to_text(stock.analysis_text))
+            analysis_content = stock.analysis_text
+        else:
+            # HTML 파일 확인
+            from pathlib import Path
+            from django.conf import settings as django_settings
+            html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
+            if html_path.exists():
+                try:
+                    analysis_content = html_path.read_text(encoding='utf-8')
+                except:
+                    pass
+
+        if analysis_content:
+            lines.append(html_to_text(analysis_content))
         else:
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
