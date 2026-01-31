@@ -250,7 +250,13 @@ class Info(models.Model):
     @property
     def has_insight_and_analysis(self):
         """기업분석과 핵심 브리핑 둘 다 있는지 확인"""
+        # 기업분석: DB 필드 또는 HTML 파일 존재 여부 확인
         has_analysis = bool(self.analysis_text)
+        if not has_analysis:
+            from pathlib import Path
+            from django.conf import settings
+            html_path = Path(settings.MEDIA_ROOT) / 'analysis' / f'{self.code}.html'
+            has_analysis = html_path.exists()
         has_key_briefing = bool(self.key_briefing)
         return has_analysis and has_key_briefing
 
