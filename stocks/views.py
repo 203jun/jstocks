@@ -817,8 +817,11 @@ def stock_detail(request, code):
 
     # 리포트 요약 개수 (애널리스트 리포트 + 파일 리포트)
     report_summary_count = sum(1 for r in reports if r.summary)
+    report_attachment_count = sum(1 for r in reports if not r.summary and r.has_attachment)
     uploaded_summary_count = sum(1 for r in uploaded_reports if r.summary)
+    uploaded_attachment_count = sum(1 for r in uploaded_reports if not r.summary and r.has_attachment)
     total_summary_count = report_summary_count + uploaded_summary_count
+    total_attachment_count = report_attachment_count + uploaded_attachment_count
 
     # 거래량 변동률 계산 (전일 대비)
     volume_change_rate = None
@@ -927,6 +930,7 @@ def stock_detail(request, code):
         'question_reports': question_reports,
         'uploaded_reports': uploaded_reports,
         'total_summary_count': total_summary_count,
+        'total_attachment_count': total_attachment_count,
         'price_chart_data': json.dumps(price_chart_data),
         'target_chart_data': json.dumps(target_chart_data),
         'gap_chart_data': json.dumps(gap_chart_data),
@@ -1106,6 +1110,7 @@ def stock_edit(request, code):
     total_reports = reports_queryset.count()
     reports = list(reports_queryset[:20])
     report_summary_count = sum(1 for r in reports_queryset if r.summary)
+    report_attachment_count = sum(1 for r in reports_queryset if not r.summary and r.has_attachment)
 
     # 목표가 차트 데이터 (리포트 날짜 범위의 주가 + 목표가)
     if reports:
@@ -1314,6 +1319,7 @@ def stock_edit(request, code):
     from .models import StockUploadedReport
     uploaded_reports = StockUploadedReport.objects.filter(stock=stock)
     uploaded_summary_count = sum(1 for r in uploaded_reports if r.summary)
+    uploaded_attachment_count = sum(1 for r in uploaded_reports if not r.summary and r.has_attachment)
 
     # 기업분석 내용 (타입에 따라 파일 또는 DB에서 불러오기)
     html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
@@ -1356,7 +1362,9 @@ def stock_edit(request, code):
         'question_reports': question_reports,
         'uploaded_reports': uploaded_reports,
         'report_summary_count': report_summary_count,
+        'report_attachment_count': report_attachment_count,
         'uploaded_summary_count': uploaded_summary_count,
+        'uploaded_attachment_count': uploaded_attachment_count,
         'analysis_html_exists': analysis_html_exists,
         'analysis_html_content': analysis_html_content,
         'saved_prompts': saved_prompts,

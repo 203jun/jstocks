@@ -49,7 +49,7 @@
         <button class="nav-link" id="disclosure-tab" data-bs-toggle="tab" data-bs-target="#disclosure-content" type="button" role="tab">공시</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab">리포트{% if total_summary_count %}<span class="badge bg-secondary ms-1">{{ total_summary_count }}</span>{% endif %}</button>
+        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab">리포트{% if total_summary_count %}<span class="badge bg-success ms-1">{{ total_summary_count }}</span>{% endif %}{% if total_attachment_count %}<span class="badge bg-info ms-1">{{ total_attachment_count }}</span>{% endif %}</button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="telegram-tab" data-bs-toggle="tab" data-bs-target="#telegram-content" type="button" role="tab">텔레그램{% if telegram_messages %}<span class="badge bg-secondary ms-1">{{ telegram_messages|length }}</span>{% endif %}</button>
