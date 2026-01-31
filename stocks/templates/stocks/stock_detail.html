@@ -1082,7 +1082,9 @@ function renderContent(rawId, markdownId) {
             content = content.replace(/\[cite:\s*[\d,\s]+\]/g, '');
             content = content.replace(/\[\/cite\]/g, '');
 
-            if (/<[a-z][\s\S]*>/i.test(content)) {
+            // 실제 HTML 태그인지 확인 (일반적인 HTML 태그들만 감지)
+            const htmlTagPattern = /<(div|span|p|br|hr|table|tr|td|th|thead|tbody|ul|ol|li|a|img|h[1-6]|strong|em|b|i|code|pre|blockquote|section|article|header|footer|nav|main|aside|figure|figcaption|form|input|button|label|select|option|textarea|iframe|script|style|link|meta|head|body|html)[\s>\/]/i;
+            if (htmlTagPattern.test(content)) {
                 markdownEl.innerHTML = content;
             } else {
                 markdownEl.innerHTML = marked.parse(content);
