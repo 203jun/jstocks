@@ -4986,6 +4986,8 @@ def report_summary(request, report_id):
 
     if request.method == 'POST':
         report.summary = request.POST.get('summary', '')
+        report.report_url = request.POST.get('report_url', '')
+        report.news_url = request.POST.get('news_url', '')
 
         # 파일 업로드 처리
         if 'file' in request.FILES:
@@ -5037,6 +5039,8 @@ def uploaded_report_summary_page(request, report_id):
 
     if request.method == 'POST':
         report.summary = request.POST.get('summary', '')
+        report.report_url = request.POST.get('report_url', '')
+        report.news_url = request.POST.get('news_url', '')
         report.save()
         messages.success(request, '저장되었습니다.')
         return redirect('stocks:uploaded_report_summary_page', report_id=report_id)

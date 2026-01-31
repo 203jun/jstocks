@@ -693,7 +693,7 @@
                                 </td>
                                 <td class="text-center pe-3">
                                     <a href="{% url 'stocks:report_summary' report.id %}" class="text-decoration-none">
-                                        <span class="badge {% if report.summary %}bg-success{% else %}bg-secondary{% endif %}">요약</span>
+                                        <span class="badge {% if report.summary %}bg-success{% elif report.has_attachment %}bg-info{% else %}bg-secondary{% endif %}">요약</span>
                                     </a>
                                 </td>
                             </tr>
@@ -758,7 +758,7 @@
                             </div>
                             <div class="d-flex gap-1">
                                 <a href="{{ report.file.url }}" target="_blank" class="text-decoration-none"><span class="badge bg-primary">파일</span></a>
-                                <a href="{% url 'stocks:uploaded_report_summary_page' report.id %}" class="text-decoration-none"><span class="badge {% if report.summary %}bg-success{% else %}bg-secondary{% endif %}">요약</span></a>
+                                <a href="{% url 'stocks:uploaded_report_summary_page' report.id %}" class="text-decoration-none"><span class="badge {% if report.summary %}bg-success{% elif report.has_attachment %}bg-info{% else %}bg-secondary{% endif %}">요약</span></a>
                             </div>
                         </div>
                     </div>

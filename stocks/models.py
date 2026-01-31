@@ -1405,6 +1405,20 @@ class StockUploadedReport(models.Model):
         verbose_name='요약',
         help_text='리포트 요약 내용 (HTML 형식)'
     )
+    report_url = models.URLField(
+        max_length=500,
+        blank=True,
+        default='',
+        verbose_name='리포트 링크',
+        help_text='리포트 원문 URL'
+    )
+    news_url = models.URLField(
+        max_length=500,
+        blank=True,
+        default='',
+        verbose_name='뉴스 링크',
+        help_text='관련 뉴스 URL'
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='생성일시'
@@ -1417,6 +1431,11 @@ class StockUploadedReport(models.Model):
     @property
     def display_title(self):
         return self.title if self.title else self.original_filename
+
+    @property
+    def has_attachment(self):
+        """첨부파일, 리포트 링크, 뉴스 링크 중 하나라도 있는지 확인"""
+        return bool(self.file) or bool(self.report_url) or bool(self.news_url)
 
     class Meta:
         db_table = 'stock_uploaded_report'
@@ -1573,11 +1592,32 @@ class Report(models.Model):
         help_text='리포트 PDF 파일'
     )
 
+    # === 링크 ===
+    report_url = models.URLField(
+        max_length=500,
+        blank=True,
+        default='',
+        verbose_name='리포트 링크',
+        help_text='리포트 원문 URL'
+    )
+    news_url = models.URLField(
+        max_length=500,
+        blank=True,
+        default='',
+        verbose_name='뉴스 링크',
+        help_text='관련 뉴스 URL'
+    )
+
     # === 메타 정보 ===
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='생성일시'
     )
+
+    @property
+    def has_attachment(self):
+        """첨부파일, 리포트 링크, 뉴스 링크 중 하나라도 있는지 확인"""
+        return bool(self.file) or bool(self.report_url) or bool(self.news_url)
 
     class Meta:
         db_table = 'report'

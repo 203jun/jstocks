@@ -95,6 +95,32 @@
             <small class="text-muted">PDF, 이미지 파일 업로드 가능</small>
         </div>
     </div>
+    <div class="card mb-3">
+        <div class="card-header py-2">
+            <strong>리포트 링크</strong>
+        </div>
+        <div class="card-body p-2">
+            <input type="url" name="report_url" class="form-control form-control-sm" placeholder="리포트 원문 URL" value="{{ report.report_url }}">
+            {% if report.report_url %}
+            <div class="mt-1">
+                <a href="{{ report.report_url }}" target="_blank" class="small">{{ report.report_url|truncatechars:60 }}</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card mb-3">
+        <div class="card-header py-2">
+            <strong>뉴스 링크</strong>
+        </div>
+        <div class="card-body p-2">
+            <input type="url" name="news_url" class="form-control form-control-sm" placeholder="관련 뉴스 URL" value="{{ report.news_url }}">
+            {% if report.news_url %}
+            <div class="mt-1">
+                <a href="{{ report.news_url }}" target="_blank" class="small">{{ report.news_url|truncatechars:60 }}</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
     <div class="card">
         <div class="card-header py-2 d-flex justify-content-between align-items-center">
             <strong>마크다운 입력</strong>
