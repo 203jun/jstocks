@@ -23,7 +23,7 @@
         <button class="nav-link" id="question-report-tab" data-bs-toggle="tab" data-bs-target="#question-report-content" type="button" role="tab">리서치{% if question_reports %}<span class="badge bg-secondary ms-1">{{ question_reports|length }}</span>{% endif %}</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab">리포트{% with total_summary=report_summary_count|add:uploaded_summary_count %}{% if total_summary %}<span class="badge bg-success ms-1">{{ total_summary }}</span>{% endif %}{% endwith %}{% with total_attachment=report_attachment_count|add:uploaded_attachment_count %}{% if total_attachment %}<span class="badge bg-info ms-1">{{ total_attachment }}</span>{% endif %}{% endwith %}</button>
+        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab">리포트{% with total_summary=report_summary_count|add:uploaded_summary_count %}{% with total_attachment=report_attachment_count|add:uploaded_attachment_count %}{% with total=total_summary|add:total_attachment %}{% if total %}<span class="badge bg-secondary ms-1">{{ total }}</span>{% endif %}{% endwith %}{% endwith %}{% endwith %}</button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="telegram-tab" data-bs-toggle="tab" data-bs-target="#telegram-content" type="button" role="tab">텔레그램{% if telegram_messages %}<span class="badge bg-secondary ms-1">{{ telegram_messages|length }}</span>{% endif %}</button>
