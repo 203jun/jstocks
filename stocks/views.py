@@ -3307,12 +3307,14 @@ def etf_detail(request, code):
 
     etf = get_object_or_404(InfoETF.objects.prefetch_related('custom_sectors'), code=code)
 
-    # POST 처리 - 관심섹터 저장
+    # POST 처리 - 관심섹터 및 보유 여부 저장
     if request.method == 'POST':
         sector_ids = request.POST.getlist('custom_sectors')
         etf.custom_sectors.set(CustomSector.objects.filter(id__in=sector_ids))
+        etf.is_holding = request.POST.get('is_holding') == 'on'
+        etf.save(update_fields=['is_holding'])
         from django.contrib import messages
-        messages.success(request, '관심섹터가 저장되었습니다.')
+        messages.success(request, '저장되었습니다.')
         return redirect('stocks:etf_detail', code=code)
 
     # 일봉 차트 데이터 (최근 240일)

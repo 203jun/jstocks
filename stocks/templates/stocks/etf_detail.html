@@ -24,7 +24,7 @@
     </div>
 </div>
 
-<!-- 관심섹터 -->
+<!-- 보유 및 관심섹터 -->
 <div class="card mb-3">
     <div class="card-header py-2">
         <strong>관심섹터</strong>
@@ -34,6 +34,11 @@
         {% if custom_sectors %}
         <form method="post" id="sectorForm">
             {% csrf_token %}
+            <!-- 보유 체크박스 -->
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="is_holding" id="is_holding" {% if etf.is_holding %}checked{% endif %}>
+                <label class="form-check-label" for="is_holding">💰 보유중</label>
+            </div>
             <!-- 선택된 섹터 표시 -->
             <div id="selectedSectors" class="d-flex flex-wrap gap-1 mb-2">
                 {% for sector in etf.custom_sectors.all %}

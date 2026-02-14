@@ -353,6 +353,7 @@
                     <tr style="cursor:pointer;" onclick="location.href='{% url 'stocks:etf_detail' etf.code %}'">
                         <td class="px-3">
                             <strong>{{ etf.name }}</strong>
+                            {% if etf.is_holding %}<span title="보유중">💰</span>{% endif %}
                             <small class="text-muted ms-1">{{ etf.code }}</small>
                             {% for sector in etf.custom_sectors.all %}
                             <a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success ms-1 text-decoration-none" style="font-size: 0.7em;" onclick="event.stopPropagation();">{{ sector.name }}</a>

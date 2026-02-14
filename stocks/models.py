@@ -351,6 +351,13 @@ class InfoETF(models.Model):
         help_text='사용자 정의 섹터 (화장품, 2차전지 등)'
     )
 
+    # === 보유 여부 ===
+    is_holding = models.BooleanField(
+        default=False,
+        verbose_name='보유중',
+        help_text='현재 보유 중인 ETF 여부'
+    )
+
     # === 메타 정보 ===
     created_at = models.DateTimeField(
         auto_now_add=True,
