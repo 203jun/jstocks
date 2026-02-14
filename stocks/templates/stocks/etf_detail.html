@@ -24,15 +24,15 @@
     </div>
 </div>
 
-<!-- 보유 -->
+<!-- 기본 정보 -->
 <div class="card mb-3">
     <div class="card-header py-2">
-        <strong>보유</strong>
+        <strong>기본 정보</strong>
     </div>
     <div class="card-body py-2">
         <form method="post" id="holdingForm">
             {% csrf_token %}
-            <div class="form-check">
+            <div class="form-check mb-2">
                 <input type="checkbox" class="form-check-input" id="is_holding" name="is_holding" {% if etf.is_holding %}checked{% endif %} onchange="this.form.submit()">
                 <label class="form-check-label" for="is_holding">
                     <strong>보유중</strong>
@@ -44,6 +44,11 @@
             <input type="hidden" name="custom_sectors" value="{{ sector.id }}">
             {% endfor %}
         </form>
+        <div>
+            <a href="https://finance.naver.com/item/board.naver?code={{ etf.code }}" target="_blank" class="text-decoration-none">
+                📝 종토방
+            </a>
+        </div>
     </div>
 </div>
 
