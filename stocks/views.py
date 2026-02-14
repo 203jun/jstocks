@@ -3023,8 +3023,12 @@ def etf(request):
     """ETF 페이지"""
     from .models import InfoETF, DailyChartETF
 
-    # 관심 ETF 목록 (is_active=True)
-    etfs = list(InfoETF.objects.filter(is_active=True).prefetch_related('custom_sectors').order_by('-market_cap'))
+    # 관심 ETF 목록 (is_active=True) - 섹터명 기준 정렬, 섹터 없는 ETF는 맨 뒤로
+    etfs = list(InfoETF.objects.filter(is_active=True).prefetch_related('custom_sectors'))
+    etfs.sort(key=lambda e: (
+        e.custom_sectors.first().name if e.custom_sectors.exists() else 'ㅎㅎㅎ',  # 섹터명 (없으면 맨 뒤)
+        e.name  # 같은 섹터 내에서는 ETF명 순
+    ))
 
     # ============ 대시보드 카드 ============
     # 카드 A: 장기 신호 (60일 신고거래량)
