@@ -58,6 +58,7 @@
                 <td>
                     <div>
                         <strong>{{ stock.name }}</strong>
+                        {% if stock.is_holding %}<span class="ms-1" title="보유중">💰</span>{% endif %}
                         <small class="text-muted ms-1">{{ stock.code }}</small>
                     </div>
                     <small class="text-muted">{{ stock.market }}</small>
