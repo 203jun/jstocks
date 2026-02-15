@@ -1023,6 +1023,14 @@ def stock_edit(request, code):
             from datetime import date
             stock.key_briefing_updated_at = date.today()
 
+        # 재무분석 저장 (변경 시 날짜 업데이트)
+        new_financial_analysis = request.POST.get('financial_analysis', '').strip()
+        old_financial_analysis = (stock.financial_analysis or '').strip()
+        if new_financial_analysis != old_financial_analysis:
+            stock.financial_analysis = new_financial_analysis
+            from datetime import date
+            stock.financial_analysis_updated_at = date.today()
+
         # 메모 저장 (변경 시 날짜 업데이트)
         new_memo = request.POST.get('memo', '').strip()
         old_memo = (stock.memo or '').strip()
@@ -2369,9 +2377,9 @@ def fetch_stock_data_loader_with_summary(request, code):
         saved_types = SystemSetting.objects.get(key='briefing_data_types').value
         data_types = [t for t in saved_types.split(',') if t]  # 빈 문자열 제거
         if not data_types:
-            data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+            data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
     except SystemSetting.DoesNotExist:
-        data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+        data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
 
     def html_to_text(html):
         """HTML을 텍스트로 변환"""
@@ -2424,6 +2432,15 @@ def fetch_stock_data_loader_with_summary(request, code):
         lines.append("## 핵심 브리핑")
         if stock.key_briefing:
             lines.append(stock.key_briefing)
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    # 2-1. 재무분석
+    if 'financial_analysis' in data_types:
+        lines.append("## 재무분석")
+        if stock.financial_analysis:
+            lines.append(stock.financial_analysis)
         else:
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
@@ -3001,10 +3018,10 @@ def settings(request):
         saved_types = SystemSetting.objects.get(key='briefing_data_types').value
         briefing_data_types = [t for t in saved_types.split(',') if t]  # 빈 문자열 제거
         if not briefing_data_types:
-            briefing_data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+            briefing_data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
     except SystemSetting.DoesNotExist:
         # 기본값: 모든 타입 선택
-        briefing_data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+        briefing_data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
 
     context = {
         'categories': categories,

@@ -215,6 +215,20 @@ class Info(models.Model):
         help_text='핵심 브리핑 마지막 수정일'
     )
 
+    # === 재무분석 ===
+    financial_analysis = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='재무분석',
+        help_text='재무분석 내용 (마크다운 형식)'
+    )
+    financial_analysis_updated_at = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='재무분석 업데이트일',
+        help_text='재무분석 마지막 수정일'
+    )
+
     # === 인사이트 (투자포인트/리스크/일정 통합) ===
     insight_summary_html = models.TextField(
         blank=True,

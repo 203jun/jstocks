@@ -397,6 +397,20 @@
         </div>
         {% endif %}
 
+        <!-- 재무분석 -->
+        {% if stock.financial_analysis %}
+        <div class="card mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>재무분석</strong>
+                {% if stock.financial_analysis_updated_at %}<small class="text-muted">update: {{ stock.financial_analysis_updated_at|date:"Y-m-d" }}</small>{% endif %}
+            </div>
+            <div class="card-body py-2" style="max-height: 600px; overflow-y: auto;">
+                <div class="markdown-content" id="financialAnalysisMarkdown"></div>
+                <script type="text/plain" id="financialAnalysisRaw">{{ stock.financial_analysis|default:""|safe }}</script>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- 업데이트 시간 -->
         <div class="text-muted text-end small">
             업데이트: {{ stock.updated_at|date:"Y-m-d H:i" }}
@@ -1105,6 +1119,9 @@ renderContent('keyBriefingRaw', 'keyBriefingMarkdown');
 
 // 기업분석 마크다운 렌더링
 renderContent('analysisRaw', 'analysisMarkdown');
+
+// 재무분석 마크다운 렌더링
+renderContent('financialAnalysisRaw', 'financialAnalysisMarkdown');
 
 // 텔레그램 메시지 전체보기
 document.querySelectorAll('.btn-view-telegram').forEach(btn => {
