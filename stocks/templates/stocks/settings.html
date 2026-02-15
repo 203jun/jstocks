@@ -239,6 +239,9 @@
                 <button class="nav-link" id="stock-analysis-tab" data-bs-toggle="pill" data-bs-target="#stock-analysis-panel" type="button" role="tab">기업분석</button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="financial-analysis-tab" data-bs-toggle="pill" data-bs-target="#financial-analysis-panel" type="button" role="tab">재무분석</button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="report-prompt-tab" data-bs-toggle="pill" data-bs-target="#report-prompt-panel" type="button" role="tab">리포트</button>
             </li>
             <li class="nav-item" role="presentation">
@@ -445,6 +448,25 @@
                     </div>
                 </div>
 
+            </div>
+
+            <!-- 재무분석 탭 -->
+            <div class="tab-pane fade" id="financial-analysis-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <strong>재무분석 프롬프트</strong>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveFinancialAnalysisPrompt">저장</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-secondary py-2 mb-3">
+                            <small>
+                                <strong>도구:</strong> Gemini + 사고모드<br>
+                                <strong>저장:</strong> 종목 편집 → 재무분석
+                            </small>
+                        </div>
+                        <textarea class="form-control" id="promptFinancialAnalysis" rows="10" placeholder="재무분석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_financial_analysis }}</textarea>
+                    </div>
+                </div>
             </div>
 
             <!-- 노다지 탭 -->
@@ -1267,6 +1289,12 @@ loadResearchPrompts();
 document.getElementById('btnSaveYoutubePrompt').addEventListener('click', function() {
     const value = document.getElementById('promptYoutube').value;
     savePrompt('prompt_youtube', value, this);
+});
+
+// 재무분석 프롬프트 저장
+document.getElementById('btnSaveFinancialAnalysisPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptFinancialAnalysis').value;
+    savePrompt('prompt_financial_analysis', value, this);
 });
 
 // 리포트 프롬프트 저장
