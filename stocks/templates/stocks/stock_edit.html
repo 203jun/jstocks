@@ -220,9 +220,14 @@
 
             <!-- 재무분석 -->
             <div class="card mb-3">
-                <div class="card-header py-2">
-                    <strong>재무분석</strong>
-                    <small class="text-muted ms-2">(마크다운 지원)</small>
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>재무분석</strong>
+                        <small class="text-muted ms-2">(마크다운 지원)</small>
+                    </div>
+                    <div class="d-flex gap-1">
+                        <span class="badge bg-success" role="button" id="btnCopyFinancialAnalysisPrompt" style="cursor: pointer;">프롬프트 복사</span>
+                    </div>
                 </div>
                 <div class="card-body">
                     <textarea class="form-control" name="financial_analysis" id="financialAnalysisInput" rows="8" placeholder="재무분석 내용을 마크다운 형식으로 입력하세요...">{{ stock.financial_analysis }}</textarea>
@@ -2620,6 +2625,31 @@ btnCopyBriefingPrompt.addEventListener('click', async () => {
         btnCopyBriefingPrompt.textContent = originalText;
         btnCopyBriefingPrompt.classList.remove('bg-secondary');
         btnCopyBriefingPrompt.classList.add('bg-success');
+    }
+});
+
+// 재무분석 프롬프트 복사
+const btnCopyFinancialAnalysisPrompt = document.getElementById('btnCopyFinancialAnalysisPrompt');
+btnCopyFinancialAnalysisPrompt.addEventListener('click', async () => {
+    const promptTemplate = `{{ saved_prompts.prompt_financial_analysis|default:""|escapejs }}`;
+    if (!promptTemplate) {
+        alert('설정 → 프롬프트 → 재무분석에서 프롬프트를 먼저 등록하세요.');
+        return;
+    }
+    const prompt = promptTemplate.replace(/\{종목명\}/g, '{{ stock.name }}');
+    try {
+        await copyToClipboard(prompt);
+        const originalText = btnCopyFinancialAnalysisPrompt.textContent;
+        btnCopyFinancialAnalysisPrompt.textContent = '복사됨!';
+        btnCopyFinancialAnalysisPrompt.classList.remove('bg-success');
+        btnCopyFinancialAnalysisPrompt.classList.add('bg-secondary');
+        setTimeout(() => {
+            btnCopyFinancialAnalysisPrompt.textContent = originalText;
+            btnCopyFinancialAnalysisPrompt.classList.remove('bg-secondary');
+            btnCopyFinancialAnalysisPrompt.classList.add('bg-success');
+        }, 1500);
+    } catch (err) {
+        alert('복사 실패: ' + err.message);
     }
 });
 </script>
