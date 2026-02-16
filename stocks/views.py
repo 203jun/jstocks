@@ -1047,14 +1047,6 @@ def stock_edit(request, code):
             from datetime import date
             stock.memo_updated_at = date.today()
 
-        # 기업분석 저장 (변경 시 날짜 업데이트)
-        new_analysis_text = request.POST.get('analysis_text', '').strip()
-        old_analysis_text = (stock.analysis_text or '').strip()
-        if new_analysis_text != old_analysis_text:
-            stock.analysis_text = new_analysis_text
-            from datetime import date
-            stock.analysis_updated_at = date.today()
-
         stock.save()
 
         # 기업분석 저장 (타입에 따라 파일 또는 DB에 저장)
