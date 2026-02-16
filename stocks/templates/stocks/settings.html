@@ -358,6 +358,12 @@
                                 </div>
                                 <div class="col-6 col-md-4">
                                     <div class="form-check">
+                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkInvestmentIndicator" value="investment_indicator" {% if 'investment_indicator' in briefing_data_types %}checked{% endif %}>
+                                        <label class="form-check-label" for="chkInvestmentIndicator">투자지표</label>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
                                         <input class="form-check-input data-loader-check" type="checkbox" id="chkNodaji" value="nodaji" {% if 'nodaji' in briefing_data_types %}checked{% endif %}>
                                         <label class="form-check-label" for="chkNodaji">노다지 (5개)</label>
                                     </div>

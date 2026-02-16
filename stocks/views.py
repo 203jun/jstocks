@@ -2453,6 +2453,15 @@ def fetch_stock_data_loader_with_summary(request, code):
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
 
+    # 2-2. 투자지표
+    if 'investment_indicator' in data_types:
+        lines.append("## 투자지표")
+        if stock.investment_indicator:
+            lines.append(stock.investment_indicator)
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
     # 3. 노다지 (요약 포함, 최대 5개)
     if 'nodaji' in data_types:
         lines.append("## 노다지 IR노트 (최대 5개)")
