@@ -2655,7 +2655,7 @@ btnCopyFinancialAnalysisPrompt.addEventListener('click', async () => {
         alert('설정 → 프롬프트 → 재무분석에서 프롬프트를 먼저 등록하세요.');
         return;
     }
-    const prompt = promptTemplate.replace(/\{종목명\}/g, '{{ stock.name }}');
+    const prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, '{{ stock.name }}');
     try {
         await copyToClipboard(prompt);
         const originalText = btnCopyFinancialAnalysisPrompt.textContent;
@@ -2680,7 +2680,7 @@ btnCopyInvestmentIndicatorPrompt.addEventListener('click', async () => {
         alert('설정 → 프롬프트 → 투자지표에서 프롬프트를 먼저 등록하세요.');
         return;
     }
-    const prompt = promptTemplate.replace(/\{종목명\}/g, '{{ stock.name }}');
+    const prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, '{{ stock.name }}');
     try {
         await copyToClipboard(prompt);
         const originalText = btnCopyInvestmentIndicatorPrompt.textContent;
