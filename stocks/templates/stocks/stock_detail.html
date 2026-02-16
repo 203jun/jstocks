@@ -119,6 +119,7 @@
                                 <small class="text-muted d-block">현재가</small>
                                 <span class="fs-4 fw-bold" id="currentPrice">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</span>
                                 <a href="https://finance.naver.com/item/board.naver?code={{ stock.code }}" target="_blank" class="badge bg-success text-decoration-none ms-1" style="font-size: 0.6rem; vertical-align: middle;">종토방</a>
+                                <a href="https://comp.fnguide.com/SVO2/ASP/SVD_Main.asp?pGB=1&gicode=A{{ stock.code }}&cID=&MenuYn=Y&ReportGB=&NewMenuID=101&stkGb=701" target="_blank" class="badge bg-warning text-decoration-none ms-1" style="font-size: 0.6rem; vertical-align: middle;">fNG</a>
                             </div>
                             <div class="text-end">
                                 <small class="text-muted d-block">등락율</small>
