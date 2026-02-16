@@ -1062,7 +1062,11 @@ def stock_edit(request, code):
         else:
             old_content = (stock.analysis_text or '').strip()
 
-        if analysis_content != old_content or stock.analysis_type != analysis_type:
+        # 줄바꿈 정규화 후 비교 (브라우저가 \r\n으로 전송할 수 있음)
+        normalized_new = analysis_content.replace('\r\n', '\n').replace('\r', '\n')
+        normalized_old = old_content.replace('\r\n', '\n').replace('\r', '\n')
+
+        if normalized_new != normalized_old or stock.analysis_type != analysis_type:
             from datetime import date
             stock.analysis_type = analysis_type
 
