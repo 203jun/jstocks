@@ -242,6 +242,9 @@
                 <button class="nav-link" id="financial-analysis-tab" data-bs-toggle="pill" data-bs-target="#financial-analysis-panel" type="button" role="tab">재무분석</button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="investment-indicator-tab" data-bs-toggle="pill" data-bs-target="#investment-indicator-panel" type="button" role="tab">투자지표</button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="report-prompt-tab" data-bs-toggle="pill" data-bs-target="#report-prompt-panel" type="button" role="tab">리포트</button>
             </li>
             <li class="nav-item" role="presentation">
@@ -467,6 +470,19 @@
                             </small>
                         </div>
                         <textarea class="form-control" id="promptFinancialAnalysis" rows="10" placeholder="재무분석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_financial_analysis }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 투자지표 탭 -->
+            <div class="tab-pane fade" id="investment-indicator-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <strong>투자지표 프롬프트</strong>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveInvestmentIndicatorPrompt">저장</button>
+                    </div>
+                    <div class="card-body">
+                        <textarea class="form-control" id="promptInvestmentIndicator" rows="10" placeholder="투자지표용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_investment_indicator }}</textarea>
                     </div>
                 </div>
             </div>
@@ -1297,6 +1313,12 @@ document.getElementById('btnSaveYoutubePrompt').addEventListener('click', functi
 document.getElementById('btnSaveFinancialAnalysisPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptFinancialAnalysis').value;
     savePrompt('prompt_financial_analysis', value, this);
+});
+
+// 투자지표 프롬프트 저장
+document.getElementById('btnSaveInvestmentIndicatorPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptInvestmentIndicator').value;
+    savePrompt('prompt_investment_indicator', value, this);
 });
 
 // 리포트 프롬프트 저장

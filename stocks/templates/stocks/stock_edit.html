@@ -236,6 +236,23 @@
                 </div>
             </div>
 
+            <!-- 투자지표 -->
+            <div class="card mb-3">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>투자지표</strong>
+                        <small class="text-muted ms-2">(마크다운 지원)</small>
+                    </div>
+                    <div class="d-flex gap-1">
+                        <span class="badge bg-success" role="button" id="btnCopyInvestmentIndicatorPrompt" style="cursor: pointer;">프롬프트 복사</span>
+                        <a class="badge bg-info text-decoration-none" href="#" target="_blank">투자지표</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <textarea class="form-control" name="investment_indicator" id="investmentIndicatorInput" rows="8" placeholder="투자지표 내용을 마크다운 형식으로 입력하세요...">{{ stock.investment_indicator }}</textarea>
+                </div>
+            </div>
+
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary">저장</button>
                 <a href="{% url 'stocks:stock_detail' stock.code %}" class="btn btn-outline-secondary">취소</a>
@@ -2649,6 +2666,31 @@ btnCopyFinancialAnalysisPrompt.addEventListener('click', async () => {
             btnCopyFinancialAnalysisPrompt.textContent = originalText;
             btnCopyFinancialAnalysisPrompt.classList.remove('bg-secondary');
             btnCopyFinancialAnalysisPrompt.classList.add('bg-success');
+        }, 1500);
+    } catch (err) {
+        alert('복사 실패: ' + err.message);
+    }
+});
+
+// 투자지표 프롬프트 복사
+const btnCopyInvestmentIndicatorPrompt = document.getElementById('btnCopyInvestmentIndicatorPrompt');
+btnCopyInvestmentIndicatorPrompt.addEventListener('click', async () => {
+    const promptTemplate = `{{ saved_prompts.prompt_investment_indicator|default:""|escapejs }}`;
+    if (!promptTemplate) {
+        alert('설정 → 프롬프트 → 투자지표에서 프롬프트를 먼저 등록하세요.');
+        return;
+    }
+    const prompt = promptTemplate.replace(/\{종목명\}/g, '{{ stock.name }}');
+    try {
+        await copyToClipboard(prompt);
+        const originalText = btnCopyInvestmentIndicatorPrompt.textContent;
+        btnCopyInvestmentIndicatorPrompt.textContent = '복사됨!';
+        btnCopyInvestmentIndicatorPrompt.classList.remove('bg-success');
+        btnCopyInvestmentIndicatorPrompt.classList.add('bg-secondary');
+        setTimeout(() => {
+            btnCopyInvestmentIndicatorPrompt.textContent = originalText;
+            btnCopyInvestmentIndicatorPrompt.classList.remove('bg-secondary');
+            btnCopyInvestmentIndicatorPrompt.classList.add('bg-success');
         }, 1500);
     } catch (err) {
         alert('복사 실패: ' + err.message);

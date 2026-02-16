@@ -412,6 +412,20 @@
         </div>
         {% endif %}
 
+        <!-- 투자지표 -->
+        {% if stock.investment_indicator %}
+        <div class="card mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>투자지표</strong>
+                {% if stock.investment_indicator_updated_at %}<small class="text-muted">update: {{ stock.investment_indicator_updated_at|date:"Y-m-d" }}</small>{% endif %}
+            </div>
+            <div class="card-body py-2" style="max-height: 600px; overflow-y: auto;">
+                <div class="markdown-content" id="investmentIndicatorMarkdown"></div>
+                <script type="text/plain" id="investmentIndicatorRaw">{{ stock.investment_indicator|default:""|safe }}</script>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- 업데이트 시간 -->
         <div class="text-muted text-end small">
             업데이트: {{ stock.updated_at|date:"Y-m-d H:i" }}
@@ -1123,6 +1137,9 @@ renderContent('analysisRaw', 'analysisMarkdown');
 
 // 재무분석 마크다운 렌더링
 renderContent('financialAnalysisRaw', 'financialAnalysisMarkdown');
+
+// 투자지표 마크다운 렌더링
+renderContent('investmentIndicatorRaw', 'investmentIndicatorMarkdown');
 
 // 텔레그램 메시지 전체보기
 document.querySelectorAll('.btn-view-telegram').forEach(btn => {

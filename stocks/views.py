@@ -1031,6 +1031,14 @@ def stock_edit(request, code):
             from datetime import date
             stock.financial_analysis_updated_at = date.today()
 
+        # 투자지표 저장 (변경 시 날짜 업데이트)
+        new_investment_indicator = request.POST.get('investment_indicator', '').strip()
+        old_investment_indicator = (stock.investment_indicator or '').strip()
+        if new_investment_indicator != old_investment_indicator:
+            stock.investment_indicator = new_investment_indicator
+            from datetime import date
+            stock.investment_indicator_updated_at = date.today()
+
         # 메모 저장 (변경 시 날짜 업데이트)
         new_memo = request.POST.get('memo', '').strip()
         old_memo = (stock.memo or '').strip()
