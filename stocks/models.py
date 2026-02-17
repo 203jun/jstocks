@@ -215,6 +215,20 @@ class Info(models.Model):
         help_text='핵심 브리핑 마지막 수정일'
     )
 
+    # === 가치평가 ===
+    valuation = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='가치평가',
+        help_text='가치평가 내용 (마크다운 형식)'
+    )
+    valuation_updated_at = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='가치평가 업데이트일',
+        help_text='가치평가 마지막 수정일'
+    )
+
     # === 재무분석 ===
     financial_analysis = models.TextField(
         blank=True,

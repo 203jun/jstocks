@@ -1023,6 +1023,14 @@ def stock_edit(request, code):
             from datetime import date
             stock.key_briefing_updated_at = date.today()
 
+        # 가치평가 저장 (변경 시 날짜 업데이트)
+        new_valuation = request.POST.get('valuation', '').strip()
+        old_valuation = (stock.valuation or '').strip()
+        if new_valuation != old_valuation:
+            stock.valuation = new_valuation
+            from datetime import date
+            stock.valuation_updated_at = date.today()
+
         # 재무분석 저장 (변경 시 날짜 업데이트)
         new_financial_analysis = request.POST.get('financial_analysis', '').strip()
         old_financial_analysis = (stock.financial_analysis or '').strip()
