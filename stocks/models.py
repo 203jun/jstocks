@@ -291,7 +291,7 @@ class Info(models.Model):
 
     @property
     def has_insight_and_analysis(self):
-        """기업분석, 핵심 브리핑, 재무분석, 투자지표 모두 있는지 확인"""
+        """기업분석, 핵심 브리핑, 재무분석, 투자지표, 가치평가 모두 있는지 확인"""
         # 기업분석: DB 필드 또는 HTML 파일 존재 여부 확인
         has_analysis = bool(self.analysis_text)
         if not has_analysis:
@@ -302,7 +302,8 @@ class Info(models.Model):
         has_key_briefing = bool(self.key_briefing)
         has_financial_analysis = bool(self.financial_analysis)
         has_investment_indicator = bool(self.investment_indicator)
-        return has_analysis and has_key_briefing and has_financial_analysis and has_investment_indicator
+        has_valuation = bool(self.valuation)
+        return has_analysis and has_key_briefing and has_financial_analysis and has_investment_indicator and has_valuation
 
     class Meta:
         db_table = 'info'
