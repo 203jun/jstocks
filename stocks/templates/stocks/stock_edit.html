@@ -1779,22 +1779,9 @@ newsSearchInput?.addEventListener('keypress', function(e) {
 
 // ============ 노다지 요약 보기/편집/저장 ============
 
-// 이스케이프 디코딩 (escapejs 복원: \uXXXX, \n, \r, \t 등)
-function decodeEscaped(str) {
-    return str
-        .replace(/\\u([0-9a-fA-F]{4})/g, (m, p1) => String.fromCharCode(parseInt(p1, 16)))
-        .replace(/\\n/g, '\n')
-        .replace(/\\r/g, '\r')
-        .replace(/\\t/g, '\t')
-        .replace(/\\\\/g, '\\');
-}
-
-// HTML을 새 창에서 보기 (Blob URL 방식 - 외부 CDN 스크립트 정상 로드)
-function openHtmlInNewWindow(html) {
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+// 유니코드 이스케이프 디코딩
+function decodeUnicodeEscape(str) {
+    return str.replace(/\\u([0-9a-fA-F]{4})/g, (m, p1) => String.fromCharCode(parseInt(p1, 16)));
 }
 
 // 노다지 요약 새창에서 보기
@@ -1802,8 +1789,10 @@ document.querySelectorAll('.btn-view-nodaji').forEach(btn => {
     btn.addEventListener('click', function() {
         let html = this.dataset.summary;
         if (html) {
-            html = decodeEscaped(html);
-            openHtmlInNewWindow(html);
+            html = decodeUnicodeEscape(html);
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(html);
+            newWindow.document.close();
         }
     });
 });
@@ -1855,8 +1844,10 @@ document.querySelectorAll('.btn-save-nodaji').forEach(btn => {
                         viewBtn.addEventListener('click', function() {
                             let html = this.dataset.summary;
                             if (html) {
-                                html = decodeEscaped(html);
-                                openHtmlInNewWindow(html);
+                                html = decodeUnicodeEscape(html);
+                                const newWindow = window.open('', '_blank');
+                                newWindow.document.write(html);
+                                newWindow.document.close();
                             }
                         });
                     } else {
