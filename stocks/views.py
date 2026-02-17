@@ -2801,10 +2801,12 @@ def fetch_stock_data_loader_with_summary_valuation(request, code):
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
 
-    # 프롬프트 추가 (데이터 뒤에)
+    # 프롬프트 추가 (데이터 뒤에, {종목명} 치환)
     try:
         saved_prompt = SystemSetting.objects.get(key='prompt_valuation').value
         if saved_prompt:
+            import re as re_mod
+            saved_prompt = re_mod.sub(r'\{종목명[^}]*\}', stock.name, saved_prompt)
             lines.append("\n---\n")
             lines.append(saved_prompt)
     except SystemSetting.DoesNotExist:
