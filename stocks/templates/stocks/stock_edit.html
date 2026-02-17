@@ -1842,8 +1842,10 @@ document.querySelectorAll('.btn-save-nodaji').forEach(btn => {
                         viewBtn.innerHTML = '<span class="badge bg-success">O</span>';
                         btnCell.insertBefore(viewBtn, btnCell.firstChild);
                         viewBtn.addEventListener('click', function() {
+                            let html = this.dataset.summary;
+                            if (html) html = decodeUnicodeEscape(html);
                             const newWindow = window.open('', '_blank');
-                            newWindow.document.write(summary);
+                            newWindow.document.write(html);
                             newWindow.document.close();
                         });
                     } else {
