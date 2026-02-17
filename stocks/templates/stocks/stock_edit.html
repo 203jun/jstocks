@@ -195,9 +195,12 @@
 
             <!-- 가치평가 -->
             <div class="card mb-3">
-                <div class="card-header py-2">
-                    <strong>가치평가</strong>
-                    <small class="text-muted ms-2">(마크다운 지원)</small>
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>가치평가</strong>
+                        <small class="text-muted ms-2">(마크다운 지원)</small>
+                    </div>
+                    <span class="badge bg-success" role="button" id="btnCopyValuationPrompt" style="cursor: pointer;">프롬프트 복사</span>
                 </div>
                 <div class="card-body">
                     <textarea class="form-control" name="valuation" id="valuationInput" rows="8" placeholder="가치평가 내용을 마크다운 형식으로 입력하세요...">{{ stock.valuation }}</textarea>
@@ -2655,6 +2658,40 @@ btnCopyBriefingPrompt.addEventListener('click', async () => {
         btnCopyBriefingPrompt.textContent = originalText;
         btnCopyBriefingPrompt.classList.remove('bg-secondary');
         btnCopyBriefingPrompt.classList.add('bg-success');
+    }
+});
+
+// 가치평가 프롬프트 복사
+const btnCopyValuationPrompt = document.getElementById('btnCopyValuationPrompt');
+btnCopyValuationPrompt.addEventListener('click', async () => {
+    const originalText = btnCopyValuationPrompt.textContent;
+    btnCopyValuationPrompt.textContent = '로딩...';
+    btnCopyValuationPrompt.classList.remove('bg-success');
+    btnCopyValuationPrompt.classList.add('bg-secondary');
+
+    try {
+        const response = await fetch('/api/stock/{{ stock.code }}/data-loader-valuation/');
+        const data = await response.json();
+
+        if (data.success) {
+            await copyToClipboard(data.data);
+            btnCopyValuationPrompt.textContent = '복사됨!';
+            setTimeout(() => {
+                btnCopyValuationPrompt.textContent = originalText;
+                btnCopyValuationPrompt.classList.remove('bg-secondary');
+                btnCopyValuationPrompt.classList.add('bg-success');
+            }, 1500);
+        } else {
+            alert('데이터 조회 실패');
+            btnCopyValuationPrompt.textContent = originalText;
+            btnCopyValuationPrompt.classList.remove('bg-secondary');
+            btnCopyValuationPrompt.classList.add('bg-success');
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+        btnCopyValuationPrompt.textContent = originalText;
+        btnCopyValuationPrompt.classList.remove('bg-secondary');
+        btnCopyValuationPrompt.classList.add('bg-success');
     }
 });
 

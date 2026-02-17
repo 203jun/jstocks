@@ -2601,6 +2601,221 @@ def fetch_stock_data_loader_with_summary(request, code):
     })
 
 
+@require_GET
+def fetch_stock_data_loader_with_summary_valuation(request, code):
+    """종목 데이터 불러오기 API (가치평가용)
+
+    가치평가 프롬프트 만들기용
+    - 설정 페이지에서 선택한 데이터 타입만 불러오기
+    - 데이터 먼저, 프롬프트 나중에
+    """
+    import re
+    from bs4 import BeautifulSoup
+    from .models import YoutubeVideo, News, TelegramMessage, StockQuestionReport, StockUploadedReport, SystemSetting
+
+    stock = get_object_or_404(Info, code=code)
+
+    # 저장된 데이터 타입 가져오기
+    try:
+        saved_types = SystemSetting.objects.get(key='valuation_data_types').value
+        data_types = [t for t in saved_types.split(',') if t]
+        if not data_types:
+            data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+    except SystemSetting.DoesNotExist:
+        data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+
+    def html_to_text(html):
+        """HTML을 텍스트로 변환"""
+        if not html:
+            return ''
+        soup = BeautifulSoup(html, 'html.parser')
+        text = soup.get_text(separator='\n')
+        text = re.sub(r'\n\s*\n+', '\n\n', text)
+        text = re.sub(r'\[cite_start\]', '', text)
+        text = re.sub(r'\[cite_end\]', '', text)
+        text = re.sub(r'\[cite:\s*[\d,\s]+\]', '', text)
+        text = re.sub(r'\[/cite\]', '', text)
+        return text.strip()
+
+    lines = []
+    lines.append(f"=== {stock.name} ({stock.code}) 데이터 ===\n")
+
+    if 'analysis' in data_types:
+        lines.append("## 기업분석")
+        analysis_content = None
+        analysis_type = stock.analysis_type or 'html'
+        if stock.analysis_text:
+            analysis_content = stock.analysis_text
+        else:
+            from pathlib import Path
+            from django.conf import settings as django_settings
+            html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
+            if html_path.exists():
+                try:
+                    analysis_content = html_path.read_text(encoding='utf-8')
+                    analysis_type = 'html'
+                except:
+                    pass
+        if analysis_content:
+            if analysis_type == 'markdown':
+                lines.append(analysis_content)
+            else:
+                lines.append(html_to_text(analysis_content))
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    if 'key_briefing' in data_types:
+        lines.append("## 핵심 브리핑")
+        if stock.key_briefing:
+            lines.append(stock.key_briefing)
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    if 'financial_analysis' in data_types:
+        lines.append("## 재무분석")
+        if stock.financial_analysis:
+            lines.append(stock.financial_analysis)
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    if 'investment_indicator' in data_types:
+        lines.append("## 투자지표")
+        if stock.investment_indicator:
+            lines.append(stock.investment_indicator)
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    if 'nodaji' in data_types:
+        lines.append("## 노다지 IR노트 (최대 5개)")
+        nodaji_list = Nodaji.objects.filter(
+            stock=stock,
+            title__contains=stock.name
+        ).exclude(summary__isnull=True).exclude(summary='').order_by('-date')[:5]
+        if nodaji_list:
+            for n in nodaji_list:
+                date_str = n.date.strftime('%Y-%m-%d') if n.date else '-'
+                lines.append(f"\n### [{date_str}] {n.title}")
+                if n.summary:
+                    summary = html_to_text(n.summary)
+                    lines.append(f"요약:\n{summary}")
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    if 'report' in data_types:
+        lines.append("## 애널리스트 리포트 (최신 10개)")
+        all_reports = Report.objects.filter(stock=stock).order_by('-date')
+        seen_dates = set()
+        reports = []
+        for r in all_reports:
+            if r.date not in seen_dates:
+                reports.append(r)
+                seen_dates.add(r.date)
+                if len(reports) >= 10:
+                    break
+        if reports:
+            for r in reports:
+                date_str = r.date.strftime('%Y-%m-%d') if r.date else '-'
+                lines.append(f"\n### [{date_str}] {r.title}")
+                lines.append(f"작성자: {r.author} / 증권사: {r.provider}")
+                if r.summary:
+                    summary_text = html_to_text(r.summary)
+                    lines.append(f"요약:\n{summary_text}")
+                else:
+                    lines.append("요약: (요약 없음)")
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    if 'youtube' in data_types:
+        lines.append("## 유튜브 (최대 10개)")
+        youtube_list = YoutubeVideo.objects.filter(stock=stock).order_by('-id')[:10]
+        if youtube_list:
+            for v in youtube_list:
+                lines.append(f"\n### {v.title}")
+                if v.channel:
+                    lines.append(f"채널: {v.channel}")
+                if v.summary:
+                    summary_text = html_to_text(v.summary)
+                    lines.append(f"요약:\n{summary_text}")
+                else:
+                    lines.append("요약: (요약 없음)")
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    if 'news' in data_types:
+        lines.append("## 뉴스 (최대 10개)")
+        news_list = News.objects.filter(stock=stock).order_by('-id')[:10]
+        if news_list:
+            for n in news_list:
+                lines.append(f"\n### {n.title}")
+                if n.summary:
+                    summary_text = html_to_text(n.summary)
+                    lines.append(f"요약:\n{summary_text}")
+                else:
+                    lines.append("요약: (요약 없음)")
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    if 'telegram' in data_types:
+        lines.append("## 텔레그램 (최대 10개)")
+        telegram_list = TelegramMessage.objects.filter(stock=stock).order_by('-id')[:10]
+        if telegram_list:
+            for t in telegram_list:
+                channel_name = t.channel_name or t.channel
+                lines.append(f"\n### {channel_name}")
+                lines.append(t.text[:500] if t.text else '')
+                if t.summary:
+                    summary_text = html_to_text(t.summary)
+                    lines.append(f"요약:\n{summary_text}")
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    if 'memo' in data_types:
+        lines.append("## 메모")
+        if stock.memo:
+            lines.append(html_to_text(stock.memo))
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    if 'research' in data_types:
+        lines.append("## 리서치 (최대 10개)")
+        qr_list = StockQuestionReport.objects.filter(stock=stock).order_by('-id')[:10]
+        if qr_list:
+            for qr in qr_list:
+                lines.append(f"\n### Q: {qr.question}")
+                if qr.report:
+                    if qr.report_type == 'markdown':
+                        lines.append(qr.report)
+                    else:
+                        lines.append(html_to_text(qr.report))
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    # 프롬프트 추가 (데이터 뒤에)
+    try:
+        saved_prompt = SystemSetting.objects.get(key='prompt_valuation').value
+        if saved_prompt:
+            lines.append("\n---\n")
+            lines.append(saved_prompt)
+    except SystemSetting.DoesNotExist:
+        pass
+
+    return JsonResponse({
+        'success': True,
+        'data': '\n'.join(lines)
+    })
+
+
 def youtube_summary(request, video_id):
     """유튜브 영상 요약 편집 페이지"""
     from .models import YoutubeVideo
@@ -3044,6 +3259,15 @@ def settings(request):
         # 기본값: 모든 타입 선택
         briefing_data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
 
+    # 가치평가 데이터 타입 불러오기
+    try:
+        saved_valuation_types = SystemSetting.objects.get(key='valuation_data_types').value
+        valuation_data_types = [t for t in saved_valuation_types.split(',') if t]
+        if not valuation_data_types:
+            valuation_data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+    except SystemSetting.DoesNotExist:
+        valuation_data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+
     context = {
         'categories': categories,
         'excluded_channels': excluded_channels,
@@ -3053,6 +3277,7 @@ def settings(request):
         'stock_classify_lines_count': stock_classify_lines_count,
         'saved_prompts': saved_prompts,
         'briefing_data_types': briefing_data_types,
+        'valuation_data_types': valuation_data_types,
     }
     return render(request, 'stocks/settings.html', context)
 
