@@ -145,9 +145,13 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            .top-nav-inner { padding: 0 12px; }
+            .top-nav-inner { padding: 0 8px; }
             .content-wrapper { padding: 16px 12px; }
-            .nav-links a { padding: 12px 10px; font-size: 0.85rem; }
+            .nav-brand { font-size: 0.95rem; margin-right: 12px; padding: 10px 0; }
+            .nav-links { gap: 0; }
+            .nav-links a { padding: 10px 8px; font-size: 0.75rem; white-space: nowrap; }
+            .nav-right { gap: 2px; }
+            .nav-right a, .nav-right button { font-size: 0.75rem; padding: 6px 8px; }
         }
 
         {% block extra_style %}{% endblock %}
