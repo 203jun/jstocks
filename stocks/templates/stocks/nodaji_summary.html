@@ -4,16 +4,16 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">노다지 요약</h4>
-    <a href="{% url 'stocks:stock_edit' nodaji.stock.code %}#nodaji-content" class="btn btn-outline-secondary btn-sm">목록으로</a>
+    <h5 style="font-weight:700;margin:0;color:var(--text-primary);">노다지 요약</h5>
+    <a href="{% url 'stocks:stock_edit' nodaji.stock.code %}#nodaji-content" class="btn-refresh">목록으로</a>
 </div>
 
-<div class="card mb-3">
-    <div class="card-header py-2">
+<div class="brief-card">
+    <div style="margin-bottom:12px;">
         <strong>{{ nodaji.stock.name }}</strong>
         <small class="text-muted ms-2">{{ nodaji.date|date:"Y-m-d" }}</small>
     </div>
-    <div class="card-body py-2">
+    <div>
         <a href="{{ nodaji.link }}" target="_blank" class="text-decoration-none">{{ nodaji.title }}</a>
     </div>
 </div>
@@ -31,15 +31,15 @@
 
 <form method="post">
     {% csrf_token %}
-    <div class="card">
-        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+    <div class="brief-card">
+        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
             <div>
-                <strong>요약 내용</strong>
+                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">요약 내용</span>
                 <small class="text-muted ms-2">(HTML 지원)</small>
             </div>
-            <button type="submit" class="btn btn-primary btn-sm">저장</button>
+            <button type="submit" class="btn-refresh">저장</button>
         </div>
-        <div class="card-body">
+        <div>
             <textarea class="form-control" name="summary" rows="12" placeholder="HTML 형식으로 입력하세요...">{{ nodaji.summary }}</textarea>
         </div>
     </div>

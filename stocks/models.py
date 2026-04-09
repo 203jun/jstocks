@@ -2184,6 +2184,88 @@ class YoutubeVideo(models.Model):
         return f'https://www.youtube.com/watch?v={self.video_id}'
 
 
+class MarketYoutubeVideo(models.Model):
+    """시황 유튜브 영상 - 시장 전체 관련 유튜브 요약"""
+
+    video_id = models.CharField(
+        max_length=20,
+        unique=True,
+        verbose_name='영상ID',
+        help_text='유튜브 영상 고유 ID'
+    )
+    title = models.CharField(
+        max_length=200,
+        verbose_name='제목'
+    )
+    channel = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='채널명'
+    )
+    note = models.CharField(
+        max_length=300,
+        blank=True,
+        verbose_name='메모',
+        help_text='간단한 요약 메모'
+    )
+    summary = models.TextField(
+        blank=True,
+        verbose_name='요약',
+        help_text='영상 요약 내용'
+    )
+    published_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='영상 게시일'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='저장일시'
+    )
+
+    class Meta:
+        db_table = 'market_youtube_video'
+        verbose_name = '시황 유튜브 영상'
+        verbose_name_plural = '시황 유튜브 영상'
+        ordering = ['-published_date', '-created_at']
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def url(self):
+        return f'https://www.youtube.com/watch?v={self.video_id}'
+
+
+class MarketDiary(models.Model):
+    """투자일기 - 날짜별 기록"""
+
+    date = models.DateField(
+        unique=True,
+        verbose_name='날짜'
+    )
+    content = models.TextField(
+        verbose_name='내용'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='수정일시'
+    )
+
+    class Meta:
+        db_table = 'market_diary'
+        verbose_name = '투자일기'
+        verbose_name_plural = '투자일기'
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"투자일기 {self.date}"
+
+
 class News(models.Model):
     """
     저장된 뉴스 기사

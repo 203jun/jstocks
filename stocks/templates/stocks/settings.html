@@ -2,8 +2,249 @@
 
 {% block title %}설정 - JStocks{% endblock %}
 
+{% block extra_style %}
+.section-heading {
+    font-size: 1rem; font-weight: 700; color: var(--text-primary);
+    margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--text-primary);
+}
+
+/* Override Bootstrap card */
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+}
+.card-header {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Override Bootstrap nav-tabs */
+.nav-tabs { border-bottom: 1px solid var(--border-color); }
+.nav-tabs .nav-link {
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    font-weight: 500;
+    border: none;
+    padding: 10px 18px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+}
+.nav-tabs .nav-link:hover { color: var(--text-primary); border-color: transparent; }
+.nav-tabs .nav-link.active {
+    color: var(--text-primary);
+    font-weight: 700;
+    border-bottom: 2px solid var(--text-primary);
+    background: none;
+}
+
+/* Override Bootstrap nav-pills (sub tabs) */
+.nav-pills .nav-link {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+}
+.nav-pills .nav-link:hover { color: var(--text-primary); }
+.nav-pills .nav-link.active {
+    color: var(--text-primary);
+    font-weight: 700;
+    background: var(--bg-card);
+    border-color: var(--border-color);
+    box-shadow: var(--shadow-card);
+}
+
+/* Override Bootstrap btn */
+.btn-primary { background: #2962ff; border-color: #2962ff; }
+.btn-primary:hover { background: #1e4fcc; border-color: #1e4fcc; }
+.btn-outline-primary { color: #2962ff; border-color: #2962ff; }
+.btn-outline-primary:hover { background: #2962ff; color: #fff; }
+.btn-outline-danger:hover { background: var(--up-color); border-color: var(--up-color); }
+
+/* Override Bootstrap form controls */
+.form-control {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    line-height: 1.7;
+}
+.form-control:focus, .form-select:focus {
+    border-color: #2962ff;
+    box-shadow: 0 0 0 2px rgba(41,98,255,0.1);
+}
+.form-control.bg-light { background: #f9fafb !important; }
+small.text-muted {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.75rem;
+    color: var(--text-muted) !important;
+}
+
+/* Override Bootstrap form labels & checks */
+.form-label {
+    font-size: 0.82rem;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+.form-check-label {
+    font-size: 0.82rem;
+    color: var(--text-primary);
+}
+.form-check-input {
+    accent-color: #2962ff;
+}
+.form-check-input:focus {
+    box-shadow: 0 0 0 2px rgba(41,98,255,0.1);
+    border-color: #2962ff;
+}
+
+/* Override Bootstrap accordion */
+.accordion-button:not(.collapsed) {
+    background: #f9fafb;
+    color: var(--text-primary);
+    box-shadow: none;
+}
+.accordion-button:focus { box-shadow: none; border-color: var(--border-color); }
+
+/* Override Bootstrap badge */
+.badge.bg-light { background: #f3f4f6 !important; }
+
+/* Override alert */
+.alert-secondary { background: #f9fafb; border-color: var(--border-color); color: var(--text-primary); }
+.alert-danger { border-color: #fecaca; }
+.alert-warning { border-color: #fde68a; }
+
+/* Brief card */
+.brief-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    padding: 24px;
+    margin-bottom: 12px;
+}
+
+/* Custom buttons */
+.btn-refresh {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+}
+.btn-refresh:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+}
+.btn-refresh.btn-primary-s {
+    background: #2962ff;
+    color: #fff !important;
+    border-color: #2962ff;
+}
+.btn-refresh.btn-primary-s:hover {
+    background: #1e4fcc;
+    border-color: #1e4fcc;
+    color: #fff !important;
+}
+
+/* Settings input */
+.settings-input {
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    color: var(--text-primary);
+    outline: none;
+}
+.settings-input:focus { border-color: #2962ff; }
+
+/* Tag chips */
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: #f3f4f6;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    color: var(--text-primary);
+}
+.tag-chip-remove {
+    background: none;
+    border: none;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+.tag-chip-remove:hover { color: var(--up-color); }
+
+/* Prompt sub tabs */
+.prompt-sub-tab {
+    padding: 6px 14px;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.prompt-sub-tab:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+.prompt-sub-tab.active {
+    color: var(--text-primary);
+    font-weight: 700;
+    border-color: var(--border-color);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-card);
+}
+
+/* Info box */
+.info-box {
+    background: #f9fafb;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+.info-box.warn {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: var(--up-color);
+}
+
+/* Add form box */
+.add-form-box {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    margin-bottom: 16px;
+    background: #fafbfc;
+}
+.add-form-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+{% endblock %}
+
 {% block content %}
-<h4 class="mb-3">설정</h4>
+<h5 class="section-heading" style="margin-top: 0;">설정</h5>
 
 <!-- 탭 네비게이션 -->
 <ul class="nav nav-tabs mb-3" role="tablist">
@@ -14,9 +255,6 @@
         <button class="nav-link" id="sector-tab" data-bs-toggle="tab" data-bs-target="#sector-panel" type="button" role="tab">섹터</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="youtube-tab" data-bs-toggle="tab" data-bs-target="#youtube-panel" type="button" role="tab">유튜브</button>
-    </li>
-    <li class="nav-item" role="presentation">
         <button class="nav-link" id="prompt-tab" data-bs-toggle="tab" data-bs-target="#prompt-panel" type="button" role="tab">프롬프트</button>
     </li>
 </ul>
@@ -25,687 +263,323 @@
 <div class="tab-content">
     <!-- 업종 탭 -->
     <div class="tab-pane fade show active" id="theme-panel" role="tabpanel">
-        <!-- 업종 관리 (2단계) -->
-        <div class="card">
-    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-        <strong>업종 관리</strong>
-        <div>
-            <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddCategory">대분류 추가</button>
-            <button type="button" class="btn btn-sm btn-primary" id="btnAddTheme">소분류 추가</button>
-        </div>
-    </div>
-    <div class="card-body p-0">
-        <!-- 대분류 추가 폼 -->
-        <div id="categoryAddForm" class="border-bottom p-3 d-none bg-light">
-            <div class="row g-2 align-items-end">
-                <div class="col-md-8">
-                    <label class="form-label small fw-bold">대분류 추가 (최대 20자)</label>
-                    <input type="text" class="form-control form-control-sm" id="categoryAddName" placeholder="건설/플랜트, 바이오/제약 등" maxlength="20">
-                </div>
-                <div class="col-md-4">
-                    <button type="button" id="btnSaveCategory" class="btn btn-sm btn-outline-primary w-100">저장</button>
+        <div class="brief-card">
+            <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">업종 관리</span>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn-refresh" id="btnAddCategory">대분류 추가</button>
+                    <button type="button" class="btn-refresh" id="btnAddTheme">소분류 추가</button>
                 </div>
             </div>
-        </div>
 
-        <!-- 소분류 추가 폼 -->
-        <div id="themeAddForm" class="border-bottom p-3 d-none bg-light">
-            <div class="row g-2 align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label small fw-bold">대분류 선택</label>
-                    <select class="form-select form-select-sm" id="themeAddCategory">
+            <!-- 대분류 추가 폼 -->
+            <div id="categoryAddForm" class="d-none add-form-box">
+                <div class="add-form-label">대분류 추가 (최대 20자)</div>
+                <div class="d-flex gap-2 align-items-center">
+                    <input type="text" class="settings-input" id="categoryAddName" placeholder="건설/플랜트, 바이오/제약 등" maxlength="20" style="flex:1;">
+                    <button type="button" id="btnSaveCategory" class="btn-refresh" style="padding:6px 20px;">저장</button>
+                </div>
+            </div>
+
+            <!-- 소분류 추가 폼 -->
+            <div id="themeAddForm" class="d-none add-form-box">
+                <div class="add-form-label">소분류 추가</div>
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <select class="settings-input" id="themeAddCategory" style="min-width:160px;">
                         <option value="">대분류 선택</option>
                         {% for category in categories %}
                         <option value="{{ category.id }}">{{ category.name }}</option>
                         {% endfor %}
                     </select>
-                </div>
-                <div class="col-md-5">
-                    <label class="form-label small fw-bold">소분류명 (최대 20자)</label>
-                    <input type="text" class="form-control form-control-sm" id="themeAddName" placeholder="도시정비/원전/SMR 등" maxlength="20">
-                </div>
-                <div class="col-md-3">
-                    <button type="button" id="btnSaveTheme" class="btn btn-sm btn-primary w-100">저장</button>
+                    <input type="text" class="settings-input" id="themeAddName" placeholder="소분류명 (최대 20자)" maxlength="20" style="flex:1;">
+                    <button type="button" id="btnSaveTheme" class="btn-refresh" style="padding:6px 20px;">저장</button>
                 </div>
             </div>
-        </div>
 
-        <!-- 업종 목록 (아코디언) -->
-        <div class="accordion accordion-flush" id="themeAccordion">
-            {% for category in categories %}
-            <div class="accordion-item" data-category-id="{{ category.id }}">
-                <h2 class="accordion-header">
-                    <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ category.id }}">
-                        <strong>{{ category.name }}</strong>
-                        <span class="badge bg-secondary ms-2">{{ category.themes.count }}</span>
-                    </button>
-                </h2>
-                <div id="collapse{{ category.id }}" class="accordion-collapse collapse" data-bs-parent="#themeAccordion">
-                    <div class="accordion-body py-2 px-3">
-                        <div class="d-flex flex-wrap gap-2 mb-2 theme-list" data-category-id="{{ category.id }}">
-                            {% for theme in category.themes.all %}
-                            <span class="badge bg-light text-dark border d-flex align-items-center" data-theme-id="{{ theme.id }}">
-                                {{ theme.name }}
-                                <button type="button" class="btn-close btn-close-sm ms-1 btn-delete-theme" data-id="{{ theme.id }}" data-name="{{ theme.name }}" style="font-size: 0.6rem;"></button>
-                            </span>
-                            {% empty %}
-                            <span class="text-muted small theme-empty">소분류가 없습니다.</span>
-                            {% endfor %}
-                        </div>
-                        <div class="text-end">
-                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-category" data-id="{{ category.id }}" data-name="{{ category.name }}">대분류 삭제</button>
+            <!-- 업종 목록 (아코디언) -->
+            <div class="accordion accordion-flush" id="themeAccordion">
+                {% for category in categories %}
+                <div class="accordion-item" data-category-id="{{ category.id }}" style="border:none;border-bottom:1px solid var(--border-color);">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ category.id }}" style="font-size:0.85rem;padding:12px 0;background:none;box-shadow:none;">
+                            <strong>{{ category.name }}</strong>
+                            <span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:0.7rem;background:#f3f4f6;color:var(--text-secondary);margin-left:8px;">{{ category.themes.count }}</span>
+                        </button>
+                    </h2>
+                    <div id="collapse{{ category.id }}" class="accordion-collapse collapse" data-bs-parent="#themeAccordion">
+                        <div style="padding:8px 0 16px;">
+                            <div class="d-flex flex-wrap gap-2 mb-2 theme-list" data-category-id="{{ category.id }}">
+                                {% for theme in category.themes.all %}
+                                <span class="tag-chip" data-theme-id="{{ theme.id }}">
+                                    {{ theme.name }}
+                                    <button type="button" class="tag-chip-remove btn-delete-theme" data-id="{{ theme.id }}" data-name="{{ theme.name }}">&times;</button>
+                                </span>
+                                {% empty %}
+                                <span style="color:var(--text-muted);font-size:0.82rem;" class="theme-empty">소분류가 없습니다.</span>
+                                {% endfor %}
+                            </div>
+                            <div class="text-end">
+                                <button type="button" class="btn-refresh btn-delete-category" style="color:var(--up-color);border-color:var(--up-color);font-size:0.72rem;" data-id="{{ category.id }}" data-name="{{ category.name }}">대분류 삭제</button>
+                            </div>
                         </div>
                     </div>
                 </div>
+                {% empty %}
+                <div style="text-align:center;color:var(--text-muted);padding:24px;font-size:0.85rem;" id="emptyMessage">
+                    등록된 업종이 없습니다. 대분류를 먼저 추가하세요.
+                </div>
+                {% endfor %}
             </div>
-            {% empty %}
-            <div class="text-center text-muted py-4" id="emptyMessage">
-                등록된 업종이 없습니다. 대분류를 먼저 추가하세요.
-            </div>
-            {% endfor %}
         </div>
-    </div>
-</div>
 
-        <div class="mt-3 small text-muted">
+        <div style="margin-top:12px;font-size:0.78rem;color:var(--text-muted);">
             <strong>사용법:</strong> 대분류(건설/플랜트, 바이오/제약 등)를 먼저 추가한 후, 소분류(도시정비/원전, P-CAB/GLP-1 등)를 추가하세요.
         </div>
     </div>
 
     <!-- 섹터 탭 -->
     <div class="tab-pane fade" id="sector-panel" role="tabpanel">
-        <div class="card">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <strong>섹터 관리</strong>
-                <span class="badge bg-secondary">{{ custom_sectors|length }}개</span>
+        <div class="brief-card">
+            <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">섹터 관리</span>
+                <span style="font-size:0.78rem;color:var(--text-muted);">{{ custom_sectors|length }}개</span>
             </div>
-            <div class="card-body">
-                <!-- 섹터 추가 폼 -->
-                <div class="row g-2 mb-3">
-                    <div class="col">
-                        <input type="text" class="form-control form-control-sm" id="customSectorName" placeholder="섹터명 입력 (예: 화장품, 2차전지)" maxlength="50">
-                    </div>
-                    <div class="col-auto">
-                        <button type="button" class="btn btn-sm btn-primary" id="btnAddCustomSector">추가</button>
-                    </div>
-                </div>
-
-                <!-- 섹터 목록 -->
-                <div id="customSectorList" class="d-flex flex-wrap gap-2">
-                    {% for sector in custom_sectors %}
-                    <span class="badge bg-light text-dark border d-flex align-items-center" data-id="{{ sector.id }}">
-                        {{ sector.name }}
-                        <button type="button" class="btn-close btn-close-sm ms-1 btn-delete-custom-sector" data-id="{{ sector.id }}" data-name="{{ sector.name }}" style="font-size: 0.6rem;"></button>
-                    </span>
-                    {% empty %}
-                    <span class="text-muted small" id="noSectorMsg">등록된 섹터가 없습니다.</span>
-                    {% endfor %}
-                </div>
+            <!-- 섹터 추가 폼 -->
+            <div class="d-flex gap-2 align-items-center" style="margin-bottom:16px;">
+                <input type="text" class="settings-input" id="customSectorName" placeholder="섹터명 입력 (예: 화장품, 2차전지)" maxlength="50" style="flex:1;">
+                <button type="button" class="btn-refresh" id="btnAddCustomSector">추가</button>
+            </div>
+            <!-- 섹터 목록 -->
+            <div id="customSectorList" class="d-flex flex-wrap gap-2">
+                {% for sector in custom_sectors %}
+                <span class="tag-chip" data-id="{{ sector.id }}">
+                    {{ sector.name }}
+                    <button type="button" class="tag-chip-remove btn-delete-custom-sector" data-id="{{ sector.id }}" data-name="{{ sector.name }}">&times;</button>
+                </span>
+                {% empty %}
+                <span style="color:var(--text-muted);font-size:0.82rem;" id="noSectorMsg">등록된 섹터가 없습니다.</span>
+                {% endfor %}
             </div>
         </div>
-        <div class="mt-3 small text-muted">
+        <div style="margin-top:12px;font-size:0.78rem;color:var(--text-muted);">
             <strong>사용법:</strong> 섹터를 추가하면 '섹터' 페이지 하단에 표시됩니다.
-        </div>
-    </div>
-
-    <!-- 유튜브 탭 -->
-    <div class="tab-pane fade" id="youtube-panel" role="tabpanel">
-        <!-- 제외 채널 -->
-        <div class="card mb-3">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <strong>제외 채널 목록</strong>
-                <span class="badge bg-secondary">{{ excluded_channels|length }}개</span>
-            </div>
-            <div class="card-body">
-                <!-- 채널 추가 폼 -->
-                <div class="row g-2 mb-3">
-                    <div class="col">
-                        <input type="text" class="form-control form-control-sm" id="excludeChannelName" placeholder="제외할 채널명 입력">
-                    </div>
-                    <div class="col-auto">
-                        <button type="button" class="btn btn-sm btn-danger" id="btnAddExcludeChannel">추가</button>
-                    </div>
-                </div>
-
-                <!-- 채널 목록 -->
-                <div id="excludeChannelList" class="d-flex flex-wrap gap-2">
-                    {% for channel in excluded_channels %}
-                    <span class="badge bg-light text-dark border d-flex align-items-center" data-id="{{ channel.id }}">
-                        {{ channel.name }}
-                        <button type="button" class="btn-close btn-close-sm ms-1 btn-delete-channel" data-id="{{ channel.id }}" style="font-size: 0.6rem;"></button>
-                    </span>
-                    {% empty %}
-                    <span class="text-muted small" id="noChannelMsg">등록된 제외 채널이 없습니다.</span>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <!-- 선호 채널 -->
-        <div class="card">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <strong>선호 채널 목록</strong>
-                <span class="badge bg-primary">{{ preferred_channels|length }}개</span>
-            </div>
-            <div class="card-body">
-                <!-- 채널 추가 폼 -->
-                <div class="row g-2 mb-3">
-                    <div class="col">
-                        <input type="text" class="form-control form-control-sm" id="preferredChannelName" placeholder="선호할 채널명 입력">
-                    </div>
-                    <div class="col-auto">
-                        <button type="button" class="btn btn-sm btn-primary" id="btnAddPreferredChannel">추가</button>
-                    </div>
-                </div>
-
-                <!-- 채널 목록 -->
-                <div id="preferredChannelList" class="d-flex flex-wrap gap-2">
-                    {% for channel in preferred_channels %}
-                    <span class="badge bg-primary-subtle text-dark border d-flex align-items-center" data-id="{{ channel.id }}">
-                        {{ channel.name }}
-                        <button type="button" class="btn-close btn-close-sm ms-1 btn-delete-preferred" data-id="{{ channel.id }}" style="font-size: 0.6rem;"></button>
-                    </span>
-                    {% empty %}
-                    <span class="text-muted small" id="noPreferredMsg">등록된 선호 채널이 없습니다.</span>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <div class="mt-3 small text-muted">
-            <strong>사용법:</strong><br>
-            - <strong>제외 채널:</strong> 일반 검색에서 제외할 채널명을 등록하세요.<br>
-            - <strong>선호 채널:</strong> 선호 모드로 검색 시, 등록된 채널에서만 검색합니다. 채널명은 정확히 일치해야 합니다.
         </div>
     </div>
 
     <!-- 프롬프트 탭 -->
     <div class="tab-pane fade" id="prompt-panel" role="tabpanel">
         <!-- 프롬프트 하위 탭 -->
-        <ul class="nav nav-pills mb-3" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="stock-classify-tab" data-bs-toggle="pill" data-bs-target="#stock-classify-panel" type="button" role="tab">종목분류</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="html-convert-tab" data-bs-toggle="pill" data-bs-target="#html-convert-panel" type="button" role="tab">HTML변환</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="data-loader-tab" data-bs-toggle="pill" data-bs-target="#data-loader-panel" type="button" role="tab">핵심브리핑</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="valuation-tab" data-bs-toggle="pill" data-bs-target="#valuation-panel" type="button" role="tab">가치평가</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="research-prompt-tab" data-bs-toggle="pill" data-bs-target="#research-prompt-panel" type="button" role="tab">리서치</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="stock-analysis-tab" data-bs-toggle="pill" data-bs-target="#stock-analysis-panel" type="button" role="tab">기업분석</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="financial-analysis-tab" data-bs-toggle="pill" data-bs-target="#financial-analysis-panel" type="button" role="tab">재무분석</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="investment-indicator-tab" data-bs-toggle="pill" data-bs-target="#investment-indicator-panel" type="button" role="tab">투자지표</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="report-prompt-tab" data-bs-toggle="pill" data-bs-target="#report-prompt-panel" type="button" role="tab">리포트</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="nodaji-tab" data-bs-toggle="pill" data-bs-target="#nodaji-panel" type="button" role="tab">노다지</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="youtube-prompt-tab" data-bs-toggle="pill" data-bs-target="#youtube-prompt-panel" type="button" role="tab">유튜브</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="news-prompt-tab" data-bs-toggle="pill" data-bs-target="#news-prompt-panel" type="button" role="tab">뉴스</button>
-            </li>
-        </ul>
+        <div class="d-flex flex-wrap gap-2 mb-3" id="promptSubTabs">
+            <button class="prompt-sub-tab active" data-target="stock-classify-panel" id="stock-classify-tab">종목분류</button>
+            <button class="prompt-sub-tab" data-target="html-convert-panel" id="html-convert-tab">HTML변환</button>
+            <button class="prompt-sub-tab" data-target="data-loader-panel" id="data-loader-tab">핵심브리핑</button>
+            <button class="prompt-sub-tab" data-target="valuation-panel" id="valuation-tab">가치평가</button>
+            <button class="prompt-sub-tab" data-target="research-prompt-panel" id="research-prompt-tab">리서치</button>
+            <button class="prompt-sub-tab" data-target="stock-analysis-panel" id="stock-analysis-tab">기업분석</button>
+            <button class="prompt-sub-tab" data-target="financial-analysis-panel" id="financial-analysis-tab">재무분석</button>
+            <button class="prompt-sub-tab" data-target="investment-indicator-panel" id="investment-indicator-tab">투자지표</button>
+            <button class="prompt-sub-tab" data-target="report-prompt-panel" id="report-prompt-tab">리포트</button>
+            <button class="prompt-sub-tab" data-target="nodaji-panel" id="nodaji-tab">노다지</button>
+            <button class="prompt-sub-tab" data-target="youtube-prompt-panel" id="youtube-prompt-tab">유튜브</button>
+            <button class="prompt-sub-tab" data-target="news-prompt-panel" id="news-prompt-tab">뉴스</button>
+        </div>
 
-        <div class="tab-content">
-            <!-- 종목분류 탭 -->
-            <div class="tab-pane fade show active" id="stock-classify-panel" role="tabpanel">
-                <!-- 프롬프트 영역 -->
-                <div class="card mb-3">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <strong>프롬프트</strong>
-                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveClassifyPrompt">저장</button>
+        <div id="promptTabContent">
+            <!-- 종목분류 -->
+            <div class="prompt-panel" id="stock-classify-panel">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">프롬프트</span>
+                        <button type="button" class="btn-refresh" id="btnSaveClassifyPrompt">저장</button>
                     </div>
-                    <div class="card-body py-2">
-                        <textarea class="form-control" id="stockClassifyPrompt" rows="6" placeholder="종목분류 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_classify }}</textarea>
-                        <small class="text-muted">AI에게 전달할 기본 프롬프트입니다. 수정 후 저장하세요.</small>
-                    </div>
+                    <textarea class="form-control" id="stockClassifyPrompt" rows="6" placeholder="종목분류 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_classify }}</textarea>
+                    <small class="text-muted">AI에게 전달할 기본 프롬프트입니다. 수정 후 저장하세요.</small>
                 </div>
-
-                <!-- 종목 분류 현황 -->
-                <div class="card mb-3">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <strong>종목 분류 현황</strong>
-                        <span class="badge bg-secondary">{{ stock_classify_lines_count }}개</span>
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">종목 분류 현황</span>
+                        <span style="font-size:0.78rem;color:var(--text-muted);">{{ stock_classify_lines_count }}개</span>
                     </div>
-                    <div class="card-body py-2">
-                        <textarea class="form-control bg-light" id="stockClassifyList" rows="8" readonly>{{ stock_classify_text }}</textarea>
-                        <small class="text-muted">DB에서 자동 생성됩니다. (종목명 | 대분류 | 소분류)</small>
-                    </div>
+                    <textarea class="form-control bg-light" id="stockClassifyList" rows="8" readonly>{{ stock_classify_text }}</textarea>
+                    <small class="text-muted">DB에서 자동 생성됩니다. (종목명 | 대분류 | 소분류)</small>
                 </div>
-
-                <!-- 전체 복사 버튼 -->
-                <div class="d-grid">
-                    <button type="button" class="btn btn-outline-primary" id="btnCopyAll">
-                        전체 복사 (종목 리스트 + 프롬프트)
-                    </button>
+                <button type="button" class="btn-refresh" id="btnCopyAll" style="width:100%;padding:8px;">전체 복사 (종목 리스트 + 프롬프트)</button>
+            </div>
+            <!-- HTML변환 -->
+            <div class="prompt-panel" id="html-convert-panel" style="display:none;">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">HTML 변환 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="btnSaveHtmlPrompt">저장</button>
+                    </div>
+                    <div class="info-box"><small><strong>도구:</strong> Gemini 사고모드<br><strong>사용:</strong> Deep Research 결과를 복사한 후 이 프롬프트와 함께 사용하세요.</small></div>
+                    <textarea class="form-control" id="promptHtml" rows="8" placeholder="HTML 변환용 프롬프트...">{{ saved_prompts.prompt_html }}</textarea>
+                    <small class="text-muted">리포트 결과를 HTML 파일로 변환하는 프롬프트</small>
+                    <div class="info-box warn" style="margin-top:8px;"><small><strong>생성 실패 시:</strong> 가끔 HTML을 만들지 못하는 경우가 있습니다.<br>→ 일반 프롬프트로 이동 후: {결과 복사} --- html 형태로 정리해줘.</small></div>
                 </div>
             </div>
-
-            <!-- HTML변환 탭 -->
-            <div class="tab-pane fade" id="html-convert-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <strong>HTML 변환 프롬프트</strong>
-                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveHtmlPrompt">저장</button>
+            <!-- 핵심브리핑 -->
+            <div class="prompt-panel" id="data-loader-panel" style="display:none;">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">핵심브리핑 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="btnSaveBriefingPrompt">저장</button>
                     </div>
-                    <div class="card-body">
-                        <div class="alert alert-secondary py-2 mb-3">
-                            <small>
-                                <strong>도구:</strong> Gemini 사고모드<br>
-                                <strong>사용:</strong> Deep Research 결과를 복사한 후 이 프롬프트와 함께 사용하세요.
-                            </small>
-                        </div>
-                        <textarea class="form-control" id="promptHtml" rows="8" placeholder="HTML 변환용 프롬프트...">{{ saved_prompts.prompt_html }}</textarea>
-                        <small class="text-muted">리포트 결과를 HTML 파일로 변환하는 프롬프트</small>
-                        <div class="alert alert-warning py-2 mt-2 mb-0">
-                            <small>
-                                <strong>생성 실패 시:</strong> 가끔 HTML을 만들지 못하는 경우가 있습니다.<br>
-                                → 일반 프롬프트로 이동 후 아래 프롬프트 실행:<br>
-                                <code class="d-block mt-1 p-2 bg-light">{deep research가 뽑아준 결과 복사(공유 및 내보내기 -> 컨텐츠 복사)}<br>---<br>html 형태로 정리해줘.</code>
-                            </small>
+                    <div class="info-box"><small><strong>사용:</strong> 종목 편집 → 핵심 브리핑 → <code>프롬프트 복사</code> 버튼을 사용하세요.<br>아래 프롬프트가 데이터 앞에 추가됩니다.</small></div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">불러올 데이터 선택</label>
+                        <div class="row">
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkAnalysis" value="analysis" {% if 'analysis' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkAnalysis">기업분석</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkKeyBriefing" value="key_briefing" {% if 'key_briefing' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkKeyBriefing">핵심브리핑</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkFinancialAnalysis" value="financial_analysis" {% if 'financial_analysis' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkFinancialAnalysis">재무분석</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkInvestmentIndicator" value="investment_indicator" {% if 'investment_indicator' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkInvestmentIndicator">투자지표</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkNodaji" value="nodaji" {% if 'nodaji' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkNodaji">노다지 (5개)</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkReport" value="report" {% if 'report' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkReport">리포트 (10개)</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkYoutube" value="youtube" {% if 'youtube' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkYoutube">유튜브 (10개)</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkNews" value="news" {% if 'news' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkNews">뉴스 (10개)</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkTelegram" value="telegram" {% if 'telegram' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkTelegram">텔레그램 (10개)</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkMemo" value="memo" {% if 'memo' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkMemo">메모</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkResearch" value="research" {% if 'research' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkResearch">리서치 (10개)</label></div></div>
                         </div>
                     </div>
+                    <label class="form-label small fw-bold">프롬프트</label>
+                    <textarea class="form-control" id="promptBriefing" rows="10" placeholder="핵심브리핑 생성 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_briefing }}</textarea>
+                    <small class="text-muted">이 프롬프트가 종목 데이터 앞에 추가되어 복사됩니다.</small>
                 </div>
             </div>
-
-            <!-- 핵심브리핑 탭 -->
-            <div class="tab-pane fade" id="data-loader-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <strong>핵심브리핑 프롬프트</strong>
-                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveBriefingPrompt">저장</button>
+            <!-- 가치평가 -->
+            <div class="prompt-panel" id="valuation-panel" style="display:none;">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">가치평가 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="btnSaveValuationPrompt">저장</button>
                     </div>
-                    <div class="card-body">
-                        <div class="alert alert-secondary py-2 mb-3">
-                            <small>
-                                <strong>사용:</strong> 종목 편집 → 핵심 브리핑 → <code>프롬프트 복사</code> 버튼을 사용하세요.<br>
-                                아래 프롬프트가 데이터 앞에 추가됩니다.
-                            </small>
-                        </div>
-                        <!-- 데이터 선택 체크박스 -->
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">불러올 데이터 선택</label>
-                            <div class="row">
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkAnalysis" value="analysis" {% if 'analysis' in briefing_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkAnalysis">기업분석</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkKeyBriefing" value="key_briefing" {% if 'key_briefing' in briefing_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkKeyBriefing">핵심브리핑</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkFinancialAnalysis" value="financial_analysis" {% if 'financial_analysis' in briefing_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkFinancialAnalysis">재무분석</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkInvestmentIndicator" value="investment_indicator" {% if 'investment_indicator' in briefing_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkInvestmentIndicator">투자지표</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkNodaji" value="nodaji" {% if 'nodaji' in briefing_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkNodaji">노다지 (5개)</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkReport" value="report" {% if 'report' in briefing_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkReport">리포트 (10개)</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkYoutube" value="youtube" {% if 'youtube' in briefing_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkYoutube">유튜브 (10개)</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkNews" value="news" {% if 'news' in briefing_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkNews">뉴스 (10개)</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkTelegram" value="telegram" {% if 'telegram' in briefing_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkTelegram">텔레그램 (10개)</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkMemo" value="memo" {% if 'memo' in briefing_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkMemo">메모</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input data-loader-check" type="checkbox" id="chkResearch" value="research" {% if 'research' in briefing_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkResearch">리서치 (10개)</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- 프롬프트 -->
-                        <div>
-                            <label class="form-label small fw-bold">프롬프트</label>
-                            <textarea class="form-control" id="promptBriefing" rows="10" placeholder="핵심브리핑 생성 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_briefing }}</textarea>
-                            <small class="text-muted">이 프롬프트가 종목 데이터 앞에 추가되어 복사됩니다.</small>
+                    <div class="info-box"><small><strong>사용:</strong> 종목 편집 → 가치평가 → <code>프롬프트 복사</code> 버튼을 사용하세요.<br>아래 프롬프트가 데이터 앞에 추가됩니다.</small></div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">불러올 데이터 선택</label>
+                        <div class="row">
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationAnalysis" value="analysis" {% if 'analysis' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationAnalysis">기업분석</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationKeyBriefing" value="key_briefing" {% if 'key_briefing' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationKeyBriefing">핵심브리핑</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationFinancialAnalysis" value="financial_analysis" {% if 'financial_analysis' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationFinancialAnalysis">재무분석</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationInvestmentIndicator" value="investment_indicator" {% if 'investment_indicator' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationInvestmentIndicator">투자지표</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationNodaji" value="nodaji" {% if 'nodaji' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationNodaji">노다지 (5개)</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationReport" value="report" {% if 'report' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationReport">리포트 (10개)</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationYoutube" value="youtube" {% if 'youtube' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationYoutube">유튜브 (10개)</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationNews" value="news" {% if 'news' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationNews">뉴스 (10개)</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationTelegram" value="telegram" {% if 'telegram' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationTelegram">텔레그램 (10개)</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationMemo" value="memo" {% if 'memo' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationMemo">메모</label></div></div>
+                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationResearch" value="research" {% if 'research' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationResearch">리서치 (10개)</label></div></div>
                         </div>
                     </div>
+                    <label class="form-label small fw-bold">프롬프트</label>
+                    <textarea class="form-control" id="promptValuation" rows="10" placeholder="가치평가 생성 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_valuation }}</textarea>
+                    <small class="text-muted">이 프롬프트가 종목 데이터 앞에 추가되어 복사됩니다.</small>
                 </div>
             </div>
-
-            <!-- 가치평가 탭 -->
-            <div class="tab-pane fade" id="valuation-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <strong>가치평가 프롬프트</strong>
-                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveValuationPrompt">저장</button>
+            <!-- 리서치 -->
+            <div class="prompt-panel" id="research-prompt-panel" style="display:none;">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">리서치 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="btnAddResearchPrompt">+ 추가</button>
                     </div>
-                    <div class="card-body">
-                        <div class="alert alert-secondary py-2 mb-3">
-                            <small>
-                                <strong>사용:</strong> 종목 편집 → 가치평가 → <code>프롬프트 복사</code> 버튼을 사용하세요.<br>
-                                아래 프롬프트가 데이터 앞에 추가됩니다.
-                            </small>
-                        </div>
-                        <!-- 데이터 선택 체크박스 -->
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">불러올 데이터 선택</label>
-                            <div class="row">
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationAnalysis" value="analysis" {% if 'analysis' in valuation_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkValuationAnalysis">기업분석</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationKeyBriefing" value="key_briefing" {% if 'key_briefing' in valuation_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkValuationKeyBriefing">핵심브리핑</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationFinancialAnalysis" value="financial_analysis" {% if 'financial_analysis' in valuation_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkValuationFinancialAnalysis">재무분석</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationInvestmentIndicator" value="investment_indicator" {% if 'investment_indicator' in valuation_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkValuationInvestmentIndicator">투자지표</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationNodaji" value="nodaji" {% if 'nodaji' in valuation_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkValuationNodaji">노다지 (5개)</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationReport" value="report" {% if 'report' in valuation_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkValuationReport">리포트 (10개)</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationYoutube" value="youtube" {% if 'youtube' in valuation_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkValuationYoutube">유튜브 (10개)</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationNews" value="news" {% if 'news' in valuation_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkValuationNews">뉴스 (10개)</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationTelegram" value="telegram" {% if 'telegram' in valuation_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkValuationTelegram">텔레그램 (10개)</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationMemo" value="memo" {% if 'memo' in valuation_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkValuationMemo">메모</label>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <div class="form-check">
-                                        <input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationResearch" value="research" {% if 'research' in valuation_data_types %}checked{% endif %}>
-                                        <label class="form-check-label" for="chkValuationResearch">리서치 (10개)</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- 프롬프트 -->
-                        <div>
-                            <label class="form-label small fw-bold">프롬프트</label>
-                            <textarea class="form-control" id="promptValuation" rows="10" placeholder="가치평가 생성 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_valuation }}</textarea>
-                            <small class="text-muted">이 프롬프트가 종목 데이터 앞에 추가되어 복사됩니다.</small>
-                        </div>
-                    </div>
+                    <div id="researchPromptList"></div>
+                    <div id="researchPromptEmpty" class="text-center py-4 d-none" style="color:var(--text-muted);font-size:0.85rem;">등록된 리서치 프롬프트가 없습니다.</div>
                 </div>
             </div>
-
-            <!-- 기업분석 탭 -->
-            <div class="tab-pane fade" id="stock-analysis-panel" role="tabpanel">
-                <!-- STEP 1: 리포트 만들기 -->
-                <div class="card mb-3">
-                    <div class="card-header py-2">
-                        <span class="badge bg-primary me-2">STEP 1</span>
-                        <strong>리포트 만들기</strong>
+            <!-- 기업분석 -->
+            <div class="prompt-panel" id="stock-analysis-panel" style="display:none;">
+                <div class="brief-card">
+                    <div style="margin-bottom:16px;">
+                        <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:600;background:#2962ff;color:#fff;margin-right:8px;">STEP 1</span>
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">리포트 만들기</span>
                     </div>
-                    <div class="card-body">
-                        <div class="alert alert-secondary py-2 mb-3">
-                            <small>
-                                <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
-                                <strong>저장:</strong> 종목 편집 → 기업분석 → <code>리포트</code> 탭
-                            </small>
-                        </div>
-                        <div class="alert alert-danger py-2 mb-3">
-                            <strong>⚠️ 중요:</strong> 반드시 <strong>사업보고서 PDF 파일</strong>을 첨부하여 사용하세요!
-                        </div>
-
-                        <!-- 프롬프트 1: 리포트 생성 -->
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="form-label fw-bold small mb-0">1-1. 리포트 생성 프롬프트</label>
-                                <button type="button" class="btn btn-sm btn-primary" id="btnSaveAnalysisPrompt">저장</button>
-                            </div>
-                            <textarea class="form-control" id="promptAnalysis" rows="8" placeholder="Deep Research용 프롬프트...">{{ saved_prompts.prompt_analysis }}</textarea>
-                            <small class="text-muted">Deep Research에 입력할 프롬프트</small>
-                        </div>
-
-                        <!-- HTML 변환 탭으로 이동 -->
-                        <div>
-                            <label class="form-label fw-bold small mb-1">1-2. HTML 변환 프롬프트</label>
-                            <div>
-                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('html-convert-tab').click();">
-                                    HTML변환 탭으로 이동 →
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- 재무분석 탭 -->
-            <div class="tab-pane fade" id="financial-analysis-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <strong>재무분석 프롬프트</strong>
-                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveFinancialAnalysisPrompt">저장</button>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-secondary py-2 mb-3">
-                            <small>
-                                <strong>도구:</strong> Gemini + 사고모드<br>
-                                <strong>저장:</strong> 종목 편집 → 재무분석<br>
-                                <strong>컨센서스:</strong> 첫번째 실적&amp;컨센서스 추이 테이블만 복사<br>
-                                <strong>재무제표:</strong> 차트 감추기 클릭 → 테이블 3개 모두 복사하기
-                            </small>
-                        </div>
-                        <textarea class="form-control" id="promptFinancialAnalysis" rows="10" placeholder="재무분석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_financial_analysis }}</textarea>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 투자지표 탭 -->
-            <div class="tab-pane fade" id="investment-indicator-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <strong>투자지표 프롬프트</strong>
-                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveInvestmentIndicatorPrompt">저장</button>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-secondary py-2 mb-3">
-                            <small>
-                                <strong>도구:</strong> Gemini + 사고모드<br>
-                                <strong>저장:</strong> 종목 편집 → 투자지표<br>
-                                <strong>투자지표:</strong> 재무비율 테이블에서 수익성, 성장성 탭하여 복사하면 된다. (연간, 분기)<br>
-                                <span class="text-danger">표에서 +버튼 눌러서 최신 자료 펼쳐서 복사</span>
-                            </small>
-                        </div>
-                        <textarea class="form-control" id="promptInvestmentIndicator" rows="10" placeholder="투자지표용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_investment_indicator }}</textarea>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 노다지 탭 -->
-            <div class="tab-pane fade" id="nodaji-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <strong>노다지 프롬프트</strong>
-                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveNodajiPrompt">저장</button>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-secondary py-2 mb-3">
-                            <small>
-                                <strong>도구:</strong> Gemini Deep Research + 사고모드<br>
-                                <strong>저장:</strong> 종목 편집 → 노다지 → <code>요약</code> 탭
-                            </small>
-                        </div>
-                        <div class="alert alert-danger py-2 mb-3">
-                            <strong>⚠️ 중요:</strong> 반드시 <strong>노다지 PDF 파일</strong>을 첨부하여 사용하세요!
-                        </div>
-                        <textarea class="form-control" id="promptNodaji" rows="8" placeholder="노다지 요약 프롬프트...">{{ saved_prompts.prompt_nodaji }}</textarea>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 리서치 탭 -->
-            <div class="tab-pane fade" id="research-prompt-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <strong>리서치 프롬프트</strong>
-                        <button type="button" class="btn btn-sm btn-primary" id="btnAddResearchPrompt">+ 추가</button>
-                    </div>
-                    <div class="card-body p-0">
-                        <!-- 프롬프트 목록 -->
-                        <div id="researchPromptList">
-                            <!-- JS로 동적 렌더링 -->
-                        </div>
-                        <!-- 빈 상태 -->
-                        <div id="researchPromptEmpty" class="text-center text-muted py-4 d-none">
-                            등록된 리서치 프롬프트가 없습니다.
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 리포트 탭 -->
-            <div class="tab-pane fade" id="report-prompt-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header py-2">
-                        <strong>리포트 요약</strong>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-secondary py-2 mb-3">
-                            <small>
-                                <strong>사용:</strong> 종목 편집 → 리포트 → 증권사 탭 → 요약 버튼<br>
-                                <strong>기능:</strong> 종목명, 증권사, 제목과 함께 프롬프트 복사
-                            </small>
-                        </div>
+                    <div class="info-box"><small><strong>도구:</strong> Gemini Deep Research + 사고모드<br><strong>저장:</strong> 종목 편집 → 기업분석 → <code>리포트</code> 탭</small></div>
+                    <div class="info-box warn"><strong>중요:</strong> 반드시 <strong>사업보고서 PDF 파일</strong>을 첨부하여 사용하세요!</div>
+                    <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label class="form-label fw-bold small mb-0">프롬프트</label>
-                            <button type="button" class="btn btn-sm btn-primary" id="btnSaveReportSummaryPrompt">저장</button>
+                            <label class="form-label fw-bold small mb-0">1-1. 리포트 생성 프롬프트</label>
+                            <button type="button" class="btn-refresh" id="btnSaveAnalysisPrompt">저장</button>
                         </div>
-                        <textarea class="form-control" id="promptReportSummary" rows="8" placeholder="리포트 요약 프롬프트를 입력하세요...">{{ saved_prompts.prompt_report_summary }}</textarea>
+                        <textarea class="form-control" id="promptAnalysis" rows="8" placeholder="Deep Research용 프롬프트...">{{ saved_prompts.prompt_analysis }}</textarea>
+                        <small class="text-muted">Deep Research에 입력할 프롬프트</small>
+                    </div>
+                    <div>
+                        <label class="form-label fw-bold small mb-1">1-2. HTML 변환 프롬프트</label>
+                        <div><button type="button" class="btn-refresh" onclick="document.getElementById('html-convert-tab').click();">HTML변환 탭으로 이동 →</button></div>
                     </div>
                 </div>
             </div>
-
-            <!-- 유튜브 탭 -->
-            <div class="tab-pane fade" id="youtube-prompt-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <strong>유튜브 요약 프롬프트</strong>
-                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveYoutubePrompt">저장</button>
+            <!-- 재무분석 -->
+            <div class="prompt-panel" id="financial-analysis-panel" style="display:none;">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">재무분석 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="btnSaveFinancialAnalysisPrompt">저장</button>
                     </div>
-                    <div class="card-body">
-                        <div class="alert alert-secondary py-2 mb-3">
-                            <small>
-                                <strong>도구:</strong> Gemini + 사고모드<br>
-                                <strong>저장:</strong> 종목/섹터 편집 → 유튜브 → <code>요약</code> 탭
-                            </small>
-                        </div>
-                        <textarea class="form-control" id="promptYoutube" rows="10" placeholder="유튜브 요약용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_youtube }}</textarea>
-                    </div>
+                    <div class="info-box"><small><strong>도구:</strong> Gemini + 사고모드<br><strong>저장:</strong> 종목 편집 → 재무분석<br><strong>컨센서스:</strong> 첫번째 실적&amp;컨센서스 추이 테이블만 복사<br><strong>재무제표:</strong> 차트 감추기 클릭 → 테이블 3개 모두 복사하기</small></div>
+                    <textarea class="form-control" id="promptFinancialAnalysis" rows="10" placeholder="재무분석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_financial_analysis }}</textarea>
                 </div>
             </div>
-
-            <!-- 뉴스 탭 -->
-            <div class="tab-pane fade" id="news-prompt-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <strong>뉴스 요약 프롬프트</strong>
-                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveNewsPrompt">저장</button>
+            <!-- 투자지표 -->
+            <div class="prompt-panel" id="investment-indicator-panel" style="display:none;">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">투자지표 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="btnSaveInvestmentIndicatorPrompt">저장</button>
                     </div>
-                    <div class="card-body">
-                        <div class="alert alert-secondary py-2 mb-3">
-                            <small>
-                                <strong>도구:</strong> Gemini + 사고모드<br>
-                                <strong>저장:</strong> 종목/섹터 편집 → 뉴스 → <code>요약</code> 탭
-                            </small>
-                        </div>
-
-                        <textarea class="form-control" id="promptNews" rows="10" placeholder="뉴스 요약 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_news }}</textarea>
+                    <div class="info-box"><small><strong>도구:</strong> Gemini + 사고모드<br><strong>저장:</strong> 종목 편집 → 투자지표<br><strong>투자지표:</strong> 재무비율 테이블에서 수익성, 성장성 탭하여 복사 (연간, 분기)<br><span style="color:var(--up-color);">표에서 +버튼 눌러서 최신 자료 펼쳐서 복사</span></small></div>
+                    <textarea class="form-control" id="promptInvestmentIndicator" rows="10" placeholder="투자지표용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_investment_indicator }}</textarea>
+                </div>
+            </div>
+            <!-- 리포트 -->
+            <div class="prompt-panel" id="report-prompt-panel" style="display:none;">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">리포트 요약</span>
+                        <button type="button" class="btn-refresh" id="btnSaveReportSummaryPrompt">저장</button>
                     </div>
+                    <div class="info-box"><small><strong>사용:</strong> 종목 편집 → 리포트 → 증권사 탭 → 요약 버튼<br><strong>기능:</strong> 종목명, 증권사, 제목과 함께 프롬프트 복사</small></div>
+                    <textarea class="form-control" id="promptReportSummary" rows="8" placeholder="리포트 요약 프롬프트를 입력하세요...">{{ saved_prompts.prompt_report_summary }}</textarea>
+                </div>
+            </div>
+            <!-- 노다지 -->
+            <div class="prompt-panel" id="nodaji-panel" style="display:none;">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">노다지 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="btnSaveNodajiPrompt">저장</button>
+                    </div>
+                    <div class="info-box"><small><strong>도구:</strong> Gemini Deep Research + 사고모드<br><strong>저장:</strong> 종목 편집 → 노다지 → <code>요약</code> 탭</small></div>
+                    <div class="info-box warn"><strong>중요:</strong> 반드시 <strong>노다지 PDF 파일</strong>을 첨부하여 사용하세요!</div>
+                    <textarea class="form-control" id="promptNodaji" rows="8" placeholder="노다지 요약 프롬프트...">{{ saved_prompts.prompt_nodaji }}</textarea>
+                </div>
+            </div>
+            <!-- 유튜브 -->
+            <div class="prompt-panel" id="youtube-prompt-panel" style="display:none;">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">유튜브 요약 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="btnSaveYoutubePrompt">저장</button>
+                    </div>
+                    <div class="info-box"><small><strong>도구:</strong> Gemini + 사고모드<br><strong>저장:</strong> 종목/섹터 편집 → 유튜브 → <code>요약</code> 탭</small></div>
+                    <textarea class="form-control" id="promptYoutube" rows="10" placeholder="유튜브 요약용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_youtube }}</textarea>
+                </div>
+            </div>
+            <!-- 뉴스 -->
+            <div class="prompt-panel" id="news-prompt-panel" style="display:none;">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">뉴스 요약 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="btnSaveNewsPrompt">저장</button>
+                    </div>
+                    <div class="info-box"><small><strong>도구:</strong> Gemini + 사고모드<br><strong>저장:</strong> 종목/섹터 편집 → 뉴스 → <code>요약</code> 탭</small></div>
+                    <textarea class="form-control" id="promptNews" rows="10" placeholder="뉴스 요약 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_news }}</textarea>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
@@ -722,6 +596,16 @@
         }
     }
 })();
+
+// 프롬프트 서브탭 전환
+document.querySelectorAll('.prompt-sub-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.prompt-sub-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.prompt-panel').forEach(p => p.style.display = 'none');
+        document.getElementById(this.dataset.target).style.display = 'block';
+    });
+});
 
 // === 대분류 관리 ===
 const btnAddCategory = document.getElementById('btnAddCategory');
@@ -859,18 +743,18 @@ btnSaveTheme.addEventListener('click', async () => {
 
                 // 새 뱃지 추가
                 const badge = document.createElement('span');
-                badge.className = 'badge bg-light text-dark border d-flex align-items-center';
+                badge.className = 'tag-chip';
                 badge.dataset.themeId = data.id;
                 badge.innerHTML = `
                     ${escapeHtml(data.name)}
-                    <button type="button" class="btn-close btn-close-sm ms-1 btn-delete-theme" data-id="${data.id}" data-name="${escapeHtml(data.name)}" style="font-size: 0.6rem;"></button>
+                    <button type="button" class="tag-chip-remove btn-delete-theme" data-id="${data.id}" data-name="${escapeHtml(data.name)}">&times;</button>
                 `;
                 themeList.appendChild(badge);
 
                 // 카운트 업데이트
                 const accordion = document.querySelector(`.accordion-item[data-category-id="${categoryId}"]`);
                 if (accordion) {
-                    const countBadge = accordion.querySelector('.badge');
+                    const countBadge = accordion.querySelector('.accordion-button span[style*="border-radius"]');
                     if (countBadge) {
                         countBadge.textContent = parseInt(countBadge.textContent) + 1;
                     }
@@ -922,14 +806,14 @@ document.addEventListener('click', async (e) => {
             // 카운트 업데이트
             const accordion = document.querySelector(`.accordion-item[data-category-id="${categoryId}"]`);
             if (accordion) {
-                const countBadge = accordion.querySelector('.badge');
+                const countBadge = accordion.querySelector('.accordion-button span[style*="border-radius"]');
                 if (countBadge) {
                     const newCount = parseInt(countBadge.textContent) - 1;
                     countBadge.textContent = newCount;
 
                     // 0개면 빈 메시지 표시
                     if (newCount === 0) {
-                        themeList.innerHTML = '<span class="text-muted small theme-empty">소분류가 없습니다.</span>';
+                        themeList.innerHTML = '<span style="color:var(--text-muted);font-size:0.82rem;" class="theme-empty">소분류가 없습니다.</span>';
                     }
                 }
             }
@@ -960,186 +844,6 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-
-// === 유튜브 제외 채널 관리 ===
-const excludeChannelName = document.getElementById('excludeChannelName');
-const btnAddExcludeChannel = document.getElementById('btnAddExcludeChannel');
-const excludeChannelList = document.getElementById('excludeChannelList');
-
-btnAddExcludeChannel.addEventListener('click', async () => {
-    const name = excludeChannelName.value.trim();
-    if (!name) {
-        alert('채널명을 입력해주세요.');
-        return;
-    }
-
-    btnAddExcludeChannel.disabled = true;
-
-    try {
-        const formData = new FormData();
-        formData.append('name', name);
-
-        const response = await fetch('/api/youtube/channel/add/', {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            // 빈 메시지 제거
-            const noMsg = document.getElementById('noChannelMsg');
-            if (noMsg) noMsg.remove();
-
-            // 새 뱃지 추가
-            const badge = document.createElement('span');
-            badge.className = 'badge bg-light text-dark border d-flex align-items-center';
-            badge.dataset.id = data.id;
-            badge.innerHTML = `
-                ${escapeHtml(data.name)}
-                <button type="button" class="btn-close btn-close-sm ms-1 btn-delete-channel" data-id="${data.id}" style="font-size: 0.6rem;"></button>
-            `;
-            excludeChannelList.appendChild(badge);
-
-            excludeChannelName.value = '';
-            excludeChannelName.focus();
-        } else {
-            alert(data.error || '저장에 실패했습니다.');
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-    } finally {
-        btnAddExcludeChannel.disabled = false;
-    }
-});
-
-excludeChannelName.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') btnAddExcludeChannel.click();
-});
-
-// 채널 삭제
-document.addEventListener('click', async (e) => {
-    if (!e.target.classList.contains('btn-delete-channel')) return;
-
-    const channelId = e.target.dataset.id;
-    e.target.disabled = true;
-
-    try {
-        const response = await fetch(`/api/youtube/channel/${channelId}/delete/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            const badge = e.target.closest('[data-id]');
-            badge.remove();
-
-            // 목록이 비었으면 메시지 표시
-            if (excludeChannelList.children.length === 0) {
-                excludeChannelList.innerHTML = '<span class="text-muted small" id="noChannelMsg">등록된 제외 채널이 없습니다.</span>';
-            }
-        } else {
-            alert(data.error || '삭제에 실패했습니다.');
-            e.target.disabled = false;
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-        e.target.disabled = false;
-    }
-});
-
-// === 유튜브 선호 채널 관리 ===
-const preferredChannelName = document.getElementById('preferredChannelName');
-const btnAddPreferredChannel = document.getElementById('btnAddPreferredChannel');
-const preferredChannelList = document.getElementById('preferredChannelList');
-
-btnAddPreferredChannel.addEventListener('click', async () => {
-    const name = preferredChannelName.value.trim();
-    if (!name) {
-        alert('채널명을 입력해주세요.');
-        return;
-    }
-
-    btnAddPreferredChannel.disabled = true;
-
-    try {
-        const formData = new FormData();
-        formData.append('name', name);
-
-        const response = await fetch('/api/youtube/preferred/add/', {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            // 빈 메시지 제거
-            const noMsg = document.getElementById('noPreferredMsg');
-            if (noMsg) noMsg.remove();
-
-            // 새 뱃지 추가
-            const badge = document.createElement('span');
-            badge.className = 'badge bg-primary-subtle text-dark border d-flex align-items-center';
-            badge.dataset.id = data.id;
-            badge.innerHTML = `
-                ${escapeHtml(data.name)}
-                <button type="button" class="btn-close btn-close-sm ms-1 btn-delete-preferred" data-id="${data.id}" style="font-size: 0.6rem;"></button>
-            `;
-            preferredChannelList.appendChild(badge);
-
-            preferredChannelName.value = '';
-            preferredChannelName.focus();
-        } else {
-            alert(data.error || '저장에 실패했습니다.');
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-    } finally {
-        btnAddPreferredChannel.disabled = false;
-    }
-});
-
-preferredChannelName.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') btnAddPreferredChannel.click();
-});
-
-// 선호 채널 삭제
-document.addEventListener('click', async (e) => {
-    if (!e.target.classList.contains('btn-delete-preferred')) return;
-
-    const channelId = e.target.dataset.id;
-    e.target.disabled = true;
-
-    try {
-        const response = await fetch(`/api/youtube/preferred/${channelId}/delete/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            const badge = e.target.closest('[data-id]');
-            badge.remove();
-
-            // 목록이 비었으면 메시지 표시
-            if (preferredChannelList.children.length === 0) {
-                preferredChannelList.innerHTML = '<span class="text-muted small" id="noPreferredMsg">등록된 선호 채널이 없습니다.</span>';
-            }
-        } else {
-            alert(data.error || '삭제에 실패했습니다.');
-            e.target.disabled = false;
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-        e.target.disabled = false;
-    }
-});
 
 // === 프롬프트 저장 ===
 async function savePrompt(key, value, button) {
@@ -1558,11 +1262,11 @@ btnAddCustomSector.addEventListener('click', async () => {
 
             // 새 뱃지 추가
             const badge = document.createElement('span');
-            badge.className = 'badge bg-light text-dark border d-flex align-items-center';
+            badge.className = 'tag-chip';
             badge.dataset.id = data.id;
             badge.innerHTML = `
                 ${escapeHtml(data.name)}
-                <button type="button" class="btn-close btn-close-sm ms-1 btn-delete-custom-sector" data-id="${data.id}" data-name="${escapeHtml(data.name)}" style="font-size: 0.6rem;"></button>
+                <button type="button" class="tag-chip-remove btn-delete-custom-sector" data-id="${data.id}" data-name="${escapeHtml(data.name)}">&times;</button>
             `;
             customSectorList.appendChild(badge);
 

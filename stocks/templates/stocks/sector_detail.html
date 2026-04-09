@@ -2,363 +2,431 @@
 
 {% block title %}{{ sector.name }} - JStocks{% endblock %}
 
-{% block content %}
-<!-- 헤더 -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h4 class="mb-0">{{ sector.name }}</h4>
-    </div>
-    <div>
-        <a href="{% url 'stocks:sector_edit' sector.id %}" class="btn btn-sm btn-outline-primary">편집</a>
-        <a href="{% url 'stocks:sector' %}" class="btn btn-sm btn-outline-secondary">목록</a>
-    </div>
-</div>
-
-<!-- 메인 탭 -->
-<ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-content" type="button" role="tab">기본정보</button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab">리포트{% if uploaded_reports %}<span class="badge bg-secondary ms-1">{{ uploaded_reports|length }}</span>{% endif %}</button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="telegram-tab" data-bs-toggle="tab" data-bs-target="#telegram-content" type="button" role="tab">텔레그램{% if telegram_messages %}<span class="badge bg-secondary ms-1">{{ telegram_messages|length }}</span>{% endif %}</button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="news-tab" data-bs-toggle="tab" data-bs-target="#news-content" type="button" role="tab">뉴스{% if news_articles %}<span class="badge bg-secondary ms-1">{{ news_articles|length }}</span>{% endif %}</button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="youtube-tab" data-bs-toggle="tab" data-bs-target="#youtube-content" type="button" role="tab">유튜브{% if youtube_videos %}<span class="badge bg-secondary ms-1">{{ youtube_videos|length }}</span>{% endif %}</button>
-    </li>
-</ul>
-
-<div class="tab-content" id="mainTabContent">
-    <!-- 기본정보 탭 -->
-    <div class="tab-pane fade show active" id="info-content" role="tabpanel">
-        <!-- 관련 종목/ETF -->
-        <div class="card mb-3">
-            <div class="card-header py-2">
-                <strong>관련 종목/ETF</strong>
-            </div>
-            <div class="card-body py-2">
-                {% if related_stocks or related_etfs %}
-                <div class="d-flex flex-wrap gap-2">
-                    {% for stock in related_stocks %}
-                    <a href="{% url 'stocks:stock_detail' stock.code %}" class="badge bg-primary text-decoration-none" style="font-size: 0.85em;">
-                        {{ stock.name }}
-                    </a>
-                    {% endfor %}
-                    {% for etf in related_etfs %}
-                    <a href="{% url 'stocks:etf_detail' etf.code %}" class="badge bg-success text-decoration-none" style="font-size: 0.85em;">
-                        {{ etf.name }}
-                    </a>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="text-center text-muted py-2">
-                    <small>등록된 종목/ETF가 없습니다.</small>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- 기초리포트 -->
-        <div class="card mb-3">
-            <div class="card-header py-2">
-                <strong>기초리포트</strong>
-            </div>
-            <div class="card-body py-2">
-                {% if sector.basic_report %}
-                <iframe id="basicReportFrame" style="width: 100%; border: none; min-height: 300px;"></iframe>
-                {% else %}
-                <div class="text-center text-muted py-2">
-                    <small>기초리포트가 없습니다.</small>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        {% if sector.basic_report %}
-        <template id="basicReportContent">{{ sector.basic_report|safe }}</template>
-        {% endif %}
-
-        <!-- 리서치 -->
-        {% if question_reports %}
-        <div class="card mb-3">
-            <div class="card-header py-2">
-                <strong>리서치</strong>
-                <span class="badge bg-primary ms-1">{{ question_reports|length }}</span>
-            </div>
-            <div class="card-body p-0">
-                <div class="list-group list-group-flush">
-                    {% for qr in question_reports %}
-                    <a href="#" class="list-group-item list-group-item-action py-2 btn-view-qr" data-qr-id="{{ qr.id }}">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-truncate" style="max-width: 90%;">{{ qr.question|truncatechars:80 }}</span>
-                            <small class="text-muted">{{ qr.created_at|date:"m.d" }}</small>
-                        </div>
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% for qr in question_reports %}
-        <textarea id="qr-question-{{ qr.id }}" style="display:none;">{{ qr.question }}</textarea>
-        <textarea id="qr-report-{{ qr.id }}" style="display:none;">{{ qr.report }}</textarea>
-        <input type="hidden" id="qr-type-{{ qr.id }}" value="{{ qr.report_type|default:'html' }}">
-        {% endfor %}
-        {% endif %}
-
-        <!-- 메모 -->
-        <div class="card">
-            <div class="card-header py-2">
-                <strong>메모</strong>
-            </div>
-            <div class="card-body py-2">
-                {% if sector.memo %}
-                <div style="white-space: pre-wrap;">{{ sector.memo }}</div>
-                {% else %}
-                <div class="text-center text-muted py-2">
-                    <small>메모가 없습니다.</small>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- 리포트 탭 -->
-    <div class="tab-pane fade" id="report-content" role="tabpanel">
-        <div class="card">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>리포트 검색</strong>
-                    <small class="text-muted ms-2">"{{ sector.name }}" 관련</small>
-                </div>
-                <button type="button" id="btnSearchReport" class="btn btn-sm btn-outline-primary">
-                    검색
-                </button>
-            </div>
-            <div class="card-body">
-                <div id="reportLoading" class="text-center py-3 d-none">
-                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                    <span class="ms-2">검색 중...</span>
-                </div>
-                <div id="reportTabs" class="d-none">
-                    <ul class="nav nav-tabs" id="reportChannelTabs" role="tablist"></ul>
-                    <div class="tab-content pt-3" id="reportChannelTabContent"></div>
-                </div>
-                <div id="reportEmpty" class="text-muted">버튼을 클릭하면 "{{ sector.name }}" 관련 리포트를 검색합니다.</div>
-            </div>
-        </div>
-
-        <!-- 파일 리포트 -->
-        {% if uploaded_reports %}
-        <div class="card mt-3">
-            <div class="card-header py-2">
-                <strong>파일 리포트</strong>
-                <small class="text-muted ms-2">{{ uploaded_reports|length }}개</small>
-            </div>
-            <div class="card-body p-0">
-                <div class="list-group list-group-flush">
-                    {% for report in uploaded_reports %}
-                    <div class="list-group-item py-2">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1">
-                                <span class="fw-semibold">{{ report.display_title }}</span>
-                                <small class="text-muted ms-2">{{ report.created_at|date:"y/m/d" }}</small>
-                            </div>
-                            <div class="d-flex gap-1">
-                                <a href="{{ report.file.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">파일</a>
-                                {% if report.summary %}
-                                <button type="button" class="btn btn-sm btn-outline-primary btn-view-file-report-summary" data-summary="{{ report.summary|escapejs }}" data-title="{{ report.display_title }}">요약</button>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- 텔레그램 탭 -->
-    <div class="tab-pane fade" id="telegram-content" role="tabpanel">
-        <div class="card">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <strong>저장된 메시지</strong>
-                <span class="badge bg-primary">{{ telegram_messages|length }}</span>
-            </div>
-            <div class="card-body p-0">
-                <div class="list-group list-group-flush">
-                    {% for msg in telegram_messages %}
-                    <div class="list-group-item py-2">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1 overflow-hidden">
-                                <div class="d-flex align-items-center gap-2 mb-1">
-                                    <span class="badge bg-secondary">{{ msg.channel_name|default:msg.channel }}</span>
-                                    <small class="text-muted">{{ msg.date }} {{ msg.time }}</small>
-                                </div>
-                                <div class="small text-truncate-2" style="white-space: pre-wrap; max-height: 3em; overflow: hidden;">{{ msg.text|truncatechars:150 }}</div>
-                            </div>
-                            <button type="button" class="btn btn-sm btn-outline-primary ms-2 btn-view-telegram"
-                                data-channel="{{ msg.channel_name|default:msg.channel }}"
-                                data-date="{{ msg.date }} {{ msg.time }}"
-                                data-text="{{ msg.text|escapejs }}">전체보기</button>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="text-center text-muted py-3">저장된 메시지가 없습니다.</div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 뉴스 탭 -->
-    <div class="tab-pane fade" id="news-content" role="tabpanel">
-        <div class="card">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <strong>저장된 뉴스</strong>
-                <span class="badge bg-primary">{{ news_articles|length }}</span>
-            </div>
-            <div class="card-body p-0">
-                <div class="list-group list-group-flush">
-                    {% for news in news_articles %}
-                    <div class="list-group-item py-2">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1 overflow-hidden">
-                                <a href="{{ news.link }}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">{{ news.title }}</a>
-                                <small class="text-muted">{{ news.source }}</small>
-                                <small class="text-muted ms-2">{{ news.published|slice:":10" }}</small>
-                            </div>
-                            <a href="{% url 'stocks:sector_news_summary' news.id %}" class="text-decoration-none ms-2" title="요약">
-                                {% if news.summary %}
-                                <span class="badge bg-success">요약</span>
-                                {% else %}
-                                <span class="badge bg-secondary">요약</span>
-                                {% endif %}
-                            </a>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="text-center text-muted py-3">저장된 뉴스가 없습니다.</div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 유튜브 탭 -->
-    <div class="tab-pane fade" id="youtube-content" role="tabpanel">
-        <div class="card">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <strong>저장된 영상</strong>
-                <span class="badge bg-primary">{{ youtube_videos|length }}</span>
-            </div>
-            <div class="card-body p-0">
-                <div class="list-group list-group-flush">
-                    {% for video in youtube_videos %}
-                    <div class="list-group-item d-flex gap-3 py-2">
-                        {% if video.thumbnail %}
-                        <a href="{{ video.link }}" target="_blank">
-                            <img src="{{ video.thumbnail }}" alt="" style="width:120px; height:68px; object-fit:cover; border-radius:4px;">
-                        </a>
-                        {% endif %}
-                        <div class="flex-grow-1 overflow-hidden">
-                            <a href="{{ video.link }}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">{{ video.title }}</a>
-                            <small class="text-muted">{{ video.channel }}</small>
-                            <small class="text-muted ms-2">{{ video.views }}</small>
-                            <small class="text-muted ms-2">{{ video.published }}</small>
-                        </div>
-                        <a href="{% url 'stocks:sector_youtube_summary' video.id %}" class="text-decoration-none align-self-center" title="요약">
-                            {% if video.summary %}
-                            <span class="badge bg-success">요약</span>
-                            {% else %}
-                            <span class="badge bg-secondary">요약</span>
-                            {% endif %}
-                        </a>
-                    </div>
-                    {% empty %}
-                    <div class="text-center text-muted py-3">저장된 영상이 없습니다.</div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 텔레그램 메시지 전체보기 모달 -->
-<div class="modal fade" id="telegramModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header py-2">
-                <div>
-                    <span class="badge bg-secondary" id="telegramModalChannel"></span>
-                    <small class="text-muted ms-2" id="telegramModalDate"></small>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" style="white-space: pre-wrap; max-height: 70vh; overflow-y: auto;" id="telegramModalText"></div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_css %}
-<style>
-.highlight {
-    background-color: #fff3cd;
-    padding: 0 2px;
-    border-radius: 2px;
-    font-weight: bold;
+{% block extra_style %}
+.section-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--text-primary);
 }
-#channelTabs,
-#reportChannelTabs {
+.brief-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    padding: 24px;
+    margin-bottom: 12px;
+}
+.btn-refresh {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+}
+.btn-refresh:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+}
+
+/* Tabs */
+.market-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+.market-tab {
+    padding: 10px 22px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.market-tab:hover { color: var(--text-primary); }
+.market-tab.active {
+    color: var(--text-primary);
+    font-weight: 700;
+    border-color: var(--border-color);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-card);
+}
+.tab-count {
+    display: inline-block;
+    background: var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: 4px;
+    font-weight: 600;
+}
+
+/* List items */
+.list-item {
+    padding: 14px 0;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+.list-item:last-child { border-bottom: none; }
+.list-item-title {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    text-decoration: none;
+    display: block;
+}
+.list-item-title:hover { color: #2962ff; }
+.list-item-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* Tag badges */
+.tag-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.15s;
+}
+.tag-badge:hover {
+    border-color: var(--text-secondary);
+    box-shadow: var(--shadow-card-hover);
+    color: var(--text-primary);
+}
+.tag-badge.stock { border-left: 3px solid #2962ff; }
+.tag-badge.etf { border-left: 3px solid #198754; }
+
+/* Status badge */
+.status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 500;
+}
+.status-badge.done { background: #ecfdf5; color: #059669; }
+.status-badge.pending { background: #f3f4f6; color: var(--text-muted); }
+
+/* Channel badge */
+.channel-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+}
+
+/* Report channel tabs */
+.report-channel-tabs {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 4px;
-    border-bottom: none;
-    padding-bottom: 8px;
-    margin-bottom: 8px;
-    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
 }
 @media (min-width: 768px) {
-    #channelTabs,
-    #reportChannelTabs {
+    .report-channel-tabs {
         grid-template-columns: repeat(6, 1fr);
     }
 }
-#channelTabs .nav-item,
-#reportChannelTabs .nav-item {
-    margin: 0;
-}
-#channelTabs .nav-link,
-#reportChannelTabs .nav-link {
+.report-channel-tab {
     display: block;
     width: 100%;
     padding: 4px 6px;
     font-size: 0.7rem;
     border-radius: 4px;
-    border: 1px solid #dee2e6;
-    background: #f8f9fa;
-    color: #495057;
+    border: 1px solid var(--border-color);
+    background: #f9fafb;
+    color: var(--text-secondary);
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    cursor: pointer;
 }
-#channelTabs .nav-link:hover,
-#reportChannelTabs .nav-link:hover {
-    background: #e9ecef;
+.report-channel-tab:hover { background: #f0f0f0; }
+.report-channel-tab.active { background: #2962ff; color: #fff; border-color: #2962ff; }
+
+.highlight {
+    background-color: #fef3c7;
+    padding: 0 2px;
+    border-radius: 2px;
+    font-weight: bold;
 }
-#channelTabs .nav-link.active,
-#reportChannelTabs .nav-link.active {
-    background: #0d6efd;
-    color: white;
-    border-color: #0d6efd;
+
+/* Modal overlay */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
 }
-</style>
+.modal-overlay.show { display: flex; }
+.modal-box {
+    background: #fff;
+    border-radius: var(--radius);
+    max-width: 800px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+.modal-box-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px 8px;
+}
+.modal-close:hover { color: var(--text-primary); }
+{% endblock %}
+
+{% block content %}
+<!-- 헤더 -->
+<div class="d-flex justify-content-between align-items-center" style="margin-bottom: 20px;">
+    <h5 style="font-weight:700;margin:0;color:var(--text-primary);">{{ sector.name }}</h5>
+    <div class="d-flex gap-2">
+        <a href="{% url 'stocks:sector_edit' sector.id %}" class="btn-refresh">편집</a>
+        <a href="{% url 'stocks:sector' %}" class="btn-refresh">목록</a>
+    </div>
+</div>
+
+<!-- 메인 탭 -->
+<div class="market-tabs">
+    <button class="market-tab active" data-target="info-content">기본정보</button>
+    <button class="market-tab" data-target="report-content">리포트{% if uploaded_reports %}<span class="tab-count">{{ uploaded_reports|length }}</span>{% endif %}</button>
+    <button class="market-tab" data-target="telegram-content">텔레그램{% if telegram_messages %}<span class="tab-count">{{ telegram_messages|length }}</span>{% endif %}</button>
+    <button class="market-tab" data-target="news-content">뉴스{% if news_articles %}<span class="tab-count">{{ news_articles|length }}</span>{% endif %}</button>
+    <button class="market-tab" data-target="youtube-content">유튜브{% if youtube_videos %}<span class="tab-count">{{ youtube_videos|length }}</span>{% endif %}</button>
+</div>
+
+<!-- 기본정보 탭 -->
+<div id="info-content" class="tab-panel">
+    <!-- 관련 종목/ETF -->
+    <div class="brief-card">
+        <div style="font-size:0.88rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">관련 종목/ETF</div>
+        {% if related_stocks or related_etfs %}
+        <div class="d-flex flex-wrap gap-2">
+            {% for stock in related_stocks %}
+            <a href="{% url 'stocks:stock_detail' stock.code %}" class="tag-badge stock">{{ stock.name }}</a>
+            {% endfor %}
+            {% for etf in related_etfs %}
+            <a href="{% url 'stocks:etf_detail' etf.code %}" class="tag-badge etf">{{ etf.name }}</a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="color:var(--text-muted);font-size:0.85rem;">등록된 종목/ETF가 없습니다.</div>
+        {% endif %}
+    </div>
+
+    <!-- 기초리포트 -->
+    <div class="brief-card">
+        <div style="font-size:0.88rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">기초리포트</div>
+        {% if sector.basic_report %}
+        <iframe id="basicReportFrame" style="width: 100%; border: none; min-height: 300px;"></iframe>
+        {% else %}
+        <div style="color:var(--text-muted);font-size:0.85rem;">기초리포트가 없습니다.</div>
+        {% endif %}
+    </div>
+    {% if sector.basic_report %}
+    <template id="basicReportContent">{{ sector.basic_report|safe }}</template>
+    {% endif %}
+
+    <!-- 리서치 -->
+    {% if question_reports %}
+    <div class="brief-card">
+        <div style="font-size:0.88rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">리서치 <span class="tab-count">{{ question_reports|length }}</span></div>
+        {% for qr in question_reports %}
+        <div class="list-item">
+            <div class="flex-grow-1" style="min-width:0;">
+                <a href="#" class="list-item-title btn-view-qr" data-qr-id="{{ qr.id }}">{{ qr.question|truncatechars:80 }}</a>
+                <div class="list-item-meta">{{ qr.created_at|date:"m.d" }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% for qr in question_reports %}
+    <textarea id="qr-question-{{ qr.id }}" style="display:none;">{{ qr.question }}</textarea>
+    <textarea id="qr-report-{{ qr.id }}" style="display:none;">{{ qr.report }}</textarea>
+    <input type="hidden" id="qr-type-{{ qr.id }}" value="{{ qr.report_type|default:'html' }}">
+    {% endfor %}
+    {% endif %}
+
+    <!-- 메모 -->
+    <div class="brief-card">
+        <div style="font-size:0.88rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">메모</div>
+        {% if sector.memo %}
+        <div style="white-space:pre-wrap;font-size:0.85rem;line-height:1.7;color:var(--text-primary);">{{ sector.memo }}</div>
+        {% else %}
+        <div style="color:var(--text-muted);font-size:0.85rem;">메모가 없습니다.</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 리포트 탭 -->
+<div id="report-content" class="tab-panel" style="display:none;">
+    <div class="brief-card">
+        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+            <div>
+                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">리포트 검색</span>
+                <span style="font-size:0.78rem;color:var(--text-muted);margin-left:8px;">"{{ sector.name }}" 관련</span>
+            </div>
+            <button type="button" id="btnSearchReport" class="btn-refresh">검색</button>
+        </div>
+        <div id="reportLoading" class="text-center py-3 d-none">
+            <div class="spinner-border spinner-border-sm" role="status" style="color:var(--text-muted);"></div>
+            <span style="margin-left:8px;font-size:0.85rem;color:var(--text-muted);">검색 중...</span>
+        </div>
+        <div id="reportTabs" class="d-none">
+            <div class="report-channel-tabs" id="reportChannelTabs"></div>
+            <div id="reportChannelTabContent"></div>
+        </div>
+        <div id="reportEmpty" style="color:var(--text-muted);font-size:0.85rem;">버튼을 클릭하면 "{{ sector.name }}" 관련 리포트를 검색합니다.</div>
+    </div>
+
+    {% if uploaded_reports %}
+    <div class="brief-card">
+        <div style="font-size:0.88rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">파일 리포트 <span style="font-size:0.78rem;color:var(--text-muted);font-weight:400;">{{ uploaded_reports|length }}개</span></div>
+        {% for report in uploaded_reports %}
+        <div class="list-item">
+            <div class="flex-grow-1" style="min-width:0;">
+                <span class="list-item-title" style="cursor:default;">{{ report.display_title }}</span>
+                <div class="list-item-meta">{{ report.created_at|date:"y/m/d" }}</div>
+            </div>
+            <div class="d-flex gap-1">
+                <a href="{{ report.file.url }}" target="_blank" class="btn-refresh">파일</a>
+                {% if report.summary %}
+                <button type="button" class="btn-refresh btn-view-file-report-summary" data-summary="{{ report.summary|escapejs }}" data-title="{{ report.display_title }}">요약</button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- 텔레그램 탭 -->
+<div id="telegram-content" class="tab-panel" style="display:none;">
+    <div class="brief-card">
+        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+            <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">저장된 메시지</span>
+            <span style="font-size:0.78rem;color:var(--text-muted);">{{ telegram_messages|length }}개</span>
+        </div>
+        {% for msg in telegram_messages %}
+        <div class="list-item">
+            <div class="flex-grow-1 overflow-hidden" style="min-width:0;">
+                <div class="d-flex align-items-center gap-2" style="margin-bottom:4px;">
+                    <span class="channel-badge">{{ msg.channel_name|default:msg.channel }}</span>
+                    <span class="list-item-meta">{{ msg.date }} {{ msg.time }}</span>
+                </div>
+                <div style="font-size:0.82rem;color:var(--text-primary);white-space:pre-wrap;max-height:3em;overflow:hidden;">{{ msg.text|truncatechars:150 }}</div>
+            </div>
+            <button type="button" class="btn-refresh btn-view-telegram" style="flex-shrink:0;"
+                data-channel="{{ msg.channel_name|default:msg.channel }}"
+                data-date="{{ msg.date }} {{ msg.time }}"
+                data-text="{{ msg.text|escapejs }}">전체보기</button>
+        </div>
+        {% empty %}
+        <div style="color:var(--text-muted);font-size:0.85rem;">저장된 메시지가 없습니다.</div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- 뉴스 탭 -->
+<div id="news-content" class="tab-panel" style="display:none;">
+    <div class="brief-card">
+        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+            <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">저장된 뉴스</span>
+            <span style="font-size:0.78rem;color:var(--text-muted);">{{ news_articles|length }}개</span>
+        </div>
+        {% for news in news_articles %}
+        <div class="list-item">
+            <div class="flex-grow-1" style="min-width:0;">
+                <a href="{{ news.link }}" target="_blank" class="list-item-title">{{ news.title }}</a>
+                <div class="list-item-meta">{{ news.source }} · {{ news.published|slice:":10" }}</div>
+            </div>
+            <a href="{% url 'stocks:sector_news_summary' news.id %}" class="status-badge {% if news.summary %}done{% else %}pending{% endif %}" style="flex-shrink:0;text-decoration:none;">요약</a>
+        </div>
+        {% empty %}
+        <div style="color:var(--text-muted);font-size:0.85rem;">저장된 뉴스가 없습니다.</div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- 유튜브 탭 -->
+<div id="youtube-content" class="tab-panel" style="display:none;">
+    <div class="brief-card">
+        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+            <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">저장된 영상</span>
+            <span style="font-size:0.78rem;color:var(--text-muted);">{{ youtube_videos|length }}개</span>
+        </div>
+        {% for video in youtube_videos %}
+        <div class="list-item" style="gap:16px;">
+            {% if video.thumbnail %}
+            <a href="{{ video.link }}" target="_blank" style="flex-shrink:0;">
+                <img src="{{ video.thumbnail }}" alt="" style="width:140px;height:79px;object-fit:cover;border-radius:6px;">
+            </a>
+            {% endif %}
+            <div class="flex-grow-1" style="min-width:0;">
+                <a href="{{ video.link }}" target="_blank" class="list-item-title">{{ video.title }}</a>
+                <div class="list-item-meta">{{ video.channel }} · {{ video.views }} · {{ video.published }}</div>
+            </div>
+            <a href="{% url 'stocks:sector_youtube_summary' video.id %}" class="status-badge {% if video.summary %}done{% else %}pending{% endif %}" style="flex-shrink:0;text-decoration:none;">요약</a>
+        </div>
+        {% empty %}
+        <div style="color:var(--text-muted);font-size:0.85rem;">저장된 영상이 없습니다.</div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- 텔레그램 모달 -->
+<div class="modal-overlay" id="telegramModal">
+    <div class="modal-box">
+        <div class="modal-box-header">
+            <div>
+                <span class="channel-badge" id="telegramModalChannel"></span>
+                <span style="font-size:0.78rem;color:var(--text-muted);margin-left:8px;" id="telegramModalDate"></span>
+            </div>
+            <button class="modal-close" id="telegramModalClose">&times;</button>
+        </div>
+        <div style="white-space:pre-wrap;font-size:0.85rem;line-height:1.7;max-height:60vh;overflow-y:auto;" id="telegramModalText"></div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -367,166 +435,109 @@
 const sectorName = "{{ sector.name|escapejs }}";
 const sectorId = {{ sector.id }};
 
+// ===== Tab switching =====
+document.querySelectorAll('.market-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.market-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+        document.getElementById(this.dataset.target).style.display = 'block';
+    });
+});
+
+// ===== iframe =====
 function adjustIframeHeight(iframe) {
     try {
-        var height = iframe.contentWindow.document.body.scrollHeight;
-        iframe.style.height = (height + 20) + 'px';
+        iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 20) + 'px';
     } catch(e) {}
 }
 
-// 기초리포트 iframe 로드
 (function() {
-    var basicTemplate = document.getElementById('basicReportContent');
-    var basicFrame = document.getElementById('basicReportFrame');
-    if (basicTemplate && basicFrame) {
-        basicFrame.srcdoc = basicTemplate.innerHTML;
-        basicFrame.onload = function() {
-            adjustIframeHeight(basicFrame);
-        };
+    var tpl = document.getElementById('basicReportContent');
+    var frame = document.getElementById('basicReportFrame');
+    if (tpl && frame) {
+        frame.srcdoc = tpl.innerHTML;
+        frame.onload = function() { adjustIframeHeight(frame); };
     }
 })();
 
-// 리서치 새창 열기 (HTML 또는 마크다운)
+// ===== 리서치 새창 =====
 document.querySelectorAll('.btn-view-qr').forEach(el => {
     el.addEventListener('click', (e) => {
         e.preventDefault();
         const qrId = el.dataset.qrId;
-        const questionEl = document.getElementById(`qr-question-${qrId}`);
-        const reportEl = document.getElementById(`qr-report-${qrId}`);
-        const typeEl = document.getElementById(`qr-type-${qrId}`);
-        const question = questionEl ? questionEl.value : '';
-        const report = reportEl ? reportEl.value : '';
-        const reportType = typeEl ? typeEl.value : 'html';
+        const question = (document.getElementById(`qr-question-${qrId}`) || {}).value || '';
+        const report = (document.getElementById(`qr-report-${qrId}`) || {}).value || '';
+        const reportType = (document.getElementById(`qr-type-${qrId}`) || {}).value || 'html';
 
-        const previewWindow = window.open('', '_blank', 'width=800,height=600');
+        const w = window.open('', '_blank', 'width=800,height=600');
+        const markedScript = reportType === 'markdown' ? '<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>' : '';
+        const reportContent = report
+            ? (reportType === 'markdown' ? `<div id="markdown-content">${report.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>` : report)
+            : '<span style="color:#9ca3af;">리포트가 없습니다.</span>';
+        const mdScript = reportType === 'markdown' ? `<script>document.getElementById('markdown-content').innerHTML = marked.parse(document.getElementById('markdown-content').textContent);<\/script>` : '';
 
-        // 마크다운인 경우 marked.js 사용
-        const markedScript = reportType === 'markdown' ?
-            '<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>' : '';
-
-        const reportContent = report ?
-            (reportType === 'markdown' ?
-                `<div id="markdown-content">${report.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>` :
-                report) :
-            '<span class="text-muted">리포트가 없습니다.</span>';
-
-        const markdownRenderScript = reportType === 'markdown' ? `
-            <script>
-                document.getElementById('markdown-content').innerHTML = marked.parse(document.getElementById('markdown-content').textContent);
-            <\/script>
-        ` : '';
-
-        previewWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>${question.substring(0, 50)}</title>
-                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-                ${markedScript}
-                <style>
-                    body { padding: 20px; }
-                    .question { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-                    .report img { max-width: 100%; }
-                    .report pre { background: #f4f4f4; padding: 12px; border-radius: 4px; overflow-x: auto; }
-                    .report code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
-                    .report pre code { padding: 0; background: none; }
-                    .report blockquote { border-left: 4px solid #ddd; padding-left: 16px; margin-left: 0; color: #666; }
-                    .report table { border-collapse: collapse; width: 100%; margin: 16px 0; }
-                    .report th, .report td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                    .report th { background: #f8f9fa; }
-                    .report ul, .report ol { padding-left: 24px; }
-                    .report ul ul, .report ol ol, .report ul ol, .report ol ul { margin: 4px 0; }
-                    .report li { margin: 4px 0; }
-                </style>
-            </head>
-            <body>
-                <div class="question">
-                    <strong>질문:</strong><br>
-                    ${question.replace(/\n/g, '<br>')}
-                </div>
-                <hr>
-                <div class="report">
-                    ${reportContent}
-                </div>
-                ${markdownRenderScript}
-            </body>
-            </html>
-        `);
-        previewWindow.document.close();
+        w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${question.substring(0,50)}</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">${markedScript}
+            <style>body{padding:20px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}.question{background:#f9fafb;padding:15px;border-radius:8px;margin-bottom:20px;}.report img{max-width:100%;}.report pre{background:#f4f4f4;padding:12px;border-radius:4px;overflow-x:auto;}.report code{background:#f4f4f4;padding:2px 6px;border-radius:3px;}.report pre code{padding:0;background:none;}.report blockquote{border-left:4px solid #ddd;padding-left:16px;margin-left:0;color:#666;}.report table{border-collapse:collapse;width:100%;margin:16px 0;}.report th,.report td{border:1px solid #ddd;padding:8px;text-align:left;}.report th{background:#f8f9fa;}.report ul,.report ol{padding-left:24px;}.report li{margin:4px 0;}</style>
+            </head><body><div class="question"><strong>질문:</strong><br>${question.replace(/\n/g,'<br>')}</div><hr><div class="report">${reportContent}</div>${mdScript}</body></html>`);
+        w.document.close();
     });
 });
 
-// 공통 함수
+// ===== 공통 =====
 function linkify(text) {
-    const urlRegex = /(https?:\/\/[^\s<]+)/g;
-    return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+    return text.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" style="color:#2962ff;">$1</a>');
 }
-
 function highlightKeyword(text, keyword) {
     if (!keyword) return text;
     const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     return text.replace(regex, '<span class="highlight">$1</span>');
 }
-
 function countMessages(channelData) {
-    let total = 0;
-    let recent = 0;
-    const today = new Date();
-    const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
-
+    let total = 0, recent = 0;
+    const cutoff = new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0];
     for (const date in channelData) {
-        const count = channelData[date].length;
-        total += count;
-        if (date >= sevenDaysAgoStr) {
-            recent += count;
-        }
+        const c = channelData[date].length;
+        total += c;
+        if (date >= cutoff) recent += c;
     }
     return { total, recent };
 }
-
 function renderChannelContent(channel, channelName, channelData, keyword) {
     const dates = Object.keys(channelData).sort().reverse();
-    if (dates.length === 0) {
-        return '<div class="text-muted">검색 결과가 없습니다.</div>';
-    }
+    if (!dates.length) return '<div style="color:var(--text-muted);font-size:0.85rem;">검색 결과가 없습니다.</div>';
 
     let html = '';
     for (const date of dates) {
         const items = channelData[date];
-        html += `<div class="mb-3">`;
-        html += `<h6 class="text-primary mb-2">${date} (${items.length}건)</h6>`;
+        html += `<div style="margin-bottom:16px;">`;
+        html += `<div style="font-size:0.82rem;font-weight:600;color:#2962ff;margin-bottom:8px;">${date} (${items.length}건)</div>`;
         items.forEach((item, idx) => {
             let text = item.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
             text = linkify(text);
             text = highlightKeyword(text, keyword);
-
-            html += `<div class="border-start border-2 border-primary ps-2 py-2 small bg-light mb-0">`;
-            html += `<span class="text-muted">[${item.time}]</span> `;
-            html += `<span style="white-space: pre-wrap;">${text}</span>`;
-            html += `</div>`;
-            if (idx < items.length - 1) {
-                html += `<hr class="my-2">`;
-            }
+            html += `<div style="border-left:2px solid #2962ff;padding-left:10px;padding:8px 10px;background:#f9fafb;border-radius:0 6px 6px 0;margin-bottom:${idx < items.length-1 ? '8' : '0'}px;font-size:0.82rem;">`;
+            html += `<span style="color:var(--text-muted);">[${item.time}]</span> `;
+            html += `<span style="white-space:pre-wrap;">${text}</span></div>`;
         });
         html += `</div>`;
     }
     return html;
 }
 
-// 리포트 검색
+// ===== 리포트 검색 =====
 document.getElementById('btnSearchReport').addEventListener('click', async function() {
     const loading = document.getElementById('reportLoading');
     const tabs = document.getElementById('reportTabs');
-    const reportChannelTabs = document.getElementById('reportChannelTabs');
-    const reportChannelTabContent = document.getElementById('reportChannelTabContent');
+    const tabsEl = document.getElementById('reportChannelTabs');
+    const contentEl = document.getElementById('reportChannelTabContent');
     const empty = document.getElementById('reportEmpty');
 
     loading.classList.remove('d-none');
     tabs.classList.add('d-none');
-    reportChannelTabs.innerHTML = '';
-    reportChannelTabContent.innerHTML = '';
+    tabsEl.innerHTML = '';
+    contentEl.innerHTML = '';
     empty.classList.add('d-none');
 
     try {
@@ -534,7 +545,7 @@ document.getElementById('btnSearchReport').addEventListener('click', async funct
         const data = await response.json();
 
         if (data.error) {
-            reportChannelTabContent.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            contentEl.innerHTML = `<div style="color:var(--up-color);padding:12px;background:#fef2f2;border-radius:8px;">${data.error}</div>`;
             tabs.classList.remove('d-none');
             return;
         }
@@ -542,111 +553,79 @@ document.getElementById('btnSearchReport').addEventListener('click', async funct
         const channels = Object.keys(data.results);
         const channelNames = data.channel_names || {};
 
-        if (channels.length === 0) {
+        if (!channels.length) {
             empty.textContent = '검색 결과가 없습니다.';
             empty.classList.remove('d-none');
             return;
         }
 
         let tabsHtml = '';
-        let contentHtml = '';
-
         channels.forEach((channel, idx) => {
-            const channelId = 'rpt_' + channel.replace('@', '');
             const displayName = channelNames[channel] || channel;
-            const isActive = idx === 0;
             const { total, recent } = countMessages(data.results[channel]);
+            const recentBadge = recent > 0 ? ` <span style="color:#dc3545;font-weight:600;">${recent}</span>` : '';
+            tabsHtml += `<button class="report-channel-tab ${idx===0?'active':''}" data-channel="${channel}">${displayName}${recentBadge}</button>`;
+        });
+        tabsEl.innerHTML = tabsHtml;
 
-            const recentBadge = recent > 0 ? `<span class="badge bg-danger">${recent}</span>` : '';
-            const totalBadge = total > 0 ? `<span class="badge bg-secondary">${total}</span>` : '';
+        // 첫 채널 내용 렌더링
+        const firstChannel = channels[0];
+        contentEl.innerHTML = renderChannelContent(firstChannel, channelNames[firstChannel] || firstChannel, data.results[firstChannel], sectorName);
 
-            tabsHtml += `
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link ${isActive ? 'active' : ''}"
-                            id="${channelId}-tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#${channelId}-content"
-                            type="button" role="tab">
-                        ${displayName} ${recentBadge}${totalBadge}
-                    </button>
-                </li>`;
-
-            contentHtml += `
-                <div class="tab-pane fade ${isActive ? 'show active' : ''}"
-                     id="${channelId}-content" role="tabpanel">
-                    ${renderChannelContent(channel, displayName, data.results[channel], sectorName)}
-                </div>`;
+        // 탭 클릭 이벤트
+        tabsEl.querySelectorAll('.report-channel-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                tabsEl.querySelectorAll('.report-channel-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                const ch = this.dataset.channel;
+                contentEl.innerHTML = renderChannelContent(ch, channelNames[ch] || ch, data.results[ch], sectorName);
+            });
         });
 
-        reportChannelTabs.innerHTML = tabsHtml;
-        reportChannelTabContent.innerHTML = contentHtml;
         tabs.classList.remove('d-none');
-
     } catch (err) {
-        reportChannelTabContent.innerHTML = `<div class="alert alert-danger">오류: ${err.message}</div>`;
+        contentEl.innerHTML = `<div style="color:var(--up-color);padding:12px;background:#fef2f2;border-radius:8px;">오류: ${err.message}</div>`;
         tabs.classList.remove('d-none');
     } finally {
         loading.classList.add('d-none');
     }
 });
 
-// 텔레그램 메시지 전체보기
+// ===== 텔레그램 모달 =====
 document.querySelectorAll('.btn-view-telegram').forEach(btn => {
     btn.addEventListener('click', function() {
         let text = this.dataset.text;
         text = text.replace(/\\u([0-9a-fA-F]{4})/g, (m, cc) => String.fromCharCode(parseInt(cc, 16)));
-        text = text.replace(/\\n/g, '\n');
-        text = text.replace(/\\\n/g, '\n');
-        text = text.replace(/\\$/gm, '');
-
+        text = text.replace(/\\n/g, '\n').replace(/\\\n/g, '\n').replace(/\\$/gm, '');
         document.getElementById('telegramModalChannel').textContent = this.dataset.channel;
         document.getElementById('telegramModalDate').textContent = this.dataset.date;
         document.getElementById('telegramModalText').textContent = text;
-
-        new bootstrap.Modal(document.getElementById('telegramModal')).show();
+        document.getElementById('telegramModal').classList.add('show');
     });
 });
+document.getElementById('telegramModalClose').addEventListener('click', () => {
+    document.getElementById('telegramModal').classList.remove('show');
+});
+document.getElementById('telegramModal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('show');
+});
 
-// 파일 리포트 요약 새 창으로 보기
+// ===== 파일 리포트 요약 =====
 document.querySelectorAll('.btn-view-file-report-summary').forEach(btn => {
     btn.addEventListener('click', function() {
         let summary = this.dataset.summary || '';
         const title = this.dataset.title || '리포트 요약';
-
-        // 유니코드 이스케이프 시퀀스 디코딩
         summary = summary.replace(/\\u([0-9a-fA-F]{4})/g, (m, cc) => String.fromCharCode(parseInt(cc, 16)));
 
-        const previewWindow = window.open('', '_blank', 'width=900,height=700');
-        previewWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>${title}</title>
-                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-                <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>
-                <style>
-                    body { padding: 30px; }
-                    pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
-                    code { background: #f8f9fa; padding: 2px 4px; border-radius: 2px; }
-                    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
-                    th, td { border: 1px solid #dee2e6; padding: 8px; text-align: left; }
-                    th { background: #f8f9fa; }
-                    h1, h2, h3, h4 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
-                    ul, ol { margin-bottom: 1rem; }
-                </style>
-            </head>
-            <body>
-                <h4 class="mb-4 pb-2 border-bottom">${title}</h4>
-                <div id="content"></div>
-                <script>
-                    const md = ${JSON.stringify(summary || '요약이 없습니다.')};
-                    document.getElementById('content').innerHTML = marked.parse(md);
-                <\/script>
-            </body>
-            </html>
-        `);
-        previewWindow.document.close();
+        const w = window.open('', '_blank', 'width=900,height=700');
+        w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>
+            <style>body{padding:30px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}pre{background:#f8f9fa;padding:10px;border-radius:4px;overflow-x:auto;}code{background:#f8f9fa;padding:2px 4px;border-radius:2px;}table{border-collapse:collapse;width:100%;margin:1rem 0;}th,td{border:1px solid #dee2e6;padding:8px;text-align:left;}th{background:#f8f9fa;}h1,h2,h3,h4{margin-top:1.5rem;margin-bottom:0.5rem;}</style>
+            </head><body><h4 style="margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #e5e7eb;">${title}</h4>
+            <div id="content"></div>
+            <script>document.getElementById('content').innerHTML=marked.parse(${JSON.stringify(summary||'요약이 없습니다.')});<\/script></body></html>`);
+        w.document.close();
     });
 });
 </script>

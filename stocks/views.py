@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET
 from decouple import config
 from telethon import TelegramClient
 from django.views.decorators.http import require_POST
-from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, IndexChart, MarketTrend, InvestorTrend, ShortSelling
+from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, IndexChart, MarketTrend, InvestorTrend, ShortSelling, MarketDiary
 
 
 def index(request):
@@ -1783,6 +1783,8 @@ def search_disclosure(request):
 
 def market(request):
     """시황 페이지"""
+    from django.db.models import Max, Min
+
     # KOSPI 차트 데이터 (최근 240일)
     kospi_charts = list(IndexChart.objects.filter(code='KOSPI').order_by('-date')[:240])
     kospi_charts.reverse()
@@ -1837,47 +1839,77 @@ def market(request):
     if len(kospi_charts) >= 2:
         kospi_change = float(kospi_charts[-1].closing_price - kospi_charts[-2].closing_price)
         kospi_change_rate = round(kospi_change / float(kospi_charts[-2].closing_price) * 100, 2)
+        kospi_prev_close = float(kospi_charts[-2].closing_price)
     else:
         kospi_change = 0
         kospi_change_rate = 0
+        kospi_prev_close = 0
 
     if len(kosdaq_charts) >= 2:
         kosdaq_change = float(kosdaq_charts[-1].closing_price - kosdaq_charts[-2].closing_price)
         kosdaq_change_rate = round(kosdaq_change / float(kosdaq_charts[-2].closing_price) * 100, 2)
+        kosdaq_prev_close = float(kosdaq_charts[-2].closing_price)
     else:
         kosdaq_change = 0
         kosdaq_change_rate = 0
+        kosdaq_prev_close = 0
+
+    # 52주 고가/저가
+    if kospi_latest:
+        fifty_two_weeks_ago = kospi_latest.date - timedelta(weeks=52)
+        kospi_52w = IndexChart.objects.filter(
+            code='KOSPI', date__gte=fifty_two_weeks_ago
+        ).aggregate(high=Max('high_price'), low=Min('low_price'))
+        kospi_52w_high = float(kospi_52w['high']) if kospi_52w['high'] else 0
+        kospi_52w_low = float(kospi_52w['low']) if kospi_52w['low'] else 0
+    else:
+        kospi_52w_high = 0
+        kospi_52w_low = 0
+
+    if kosdaq_latest:
+        fifty_two_weeks_ago = kosdaq_latest.date - timedelta(weeks=52)
+        kosdaq_52w = IndexChart.objects.filter(
+            code='KOSDAQ', date__gte=fifty_two_weeks_ago
+        ).aggregate(high=Max('high_price'), low=Min('low_price'))
+        kosdaq_52w_high = float(kosdaq_52w['high']) if kosdaq_52w['high'] else 0
+        kosdaq_52w_low = float(kosdaq_52w['low']) if kosdaq_52w['low'] else 0
+    else:
+        kosdaq_52w_high = 0
+        kosdaq_52w_low = 0
 
     # MarketTrend data (top 20 per market)
     kospi_trends = MarketTrend.objects.filter(market='KOSPI').order_by('-date')[:20]
     kosdaq_trends = MarketTrend.objects.filter(market='KOSDAQ').order_by('-date')[:20]
     futures_trends = MarketTrend.objects.filter(market='FUTURES').order_by('-date')[:20]
 
-    # Cumulative chart data (120 days)
-    def get_cumulative_data(market):
+    # Trend summary JSON (for JS tab switching)
+    def trends_to_json(trends):
+        return [
+            {
+                'individual': t.individual,
+                'foreign': t.foreign,
+                'institution': t.institution,
+            }
+            for t in trends
+        ]
+
+    # Raw trend data (120 days, for JS cumulative calculation)
+    def get_raw_trend_data(market):
         trends = list(MarketTrend.objects.filter(market=market).order_by('-date')[:120])
         trends.reverse()  # oldest first
-
-        cumulative_individual = 0
-        cumulative_foreign = 0
-        cumulative_institution = 0
-
-        chart_data = []
-        for t in trends:
-            cumulative_individual += t.individual
-            cumulative_foreign += t.foreign
-            cumulative_institution += t.institution
-            chart_data.append({
+        return [
+            {
                 'date': t.date.strftime('%Y-%m-%d'),
-                'individual': cumulative_individual,
-                'foreign': cumulative_foreign,
-                'institution': cumulative_institution,
-            })
-        return chart_data
+                'individual': t.individual,
+                'foreign': t.foreign,
+                'institution': t.institution,
+            }
+            for t in trends
+        ]
 
-    kospi_cumulative = get_cumulative_data('KOSPI')
-    kosdaq_cumulative = get_cumulative_data('KOSDAQ')
-    futures_cumulative = get_cumulative_data('FUTURES')
+    kospi_raw_trends = get_raw_trend_data('KOSPI')
+    kosdaq_raw_trends = get_raw_trend_data('KOSDAQ')
+    futures_raw_trends = get_raw_trend_data('FUTURES')
 
     context = {
         'kospi_candle_data': json.dumps(kospi_candle_data),
@@ -1888,16 +1920,428 @@ def market(request):
         'kosdaq_latest': kosdaq_latest,
         'kospi_change': kospi_change,
         'kospi_change_rate': kospi_change_rate,
+        'kospi_prev_close': kospi_prev_close,
         'kosdaq_change': kosdaq_change,
         'kosdaq_change_rate': kosdaq_change_rate,
+        'kosdaq_prev_close': kosdaq_prev_close,
+        'kospi_52w_high': kospi_52w_high,
+        'kospi_52w_low': kospi_52w_low,
+        'kosdaq_52w_high': kosdaq_52w_high,
+        'kosdaq_52w_low': kosdaq_52w_low,
         'kospi_trends': kospi_trends,
         'kosdaq_trends': kosdaq_trends,
         'futures_trends': futures_trends,
-        'kospi_cumulative': json.dumps(kospi_cumulative),
-        'kosdaq_cumulative': json.dumps(kosdaq_cumulative),
-        'futures_cumulative': json.dumps(futures_cumulative),
+        'kospi_trends_json': json.dumps(trends_to_json(kospi_trends)),
+        'kosdaq_trends_json': json.dumps(trends_to_json(kosdaq_trends)),
+        'futures_trends_json': json.dumps(trends_to_json(futures_trends)),
+        'kospi_raw_trends': json.dumps(kospi_raw_trends),
+        'kosdaq_raw_trends': json.dumps(kosdaq_raw_trends),
+        'futures_raw_trends': json.dumps(futures_raw_trends),
     }
     return render(request, 'stocks/market.html', context)
+
+
+@require_GET
+def fetch_morning_market(request):
+    """모닝시황 API - 텔레그램 AIMarketDeepDive 채널에서 오늘 '모닝 시황' 검색"""
+    api_id = config('TELEGRAM_API_ID', default='')
+    api_hash = config('TELEGRAM_API_HASH', default='')
+
+    if not api_id or not api_hash:
+        return JsonResponse({'error': '텔레그램 API 설정이 없습니다.'}, status=500)
+
+    async def search():
+        from datetime import timezone, timedelta
+        kst = timezone(timedelta(hours=9))
+
+        async with TelegramClient('telegram_session', api_id, api_hash) as client:
+            entity = await client.get_entity('@AIMarketDeepDive')
+            msgs = await client.get_messages(entity, search='모닝 시황', limit=5)
+
+            results = []
+            latest_date = None
+            for msg in msgs:
+                if not msg.text:
+                    continue
+                msg_kst = msg.date.astimezone(kst)
+                msg_date = msg_kst.strftime('%Y-%m-%d')
+                if latest_date is None:
+                    latest_date = msg_date
+                if msg_date == latest_date:
+                    results.append({
+                        'date': msg_date,
+                        'time': msg_kst.strftime('%H:%M'),
+                        'text': msg.text,
+                    })
+            return results
+
+    try:
+        results = asyncio.run(search())
+        return JsonResponse({'success': True, 'results': results})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_GET
+def fetch_habono(request):
+    """하보노 카테고리별 최신 5개 가져오기"""
+    import requests as http_requests
+    from bs4 import BeautifulSoup
+
+    category = request.GET.get('category', '18f2bc7d3da000aui')
+    limit = int(request.GET.get('limit', 5))
+    url = f'https://contents.premium.naver.com/habono/habono2/contents?categoryId={category}'
+    try:
+        resp = http_requests.get(url, timeout=10)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, 'html.parser')
+
+        results = []
+        items = soup.select('li.content_item')[:limit]
+        for item in items:
+            link_el = item.select_one('a.content_text_link')
+            title_el = item.select_one('strong.content_title')
+            date_el = item.select('span.content_info_text')
+
+            if not link_el or not title_el:
+                continue
+
+            href = link_el.get('href', '')
+            if href and not href.startswith('http'):
+                href = 'https://contents.premium.naver.com' + href
+
+            date_text = ''
+            for span in date_el:
+                text = span.get_text(strip=True)
+                if '.' in text and any(c.isdigit() for c in text):
+                    date_text = text
+                    break
+
+            results.append({
+                'title': title_el.get_text(strip=True),
+                'url': href,
+                'date': date_text,
+            })
+
+        return JsonResponse({'success': True, 'results': results})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_GET
+def diary_list(request):
+    """투자일기 목록 API (페이지네이션)"""
+    limit = int(request.GET.get('limit', 20))
+    offset = int(request.GET.get('offset', 0))
+    total = MarketDiary.objects.count()
+    entries = MarketDiary.objects.all()[offset:offset + limit]
+
+    # 코스피 종가 + 등락률 계산을 위해 날짜 목록 수집
+    dates = [e.date for e in entries]
+    if dates:
+        # 이전 날짜 등락률 계산을 위해 추가 날짜도 가져옴
+        kospi_data = {
+            ic.date: float(ic.closing_price)
+            for ic in IndexChart.objects.filter(code='KOSPI').order_by('-date')[:300]
+        }
+    else:
+        kospi_data = {}
+
+    # 날짜순 정렬된 코스피 날짜 목록
+    sorted_kospi_dates = sorted(kospi_data.keys())
+
+    results = []
+    for entry in entries:
+        kospi_price = kospi_data.get(entry.date)
+        kospi_change = None
+
+        if kospi_price and sorted_kospi_dates:
+            # 해당 날짜 또는 이전 가장 가까운 거래일 찾기
+            idx = None
+            for i, d in enumerate(sorted_kospi_dates):
+                if d <= entry.date:
+                    idx = i
+            if idx is not None:
+                kospi_price = kospi_data[sorted_kospi_dates[idx]]
+                if idx > 0:
+                    prev_price = kospi_data[sorted_kospi_dates[idx - 1]]
+                    kospi_change = round((kospi_price - prev_price) / prev_price * 100, 2)
+
+        results.append({
+            'id': entry.id,
+            'date': entry.date.strftime('%Y-%m-%d'),
+            'content': entry.content,
+            'kospi_price': kospi_price,
+            'kospi_change': kospi_change,
+            'updated_at': entry.updated_at.strftime('%Y-%m-%d %H:%M'),
+        })
+
+    return JsonResponse({
+        'success': True,
+        'results': results,
+        'total': total,
+        'has_more': offset + limit < total,
+    })
+
+
+@require_POST
+def diary_save(request):
+    """투자일기 저장 API"""
+    date_str = request.POST.get('date', '').strip()
+    content = request.POST.get('content', '').strip()
+
+    if not date_str or not content:
+        return JsonResponse({'error': '날짜와 내용을 입력하세요.'}, status=400)
+
+    try:
+        date_val = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'error': '올바른 날짜 형식이 아닙니다.'}, status=400)
+
+    if MarketDiary.objects.filter(date=date_val).exists():
+        return JsonResponse({'error': '해당 날짜에 이미 일기가 있습니다.'}, status=400)
+
+    entry = MarketDiary.objects.create(date=date_val, content=content)
+    return JsonResponse({'success': True, 'id': entry.id})
+
+
+@require_POST
+def diary_update(request, diary_id):
+    """투자일기 수정 API"""
+    entry = get_object_or_404(MarketDiary, id=diary_id)
+    content = request.POST.get('content', '').strip()
+    date_str = request.POST.get('date', '').strip()
+
+    if not content:
+        return JsonResponse({'error': '내용을 입력하세요.'}, status=400)
+
+    if date_str:
+        try:
+            new_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            if new_date != entry.date and MarketDiary.objects.filter(date=new_date).exists():
+                return JsonResponse({'error': '해당 날짜에 이미 일기가 있습니다.'}, status=400)
+            entry.date = new_date
+        except ValueError:
+            pass
+
+    entry.content = content
+    entry.save()
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def diary_delete(request, diary_id):
+    """투자일기 삭제 API"""
+    entry = get_object_or_404(MarketDiary, id=diary_id)
+    entry.delete()
+    return JsonResponse({'success': True})
+
+
+@require_GET
+def fetch_youtube_channel(request):
+    """유튜브 채널 최신 영상 가져오기"""
+    import requests as http_requests
+    import re
+
+    channel = request.GET.get('channel', '@3protv')
+    limit = int(request.GET.get('limit', 15))
+
+    url = f'https://www.youtube.com/{channel}/videos'
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        resp = http_requests.get(url, headers=headers, timeout=10)
+        resp.raise_for_status()
+
+        match = re.search(r'var ytInitialData = ({.*?});', resp.text)
+        if not match:
+            return JsonResponse({'error': '유튜브 데이터를 파싱할 수 없습니다.'}, status=500)
+
+        data = json.loads(match.group(1))
+        tabs = data['contents']['twoColumnBrowseResultsRenderer']['tabs']
+
+        results = []
+        for tab in tabs:
+            if 'tabRenderer' in tab and tab['tabRenderer'].get('selected'):
+                items = tab['tabRenderer']['content']['richGridRenderer']['contents']
+                for item in items:
+                    if 'richItemRenderer' not in item:
+                        continue
+                    vid = item['richItemRenderer']['content']['videoRenderer']
+                    vid_id = vid['videoId']
+                    title = vid['title']['runs'][0]['text']
+                    published = ''
+                    if 'publishedTimeText' in vid:
+                        published = vid['publishedTimeText'].get('simpleText', '')
+
+                    results.append({
+                        'video_id': vid_id,
+                        'title': title,
+                        'thumbnail': f'https://i.ytimg.com/vi/{vid_id}/mqdefault.jpg',
+                        'url': f'https://www.youtube.com/watch?v={vid_id}',
+                        'published': published,
+                    })
+                    if len(results) >= limit:
+                        break
+                break
+
+        return JsonResponse({'success': True, 'results': results})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_GET
+def market_youtube_list(request):
+    """시황 유튜브 목록 API (페이지네이션)"""
+    from .models import MarketYoutubeVideo
+    limit = int(request.GET.get('limit', 30))
+    offset = int(request.GET.get('offset', 0))
+    total = MarketYoutubeVideo.objects.count()
+    videos = MarketYoutubeVideo.objects.all()[offset:offset + limit]
+    results = []
+    for v in videos:
+        results.append({
+            'id': v.id,
+            'video_id': v.video_id,
+            'title': v.title,
+            'channel': v.channel,
+            'note': v.note,
+            'summary': v.summary,
+            'url': v.url,
+            'date': v.published_date.strftime('%Y-%m-%d') if v.published_date else v.created_at.strftime('%Y-%m-%d'),
+        })
+    return JsonResponse({'success': True, 'results': results, 'total': total, 'has_more': offset + limit < total})
+
+
+@require_POST
+def market_youtube_save(request):
+    """시황 유튜브 저장 API - 링크로 저장 후 요약 입력"""
+    import requests as http_requests
+    import re
+    from .models import MarketYoutubeVideo
+
+    link = request.POST.get('link', '').strip()
+    note = request.POST.get('note', '').strip()
+    summary = request.POST.get('summary', '').strip()
+    date_input = request.POST.get('date', '').strip()
+
+    if not link:
+        return JsonResponse({'error': '유튜브 링크를 입력하세요.'}, status=400)
+
+    # video_id 추출
+    video_id = None
+    match = re.search(r'[?&]v=([^&]+)', link)
+    if match:
+        video_id = match.group(1)
+    else:
+        match = re.search(r'youtu\.be/([^?&]+)', link)
+        if match:
+            video_id = match.group(1)
+        else:
+            match = re.search(r'shorts/([^?&]+)', link)
+            if match:
+                video_id = match.group(1)
+
+    if not video_id:
+        return JsonResponse({'error': '올바른 유튜브 링크가 아닙니다.'}, status=400)
+
+    if MarketYoutubeVideo.objects.filter(video_id=video_id).exists():
+        return JsonResponse({'error': '이미 저장된 영상입니다.'}, status=400)
+
+    # 유튜브 페이지에서 제목, 채널명, 게시일 가져오기
+    title = ''
+    channel = ''
+    published_date = None
+    try:
+        url = f'https://www.youtube.com/watch?v={video_id}'
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'ko-KR,ko;q=0.9',
+        }
+        resp = http_requests.get(url, headers=headers, timeout=10)
+        resp.raise_for_status()
+
+        def decode_unicode(s):
+            try:
+                return json.loads(f'"{s}"')
+            except:
+                return s
+
+        title_match = re.search(r'"title":"([^"]+)"', resp.text)
+        if title_match:
+            title = decode_unicode(title_match.group(1))
+        channel_match = re.search(r'"ownerChannelName":"([^"]+)"', resp.text)
+        if channel_match:
+            channel = decode_unicode(channel_match.group(1))
+
+        # 게시일 추출 (여러 패턴 시도)
+        date_patterns = [
+            r'"publishDate"\s*:\s*"(\d{4}-\d{2}-\d{2})',
+            r'"uploadDate"\s*:\s*"(\d{4}-\d{2}-\d{2})',
+            r'"dateText"\s*:\s*\{\s*"simpleText"\s*:\s*"(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})',
+        ]
+        for pattern in date_patterns:
+            date_match = re.search(pattern, resp.text)
+            if date_match:
+                groups = date_match.groups()
+                if len(groups) == 1:
+                    published_date = datetime.strptime(groups[0], '%Y-%m-%d').date()
+                else:
+                    published_date = datetime(int(groups[0]), int(groups[1]), int(groups[2])).date()
+                break
+    except:
+        pass
+
+    if not title:
+        title = f'영상 {video_id}'
+
+    video = MarketYoutubeVideo.objects.create(
+        video_id=video_id,
+        title=title,
+        channel=channel,
+        note=note,
+        summary=summary,
+        published_date=datetime.strptime(date_input, '%Y-%m-%d').date() if date_input else (published_date or datetime.now().date()),
+    )
+
+    return JsonResponse({
+        'success': True,
+        'id': video.id,
+        'video_id': video.video_id,
+        'title': video.title,
+        'channel': video.channel,
+        'summary': video.summary,
+        'url': video.url,
+        'date': video.published_date.strftime('%Y-%m-%d') if video.published_date else video.created_at.strftime('%Y-%m-%d'),
+    })
+
+
+@require_POST
+def market_youtube_update(request, video_id):
+    """시황 유튜브 수정 API"""
+    from .models import MarketYoutubeVideo
+    video = get_object_or_404(MarketYoutubeVideo, id=video_id)
+    note = request.POST.get('note')
+    if note is not None:
+        video.note = note.strip()
+    summary = request.POST.get('summary')
+    if summary is not None:
+        video.summary = summary.strip()
+    date_input = request.POST.get('date', '').strip()
+    if date_input:
+        video.published_date = datetime.strptime(date_input, '%Y-%m-%d').date()
+    video.save()
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def market_youtube_delete(request, video_id):
+    """시황 유튜브 삭제 API"""
+    from .models import MarketYoutubeVideo
+    video = get_object_or_404(MarketYoutubeVideo, id=video_id)
+    video.delete()
+    return JsonResponse({'success': True})
 
 
 @require_GET

@@ -3,800 +3,841 @@
 
 {% block title %}{{ stock.name }} 편집 - JStocks{% endblock %}
 
+{% block extra_style %}
+.section-heading { font-size:1rem; font-weight:700; color:var(--text-primary); margin-bottom:16px; padding-bottom:10px; border-bottom:2px solid var(--text-primary); }
+.brief-card { background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius); box-shadow:var(--shadow-card); padding:24px; margin-bottom:12px; }
+.btn-refresh { display:inline-block; background:none; border:1px solid var(--border-color); border-radius:6px; padding:4px 12px; font-size:0.78rem; color:var(--text-secondary); cursor:pointer; transition:all 0.15s; text-decoration:none; }
+.btn-refresh:hover { border-color:var(--text-secondary); color:var(--text-primary); }
+.btn-refresh.primary { border-color:var(--down-color); color:var(--down-color); }
+.btn-refresh.primary:hover { background:var(--down-color); color:#fff; }
+.btn-refresh.danger { border-color:var(--up-color); color:var(--up-color); }
+.btn-refresh.danger:hover { background:var(--up-color); color:#fff; }
+.btn-refresh.success { border-color:#059669; color:#059669; }
+.btn-refresh.success:hover { background:#059669; color:#fff; }
+.modern-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+.modern-table thead th { padding:10px 16px; font-weight:600; color:var(--text-secondary); border-bottom:2px solid var(--border-color); white-space:nowrap; background:var(--bg-card); }
+.modern-table tbody tr { transition:background 0.1s; }
+.modern-table tbody tr:hover { background:#f9fafb; }
+.modern-table tbody td { padding:8px 16px; border-bottom:1px solid #f3f4f6; }
+.market-tab { padding:10px 22px; background:none; border:1px solid transparent; border-radius:var(--radius); font-size:0.9rem; font-weight:500; color:var(--text-secondary); cursor:pointer; transition:all 0.15s; }
+.market-tab:hover { color:var(--text-primary); }
+.market-tab.active { color:var(--text-primary); font-weight:700; border-color:var(--border-color); background:var(--bg-card); box-shadow:var(--shadow-card); }
+.tab-count { display:inline-block; background:var(--border-color); color:var(--text-secondary); font-size:0.7rem; padding:1px 6px; border-radius:10px; margin-left:4px; font-weight:600; }
+.list-item { padding:14px 0; border-bottom:1px solid #f3f4f6; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+.list-item:last-child { border-bottom:none; }
+.tag-badge { display:inline-block; padding:3px 10px; border-radius:4px; font-size:0.75rem; font-weight:500; }
+.channel-badge { display:inline-block; padding:2px 8px; background:#f3f4f6; border-radius:4px; font-size:0.72rem; color:var(--text-secondary); }
+.status-badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:0.72rem; font-weight:500; }
+.status-badge.done { background:#ecfdf5; color:#059669; }
+.status-badge.pending { background:#f3f4f6; color:var(--text-muted); }
+.modal-overlay { display:none; position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,0.4); z-index:1000; justify-content:center; align-items:center; }
+.modal-overlay.show { display:flex; }
+.modal-box { background:#fff; border-radius:var(--radius); max-width:900px; width:95%; max-height:85vh; overflow-y:auto; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,0.15); }
+.modal-close { background:none; border:none; font-size:1.2rem; color:var(--text-muted); cursor:pointer; padding:4px 8px; }
+.modal-close:hover { color:var(--text-primary); }
+.info-box { background:#f9fafb; border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:12px; font-size:0.78rem; color:var(--text-secondary); line-height:1.6; }
+.info-box.warn { background:#fef2f2; border-color:#fecaca; color:var(--up-color); }
+.settings-input { border:1px solid var(--border-color); border-radius:6px; padding:6px 12px; font-size:0.82rem; color:var(--text-primary); outline:none; width:100%; }
+.settings-input:focus { border-color:#2962ff; }
+
+/* Sub tabs (report sub-tabs) */
+.sub-tabs { display:flex; gap:6px; margin-bottom:16px; }
+.sub-tab { padding:6px 16px; background:none; border:1px solid transparent; border-radius:var(--radius-sm); font-size:0.82rem; font-weight:500; color:var(--text-secondary); cursor:pointer; transition:all 0.15s; }
+.sub-tab:hover { color:var(--text-primary); }
+.sub-tab.active { color:var(--text-primary); font-weight:700; border-color:var(--border-color); background:var(--bg-card); box-shadow:var(--shadow-card); }
+
+/* Report channel tabs (grid) */
+.report-channel-tabs { display:grid; grid-template-columns:repeat(3, 1fr); gap:4px; padding-bottom:8px; margin-bottom:8px; border-bottom:1px solid var(--border-color); }
+@media (min-width:768px) { .report-channel-tabs { grid-template-columns:repeat(6, 1fr); } }
+.report-channel-tab { display:block; width:100%; padding:4px 6px; font-size:0.7rem; border-radius:4px; border:1px solid var(--border-color); background:#f9fafb; color:var(--text-secondary); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; transition:all 0.15s; }
+.report-channel-tab:hover { background:#f3f4f6; color:var(--text-primary); }
+.report-channel-tab.active { background:var(--text-primary); color:#fff; border-color:var(--text-primary); }
+
+/* Highlight */
+.highlight { background-color:#fff3cd; padding:0 2px; border-radius:2px; font-weight:bold; }
+
+/* Tab panel show/hide */
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+
+/* Override Bootstrap form controls */
+.form-control, .form-select {
+    border:1px solid var(--border-color) !important;
+    border-radius:6px !important;
+    font-size:0.85rem;
+    color:var(--text-primary);
+    transition:border-color 0.15s;
+}
+.form-control:focus, .form-select:focus {
+    border-color:#2962ff !important;
+    box-shadow:0 0 0 2px rgba(41,98,255,0.1) !important;
+    outline:none;
+}
+
+/* Selected theme/sector tag */
+.selected-tag { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:4px; font-size:0.75rem; font-weight:500; color:#fff; }
+.selected-tag.theme { background:var(--down-color); }
+.selected-tag.sector { background:#059669; }
+.selected-tag .tag-remove { background:none; border:none; color:rgba(255,255,255,0.7); cursor:pointer; font-size:0.65rem; padding:0 2px; line-height:1; }
+.selected-tag .tag-remove:hover { color:#fff; }
+
+/* Header */
+.edit-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; }
+.edit-header h4 { font-size:1.2rem; font-weight:700; margin:0 0 4px 0; }
+
+/* Prompt copy badge */
+.prompt-badge { display:inline-block; padding:3px 10px; border-radius:4px; font-size:0.72rem; font-weight:500; cursor:pointer; background:#ecfdf5; color:#059669; transition:all 0.15s; }
+.prompt-badge:hover { background:#d1fae5; }
+.prompt-badge.info { background:#eff6ff; color:#2962ff; }
+.prompt-badge.info:hover { background:#dbeafe; }
+
+/* Radio toggle group */
+.toggle-group { display:inline-flex; border:1px solid var(--border-color); border-radius:6px; overflow:hidden; }
+.toggle-group input[type="radio"] { display:none; }
+.toggle-group label { padding:4px 12px; font-size:0.78rem; color:var(--text-secondary); cursor:pointer; border-right:1px solid var(--border-color); transition:all 0.15s; }
+.toggle-group label:last-of-type { border-right:none; }
+.toggle-group input[type="radio"]:checked + label { background:var(--text-primary); color:#fff; }
+
+/* Search mode toggle */
+.mode-toggle { display:inline-flex; border:1px solid var(--border-color); border-radius:6px; overflow:hidden; }
+.mode-btn { padding:4px 12px; font-size:0.78rem; color:var(--text-secondary); cursor:pointer; background:none; border:none; border-right:1px solid var(--border-color); transition:all 0.15s; }
+.mode-btn:last-child { border-right:none; }
+.mode-btn.active { background:var(--text-primary); color:#fff; }
+
+/* Text colors */
+.text-up { color:var(--up-color) !important; }
+.text-down { color:var(--down-color) !important; }
+
+/* List group item style */
+.edit-list-item { padding:14px 16px; border-bottom:1px solid #f3f4f6; }
+.edit-list-item:last-child { border-bottom:none; }
+
+/* Spinner */
+.spinner-sm { display:inline-block; width:14px; height:14px; border:2px solid var(--border-color); border-top-color:var(--text-primary); border-radius:50%; animation:spin 0.6s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Search input group */
+.search-group { display:flex; gap:8px; align-items:center; }
+
+/* Nodaji edit row */
+.nodaji-edit-row.hidden { display:none; }
+
+/* Video item */
+.video-item { display:flex; gap:12px; padding:12px 16px; border-bottom:1px solid #f3f4f6; align-items:center; }
+.video-item:last-child { border-bottom:none; }
+{% endblock %}
+
 {% block content %}
 <!-- 종목 헤더 -->
-<div class="d-flex justify-content-between align-items-start mb-3">
+<div class="edit-header">
     <div>
-        <h4 class="mb-1">{{ stock.name }}</h4>
-        <span class="text-muted">{{ stock.code }}</span>
-        <span class="badge bg-secondary ms-1">{{ stock.market }}</span>
+        <h4>{{ stock.name }}</h4>
+        <span style="color:var(--text-muted); font-size:0.85rem;">{{ stock.code }}</span>
+        <span class="tag-badge" style="background:#f3f4f6; color:var(--text-secondary); margin-left:4px;">{{ stock.market }}</span>
     </div>
-    <a href="{% url 'stocks:stock_detail' stock.code %}" class="btn btn-outline-secondary btn-sm">상세</a>
+    <a href="{% url 'stocks:stock_detail' stock.code %}" class="btn-refresh">상세</a>
 </div>
 
 <!-- 메인 탭 -->
-<ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-content" type="button" role="tab">기본정보</button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="question-report-tab" data-bs-toggle="tab" data-bs-target="#question-report-content" type="button" role="tab">리서치{% if question_reports %}<span class="badge bg-secondary ms-1">{{ question_reports|length }}</span>{% endif %}</button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab">리포트{% with total_summary=report_summary_count|add:uploaded_summary_count %}{% with total_attachment=report_attachment_count|add:uploaded_attachment_count %}{% with total=total_summary|add:total_attachment %}{% if total %}<span class="badge bg-secondary ms-1">{{ total }}</span>{% endif %}{% endwith %}{% endwith %}{% endwith %}</button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="telegram-tab" data-bs-toggle="tab" data-bs-target="#telegram-content" type="button" role="tab">텔레그램{% if telegram_messages %}<span class="badge bg-secondary ms-1">{{ telegram_messages|length }}</span>{% endif %}</button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="news-tab" data-bs-toggle="tab" data-bs-target="#news-content" type="button" role="tab">뉴스{% if news_articles %}<span class="badge bg-secondary ms-1">{{ news_articles|length }}</span>{% endif %}</button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="nodaji-tab" data-bs-toggle="tab" data-bs-target="#nodaji-content" type="button" role="tab">노다지{% if nodaji_summary_count %}<span class="badge bg-secondary ms-1">{{ nodaji_summary_count }}</span>{% endif %}</button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="youtube-tab" data-bs-toggle="tab" data-bs-target="#youtube-content" type="button" role="tab">유튜브{% if youtube_videos %}<span class="badge bg-secondary ms-1">{{ youtube_videos|length }}</span>{% endif %}</button>
-    </li>
-</ul>
+<div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:20px;">
+    <button class="market-tab active" data-target="info-content">기본정보</button>
+    <button class="market-tab" data-target="question-report-content">리서치{% if question_reports %}<span class="tab-count">{{ question_reports|length }}</span>{% endif %}</button>
+    <button class="market-tab" data-target="report-content">리포트{% with total_summary=report_summary_count|add:uploaded_summary_count %}{% with total_attachment=report_attachment_count|add:uploaded_attachment_count %}{% with total=total_summary|add:total_attachment %}{% if total %}<span class="tab-count">{{ total }}</span>{% endif %}{% endwith %}{% endwith %}{% endwith %}</button>
+    <button class="market-tab" data-target="telegram-content">텔레그램{% if telegram_messages %}<span class="tab-count">{{ telegram_messages|length }}</span>{% endif %}</button>
+    <button class="market-tab" data-target="news-content">뉴스{% if news_articles %}<span class="tab-count">{{ news_articles|length }}</span>{% endif %}</button>
+    <button class="market-tab" data-target="nodaji-content">노다지{% if nodaji_summary_count %}<span class="tab-count">{{ nodaji_summary_count }}</span>{% endif %}</button>
+    <button class="market-tab" data-target="youtube-content">유튜브{% if youtube_videos %}<span class="tab-count">{{ youtube_videos|length }}</span>{% endif %}</button>
+</div>
 
-<div class="tab-content" id="mainTabContent">
-    <!-- 기본정보 탭 -->
-    <div class="tab-pane fade show active" id="info-content" role="tabpanel">
-        <form method="post">
-            {% csrf_token %}
+<!-- 기본정보 탭 -->
+<div class="tab-panel active" id="info-content">
+    <form method="post">
+        {% csrf_token %}
 
-            <div class="card mb-3">
-                <div class="card-header py-2">
-                    <strong>관심 단계</strong>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <select name="interest_level" class="form-select">
-                                <option value="">선택 안함</option>
-                                {% for value, label in interest_choices %}
-                                <option value="{{ value }}" {% if stock.interest_level == value %}selected{% endif %}>{{ label }}</option>
-                                {% endfor %}
-                            </select>
-                            <div class="mt-2">
-                                {% if stock.fav_sync_status == 'syncing' %}
-                                <span class="badge bg-warning text-dark">
-                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                    데이터 수집 중...
-                                </span>
-                                <small class="text-muted ms-2">페이지를 새로고침하여 완료 여부를 확인하세요.</small>
-                                {% elif stock.fav_sync_status == 'deleting' %}
-                                <span class="badge bg-danger">
-                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                    데이터 삭제 중...
-                                </span>
-                                <small class="text-muted ms-2">페이지를 새로고침하여 완료 여부를 확인하세요.</small>
-                                {% elif stock.fav_sync_status == 'completed' %}
-                                <span class="badge bg-success">데이터 수집 완료</span>
-                                {% else %}
-                                <small class="text-muted">초관심 > 관심 > 인큐베이터 순으로 중요도가 높습니다.</small>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-check mt-2">
-                                <input type="checkbox" class="form-check-input" id="is_holding" name="is_holding" {% if stock.is_holding %}checked{% endif %}>
-                                <label class="form-check-label" for="is_holding">
-                                    <strong>보유중</strong>
-                                    <small class="text-muted ms-1">현재 이 종목을 보유하고 있음</small>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card mb-3">
-                <div class="card-header py-2">
-                    <strong>업종</strong>
-                    <a href="{% url 'stocks:settings' %}" class="text-muted small ms-2" target="_blank">관리</a>
-                </div>
-                <div class="card-body py-2">
-                    {% if theme_categories %}
-                    <!-- 선택된 테마 표시 -->
-                    <div id="selectedThemes" class="d-flex flex-wrap gap-1 mb-2">
-                        {% for theme in stock.themes.all %}
-                        <span class="badge bg-primary d-flex align-items-center selected-theme" data-id="{{ theme.id }}">
-                            {{ theme.category.name }} &gt; {{ theme.name }}
-                            <button type="button" class="btn-close btn-close-white ms-1 btn-remove-theme" style="font-size: 0.5rem;"></button>
+        <div class="brief-card">
+            <div class="section-heading">관심 단계</div>
+            <div style="display:flex; gap:24px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:250px;">
+                    <select name="interest_level" class="form-select">
+                        <option value="">선택 안함</option>
+                        {% for value, label in interest_choices %}
+                        <option value="{{ value }}" {% if stock.interest_level == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <div style="margin-top:8px;">
+                        {% if stock.fav_sync_status == 'syncing' %}
+                        <span class="status-badge" style="background:#fef3c7; color:#d97706;">
+                            <span class="spinner-sm" style="margin-right:4px;"></span>
+                            데이터 수집 중...
                         </span>
-                        {% empty %}
-                        <span class="text-muted small" id="noThemeMsg">선택된 업종이 없습니다.</span>
-                        {% endfor %}
-                    </div>
-                    <!-- 테마 추가 드롭다운 -->
-                    <div class="d-flex gap-2 align-items-center">
-                        <select id="themeSelect" class="form-select form-select-sm" style="max-width: 300px;">
-                            <option value="">업종 선택...</option>
-                            {% for category in theme_categories %}
-                            <optgroup label="{{ category.name }}">
-                                {% for theme in category.themes.all %}
-                                <option value="{{ theme.id }}" data-category="{{ category.name }}" data-name="{{ theme.name }}">{{ theme.name }}</option>
-                                {% endfor %}
-                            </optgroup>
-                            {% endfor %}
-                        </select>
-                        <button type="button" id="btnAddThemeToStock" class="btn btn-sm btn-outline-primary">추가</button>
-                    </div>
-                    <!-- hidden inputs -->
-                    <div id="themeInputs">
-                        {% for theme in stock.themes.all %}
-                        <input type="hidden" name="themes" value="{{ theme.id }}">
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="text-muted small">
-                        등록된 업종이 없습니다. <a href="{% url 'stocks:settings' %}" target="_blank">설정</a>에서 업종을 추가하세요.
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="card mb-3">
-                <div class="card-header py-2">
-                    <strong>관심섹터</strong>
-                    <a href="{% url 'stocks:settings' %}" class="text-muted small ms-2" target="_blank">관리</a>
-                </div>
-                <div class="card-body py-2">
-                    {% if custom_sectors %}
-                    <!-- 선택된 섹터 표시 -->
-                    <div id="selectedSectors" class="d-flex flex-wrap gap-1 mb-2">
-                        {% for sector in stock.custom_sectors.all %}
-                        <span class="badge bg-success d-flex align-items-center selected-sector" data-id="{{ sector.id }}">
-                            {{ sector.name }}
-                            <button type="button" class="btn-close btn-close-white ms-1 btn-remove-sector" style="font-size: 0.5rem;"></button>
+                        <span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">페이지를 새로고침하여 완료 여부를 확인하세요.</span>
+                        {% elif stock.fav_sync_status == 'deleting' %}
+                        <span class="status-badge" style="background:#fef2f2; color:var(--up-color);">
+                            <span class="spinner-sm" style="margin-right:4px;"></span>
+                            데이터 삭제 중...
                         </span>
-                        {% empty %}
-                        <span class="text-muted small" id="noSectorMsg">선택된 섹터가 없습니다.</span>
-                        {% endfor %}
-                    </div>
-                    <!-- 섹터 추가 드롭다운 -->
-                    <div class="d-flex gap-2 align-items-center">
-                        <select id="sectorSelect" class="form-select form-select-sm" style="max-width: 300px;">
-                            <option value="">섹터 선택...</option>
-                            {% for sector in custom_sectors %}
-                            <option value="{{ sector.id }}" data-name="{{ sector.name }}">{{ sector.name }}</option>
-                            {% endfor %}
-                        </select>
-                        <button type="button" id="btnAddSectorToStock" class="btn btn-sm btn-outline-success">추가</button>
-                    </div>
-                    <!-- hidden inputs -->
-                    <div id="sectorInputs">
-                        {% for sector in stock.custom_sectors.all %}
-                        <input type="hidden" name="custom_sectors" value="{{ sector.id }}">
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="text-muted small">
-                        등록된 섹터가 없습니다. <a href="{% url 'stocks:settings' %}" target="_blank">설정</a>에서 섹터를 추가하세요.
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- 핵심 브리핑 -->
-            <div class="card mb-3">
-                <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>핵심 브리핑</strong>
-                        <small class="text-muted ms-2">(마크다운 지원)</small>
-                    </div>
-                    <span class="badge bg-success" role="button" id="btnCopyBriefingPrompt" style="cursor: pointer;">프롬프트 복사</span>
-                </div>
-                <div class="card-body">
-                    <textarea class="form-control" name="key_briefing" id="keyBriefingInput" rows="8" placeholder="투자포인트, 리스크, 일정 핵심 요약을 마크다운 형식으로 입력하세요...">{{ stock.key_briefing }}</textarea>
-                </div>
-            </div>
-
-            <!-- 가치평가 -->
-            <div class="card mb-3">
-                <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>가치평가</strong>
-                        <small class="text-muted ms-2">(마크다운 지원)</small>
-                    </div>
-                    <span class="badge bg-success" role="button" id="btnCopyValuationPrompt" style="cursor: pointer;">프롬프트 복사</span>
-                </div>
-                <div class="card-body">
-                    <textarea class="form-control" name="valuation" id="valuationInput" rows="8" placeholder="가치평가 내용을 마크다운 형식으로 입력하세요...">{{ stock.valuation }}</textarea>
-                </div>
-            </div>
-
-            <div class="card mb-3">
-                <div class="card-header py-2">
-                    <strong>메모</strong>
-                    <small class="text-muted ms-2">(마크다운 지원)</small>
-                </div>
-                <div class="card-body">
-                    <textarea class="form-control" name="memo" id="memoInput" rows="6" placeholder="마크다운 형식으로 입력하세요...">{{ stock.memo }}</textarea>
-                </div>
-            </div>
-
-            <div class="card mb-3">
-                <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                    <strong>기업분석</strong>
-                    <div class="btn-group btn-group-sm" role="group">
-                        <input type="radio" class="btn-check" name="analysis_type" id="analysisTypeHtml" value="html" {% if stock.analysis_type != 'markdown' %}checked{% endif %}>
-                        <label class="btn btn-outline-secondary" for="analysisTypeHtml">HTML</label>
-                        <input type="radio" class="btn-check" name="analysis_type" id="analysisTypeMarkdown" value="markdown" {% if stock.analysis_type == 'markdown' %}checked{% endif %}>
-                        <label class="btn btn-outline-secondary" for="analysisTypeMarkdown">마크다운</label>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <textarea class="form-control font-monospace" name="analysis_html" id="analysisReportInput" rows="10" style="font-size: 0.85em;" placeholder="기업분석 내용을 붙여넣으세요...">{{ analysis_html_content }}</textarea>
-                </div>
-            </div>
-
-            <!-- 재무분석 -->
-            <div class="card mb-3">
-                <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>재무분석</strong>
-                        <small class="text-muted ms-2">(마크다운 지원)</small>
-                    </div>
-                    <div class="d-flex gap-1">
-                        <span class="badge bg-success" role="button" id="btnCopyFinancialAnalysisPrompt" style="cursor: pointer;">프롬프트 복사</span>
-                        <a class="badge bg-info text-decoration-none" href="https://comp.fnguide.com/SVO2/ASP/SVD_Consensus.asp?pGB=1&gicode=A{{ stock.code }}&cID=&MenuYn=Y&ReportGB=&NewMenuID=108&stkGb=701" target="_blank">컨센서스</a>
-                        <a class="badge bg-info text-decoration-none" href="https://comp.fnguide.com/SVO2/ASP/SVD_Finance.asp?pGB=1&gicode=A{{ stock.code }}&cID=&MenuYn=Y&ReportGB=&NewMenuID=103&stkGb=701" target="_blank">재무제표</a>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <textarea class="form-control" name="financial_analysis" id="financialAnalysisInput" rows="8" placeholder="재무분석 내용을 마크다운 형식으로 입력하세요...">{{ stock.financial_analysis }}</textarea>
-                </div>
-            </div>
-
-            <!-- 투자지표 -->
-            <div class="card mb-3">
-                <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>투자지표</strong>
-                        <small class="text-muted ms-2">(마크다운 지원)</small>
-                    </div>
-                    <div class="d-flex gap-1">
-                        <span class="badge bg-success" role="button" id="btnCopyInvestmentIndicatorPrompt" style="cursor: pointer;">프롬프트 복사</span>
-                        <a class="badge bg-info text-decoration-none" href="https://comp.wisereport.co.kr/company/c1040001.aspx?cn=&cmp_cd={{ stock.code }}" target="_blank">투자지표</a>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <textarea class="form-control" name="investment_indicator" id="investmentIndicatorInput" rows="8" placeholder="투자지표 내용을 마크다운 형식으로 입력하세요...">{{ stock.investment_indicator }}</textarea>
-                </div>
-            </div>
-
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary">저장</button>
-                <a href="{% url 'stocks:stock_detail' stock.code %}" class="btn btn-outline-secondary">취소</a>
-            </div>
-        </form>
-    </div>
-
-    <!-- 리서치 탭 -->
-    <div class="tab-pane fade" id="question-report-content" role="tabpanel">
-        <div class="card">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>리서치 목록</strong>
-                    <span class="badge bg-primary ms-1" id="questionReportCount">{{ question_reports|length }}</span>
-                </div>
-                <button type="button" class="btn btn-sm btn-primary" id="btnAddQuestionReport">+ 추가</button>
-            </div>
-            <div class="card-body p-0">
-                <div id="questionReportList" class="list-group list-group-flush">
-                    {% for qr in question_reports %}
-                    <div class="list-group-item py-3" data-id="{{ qr.id }}" data-report-type="{{ qr.report_type|default:'html' }}">
-                        <div class="mb-2">
-                            <label class="form-label small text-muted mb-1">질문</label>
-                            <textarea class="form-control form-control-sm qr-question" rows="2">{{ qr.question }}</textarea>
-                        </div>
-                        <div class="mb-2">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="form-label small text-muted mb-0">리포트</label>
-                                <select class="form-select form-select-sm qr-report-type" style="width: auto;">
-                                    <option value="html" {% if qr.report_type == 'html' or not qr.report_type %}selected{% endif %}>HTML</option>
-                                    <option value="markdown" {% if qr.report_type == 'markdown' %}selected{% endif %}>마크다운</option>
-                                </select>
-                            </div>
-                            <textarea class="form-control form-control-sm font-monospace qr-report" rows="6">{{ qr.report }}</textarea>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">{{ qr.created_at|date:"Y-m-d H:i" }}</small>
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary btn-preview-qr">미리보기</button>
-                                <button type="button" class="btn btn-sm btn-primary btn-save-qr" data-id="{{ qr.id }}">저장</button>
-                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-qr" data-id="{{ qr.id }}">삭제</button>
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="text-center text-muted py-4" id="noQuestionReport">
-                        저장된 리서치가 없습니다.
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 리포트 탭 -->
-    <div class="tab-pane fade" id="report-content" role="tabpanel">
-        <!-- 서브 탭 -->
-        <ul class="nav nav-pills mb-3" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="analyst-report-tab" data-bs-toggle="pill" data-bs-target="#analyst-report-panel" type="button" role="tab">증권사</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="file-report-tab" data-bs-toggle="pill" data-bs-target="#file-report-panel" type="button" role="tab">파일{% if uploaded_reports %}<span class="badge bg-secondary ms-1">{{ uploaded_reports|length }}</span>{% endif %}</button>
-            </li>
-        </ul>
-
-        <div class="tab-content">
-            <!-- 증권사 리포트 탭 -->
-            <div class="tab-pane fade show active" id="analyst-report-panel" role="tabpanel">
-                <div class="card">
-                    <div class="card-header py-2">
-                        <strong>애널리스트 리포트</strong>
-                        <small class="text-muted ms-2">{{ reports|length }}개{% if total_reports > 20 %} / {{ total_reports }}개{% endif %}</small>
-                    </div>
-                    <div class="card-body {% if reports %}p-0{% endif %}">
-                        {% if reports %}
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="ps-3" style="width: 80px;">일자</th>
-                                        <th>제목</th>
-                                        <th style="width: 80px;" class="d-none d-md-table-cell">증권사</th>
-                                        <th style="width: 90px;" class="text-end">목표가</th>
-                                        <th style="width: 70px;" class="text-end">괴리율</th>
-                                        <th style="width: 50px;" class="text-center pe-3"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for report in reports %}
-                                    <tr>
-                                        <td class="text-muted small ps-3">{{ report.date|date:"y/m/d" }}</td>
-                                        <td class="text-truncate" style="max-width: 250px;" title="{{ report.title }}">
-                                            <a href="#" class="text-decoration-none report-search-link" data-title="{{ report.title }}">{{ report.title }}</a>
-                                        </td>
-                                        <td class="small d-none d-md-table-cell">{{ report.provider }}</td>
-                                        <td class="text-end">
-                                            {% if report.target_price %}
-                                            <strong class="text-danger">{{ report.target_price|intcomma }}</strong>
-                                            {% else %}
-                                            <span class="text-muted">-</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="text-end">
-                                            {% if report.gap_rate != None %}
-                                            <span class="{% if report.gap_rate > 0 %}text-danger{% elif report.gap_rate < 0 %}text-primary{% endif %}">
-                                                {% if report.gap_rate > 0 %}+{% endif %}{{ report.gap_rate }}%
-                                            </span>
-                                            {% else %}
-                                            <span class="text-muted">-</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="text-center pe-3">
-                                            <a href="{% url 'stocks:report_summary' report.id %}" class="badge {% if report.summary %}bg-success{% elif report.has_attachment %}bg-info{% else %}bg-secondary{% endif %} text-decoration-none">요약</a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
+                        <span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">페이지를 새로고침하여 완료 여부를 확인하세요.</span>
+                        {% elif stock.fav_sync_status == 'completed' %}
+                        <span class="status-badge done">데이터 수집 완료</span>
                         {% else %}
-                        <div class="text-muted">리포트가 없습니다.</div>
+                        <span style="color:var(--text-muted); font-size:0.75rem;">초관심 > 관심 > 인큐베이터 순으로 중요도가 높습니다.</span>
                         {% endif %}
                     </div>
                 </div>
-
-                <!-- 리포트 제목 검색 결과 -->
-                <div id="reportSearchResult" class="card mt-3 d-none">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>리포트 검색</strong>
-                            <small class="text-muted ms-2" id="reportSearchKeyword"></small>
-                        </div>
-                        <button type="button" class="btn-close btn-sm" id="btnCloseReportSearch"></button>
-                    </div>
-                    <div class="card-body">
-                        <div id="reportSearchLoading" class="text-center py-3 d-none">
-                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                            <span class="ms-2">검색 중...</span>
-                        </div>
-                        <!-- 텔레그램 검색 결과 -->
-                        <div id="reportSearchTabs" class="d-none">
-                            <h6 class="text-muted mb-2"><small>텔레그램</small></h6>
-                            <ul class="nav nav-tabs" id="reportChannelTabs" role="tablist"></ul>
-                            <div class="tab-content pt-3" id="reportChannelTabContent"></div>
-                        </div>
-                        <!-- 구글 검색 링크 -->
-                        <div id="googleSearchResult" class="mt-3 pt-3 border-top d-none">
-                            <a href="#" target="_blank" class="btn btn-sm btn-outline-primary" id="btnGoogleSearch">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-google me-1" viewBox="0 0 16 16">
-                                    <path d="M15.545 6.558a9.4 9.4 0 0 1 .139 1.626c0 2.434-.87 4.492-2.384 5.885h.002C11.978 15.292 10.158 16 8 16A8 8 0 1 1 8 0a7.7 7.7 0 0 1 5.352 2.082l-2.284 2.284A4.35 4.35 0 0 0 8 3.166c-2.087 0-3.86 1.408-4.492 3.304a4.8 4.8 0 0 0 0 3.063h.003c.635 1.893 2.405 3.301 4.492 3.301 1.078 0 2.004-.276 2.722-.764h-.003a3.7 3.7 0 0 0 1.599-2.431H8v-3.08z"/>
-                                </svg>
-                                구글에서 검색
-                            </a>
-                        </div>
-                        <div id="reportSearchEmpty" class="text-muted d-none">검색 결과가 없습니다.</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 파일 리포트 탭 -->
-            <div class="tab-pane fade" id="file-report-panel" role="tabpanel">
-                <!-- 파일 업로드 -->
-                <div class="card mb-3">
-                    <div class="card-header py-2">
-                        <strong>파일 업로드</strong>
-                        <small class="text-muted ms-2">PDF, 이미지 등</small>
-                    </div>
-                    <div class="card-body py-2">
-                        <div class="input-group input-group-sm">
-                            <input type="file" class="form-control" id="uploadReportFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif">
-                            <button type="button" class="btn btn-primary" id="btnUploadReport">업로드</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 업로드된 리포트 목록 -->
-                <div class="card">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <strong>업로드된 리포트</strong>
-                        <span class="badge bg-primary" id="uploadedReportCount">{{ uploaded_reports|length }}</span>
-                    </div>
-                    <div class="card-body p-0">
-                        <div id="uploadedReportList" class="list-group list-group-flush">
-                            {% for report in uploaded_reports %}
-                            <div class="list-group-item py-3" data-id="{{ report.id }}">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div class="flex-grow-1 me-2">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <input type="text" class="form-control form-control-sm ur-title" value="{{ report.display_title }}" placeholder="제목 입력" style="max-width: 300px;">
-                                            <button type="button" class="btn btn-sm btn-outline-primary btn-save-title" data-id="{{ report.id }}" title="제목 저장">저장</button>
-                                        </div>
-                                        <div class="mt-1">
-                                            <a href="{{ report.file.url }}" target="_blank" class="small text-decoration-none text-muted">
-                                                📎 {{ report.original_filename }}
-                                            </a>
-                                            <small class="text-muted ms-2">{{ report.created_at|date:"Y-m-d H:i" }}</small>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex gap-1">
-                                        <span class="badge {% if report.summary %}bg-success{% elif report.has_attachment %}bg-info{% else %}bg-secondary{% endif %} btn-toggle-summary" style="cursor:pointer;">요약</span>
-                                        <span class="badge bg-danger btn-delete-uploaded" data-id="{{ report.id }}" style="cursor:pointer;">삭제</span>
-                                    </div>
-                                </div>
-                                <div class="summary-section d-none">
-                                    <textarea class="form-control form-control-sm font-monospace ur-summary" rows="6" placeholder="요약 내용을 마크다운 형식으로 입력하세요...">{{ report.summary }}</textarea>
-                                    <div class="d-flex justify-content-between align-items-center mt-2">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary btn-preview-summary">미리보기</button>
-                                        <button type="button" class="btn btn-sm btn-primary btn-save-summary" data-id="{{ report.id }}">저장</button>
-                                    </div>
-                                </div>
-                            </div>
-                            {% empty %}
-                            <div class="text-center text-muted py-4" id="noUploadedReport">
-                                업로드된 리포트가 없습니다.
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
+                <div style="flex:1; min-width:200px;">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                        <input type="checkbox" id="is_holding" name="is_holding" {% if stock.is_holding %}checked{% endif %} style="width:16px; height:16px;">
+                        <span>
+                            <strong>보유중</strong>
+                            <span style="color:var(--text-muted); font-size:0.78rem; margin-left:4px;">현재 이 종목을 보유하고 있음</span>
+                        </span>
+                    </label>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- 텔레그램 탭 -->
-    <div class="tab-pane fade" id="telegram-content" role="tabpanel">
-        <!-- 저장된 메시지 -->
-        <div class="card mb-3">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <strong>저장된 메시지</strong>
-                <span class="badge bg-primary" id="savedTelegramCount">{{ telegram_messages|length }}</span>
+        <div class="brief-card">
+            <div class="section-heading">업종 <a href="{% url 'stocks:settings' %}" style="color:var(--text-muted); font-size:0.78rem; margin-left:8px; text-decoration:none;" target="_blank">관리</a></div>
+            {% if theme_categories %}
+            <!-- 선택된 테마 표시 -->
+            <div id="selectedThemes" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
+                {% for theme in stock.themes.all %}
+                <span class="selected-tag theme selected-theme" data-id="{{ theme.id }}">
+                    {{ theme.category.name }} &gt; {{ theme.name }}
+                    <button type="button" class="tag-remove btn-remove-theme">&times;</button>
+                </span>
+                {% empty %}
+                <span style="color:var(--text-muted); font-size:0.82rem;" id="noThemeMsg">선택된 업종이 없습니다.</span>
+                {% endfor %}
             </div>
-            <div class="card-body p-0">
-                <div id="savedTelegramList" class="list-group list-group-flush">
-                    {% for msg in telegram_messages %}
-                    <div class="list-group-item py-2" data-id="{{ msg.id }}">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1 overflow-hidden">
-                                <div class="d-flex align-items-center gap-2 mb-1">
-                                    <span class="badge bg-secondary">{{ msg.channel_name|default:msg.channel }}</span>
-                                    <small class="text-muted">{{ msg.date }} {{ msg.time }}</small>
-                                </div>
-                                <div class="small text-truncate-2" style="white-space: pre-wrap; max-height: 3em; overflow: hidden;">{{ msg.text|truncatechars:150 }}</div>
-                            </div>
-                            <div class="d-flex gap-2 ms-2" style="white-space: nowrap;">
-                                <button type="button" class="btn btn-sm btn-outline-primary btn-view-telegram"
-                                    data-channel="{{ msg.channel_name|default:msg.channel }}"
-                                    data-date="{{ msg.date }} {{ msg.time }}"
-                                    data-text="{{ msg.text|escapejs }}">전체보기</button>
-                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-telegram" data-id="{{ msg.id }}">삭제</button>
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="text-center text-muted py-3" id="noSavedTelegram">저장된 메시지가 없습니다.</div>
+            <!-- 테마 추가 드롭다운 -->
+            <div style="display:flex; gap:8px; align-items:center;">
+                <select id="themeSelect" class="form-select" style="max-width:300px; font-size:0.82rem;">
+                    <option value="">업종 선택...</option>
+                    {% for category in theme_categories %}
+                    <optgroup label="{{ category.name }}">
+                        {% for theme in category.themes.all %}
+                        <option value="{{ theme.id }}" data-category="{{ category.name }}" data-name="{{ theme.name }}">{{ theme.name }}</option>
+                        {% endfor %}
+                    </optgroup>
                     {% endfor %}
-                </div>
+                </select>
+                <button type="button" id="btnAddThemeToStock" class="btn-refresh primary">추가</button>
             </div>
+            <!-- hidden inputs -->
+            <div id="themeInputs">
+                {% for theme in stock.themes.all %}
+                <input type="hidden" name="themes" value="{{ theme.id }}">
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="color:var(--text-muted); font-size:0.82rem;">
+                등록된 업종이 없습니다. <a href="{% url 'stocks:settings' %}" target="_blank">설정</a>에서 업종을 추가하세요.
+            </div>
+            {% endif %}
         </div>
 
-        <!-- 검색 -->
-        <div class="card">
-            <div class="card-header py-2">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>텔레그램 검색</strong>
-                        <small class="text-muted ms-2">120일 데이터</small>
-                    </div>
-                </div>
-                <div class="mt-2 d-flex gap-2">
-                    <input type="text" id="telegramSearchInput" class="form-control form-control-sm" value="{{ stock.name }}" placeholder="검색어 입력">
-                    <button type="button" id="btnSearchTelegram" class="btn btn-sm btn-outline-primary" style="white-space: nowrap;">
-                        검색
-                    </button>
-                </div>
+        <div class="brief-card">
+            <div class="section-heading">관심섹터 <a href="{% url 'stocks:settings' %}" style="color:var(--text-muted); font-size:0.78rem; margin-left:8px; text-decoration:none;" target="_blank">관리</a></div>
+            {% if custom_sectors %}
+            <!-- 선택된 섹터 표시 -->
+            <div id="selectedSectors" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
+                {% for sector in stock.custom_sectors.all %}
+                <span class="selected-tag sector selected-sector" data-id="{{ sector.id }}">
+                    {{ sector.name }}
+                    <button type="button" class="tag-remove btn-remove-sector">&times;</button>
+                </span>
+                {% empty %}
+                <span style="color:var(--text-muted); font-size:0.82rem;" id="noSectorMsg">선택된 섹터가 없습니다.</span>
+                {% endfor %}
             </div>
-            <div class="card-body">
-                <div id="telegramLoading" class="text-center py-3 d-none">
-                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                    <span class="ms-2">검색 중...</span>
-                </div>
-                <div id="telegramTabs" class="d-none">
-                    <ul class="nav nav-tabs" id="channelTabs" role="tablist"></ul>
-                    <div class="tab-content pt-3" id="channelTabContent"></div>
-                </div>
-                <div id="telegramEmpty" class="text-muted">검색어를 입력하고 검색 버튼을 클릭하세요.</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 뉴스 탭 -->
-    <div class="tab-pane fade" id="news-content" role="tabpanel">
-        <!-- 링크로 저장 -->
-        <div class="card mb-3">
-            <div class="card-header py-2">
-                <strong>링크로 저장</strong>
-            </div>
-            <div class="card-body py-2">
-                <div class="input-group input-group-sm">
-                    <input type="text" class="form-control" id="newsLink" placeholder="뉴스 링크를 붙여넣기...">
-                    <button type="button" class="btn btn-primary" id="btnSaveNewsLink">저장</button>
-                </div>
-                <small class="text-muted">네이버 뉴스, 구글 뉴스 등 뉴스 링크</small>
-            </div>
-        </div>
-
-        <!-- 저장된 뉴스 -->
-        <div class="card mb-3">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <strong>저장된 뉴스</strong>
-                <span class="badge bg-primary" id="savedNewsCount">{{ news_articles|length }}</span>
-            </div>
-            <div class="card-body p-0">
-                <div id="savedNewsList" class="list-group list-group-flush">
-                    {% for news in news_articles %}
-                    <div class="list-group-item py-2" data-id="{{ news.id }}">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1 overflow-hidden">
-                                <a href="{{ news.link }}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">{{ news.title }}</a>
-                                <small class="text-muted">{{ news.source }}</small>
-                                <small class="text-muted ms-2">{{ news.published|slice:":10" }}</small>
-                            </div>
-                            <div class="d-flex flex-column gap-1 ms-2 align-items-end">
-                                <div class="d-flex gap-1">
-                                    <a href="{% url 'stocks:news_summary' news.id %}" class="text-decoration-none" title="요약">
-                                        {% if news.summary %}
-                                        <span class="badge bg-success">요약</span>
-                                        {% else %}
-                                        <span class="badge bg-secondary">요약</span>
-                                        {% endif %}
-                                    </a>
-                                    <span class="badge bg-danger btn-delete-news" data-id="{{ news.id }}" style="cursor:pointer;">삭제</span>
-                                </div>
-                                <div>
-                                    <span class="badge bg-secondary btn-copy-prompt-news" data-id="{{ news.id }}" data-link="{{ news.link }}" style="cursor:pointer;">프롬프트 복사</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="text-center text-muted py-3" id="noSavedNews">저장된 뉴스가 없습니다.</div>
+            <!-- 섹터 추가 드롭다운 -->
+            <div style="display:flex; gap:8px; align-items:center;">
+                <select id="sectorSelect" class="form-select" style="max-width:300px; font-size:0.82rem;">
+                    <option value="">섹터 선택...</option>
+                    {% for sector in custom_sectors %}
+                    <option value="{{ sector.id }}" data-name="{{ sector.name }}">{{ sector.name }}</option>
                     {% endfor %}
-                </div>
+                </select>
+                <button type="button" id="btnAddSectorToStock" class="btn-refresh success">추가</button>
             </div>
+            <!-- hidden inputs -->
+            <div id="sectorInputs">
+                {% for sector in stock.custom_sectors.all %}
+                <input type="hidden" name="custom_sectors" value="{{ sector.id }}">
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="color:var(--text-muted); font-size:0.82rem;">
+                등록된 섹터가 없습니다. <a href="{% url 'stocks:settings' %}" target="_blank">설정</a>에서 섹터를 추가하세요.
+            </div>
+            {% endif %}
         </div>
 
-        <!-- Google 뉴스 검색 -->
-        <div class="card">
-            <div class="card-header py-2">
-                <div class="d-flex justify-content-between align-items-center">
-                    <strong>Google 뉴스</strong>
+        <!-- 핵심 브리핑 -->
+        <div class="brief-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div>
+                    <span style="font-weight:700; font-size:0.95rem;">핵심 브리핑</span>
+                    <span style="color:var(--text-muted); font-size:0.78rem; margin-left:8px;">(마크다운 지원)</span>
                 </div>
-                <div class="mt-2 d-flex gap-2">
-                    <input type="text" id="newsSearchInput" class="form-control form-control-sm" value="{{ stock.name }}" placeholder="검색어 입력">
-                    <button type="button" id="btnSearchNews" class="btn btn-sm btn-outline-info" style="white-space: nowrap;">
-                        검색
-                    </button>
+                <span class="prompt-badge" role="button" id="btnCopyBriefingPrompt">프롬프트 복사</span>
+            </div>
+            <textarea class="form-control" name="key_briefing" id="keyBriefingInput" rows="8" placeholder="투자포인트, 리스크, 일정 핵심 요약을 마크다운 형식으로 입력하세요...">{{ stock.key_briefing }}</textarea>
+        </div>
+
+        <!-- 가치평가 -->
+        <div class="brief-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div>
+                    <span style="font-weight:700; font-size:0.95rem;">가치평가</span>
+                    <span style="color:var(--text-muted); font-size:0.78rem; margin-left:8px;">(마크다운 지원)</span>
+                </div>
+                <span class="prompt-badge" role="button" id="btnCopyValuationPrompt">프롬프트 복사</span>
+            </div>
+            <textarea class="form-control" name="valuation" id="valuationInput" rows="8" placeholder="가치평가 내용을 마크다운 형식으로 입력하세요...">{{ stock.valuation }}</textarea>
+        </div>
+
+        <div class="brief-card">
+            <div style="margin-bottom:12px;">
+                <span style="font-weight:700; font-size:0.95rem;">메모</span>
+                <span style="color:var(--text-muted); font-size:0.78rem; margin-left:8px;">(마크다운 지원)</span>
+            </div>
+            <textarea class="form-control" name="memo" id="memoInput" rows="6" placeholder="마크다운 형식으로 입력하세요...">{{ stock.memo }}</textarea>
+        </div>
+
+        <div class="brief-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <span style="font-weight:700; font-size:0.95rem;">기업분석</span>
+                <div class="toggle-group">
+                    <input type="radio" class="btn-check" name="analysis_type" id="analysisTypeHtml" value="html" {% if stock.analysis_type != 'markdown' %}checked{% endif %}>
+                    <label for="analysisTypeHtml">HTML</label>
+                    <input type="radio" class="btn-check" name="analysis_type" id="analysisTypeMarkdown" value="markdown" {% if stock.analysis_type == 'markdown' %}checked{% endif %}>
+                    <label for="analysisTypeMarkdown">마크다운</label>
                 </div>
             </div>
-            <div class="card-body">
-                <div id="newsLoading" class="text-center py-3 d-none">
-                    <div class="spinner-border spinner-border-sm text-info" role="status"></div>
-                    <span class="ms-2">검색 중... (5~10초 소요)</span>
+            <textarea class="form-control" name="analysis_html" id="analysisReportInput" rows="10" style="font-family:monospace; font-size:0.85em;" placeholder="기업분석 내용을 붙여넣으세요...">{{ analysis_html_content }}</textarea>
+        </div>
+
+        <!-- 재무분석 -->
+        <div class="brief-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div>
+                    <span style="font-weight:700; font-size:0.95rem;">재무분석</span>
+                    <span style="color:var(--text-muted); font-size:0.78rem; margin-left:8px;">(마크다운 지원)</span>
                 </div>
-                <div id="newsResult">
-                    <div class="text-muted">검색어를 입력하고 검색 버튼을 클릭하세요.</div>
+                <div style="display:flex; gap:6px;">
+                    <span class="prompt-badge" role="button" id="btnCopyFinancialAnalysisPrompt">프롬프트 복사</span>
+                    <a class="prompt-badge info" href="https://comp.fnguide.com/SVO2/ASP/SVD_Consensus.asp?pGB=1&gicode=A{{ stock.code }}&cID=&MenuYn=Y&ReportGB=&NewMenuID=108&stkGb=701" target="_blank">컨센서스</a>
+                    <a class="prompt-badge info" href="https://comp.fnguide.com/SVO2/ASP/SVD_Finance.asp?pGB=1&gicode=A{{ stock.code }}&cID=&MenuYn=Y&ReportGB=&NewMenuID=103&stkGb=701" target="_blank">재무제표</a>
                 </div>
             </div>
+            <textarea class="form-control" name="financial_analysis" id="financialAnalysisInput" rows="8" placeholder="재무분석 내용을 마크다운 형식으로 입력하세요...">{{ stock.financial_analysis }}</textarea>
+        </div>
+
+        <!-- 투자지표 -->
+        <div class="brief-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div>
+                    <span style="font-weight:700; font-size:0.95rem;">투자지표</span>
+                    <span style="color:var(--text-muted); font-size:0.78rem; margin-left:8px;">(마크다운 지원)</span>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <span class="prompt-badge" role="button" id="btnCopyInvestmentIndicatorPrompt">프롬프트 복사</span>
+                    <a class="prompt-badge info" href="https://comp.wisereport.co.kr/company/c1040001.aspx?cn=&cmp_cd={{ stock.code }}" target="_blank">투자지표</a>
+                </div>
+            </div>
+            <textarea class="form-control" name="investment_indicator" id="investmentIndicatorInput" rows="8" placeholder="투자지표 내용을 마크다운 형식으로 입력하세요...">{{ stock.investment_indicator }}</textarea>
+        </div>
+
+        <div style="display:flex; gap:8px;">
+            <button type="submit" class="btn-refresh primary" style="padding:8px 24px; font-size:0.85rem; font-weight:600;">저장</button>
+            <a href="{% url 'stocks:stock_detail' stock.code %}" class="btn-refresh" style="padding:8px 24px; font-size:0.85rem;">취소</a>
+        </div>
+    </form>
+</div>
+
+<!-- 리서치 탭 -->
+<div class="tab-panel" id="question-report-content">
+    <div class="brief-card" style="padding:0; overflow:hidden;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-bottom:1px solid var(--border-color);">
+            <div>
+                <strong style="font-size:0.9rem;">리서치 목록</strong>
+                <span class="tab-count" id="questionReportCount">{{ question_reports|length }}</span>
+            </div>
+            <button type="button" class="btn-refresh primary" id="btnAddQuestionReport">+ 추가</button>
+        </div>
+        <div id="questionReportList">
+            {% for qr in question_reports %}
+            <div class="edit-list-item" data-id="{{ qr.id }}" data-report-type="{{ qr.report_type|default:'html' }}">
+                <div style="margin-bottom:8px;">
+                    <label style="font-size:0.78rem; color:var(--text-muted); display:block; margin-bottom:4px;">질문</label>
+                    <textarea class="form-control qr-question" rows="2">{{ qr.question }}</textarea>
+                </div>
+                <div style="margin-bottom:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <label style="font-size:0.78rem; color:var(--text-muted);">리포트</label>
+                        <select class="form-select qr-report-type" style="width:auto; font-size:0.78rem; padding:2px 8px;">
+                            <option value="html" {% if qr.report_type == 'html' or not qr.report_type %}selected{% endif %}>HTML</option>
+                            <option value="markdown" {% if qr.report_type == 'markdown' %}selected{% endif %}>마크다운</option>
+                        </select>
+                    </div>
+                    <textarea class="form-control qr-report" rows="6" style="font-family:monospace;">{{ qr.report }}</textarea>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:var(--text-muted); font-size:0.75rem;">{{ qr.created_at|date:"Y-m-d H:i" }}</span>
+                    <div style="display:flex; gap:6px;">
+                        <button type="button" class="btn-refresh btn-preview-qr">미리보기</button>
+                        <button type="button" class="btn-refresh primary btn-save-qr" data-id="{{ qr.id }}">저장</button>
+                        <button type="button" class="btn-refresh danger btn-delete-qr" data-id="{{ qr.id }}">삭제</button>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div style="text-align:center; color:var(--text-muted); padding:24px;" id="noQuestionReport">
+                저장된 리서치가 없습니다.
+            </div>
+            {% endfor %}
         </div>
     </div>
+</div>
 
-    <!-- 노다지 탭 -->
-    <div class="tab-pane fade" id="nodaji-content" role="tabpanel">
-        <div class="card">
-            <div class="card-header py-2">
-                <strong>노다지 IR노트</strong>
-                <small class="text-muted ms-2">{{ nodaji_list|length }}개{% if total_nodaji > 20 %} / {{ total_nodaji }}개{% endif %}</small>
-            </div>
-            <div class="card-body {% if nodaji_list %}p-0{% endif %}">
-                {% if nodaji_list %}
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0" id="nodajiTable">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="ps-3" style="width:100px;">날짜</th>
-                                <th>제목</th>
-                                <th style="width:80px;" class="text-center">요약</th>
-                            </tr>
-                        </thead>
-                        <tbody id="nodajiTableBody">
-                            {% for article in nodaji_list %}
-                            <tr>
-                                <td class="text-muted small ps-3">{{ article.date|date:"y/m/d"|default:"-" }}</td>
-                                <td><a href="{{ article.link }}" target="_blank" class="text-decoration-none">{{ article.title }}</a></td>
-                                <td class="text-center text-nowrap">
-                                    {% if article.summary %}
-                                    <button type="button" class="btn btn-sm p-0 border-0 btn-view-nodaji" data-summary="{{ article.summary|escapejs }}" title="새창에서 보기">
-                                        <span class="badge bg-success">O</span>
-                                    </button>
-                                    {% endif %}
-                                    <button type="button" class="btn btn-sm p-0 border-0 btn-toggle-nodaji ms-1" data-id="{{ article.id }}" title="편집">
-                                        <span class="badge bg-secondary">✎</span>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr class="nodaji-edit-row d-none" data-id="{{ article.id }}">
-                                <td colspan="3" class="bg-light p-3">
-                                    <textarea class="form-control form-control-sm nodaji-textarea" rows="5" placeholder="HTML 형식으로 입력...">{{ article.summary }}</textarea>
-                                    <div class="d-flex justify-content-between align-items-center mt-2">
-                                        <small class="text-muted">HTML 붙여넣기 후 저장</small>
-                                        <button type="button" class="btn btn-primary btn-sm btn-save-nodaji" data-id="{{ article.id }}">저장</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="text-muted p-3">노다지 기사가 없습니다.</div>
-                {% endif %}
-            </div>
-        </div>
+<!-- 리포트 탭 -->
+<div class="tab-panel" id="report-content">
+    <!-- 서브 탭 -->
+    <div class="sub-tabs">
+        <button class="sub-tab active" data-target="analyst-report-panel">증권사</button>
+        <button class="sub-tab" data-target="file-report-panel">파일{% if uploaded_reports %}<span class="tab-count">{{ uploaded_reports|length }}</span>{% endif %}</button>
     </div>
 
-    <!-- 유튜브 탭 -->
-    <div class="tab-pane fade" id="youtube-content" role="tabpanel">
-        <!-- 링크로 저장 -->
-        <div class="card mb-3">
-            <div class="card-header py-2">
-                <strong>링크로 저장</strong>
+    <!-- 증권사 리포트 탭 -->
+    <div class="tab-panel active" id="analyst-report-panel">
+        <div class="brief-card" style="padding:0; overflow:hidden;">
+            <div style="padding:16px 24px; border-bottom:1px solid var(--border-color);">
+                <strong style="font-size:0.9rem;">애널리스트 리포트</strong>
+                <span style="color:var(--text-muted); font-size:0.78rem; margin-left:8px;">{{ reports|length }}개{% if total_reports > 20 %} / {{ total_reports }}개{% endif %}</span>
             </div>
-            <div class="card-body py-2">
-                <div class="input-group input-group-sm">
-                    <input type="text" class="form-control" id="youtubeLink" placeholder="유튜브 링크를 붙여넣기...">
-                    <button type="button" class="btn btn-primary" id="btnSaveYoutubeLink">저장</button>
-                </div>
-                <small class="text-muted">예: https://www.youtube.com/watch?v=... 또는 https://youtu.be/...</small>
-            </div>
-        </div>
-
-        <!-- 저장된 영상 -->
-        <div class="card mb-3">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <strong>저장된 영상</strong>
-                <span class="badge bg-primary" id="savedVideoCount">{{ youtube_videos|length }}</span>
-            </div>
-            <div class="card-body p-0">
-                <div id="savedVideoList" class="list-group list-group-flush">
-                    {% for video in youtube_videos %}
-                    <div class="list-group-item d-flex gap-3 py-2" data-id="{{ video.id }}">
-                        {% if video.thumbnail %}
-                        <a href="{{ video.link }}" target="_blank">
-                            <img src="{{ video.thumbnail }}" alt="" style="width:120px; height:68px; object-fit:cover; border-radius:4px;">
-                        </a>
-                        {% endif %}
-                        <div class="flex-grow-1 overflow-hidden">
-                            <a href="{{ video.link }}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">{{ video.title }}</a>
-                            <small class="text-muted">{{ video.channel }}</small>
-                            <small class="text-muted ms-2">{{ video.views }}</small>
-                            <small class="text-muted ms-2">{{ video.published }}</small>
-                        </div>
-                        <div class="d-flex flex-column gap-1 align-self-center align-items-end">
-                            <div class="d-flex gap-1">
-                                <a href="{% url 'stocks:youtube_summary' video.id %}" class="text-decoration-none" title="요약">
-                                    {% if video.summary %}
-                                    <span class="badge bg-success">요약</span>
+            {% if reports %}
+            <div style="overflow-x:auto;">
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th style="width:80px; padding-left:24px;">일자</th>
+                            <th>제목</th>
+                            <th style="width:80px;" class="d-none d-md-table-cell">증권사</th>
+                            <th style="width:90px; text-align:right;">목표가</th>
+                            <th style="width:70px; text-align:right;">괴리율</th>
+                            <th style="width:50px; text-align:center; padding-right:24px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports %}
+                        <tr>
+                            <td style="color:var(--text-muted); font-size:0.78rem; padding-left:24px;">{{ report.date|date:"y/m/d" }}</td>
+                            <td style="max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ report.title }}">
+                                <a href="#" class="report-search-link" style="text-decoration:none; color:var(--text-primary);" data-title="{{ report.title }}">{{ report.title }}</a>
+                            </td>
+                            <td style="font-size:0.78rem;" class="d-none d-md-table-cell">{{ report.provider }}</td>
+                            <td style="text-align:right;">
+                                {% if report.target_price %}
+                                <strong class="text-up">{{ report.target_price|intcomma }}</strong>
+                                {% else %}
+                                <span style="color:var(--text-muted);">-</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align:right;">
+                                {% if report.gap_rate != None %}
+                                <span class="{% if report.gap_rate > 0 %}text-up{% elif report.gap_rate < 0 %}text-down{% endif %}">
+                                    {% if report.gap_rate > 0 %}+{% endif %}{{ report.gap_rate }}%
+                                </span>
+                                {% else %}
+                                <span style="color:var(--text-muted);">-</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align:center; padding-right:24px;">
+                                <a href="{% url 'stocks:report_summary' report.id %}" style="text-decoration:none;">
+                                    {% if report.summary %}
+                                    <span class="status-badge done">요약</span>
+                                    {% elif report.has_attachment %}
+                                    <span class="status-badge" style="background:#eff6ff; color:#2962ff;">요약</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">요약</span>
+                                    <span class="status-badge pending">요약</span>
                                     {% endif %}
                                 </a>
-                                <span class="badge bg-danger btn-delete-video" data-id="{{ video.id }}" style="cursor:pointer;">삭제</span>
-                            </div>
-                            <div>
-                                <span class="badge bg-secondary btn-copy-prompt-video" data-id="{{ video.id }}" data-link="{{ video.link }}" style="cursor:pointer;">프롬프트 복사</span>
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="text-center text-muted py-3" id="noSavedVideo">저장된 영상이 없습니다.</div>
-                    {% endfor %}
-                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+            {% else %}
+            <div style="padding:24px; color:var(--text-muted);">리포트가 없습니다.</div>
+            {% endif %}
         </div>
 
-        <!-- 검색 -->
-        <div class="card">
-            <div class="card-header py-2">
-                <div class="d-flex justify-content-between align-items-center">
-                    <strong>검색</strong>
-                    <div class="d-flex gap-2">
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" id="btnYoutubeGeneral" class="btn btn-outline-secondary active">일반</button>
-                            <button type="button" id="btnYoutubePreferred" class="btn btn-outline-secondary">선호</button>
-                        </div>
-                    </div>
+        <!-- 리포트 제목 검색 결과 -->
+        <div id="reportSearchResult" class="brief-card d-none" style="margin-top:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div>
+                    <strong style="font-size:0.9rem;">리포트 검색</strong>
+                    <span style="color:var(--text-muted); font-size:0.78rem; margin-left:8px;" id="reportSearchKeyword"></span>
                 </div>
-                <div class="mt-2 d-flex gap-2">
-                    <input type="text" id="youtubeSearchInput" class="form-control form-control-sm" value="{{ stock.name }}" placeholder="검색어 입력">
-                    <button type="button" id="btnSearchYoutube" class="btn btn-sm btn-danger" style="white-space: nowrap;">검색</button>
-                </div>
-                <div class="mt-1">
-                    <small class="text-muted" id="youtubeSearchInfo">조회수 1,000회 이상 · 최신순</small>
-                </div>
+                <button type="button" class="modal-close" id="btnCloseReportSearch">&times;</button>
             </div>
-            <div class="card-body">
-                <div id="youtubeLoading" class="text-center py-3 d-none">
-                    <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
-                    <span class="ms-2" id="youtubeLoadingText">검색 중...</span>
-                </div>
-                <div id="youtubeResult"></div>
+            <div id="reportSearchLoading" class="d-none" style="text-align:center; padding:16px;">
+                <span class="spinner-sm"></span>
+                <span style="margin-left:8px; color:var(--text-secondary); font-size:0.82rem;">검색 중...</span>
             </div>
+            <!-- 텔레그램 검색 결과 -->
+            <div id="reportSearchTabs" class="d-none">
+                <div style="color:var(--text-muted); font-size:0.78rem; margin-bottom:8px;">텔레그램</div>
+                <div class="report-channel-tabs" id="reportChannelTabs"></div>
+                <div id="reportChannelTabContent"></div>
+            </div>
+            <!-- 구글 검색 링크 -->
+            <div id="googleSearchResult" class="d-none" style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border-color);">
+                <a href="#" target="_blank" class="btn-refresh primary" id="btnGoogleSearch">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="vertical-align:-2px; margin-right:4px;">
+                        <path d="M15.545 6.558a9.4 9.4 0 0 1 .139 1.626c0 2.434-.87 4.492-2.384 5.885h.002C11.978 15.292 10.158 16 8 16A8 8 0 1 1 8 0a7.7 7.7 0 0 1 5.352 2.082l-2.284 2.284A4.35 4.35 0 0 0 8 3.166c-2.087 0-3.86 1.408-4.492 3.304a4.8 4.8 0 0 0 0 3.063h.003c.635 1.893 2.405 3.301 4.492 3.301 1.078 0 2.004-.276 2.722-.764h-.003a3.7 3.7 0 0 0 1.599-2.431H8v-3.08z"/>
+                    </svg>
+                    구글에서 검색
+                </a>
+            </div>
+            <div id="reportSearchEmpty" class="d-none" style="color:var(--text-muted); font-size:0.82rem;">검색 결과가 없습니다.</div>
         </div>
     </div>
 
+    <!-- 파일 리포트 탭 -->
+    <div class="tab-panel" id="file-report-panel">
+        <!-- 파일 업로드 -->
+        <div class="brief-card">
+            <div style="margin-bottom:8px;">
+                <strong style="font-size:0.9rem;">파일 업로드</strong>
+                <span style="color:var(--text-muted); font-size:0.78rem; margin-left:8px;">PDF, 이미지 등</span>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <input type="file" class="form-control" id="uploadReportFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif" style="font-size:0.82rem;">
+                <button type="button" class="btn-refresh primary" id="btnUploadReport">업로드</button>
+            </div>
+        </div>
+
+        <!-- 업로드된 리포트 목록 -->
+        <div class="brief-card" style="padding:0; overflow:hidden;">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-bottom:1px solid var(--border-color);">
+                <strong style="font-size:0.9rem;">업로드된 리포트</strong>
+                <span class="tab-count" id="uploadedReportCount">{{ uploaded_reports|length }}</span>
+            </div>
+            <div id="uploadedReportList">
+                {% for report in uploaded_reports %}
+                <div class="edit-list-item" data-id="{{ report.id }}">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                        <div style="flex:1; margin-right:8px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <input type="text" class="form-control ur-title" value="{{ report.display_title }}" placeholder="제목 입력" style="max-width:300px; font-size:0.82rem;">
+                                <button type="button" class="btn-refresh primary btn-save-title" data-id="{{ report.id }}" title="제목 저장">저장</button>
+                            </div>
+                            <div style="margin-top:6px;">
+                                <a href="{{ report.file.url }}" target="_blank" style="font-size:0.78rem; text-decoration:none; color:var(--text-muted);">
+                                    📎 {{ report.original_filename }}
+                                </a>
+                                <span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">{{ report.created_at|date:"Y-m-d H:i" }}</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:6px;">
+                            <span class="prompt-badge btn-toggle-summary" style="cursor:pointer; {% if report.summary %}background:#ecfdf5; color:#059669;{% else %}background:#f3f4f6; color:var(--text-secondary);{% endif %}">요약</span>
+                            <span class="prompt-badge btn-delete-uploaded" data-id="{{ report.id }}" style="cursor:pointer; background:#fef2f2; color:var(--up-color);">삭제</span>
+                        </div>
+                    </div>
+                    <div class="summary-section d-none">
+                        <textarea class="form-control ur-summary" rows="6" style="font-family:monospace; font-size:0.82rem;" placeholder="요약 내용을 마크다운 형식으로 입력하세요...">{{ report.summary }}</textarea>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                            <button type="button" class="btn-refresh btn-preview-summary">미리보기</button>
+                            <button type="button" class="btn-refresh primary btn-save-summary" data-id="{{ report.id }}">저장</button>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="text-align:center; color:var(--text-muted); padding:24px;" id="noUploadedReport">
+                    업로드된 리포트가 없습니다.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 텔레그램 탭 -->
+<div class="tab-panel" id="telegram-content">
+    <!-- 저장된 메시지 -->
+    <div class="brief-card" style="padding:0; overflow:hidden;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-bottom:1px solid var(--border-color);">
+            <strong style="font-size:0.9rem;">저장된 메시지</strong>
+            <span class="tab-count" id="savedTelegramCount">{{ telegram_messages|length }}</span>
+        </div>
+        <div id="savedTelegramList">
+            {% for msg in telegram_messages %}
+            <div class="edit-list-item" data-id="{{ msg.id }}">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div style="flex:1; overflow:hidden;">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                            <span class="channel-badge">{{ msg.channel_name|default:msg.channel }}</span>
+                            <span style="color:var(--text-muted); font-size:0.75rem;">{{ msg.date }} {{ msg.time }}</span>
+                        </div>
+                        <div style="font-size:0.82rem; white-space:pre-wrap; max-height:3em; overflow:hidden;">{{ msg.text|truncatechars:150 }}</div>
+                    </div>
+                    <div style="display:flex; gap:6px; margin-left:8px; white-space:nowrap;">
+                        <button type="button" class="btn-refresh primary btn-view-telegram"
+                            data-channel="{{ msg.channel_name|default:msg.channel }}"
+                            data-date="{{ msg.date }} {{ msg.time }}"
+                            data-text="{{ msg.text|escapejs }}">전체보기</button>
+                        <button type="button" class="btn-refresh danger btn-delete-telegram" data-id="{{ msg.id }}">삭제</button>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div style="text-align:center; color:var(--text-muted); padding:16px;" id="noSavedTelegram">저장된 메시지가 없습니다.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 검색 -->
+    <div class="brief-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div>
+                <strong style="font-size:0.9rem;">텔레그램 검색</strong>
+                <span style="color:var(--text-muted); font-size:0.78rem; margin-left:8px;">120일 데이터</span>
+            </div>
+        </div>
+        <div class="search-group" style="margin-bottom:12px;">
+            <input type="text" id="telegramSearchInput" class="form-control" value="{{ stock.name }}" placeholder="검색어 입력" style="font-size:0.82rem;">
+            <button type="button" id="btnSearchTelegram" class="btn-refresh primary" style="white-space:nowrap;">검색</button>
+        </div>
+        <div id="telegramLoading" class="d-none" style="text-align:center; padding:16px;">
+            <span class="spinner-sm"></span>
+            <span style="margin-left:8px; color:var(--text-secondary); font-size:0.82rem;">검색 중...</span>
+        </div>
+        <div id="telegramTabs" class="d-none">
+            <div class="report-channel-tabs" id="channelTabs"></div>
+            <div id="channelTabContent"></div>
+        </div>
+        <div id="telegramEmpty" style="color:var(--text-muted); font-size:0.82rem;">검색어를 입력하고 검색 버튼을 클릭하세요.</div>
+    </div>
+</div>
+
+<!-- 뉴스 탭 -->
+<div class="tab-panel" id="news-content">
+    <!-- 링크로 저장 -->
+    <div class="brief-card">
+        <div style="margin-bottom:8px;">
+            <strong style="font-size:0.9rem;">링크로 저장</strong>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:4px;">
+            <input type="text" class="form-control" id="newsLink" placeholder="뉴스 링크를 붙여넣기..." style="font-size:0.82rem;">
+            <button type="button" class="btn-refresh primary" id="btnSaveNewsLink">저장</button>
+        </div>
+        <span style="color:var(--text-muted); font-size:0.75rem;">네이버 뉴스, 구글 뉴스 등 뉴스 링크</span>
+    </div>
+
+    <!-- 저장된 뉴스 -->
+    <div class="brief-card" style="padding:0; overflow:hidden;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-bottom:1px solid var(--border-color);">
+            <strong style="font-size:0.9rem;">저장된 뉴스</strong>
+            <span class="tab-count" id="savedNewsCount">{{ news_articles|length }}</span>
+        </div>
+        <div id="savedNewsList">
+            {% for news in news_articles %}
+            <div class="edit-list-item" data-id="{{ news.id }}">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div style="flex:1; overflow:hidden;">
+                        <a href="{{ news.link }}" target="_blank" style="font-weight:600; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; color:var(--text-primary);">{{ news.title }}</a>
+                        <span style="color:var(--text-muted); font-size:0.75rem;">{{ news.source }}</span>
+                        <span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">{{ news.published|slice:":10" }}</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:4px; margin-left:8px; align-items:flex-end;">
+                        <div style="display:flex; gap:4px;">
+                            <a href="{% url 'stocks:news_summary' news.id %}" style="text-decoration:none;" title="요약">
+                                {% if news.summary %}
+                                <span class="status-badge done">요약</span>
+                                {% else %}
+                                <span class="status-badge pending">요약</span>
+                                {% endif %}
+                            </a>
+                            <span class="prompt-badge btn-delete-news" data-id="{{ news.id }}" style="cursor:pointer; background:#fef2f2; color:var(--up-color);">삭제</span>
+                        </div>
+                        <div>
+                            <span class="prompt-badge btn-copy-prompt-news" data-id="{{ news.id }}" data-link="{{ news.link }}" style="cursor:pointer; background:#f3f4f6; color:var(--text-secondary);">프롬프트 복사</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div style="text-align:center; color:var(--text-muted); padding:16px;" id="noSavedNews">저장된 뉴스가 없습니다.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Google 뉴스 검색 -->
+    <div class="brief-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong style="font-size:0.9rem;">Google 뉴스</strong>
+        </div>
+        <div class="search-group" style="margin-bottom:12px;">
+            <input type="text" id="newsSearchInput" class="form-control" value="{{ stock.name }}" placeholder="검색어 입력" style="font-size:0.82rem;">
+            <button type="button" id="btnSearchNews" class="btn-refresh primary" style="white-space:nowrap;">검색</button>
+        </div>
+        <div id="newsLoading" class="d-none" style="text-align:center; padding:16px;">
+            <span class="spinner-sm"></span>
+            <span style="margin-left:8px; color:var(--text-secondary); font-size:0.82rem;">검색 중... (5~10초 소요)</span>
+        </div>
+        <div id="newsResult">
+            <div style="color:var(--text-muted); font-size:0.82rem;">검색어를 입력하고 검색 버튼을 클릭하세요.</div>
+        </div>
+    </div>
+</div>
+
+<!-- 노다지 탭 -->
+<div class="tab-panel" id="nodaji-content">
+    <div class="brief-card" style="padding:0; overflow:hidden;">
+        <div style="padding:16px 24px; border-bottom:1px solid var(--border-color);">
+            <strong style="font-size:0.9rem;">노다지 IR노트</strong>
+            <span style="color:var(--text-muted); font-size:0.78rem; margin-left:8px;">{{ nodaji_list|length }}개{% if total_nodaji > 20 %} / {{ total_nodaji }}개{% endif %}</span>
+        </div>
+        {% if nodaji_list %}
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="nodajiTable">
+                <thead>
+                    <tr>
+                        <th style="width:100px; padding-left:24px;">날짜</th>
+                        <th>제목</th>
+                        <th style="width:80px; text-align:center;">요약</th>
+                    </tr>
+                </thead>
+                <tbody id="nodajiTableBody">
+                    {% for article in nodaji_list %}
+                    <tr>
+                        <td style="color:var(--text-muted); font-size:0.78rem; padding-left:24px;">{{ article.date|date:"y/m/d"|default:"-" }}</td>
+                        <td><a href="{{ article.link }}" target="_blank" style="text-decoration:none; color:var(--text-primary);">{{ article.title }}</a></td>
+                        <td style="text-align:center; white-space:nowrap;">
+                            {% if article.summary %}
+                            <button type="button" class="btn-view-nodaji" data-summary="{{ article.summary|escapejs }}" title="새창에서 보기" style="background:none; border:none; cursor:pointer; padding:0;">
+                                <span class="status-badge done">O</span>
+                            </button>
+                            {% endif %}
+                            <button type="button" class="btn-toggle-nodaji" data-id="{{ article.id }}" title="편집" style="background:none; border:none; cursor:pointer; padding:0; margin-left:4px;">
+                                <span class="status-badge pending">&#9998;</span>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr class="nodaji-edit-row d-none" data-id="{{ article.id }}">
+                        <td colspan="3" style="background:#f9fafb; padding:16px;">
+                            <textarea class="form-control nodaji-textarea" rows="5" style="font-size:0.82rem;" placeholder="HTML 형식으로 입력...">{{ article.summary }}</textarea>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                                <span style="color:var(--text-muted); font-size:0.75rem;">HTML 붙여넣기 후 저장</span>
+                                <button type="button" class="btn-refresh primary btn-save-nodaji" data-id="{{ article.id }}">저장</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="padding:24px; color:var(--text-muted);">노다지 기사가 없습니다.</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 유튜브 탭 -->
+<div class="tab-panel" id="youtube-content">
+    <!-- 링크로 저장 -->
+    <div class="brief-card">
+        <div style="margin-bottom:8px;">
+            <strong style="font-size:0.9rem;">링크로 저장</strong>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:4px;">
+            <input type="text" class="form-control" id="youtubeLink" placeholder="유튜브 링크를 붙여넣기..." style="font-size:0.82rem;">
+            <button type="button" class="btn-refresh primary" id="btnSaveYoutubeLink">저장</button>
+        </div>
+        <span style="color:var(--text-muted); font-size:0.75rem;">예: https://www.youtube.com/watch?v=... 또는 https://youtu.be/...</span>
+    </div>
+
+    <!-- 저장된 영상 -->
+    <div class="brief-card" style="padding:0; overflow:hidden;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-bottom:1px solid var(--border-color);">
+            <strong style="font-size:0.9rem;">저장된 영상</strong>
+            <span class="tab-count" id="savedVideoCount">{{ youtube_videos|length }}</span>
+        </div>
+        <div id="savedVideoList">
+            {% for video in youtube_videos %}
+            <div class="video-item" data-id="{{ video.id }}">
+                {% if video.thumbnail %}
+                <a href="{{ video.link }}" target="_blank">
+                    <img src="{{ video.thumbnail }}" alt="" style="width:120px; height:68px; object-fit:cover; border-radius:4px;">
+                </a>
+                {% endif %}
+                <div style="flex:1; overflow:hidden;">
+                    <a href="{{ video.link }}" target="_blank" style="font-weight:600; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; color:var(--text-primary);">{{ video.title }}</a>
+                    <span style="color:var(--text-muted); font-size:0.75rem;">{{ video.channel }}</span>
+                    <span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">{{ video.views }}</span>
+                    <span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">{{ video.published }}</span>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
+                    <div style="display:flex; gap:4px;">
+                        <a href="{% url 'stocks:youtube_summary' video.id %}" style="text-decoration:none;" title="요약">
+                            {% if video.summary %}
+                            <span class="status-badge done">요약</span>
+                            {% else %}
+                            <span class="status-badge pending">요약</span>
+                            {% endif %}
+                        </a>
+                        <span class="prompt-badge btn-delete-video" data-id="{{ video.id }}" style="cursor:pointer; background:#fef2f2; color:var(--up-color);">삭제</span>
+                    </div>
+                    <div>
+                        <span class="prompt-badge btn-copy-prompt-video" data-id="{{ video.id }}" data-link="{{ video.link }}" style="cursor:pointer; background:#f3f4f6; color:var(--text-secondary);">프롬프트 복사</span>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div style="text-align:center; color:var(--text-muted); padding:16px;" id="noSavedVideo">저장된 영상이 없습니다.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 검색 -->
+    <div class="brief-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong style="font-size:0.9rem;">검색</strong>
+            <div class="mode-toggle">
+                <button type="button" id="btnYoutubeGeneral" class="mode-btn active">일반</button>
+                <button type="button" id="btnYoutubePreferred" class="mode-btn">선호</button>
+            </div>
+        </div>
+        <div class="search-group" style="margin-bottom:4px;">
+            <input type="text" id="youtubeSearchInput" class="form-control" value="{{ stock.name }}" placeholder="검색어 입력" style="font-size:0.82rem;">
+            <button type="button" id="btnSearchYoutube" class="btn-refresh danger" style="white-space:nowrap;">검색</button>
+        </div>
+        <div style="margin-bottom:12px;">
+            <span style="color:var(--text-muted); font-size:0.75rem;" id="youtubeSearchInfo">조회수 1,000회 이상 · 최신순</span>
+        </div>
+        <div id="youtubeLoading" class="d-none" style="text-align:center; padding:16px;">
+            <span class="spinner-sm"></span>
+            <span style="margin-left:8px; color:var(--text-secondary); font-size:0.82rem;" id="youtubeLoadingText">검색 중...</span>
+        </div>
+        <div id="youtubeResult"></div>
+    </div>
 </div>
 
 <!-- 텔레그램 메시지 전체보기 모달 -->
-<div class="modal fade" id="telegramModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header py-2">
-                <div>
-                    <span class="badge bg-secondary" id="telegramModalChannel"></span>
-                    <small class="text-muted ms-2" id="telegramModalDate"></small>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal-overlay" id="telegramModal">
+    <div class="modal-box">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div>
+                <span class="channel-badge" id="telegramModalChannel"></span>
+                <span style="color:var(--text-muted); font-size:0.78rem; margin-left:8px;" id="telegramModalDate"></span>
             </div>
-            <div class="modal-body" style="white-space: pre-wrap; max-height: 70vh; overflow-y: auto;" id="telegramModalText"></div>
+            <button type="button" class="modal-close" id="telegramModalClose">&times;</button>
         </div>
+        <div style="white-space:pre-wrap; max-height:70vh; overflow-y:auto; font-size:0.85rem; line-height:1.6;" id="telegramModalText"></div>
     </div>
 </div>
 {% endblock %}
@@ -805,6 +846,69 @@
 <script>
 const stockName = "{{ stock.name }}";
 const stockCode = "{{ stock.code }}";
+
+// ============ 탭 전환 (메인 탭) ============
+document.querySelectorAll('.market-tab[data-target]').forEach(tab => {
+    tab.addEventListener('click', function() {
+        // 탭 버튼 활성화
+        document.querySelectorAll('.market-tab[data-target]').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        // 패널 전환
+        document.querySelectorAll('.tab-panel').forEach(p => {
+            // report-content 내부의 sub tab-panels는 건드리지 않음
+            if (p.closest('#report-content') && p.id !== 'report-content') return;
+            if (p.closest('#telegram-content') || p.closest('#news-content') || p.closest('#nodaji-content') || p.closest('#youtube-content')) return;
+            p.classList.remove('active');
+        });
+        // 모든 최상위 tab-panel 비활성화
+        document.querySelectorAll(':scope > .tab-panel, .content-wrapper > .tab-panel').forEach(p => {
+            // 직계 자식인 tab-panel만
+        });
+        // 좀 더 정확하게: market-tab의 target에 해당하는 패널만 토글
+        const allMainPanels = ['info-content','question-report-content','report-content','telegram-content','news-content','nodaji-content','youtube-content'];
+        allMainPanels.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('active');
+        });
+        const target = document.getElementById(this.dataset.target);
+        if (target) target.classList.add('active');
+    });
+});
+
+// ============ 서브 탭 전환 (리포트 탭 내부) ============
+document.querySelectorAll('.sub-tab[data-target]').forEach(tab => {
+    tab.addEventListener('click', function() {
+        const parent = this.closest('.tab-panel') || this.closest('.brief-card') || document;
+        // 서브 탭 버튼 활성화
+        this.closest('.sub-tabs').querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        // 서브 패널 전환 (report-content 내부의 tab-panel)
+        const reportContent = document.getElementById('report-content');
+        if (reportContent) {
+            reportContent.querySelectorAll(':scope > .tab-panel').forEach(p => p.classList.remove('active'));
+            const target = document.getElementById(this.dataset.target);
+            if (target) target.classList.add('active');
+        }
+    });
+});
+
+// ============ 리포트 검색 결과 채널 탭 (report-channel-tabs) ============
+document.addEventListener('click', function(e) {
+    const tab = e.target.closest('.report-channel-tab');
+    if (!tab) return;
+    const container = tab.closest('.report-channel-tabs');
+    if (!container) return;
+    container.querySelectorAll('.report-channel-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    // 패널 전환
+    const parentSection = container.parentElement;
+    const targetId = tab.dataset.target;
+    if (parentSection && targetId) {
+        parentSection.querySelectorAll('.channel-tab-panel').forEach(p => p.style.display = 'none');
+        const targetPanel = document.getElementById(targetId);
+        if (targetPanel) targetPanel.style.display = 'block';
+    }
+});
 
 // 클립보드 복사 함수 (HTTP/HTTPS 호환)
 function copyToClipboard(text) {
@@ -853,13 +957,13 @@ document.getElementById('btnAddThemeToStock')?.addEventListener('click', functio
     const noThemeMsg = document.getElementById('noThemeMsg');
     if (noThemeMsg) noThemeMsg.remove();
 
-    // 배지 추가
+    // 태그 추가
     const badge = document.createElement('span');
-    badge.className = 'badge bg-primary d-flex align-items-center selected-theme';
+    badge.className = 'selected-tag theme selected-theme';
     badge.dataset.id = themeId;
     badge.innerHTML = `
         ${categoryName} &gt; ${themeName}
-        <button type="button" class="btn-close btn-close-white ms-1 btn-remove-theme" style="font-size: 0.5rem;"></button>
+        <button type="button" class="tag-remove btn-remove-theme">&times;</button>
     `;
     document.getElementById('selectedThemes').appendChild(badge);
 
@@ -881,7 +985,7 @@ document.getElementById('selectedThemes')?.addEventListener('click', function(e)
     const badge = e.target.closest('.selected-theme');
     const themeId = badge.dataset.id;
 
-    // 배지 제거
+    // 태그 제거
     badge.remove();
 
     // hidden input 제거
@@ -890,7 +994,7 @@ document.getElementById('selectedThemes')?.addEventListener('click', function(e)
     // 선택된 테마가 없으면 메시지 표시
     if (document.querySelectorAll('.selected-theme').length === 0) {
         const msg = document.createElement('span');
-        msg.className = 'text-muted small';
+        msg.style.cssText = 'color:var(--text-muted); font-size:0.82rem;';
         msg.id = 'noThemeMsg';
         msg.textContent = '선택된 업종이 없습니다.';
         document.getElementById('selectedThemes').appendChild(msg);
@@ -916,13 +1020,13 @@ document.getElementById('btnAddSectorToStock')?.addEventListener('click', functi
     const noSectorMsg = document.getElementById('noSectorMsg');
     if (noSectorMsg) noSectorMsg.remove();
 
-    // 배지 추가
+    // 태그 추가
     const badge = document.createElement('span');
-    badge.className = 'badge bg-success d-flex align-items-center selected-sector';
+    badge.className = 'selected-tag sector selected-sector';
     badge.dataset.id = sectorId;
     badge.innerHTML = `
         ${sectorName}
-        <button type="button" class="btn-close btn-close-white ms-1 btn-remove-sector" style="font-size: 0.5rem;"></button>
+        <button type="button" class="tag-remove btn-remove-sector">&times;</button>
     `;
     document.getElementById('selectedSectors').appendChild(badge);
 
@@ -944,7 +1048,7 @@ document.getElementById('selectedSectors')?.addEventListener('click', function(e
     const badge = e.target.closest('.selected-sector');
     const sectorId = badge.dataset.id;
 
-    // 배지 제거
+    // 태그 제거
     badge.remove();
 
     // hidden input 제거
@@ -953,7 +1057,7 @@ document.getElementById('selectedSectors')?.addEventListener('click', function(e
     // 선택된 섹터가 없으면 메시지 표시
     if (document.querySelectorAll('.selected-sector').length === 0) {
         const msg = document.createElement('span');
-        msg.className = 'text-muted small';
+        msg.style.cssText = 'color:var(--text-muted); font-size:0.82rem;';
         msg.id = 'noSectorMsg';
         msg.textContent = '선택된 섹터가 없습니다.';
         document.getElementById('selectedSectors').appendChild(msg);
@@ -989,30 +1093,30 @@ document.getElementById('btnAddQuestionReport')?.addEventListener('click', async
 
             // 새 항목 추가
             const newItem = document.createElement('div');
-            newItem.className = 'list-group-item py-3';
+            newItem.className = 'edit-list-item';
             newItem.dataset.id = data.id;
             newItem.dataset.reportType = data.report_type || 'html';
             newItem.innerHTML = `
-                <div class="mb-2">
-                    <label class="form-label small text-muted mb-1">질문</label>
-                    <textarea class="form-control form-control-sm qr-question" rows="2">새 질문</textarea>
+                <div style="margin-bottom:8px;">
+                    <label style="font-size:0.78rem; color:var(--text-muted); display:block; margin-bottom:4px;">질문</label>
+                    <textarea class="form-control qr-question" rows="2">새 질문</textarea>
                 </div>
-                <div class="mb-2">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <label class="form-label small text-muted mb-0">리포트</label>
-                        <select class="form-select form-select-sm qr-report-type" style="width: auto;">
+                <div style="margin-bottom:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <label style="font-size:0.78rem; color:var(--text-muted);">리포트</label>
+                        <select class="form-select qr-report-type" style="width:auto; font-size:0.78rem; padding:2px 8px;">
                             <option value="html" selected>HTML</option>
                             <option value="markdown">마크다운</option>
                         </select>
                     </div>
-                    <textarea class="form-control form-control-sm font-monospace qr-report" rows="6"></textarea>
+                    <textarea class="form-control qr-report" rows="6" style="font-family:monospace;"></textarea>
                 </div>
-                <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted">방금 전</small>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary btn-preview-qr">미리보기</button>
-                        <button type="button" class="btn btn-sm btn-primary btn-save-qr" data-id="${data.id}">저장</button>
-                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-qr" data-id="${data.id}">삭제</button>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:var(--text-muted); font-size:0.75rem;">방금 전</span>
+                    <div style="display:flex; gap:6px;">
+                        <button type="button" class="btn-refresh btn-preview-qr">미리보기</button>
+                        <button type="button" class="btn-refresh primary btn-save-qr" data-id="${data.id}">저장</button>
+                        <button type="button" class="btn-refresh danger btn-delete-qr" data-id="${data.id}">삭제</button>
                     </div>
                 </div>
             `;
@@ -1039,7 +1143,7 @@ document.getElementById('btnAddQuestionReport')?.addEventListener('click', async
 document.addEventListener('click', (e) => {
     if (!e.target.classList.contains('btn-preview-qr')) return;
 
-    const item = e.target.closest('.list-group-item');
+    const item = e.target.closest('.edit-list-item');
     const question = item.querySelector('.qr-question').value;
     const report = item.querySelector('.qr-report').value;
     const reportType = item.querySelector('.qr-report-type')?.value || 'html';
@@ -1108,7 +1212,7 @@ document.addEventListener('click', async (e) => {
 
     const btn = e.target;
     const reportId = btn.dataset.id;
-    const item = btn.closest('.list-group-item');
+    const item = btn.closest('.edit-list-item');
     const question = item.querySelector('.qr-question').value.trim();
     const report = item.querySelector('.qr-report').value;
     const reportType = item.querySelector('.qr-report-type')?.value || 'html';
@@ -1136,12 +1240,12 @@ document.addEventListener('click', async (e) => {
 
         if (data.success) {
             btn.textContent = '저장됨!';
-            btn.classList.remove('btn-primary');
-            btn.classList.add('btn-success');
+            btn.classList.remove('primary');
+            btn.classList.add('success');
             setTimeout(() => {
                 btn.textContent = '저장';
-                btn.classList.remove('btn-success');
-                btn.classList.add('btn-primary');
+                btn.classList.remove('success');
+                btn.classList.add('primary');
                 btn.disabled = false;
             }, 1500);
         } else {
@@ -1174,7 +1278,7 @@ document.addEventListener('click', async (e) => {
         const data = await response.json();
 
         if (data.success) {
-            const item = btn.closest('.list-group-item');
+            const item = btn.closest('.edit-list-item');
             item.remove();
 
             const countEl = document.getElementById('questionReportCount');
@@ -1183,7 +1287,7 @@ document.addEventListener('click', async (e) => {
 
             if (newCount === 0) {
                 document.getElementById('questionReportList').innerHTML = `
-                    <div class="text-center text-muted py-4" id="noQuestionReport">
+                    <div style="text-align:center; color:var(--text-muted); padding:24px;" id="noQuestionReport">
                         저장된 리서치가 없습니다.<br>
                         <small>설정 → 프롬프트 → 관심종목 → STEP 5에서 추가하세요.</small>
                     </div>`;
@@ -1232,23 +1336,23 @@ function countMessages(channelData) {
 function renderChannelContent(channel, channelName, channelData, keyword) {
     const dates = Object.keys(channelData).sort().reverse();
     if (dates.length === 0) {
-        return '<div class="text-muted">검색 결과가 없습니다.</div>';
+        return '<div style="color:var(--text-muted);">검색 결과가 없습니다.</div>';
     }
 
     let html = '';
     for (const date of dates) {
         const items = channelData[date];
-        html += `<div class="mb-3">`;
-        html += `<h6 class="text-primary mb-2">${date} (${items.length}건)</h6>`;
+        html += `<div style="margin-bottom:12px;">`;
+        html += `<div style="color:var(--down-color); font-weight:600; font-size:0.82rem; margin-bottom:8px;">${date} (${items.length}건)</div>`;
         items.forEach((item, idx) => {
             let text = item.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
             text = linkify(text);
             text = highlightKeyword(text, keyword);
 
-            html += `<div class="border-start border-2 border-primary ps-2 py-2 small bg-light mb-0">`;
-            html += `<div class="d-flex justify-content-between align-items-start mb-1">`;
-            html += `<span class="text-muted">[${item.time}]</span>`;
-            html += `<button type="button" class="btn btn-sm btn-outline-success btn-save-telegram-msg py-0 px-2"
+            html += `<div style="border-left:2px solid var(--down-color); padding-left:8px; padding:8px; font-size:0.82rem; background:#f9fafb; margin-bottom:0; border-radius:0 4px 4px 0;">`;
+            html += `<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">`;
+            html += `<span style="color:var(--text-muted); font-size:0.75rem;">[${item.time}]</span>`;
+            html += `<button type="button" class="btn-refresh success btn-save-telegram-msg" style="padding:2px 8px; font-size:0.72rem;"
                 data-channel="${channel}"
                 data-channel-name="${channelName}"
                 data-date="${date}"
@@ -1257,7 +1361,7 @@ function renderChannelContent(channel, channelName, channelData, keyword) {
             html += `</div>`;
             html += `<span style="white-space: pre-wrap;">${text}</span>`;
             html += `</div>`;
-            if (idx < items.length - 1) html += `<hr class="my-2">`;
+            if (idx < items.length - 1) html += `<div style="border-bottom:1px solid #f3f4f6; margin:4px 0;"></div>`;
         });
         html += `</div>`;
     }
@@ -1289,7 +1393,7 @@ async function searchTelegram() {
         const data = await response.json();
 
         if (data.error) {
-            channelTabContent.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            channelTabContent.innerHTML = `<div class="info-box warn">${data.error}</div>`;
             tabs.classList.remove('d-none');
             return;
         }
@@ -1318,23 +1422,17 @@ async function searchTelegram() {
             const isActive = idx === 0;
             const { total, recent } = countMessages(data.results[channel]);
 
-            const recentBadge = recent > 0 ? `<span class="badge bg-danger">${recent}</span>` : '';
-            const totalBadge = `<span class="badge bg-secondary">${total}</span>`;
+            const recentBadge = recent > 0 ? `<span style="color:var(--up-color); font-weight:600;">${recent}</span>` : '';
+            const totalBadge = `<span style="font-size:0.65rem; color:var(--text-muted);">${total}</span>`;
 
             tabsHtml += `
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link ${isActive ? 'active' : ''}"
-                            id="${channelId}-tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#${channelId}-content"
-                            type="button" role="tab">
-                        ${displayName} ${recentBadge}${totalBadge}
-                    </button>
-                </li>`;
+                <button class="report-channel-tab ${isActive ? 'active' : ''}"
+                        data-target="${channelId}-content">
+                    ${displayName} ${recentBadge}${totalBadge}
+                </button>`;
 
             contentHtml += `
-                <div class="tab-pane fade ${isActive ? 'show active' : ''}"
-                     id="${channelId}-content" role="tabpanel">
+                <div class="channel-tab-panel" id="${channelId}-content" style="${isActive ? '' : 'display:none;'}">
                     ${renderChannelContent(channel, displayName, data.results[channel], searchQuery)}
                 </div>`;
         });
@@ -1344,7 +1442,7 @@ async function searchTelegram() {
         tabs.classList.remove('d-none');
 
     } catch (err) {
-        channelTabContent.innerHTML = `<div class="alert alert-danger">오류: ${err.message}</div>`;
+        channelTabContent.innerHTML = `<div class="info-box warn">오류: ${err.message}</div>`;
         tabs.classList.remove('d-none');
     } finally {
         loading.classList.add('d-none');
@@ -1388,8 +1486,9 @@ document.addEventListener('click', async (e) => {
 
         if (data.success) {
             btn.textContent = '저장됨';
-            btn.classList.remove('btn-outline-success');
-            btn.classList.add('btn-success');
+            btn.classList.remove('success');
+            btn.style.borderColor = '#059669';
+            btn.style.color = '#059669';
 
             // 저장된 메시지 목록에 추가
             const noSaved = document.getElementById('noSavedTelegram');
@@ -1397,23 +1496,23 @@ document.addEventListener('click', async (e) => {
 
             const savedList = document.getElementById('savedTelegramList');
             const newItem = document.createElement('div');
-            newItem.className = 'list-group-item py-2';
+            newItem.className = 'edit-list-item';
             newItem.dataset.id = data.id;
             newItem.innerHTML = `
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="flex-grow-1 overflow-hidden">
-                        <div class="d-flex align-items-center gap-2 mb-1">
-                            <span class="badge bg-secondary">${channelName}</span>
-                            <small class="text-muted">${date} ${time}</small>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div style="flex:1; overflow:hidden;">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                            <span class="channel-badge">${channelName}</span>
+                            <span style="color:var(--text-muted); font-size:0.75rem;">${date} ${time}</span>
                         </div>
-                        <div class="small text-truncate-2" style="white-space: pre-wrap; max-height: 3em; overflow: hidden;">${text.substring(0, 150)}</div>
+                        <div style="font-size:0.82rem; white-space:pre-wrap; max-height:3em; overflow:hidden;">${text.substring(0, 150)}</div>
                     </div>
-                    <div class="d-flex gap-2 ms-2" style="white-space: nowrap;">
-                        <button type="button" class="btn btn-sm btn-outline-primary btn-view-telegram"
+                    <div style="display:flex; gap:6px; margin-left:8px; white-space:nowrap;">
+                        <button type="button" class="btn-refresh primary btn-view-telegram"
                             data-channel="${channelName}"
                             data-date="${date} ${time}"
                             data-text="${encodeURIComponent(text).replace(/'/g, "\\'")}">전체보기</button>
-                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-telegram" data-id="${data.id}">삭제</button>
+                        <button type="button" class="btn-refresh danger btn-delete-telegram" data-id="${data.id}">삭제</button>
                     </div>
                 </div>`;
             savedList.insertBefore(newItem, savedList.firstChild);
@@ -1451,7 +1550,7 @@ document.addEventListener('click', async (e) => {
         const data = await response.json();
 
         if (data.success) {
-            const item = btn.closest('.list-group-item');
+            const item = btn.closest('.edit-list-item');
             item.remove();
 
             const countEl = document.getElementById('savedTelegramCount');
@@ -1460,7 +1559,7 @@ document.addEventListener('click', async (e) => {
 
             if (newCount === 0) {
                 document.getElementById('savedTelegramList').innerHTML = `
-                    <div class="text-center text-muted py-3" id="noSavedTelegram">저장된 메시지가 없습니다.</div>`;
+                    <div style="text-align:center; color:var(--text-muted); padding:16px;" id="noSavedTelegram">저장된 메시지가 없습니다.</div>`;
             }
         } else {
             alert(data.error || '삭제 실패');
@@ -1472,7 +1571,7 @@ document.addEventListener('click', async (e) => {
     }
 });
 
-// 텔레그램 메시지 전체보기
+// 텔레그램 메시지 전체보기 (커스텀 모달)
 document.addEventListener('click', function(e) {
     if (!e.target.classList.contains('btn-view-telegram')) return;
 
@@ -1498,7 +1597,17 @@ document.addEventListener('click', function(e) {
     document.getElementById('telegramModalDate').textContent = btn.dataset.date;
     document.getElementById('telegramModalText').textContent = text;
 
-    new bootstrap.Modal(document.getElementById('telegramModal')).show();
+    document.getElementById('telegramModal').classList.add('show');
+});
+
+// 모달 닫기
+document.getElementById('telegramModalClose')?.addEventListener('click', () => {
+    document.getElementById('telegramModal').classList.remove('show');
+});
+document.getElementById('telegramModal')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+        e.currentTarget.classList.remove('show');
+    }
 });
 
 // ============ 뉴스 저장/검색/삭제 ============
@@ -1565,24 +1674,24 @@ function addNewsToList(data) {
     if (noNews) noNews.remove();
 
     const newItem = document.createElement('div');
-    newItem.className = 'list-group-item py-2';
+    newItem.className = 'edit-list-item';
     newItem.dataset.id = data.id;
     newItem.innerHTML = `
-        <div class="d-flex justify-content-between align-items-start">
-            <div class="flex-grow-1 overflow-hidden">
-                <a href="${data.link}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">${data.title}</a>
-                <small class="text-muted">${data.source || ''}</small>
-                <small class="text-muted ms-2">${(data.published || '').slice(0, 10)}</small>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div style="flex:1; overflow:hidden;">
+                <a href="${data.link}" target="_blank" style="font-weight:600; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; color:var(--text-primary);">${data.title}</a>
+                <span style="color:var(--text-muted); font-size:0.75rem;">${data.source || ''}</span>
+                <span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">${(data.published || '').slice(0, 10)}</span>
             </div>
-            <div class="d-flex flex-column gap-1 ms-2 align-items-end">
-                <div class="d-flex gap-1">
-                    <a href="/news/${data.id}/summary/" class="text-decoration-none" title="요약">
-                        <span class="badge bg-secondary">요약</span>
+            <div style="display:flex; flex-direction:column; gap:4px; margin-left:8px; align-items:flex-end;">
+                <div style="display:flex; gap:4px;">
+                    <a href="/news/${data.id}/summary/" style="text-decoration:none;" title="요약">
+                        <span class="status-badge pending">요약</span>
                     </a>
-                    <span class="badge bg-danger btn-delete-news" data-id="${data.id}" style="cursor:pointer;">삭제</span>
+                    <span class="prompt-badge btn-delete-news" data-id="${data.id}" style="cursor:pointer; background:#fef2f2; color:var(--up-color);">삭제</span>
                 </div>
                 <div>
-                    <span class="badge bg-secondary btn-copy-prompt-news" data-id="${data.id}" data-link="${data.link}" style="cursor:pointer;">프롬프트 복사</span>
+                    <span class="prompt-badge btn-copy-prompt-news" data-id="${data.id}" data-link="${data.link}" style="cursor:pointer; background:#f3f4f6; color:var(--text-secondary);">프롬프트 복사</span>
                 </div>
             </div>
         </div>
@@ -1626,7 +1735,7 @@ async function saveNewsFromSearch(btn, link, title, source, published) {
             savedNewsLinks.add(data.link);
             addNewsToList(data);
             const badge = document.createElement('span');
-            badge.className = 'badge bg-success';
+            badge.className = 'status-badge done';
             badge.textContent = '저장됨';
             btn.replaceWith(badge);
         }
@@ -1654,7 +1763,7 @@ document.addEventListener('click', async (e) => {
         const data = await response.json();
 
         if (data.success) {
-            const item = e.target.closest('.list-group-item');
+            const item = e.target.closest('.edit-list-item');
             const link = item.querySelector('a[target="_blank"]').href;
             savedNewsLinks.delete(link);
             item.remove();
@@ -1664,7 +1773,7 @@ document.addEventListener('click', async (e) => {
             countEl.textContent = newCount;
 
             if (newCount === 0) {
-                document.getElementById('savedNewsList').innerHTML = '<div class="text-center text-muted py-3" id="noSavedNews">저장된 뉴스가 없습니다.</div>';
+                document.getElementById('savedNewsList').innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:16px;" id="noSavedNews">저장된 뉴스가 없습니다.</div>';
             }
         } else {
             alert(data.error || '삭제 실패');
@@ -1734,23 +1843,23 @@ async function searchNews() {
         const data = await response.json();
 
         if (data.error) {
-            newsResult.innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
+            newsResult.innerHTML = `<div class="info-box warn">${data.error}</div>`;
         } else if (data.results.length === 0) {
-            newsResult.innerHTML = '<div class="text-muted">검색 결과가 없습니다.</div>';
+            newsResult.innerHTML = '<div style="color:var(--text-muted);">검색 결과가 없습니다.</div>';
         } else {
-            let html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0">';
-            html += '<thead class="table-light"><tr><th class="ps-3" style="width:100px;">날짜</th><th>제목</th><th style="width:100px;" class="d-none d-md-table-cell">출처</th><th style="width:60px;"></th></tr></thead><tbody>';
+            let html = '<div style="overflow-x:auto;"><table class="modern-table">';
+            html += '<thead><tr><th style="width:100px; padding-left:16px;">날짜</th><th>제목</th><th style="width:100px;" class="d-none d-md-table-cell">출처</th><th style="width:60px;"></th></tr></thead><tbody>';
             data.results.forEach(item => {
                 const isSaved = savedNewsLinks.has(item.link);
                 html += `<tr>`;
-                html += `<td class="text-muted ps-3" style="font-size:0.75rem;">${(item.date || '').slice(0, 10) || '-'}</td>`;
-                html += `<td><a href="${item.link}" target="_blank" class="text-decoration-none">${item.title}</a></td>`;
-                html += `<td class="text-muted d-none d-md-table-cell" style="font-size:0.75rem;">${item.source || ''}</td>`;
-                html += `<td class="text-end pe-3">`;
+                html += `<td style="color:var(--text-muted); padding-left:16px; font-size:0.75rem;">${(item.date || '').slice(0, 10) || '-'}</td>`;
+                html += `<td><a href="${item.link}" target="_blank" style="text-decoration:none; color:var(--text-primary);">${item.title}</a></td>`;
+                html += `<td class="d-none d-md-table-cell" style="color:var(--text-muted); font-size:0.75rem;">${item.source || ''}</td>`;
+                html += `<td style="text-align:right; padding-right:16px;">`;
                 if (isSaved) {
-                    html += `<span class="badge bg-success" style="white-space:nowrap;">저장됨</span>`;
+                    html += `<span class="status-badge done" style="white-space:nowrap;">저장됨</span>`;
                 } else {
-                    html += `<button class="btn btn-sm btn-outline-primary btn-save-news" style="white-space:nowrap;" data-link="${item.link}" data-title="${item.title.replace(/"/g, '&quot;')}" data-source="${item.source || ''}" data-published="${item.date || ''}">저장</button>`;
+                    html += `<button class="btn-refresh primary btn-save-news" style="white-space:nowrap;" data-link="${item.link}" data-title="${item.title.replace(/"/g, '&quot;')}" data-source="${item.source || ''}" data-published="${item.date || ''}">저장</button>`;
                 }
                 html += `</td></tr>`;
             });
@@ -1765,7 +1874,7 @@ async function searchNews() {
             });
         }
     } catch (err) {
-        newsResult.innerHTML = `<div class="alert alert-danger mb-0">오류: ${err.message}</div>`;
+        newsResult.innerHTML = `<div class="info-box warn">오류: ${err.message}</div>`;
     } finally {
         btnNews.disabled = false;
         newsLoading.classList.add('d-none');
@@ -1836,10 +1945,11 @@ document.querySelectorAll('.btn-save-nodaji').forEach(btn => {
                     if (!viewBtn) {
                         viewBtn = document.createElement('button');
                         viewBtn.type = 'button';
-                        viewBtn.className = 'btn btn-sm p-0 border-0 btn-view-nodaji';
+                        viewBtn.className = 'btn-view-nodaji';
                         viewBtn.dataset.summary = summary;
                         viewBtn.title = '새창에서 보기';
-                        viewBtn.innerHTML = '<span class="badge bg-success">O</span>';
+                        viewBtn.style.cssText = 'background:none; border:none; cursor:pointer; padding:0;';
+                        viewBtn.innerHTML = '<span class="status-badge done">O</span>';
                         btnCell.insertBefore(viewBtn, btnCell.firstChild);
                         viewBtn.addEventListener('click', function() {
                             let html = this.dataset.summary;
@@ -1858,12 +1968,12 @@ document.querySelectorAll('.btn-save-nodaji').forEach(btn => {
                 }
 
                 this.textContent = '저장됨';
-                this.classList.remove('btn-primary');
-                this.classList.add('btn-success');
+                this.classList.remove('primary');
+                this.classList.add('success');
                 setTimeout(() => {
                     this.textContent = '저장';
-                    this.classList.remove('btn-success');
-                    this.classList.add('btn-primary');
+                    this.classList.remove('success');
+                    this.classList.add('primary');
                     this.disabled = false;
                 }, 1500);
             } else {
@@ -1970,26 +2080,26 @@ btnSaveYoutubeLink?.addEventListener('click', async () => {
             if (noVideo) noVideo.remove();
 
             const newItem = document.createElement('div');
-            newItem.className = 'list-group-item d-flex gap-3 py-2';
+            newItem.className = 'video-item';
             newItem.dataset.id = data.id;
             const videoLink = `https://www.youtube.com/watch?v=${data.video_id}`;
             newItem.innerHTML = `
                 ${data.thumbnail ? `<a href="${videoLink}" target="_blank"><img src="${data.thumbnail}" alt="" style="width:120px; height:68px; object-fit:cover; border-radius:4px;"></a>` : ''}
-                <div class="flex-grow-1 overflow-hidden">
-                    <a href="${videoLink}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">${data.title}</a>
-                    <small class="text-muted">${data.channel || ''}</small>
-                    <small class="text-muted ms-2">${data.views || ''}</small>
-                    <small class="text-muted ms-2">${data.published || ''}</small>
+                <div style="flex:1; overflow:hidden;">
+                    <a href="${videoLink}" target="_blank" style="font-weight:600; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; color:var(--text-primary);">${data.title}</a>
+                    <span style="color:var(--text-muted); font-size:0.75rem;">${data.channel || ''}</span>
+                    <span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">${data.views || ''}</span>
+                    <span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">${data.published || ''}</span>
                 </div>
-                <div class="d-flex flex-column gap-1 align-self-center align-items-end">
-                    <div class="d-flex gap-1">
-                        <a href="/youtube/${data.id}/summary/" class="text-decoration-none" title="요약">
-                            <span class="badge bg-secondary">요약</span>
+                <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
+                    <div style="display:flex; gap:4px;">
+                        <a href="/youtube/${data.id}/summary/" style="text-decoration:none;" title="요약">
+                            <span class="status-badge pending">요약</span>
                         </a>
-                        <span class="badge bg-danger btn-delete-video" data-id="${data.id}" style="cursor:pointer;">삭제</span>
+                        <span class="prompt-badge btn-delete-video" data-id="${data.id}" style="cursor:pointer; background:#fef2f2; color:var(--up-color);">삭제</span>
                     </div>
                     <div>
-                        <span class="badge bg-secondary btn-copy-prompt-video" data-id="${data.id}" data-link="${videoLink}" style="cursor:pointer;">프롬프트 복사</span>
+                        <span class="prompt-badge btn-copy-prompt-video" data-id="${data.id}" data-link="${videoLink}" style="cursor:pointer; background:#f3f4f6; color:var(--text-secondary);">프롬프트 복사</span>
                     </div>
                 </div>
             `;
@@ -2014,35 +2124,34 @@ youtubeLinkInput?.addEventListener('keypress', (e) => {
 
 // 검색 결과 렌더링
 function renderYoutubeResults(data) {
-    if (data.error) return `<div class="alert alert-danger mb-0">${data.error}</div>`;
-    if (data.message && data.results.length === 0) return `<div class="alert alert-warning mb-0">${data.message}</div>`;
-    if (data.results.length === 0) return '<div class="text-muted">검색 결과가 없습니다.</div>';
+    if (data.error) return `<div class="info-box warn">${data.error}</div>`;
+    if (data.message && data.results.length === 0) return `<div class="info-box" style="background:#fef3c7; border-color:#fde68a; color:#92400e;">${data.message}</div>`;
+    if (data.results.length === 0) return '<div style="color:var(--text-muted);">검색 결과가 없습니다.</div>';
 
     let html = '';
     if (data.channels_searched && data.channels_searched.length > 0) {
-        html += `<div class="small text-muted mb-2">검색 채널: ${data.channels_searched.join(', ')}</div>`;
+        html += `<div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:8px;">검색 채널: ${data.channels_searched.join(', ')}</div>`;
     }
 
-    html += '<div class="list-group list-group-flush">';
     data.results.forEach(video => {
         const videoId = extractVideoId(video.link);
         const isSaved = savedVideoIds.has(videoId);
 
-        html += `<div class="list-group-item d-flex gap-3 py-2">`;
+        html += `<div class="video-item">`;
         if (video.thumbnail) {
             html += `<a href="${video.link}" target="_blank"><img src="${video.thumbnail}" alt="" style="width:120px; height:68px; object-fit:cover; border-radius:4px;"></a>`;
         }
-        html += `<div class="flex-grow-1 overflow-hidden">`;
-        html += `<a href="${video.link}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">${video.title}</a>`;
-        html += `<small class="text-muted">${video.channel}</small>`;
-        html += `<small class="text-muted ms-2">${video.views || ''}</small>`;
-        html += `<small class="text-muted ms-2">${video.published || ''}</small>`;
+        html += `<div style="flex:1; overflow:hidden;">`;
+        html += `<a href="${video.link}" target="_blank" style="font-weight:600; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; color:var(--text-primary);">${video.title}</a>`;
+        html += `<span style="color:var(--text-muted); font-size:0.75rem;">${video.channel}</span>`;
+        html += `<span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">${video.views || ''}</span>`;
+        html += `<span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">${video.published || ''}</span>`;
         html += `</div>`;
 
         if (isSaved) {
-            html += `<span class="badge bg-success align-self-center">저장됨</span>`;
+            html += `<span class="status-badge done" style="align-self:center;">저장됨</span>`;
         } else {
-            html += `<button type="button" class="btn btn-sm btn-outline-primary align-self-center btn-save-video"
+            html += `<button type="button" class="btn-refresh primary btn-save-video" style="align-self:center;"
                 data-video-id="${videoId}"
                 data-title="${video.title.replace(/"/g, '&quot;')}"
                 data-channel="${video.channel.replace(/"/g, '&quot;')}"
@@ -2053,7 +2162,6 @@ function renderYoutubeResults(data) {
         }
         html += `</div>`;
     });
-    html += '</div>';
     return html;
 }
 
@@ -2083,7 +2191,7 @@ async function searchYoutube() {
         const data = await response.json();
         youtubeResult.innerHTML = renderYoutubeResults(data);
     } catch (err) {
-        youtubeResult.innerHTML = `<div class="alert alert-danger mb-0">오류: ${err.message}</div>`;
+        youtubeResult.innerHTML = `<div class="info-box warn">오류: ${err.message}</div>`;
     } finally {
         btnYoutube.disabled = false;
         youtubeLoading.classList.add('d-none');
@@ -2129,26 +2237,26 @@ document.addEventListener('click', async (e) => {
 
             const savedList = document.getElementById('savedVideoList');
             const newItem = document.createElement('div');
-            newItem.className = 'list-group-item d-flex gap-3 py-2';
+            newItem.className = 'video-item';
             newItem.dataset.id = data.id;
             const videoLink = `https://www.youtube.com/watch?v=${videoId}`;
             newItem.innerHTML = `
                 ${btn.dataset.thumbnail ? `<a href="${videoLink}" target="_blank"><img src="${btn.dataset.thumbnail}" alt="" style="width:120px; height:68px; object-fit:cover; border-radius:4px;"></a>` : ''}
-                <div class="flex-grow-1 overflow-hidden">
-                    <a href="${videoLink}" target="_blank" class="fw-semibold text-truncate d-block text-decoration-none">${btn.dataset.title}</a>
-                    <small class="text-muted">${btn.dataset.channel}</small>
-                    <small class="text-muted ms-2">${btn.dataset.views}</small>
-                    <small class="text-muted ms-2">${btn.dataset.published}</small>
+                <div style="flex:1; overflow:hidden;">
+                    <a href="${videoLink}" target="_blank" style="font-weight:600; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; color:var(--text-primary);">${btn.dataset.title}</a>
+                    <span style="color:var(--text-muted); font-size:0.75rem;">${btn.dataset.channel}</span>
+                    <span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">${btn.dataset.views}</span>
+                    <span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">${btn.dataset.published}</span>
                 </div>
-                <div class="d-flex flex-column gap-1 align-self-center align-items-end">
-                    <div class="d-flex gap-1">
-                        <a href="/youtube/${data.id}/summary/" class="text-decoration-none" title="요약">
-                            <span class="badge bg-secondary">요약</span>
+                <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
+                    <div style="display:flex; gap:4px;">
+                        <a href="/youtube/${data.id}/summary/" style="text-decoration:none;" title="요약">
+                            <span class="status-badge pending">요약</span>
                         </a>
-                        <span class="badge bg-danger btn-delete-video" data-id="${data.id}" style="cursor:pointer;">삭제</span>
+                        <span class="prompt-badge btn-delete-video" data-id="${data.id}" style="cursor:pointer; background:#fef2f2; color:var(--up-color);">삭제</span>
                     </div>
                     <div>
-                        <span class="badge bg-secondary btn-copy-prompt-video" data-id="${data.id}" data-link="${videoLink}" style="cursor:pointer;">프롬프트 복사</span>
+                        <span class="prompt-badge btn-copy-prompt-video" data-id="${data.id}" data-link="${videoLink}" style="cursor:pointer; background:#f3f4f6; color:var(--text-secondary);">프롬프트 복사</span>
                     </div>
                 </div>
             `;
@@ -2160,7 +2268,8 @@ document.addEventListener('click', async (e) => {
             savedVideoIds.add(videoId);
 
             const badge = document.createElement('span');
-            badge.className = 'badge bg-success align-self-center';
+            badge.className = 'status-badge done';
+            badge.style.alignSelf = 'center';
             badge.textContent = '저장됨';
             btn.replaceWith(badge);
         } else {
@@ -2193,7 +2302,7 @@ document.addEventListener('click', async (e) => {
         const data = await response.json();
 
         if (data.success) {
-            const item = btn.closest('.list-group-item');
+            const item = btn.closest('.video-item');
             const link = item.querySelector('a[href*="youtube.com"]');
             if (link) {
                 const vid = extractVideoId(link.href);
@@ -2205,8 +2314,8 @@ document.addEventListener('click', async (e) => {
             countEl.textContent = parseInt(countEl.textContent) - 1;
 
             const savedList = document.getElementById('savedVideoList');
-            if (savedList.querySelectorAll('.list-group-item[data-id]').length === 0) {
-                savedList.innerHTML = '<div class="text-center text-muted py-3" id="noSavedVideo">저장된 영상이 없습니다.</div>';
+            if (savedList.querySelectorAll('.video-item[data-id]').length === 0) {
+                savedList.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:16px;" id="noSavedVideo">저장된 영상이 없습니다.</div>';
             }
         } else {
             alert(data.error || '삭제 실패');
@@ -2237,17 +2346,11 @@ if (btnCloseReportSearch) {
     });
 }
 
-// 텍스트에서 URL을 링크로 변환
-function linkify(text) {
-    const urlRegex = /(https?:\/\/[^\s<]+)/g;
-    return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener">$1</a>');
-}
-
-// 키워드 하이라이트
-function highlightKeyword(text, keyword) {
+// 키워드 하이라이트 (리포트 검색용 - bg-warning 대신 .highlight)
+function highlightKeywordReport(text, keyword) {
     if (!keyword) return text;
     const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    return text.replace(regex, '<span class="bg-warning">$1</span>');
+    return text.replace(regex, '<span class="highlight">$1</span>');
 }
 
 // 전체 문구로 필터링
@@ -2271,11 +2374,11 @@ function renderReportChannelContent(channelData, keyword) {
         const messages = channelData[date];
         messages.forEach(msg => {
             const linkedText = linkify(msg.text);
-            const highlightedText = highlightKeyword(linkedText, keyword);
+            const highlightedText = highlightKeywordReport(linkedText, keyword);
             html += `
-                <div class="border-bottom pb-2 mb-2">
-                    <div class="small text-muted mb-1">${date} ${msg.time || ''}</div>
-                    <div class="small" style="white-space: pre-wrap;">${highlightedText}</div>
+                <div style="border-bottom:1px solid #f3f4f6; padding-bottom:8px; margin-bottom:8px;">
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;">${date} ${msg.time || ''}</div>
+                    <div style="font-size:0.82rem; white-space:pre-wrap;">${highlightedText}</div>
                 </div>`;
         });
     });
@@ -2309,7 +2412,7 @@ document.querySelectorAll('.report-search-link').forEach(link => {
             const data = await response.json();
 
             if (data.error) {
-                reportChannelTabContent.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                reportChannelTabContent.innerHTML = `<div class="info-box warn">${data.error}</div>`;
                 reportSearchTabs.classList.remove('d-none');
                 googleSearchResult.classList.remove('d-none');
                 return;
@@ -2333,15 +2436,13 @@ document.querySelectorAll('.report-search-link').forEach(link => {
                 const isFirst = tabsHtml === '';
 
                 tabsHtml += `
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link ${isFirst ? 'active' : ''}" id="${channelId}-tab"
-                            data-bs-toggle="tab" data-bs-target="#${channelId}-content" type="button" role="tab">
-                            ${displayName} <span class="badge bg-secondary">${totalCount}</span>
-                        </button>
-                    </li>`;
+                    <button class="report-channel-tab ${isFirst ? 'active' : ''}"
+                        data-target="${channelId}-content">
+                        ${displayName} <span style="font-size:0.65rem; color:var(--text-muted);">${totalCount}</span>
+                    </button>`;
 
                 contentHtml += `
-                    <div class="tab-pane fade ${isFirst ? 'show active' : ''}" id="${channelId}-content" role="tabpanel">
+                    <div class="channel-tab-panel" id="${channelId}-content" style="${isFirst ? '' : 'display:none;'}">
                         ${renderReportChannelContent(filteredData, keyword)}
                     </div>`;
             });
@@ -2356,7 +2457,7 @@ document.querySelectorAll('.report-search-link').forEach(link => {
             googleSearchResult.classList.remove('d-none');
 
         } catch (err) {
-            reportChannelTabContent.innerHTML = `<div class="alert alert-danger">오류: ${err.message}</div>`;
+            reportChannelTabContent.innerHTML = `<div class="info-box warn">오류: ${err.message}</div>`;
             reportSearchTabs.classList.remove('d-none');
             googleSearchResult.classList.remove('d-none');
         } finally {
@@ -2400,32 +2501,32 @@ document.getElementById('btnUploadReport')?.addEventListener('click', async () =
 
             // 새 항목 추가
             const newItem = document.createElement('div');
-            newItem.className = 'list-group-item py-3';
+            newItem.className = 'edit-list-item';
             newItem.dataset.id = data.id;
             newItem.innerHTML = `
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div class="flex-grow-1 me-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <input type="text" class="form-control form-control-sm ur-title" value="${data.original_filename}" placeholder="제목 입력" style="max-width: 300px;">
-                            <button type="button" class="btn btn-sm btn-outline-primary btn-save-title" data-id="${data.id}" title="제목 저장">저장</button>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                    <div style="flex:1; margin-right:8px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <input type="text" class="form-control ur-title" value="${data.original_filename}" placeholder="제목 입력" style="max-width:300px; font-size:0.82rem;">
+                            <button type="button" class="btn-refresh primary btn-save-title" data-id="${data.id}" title="제목 저장">저장</button>
                         </div>
-                        <div class="mt-1">
-                            <a href="${data.file_url}" target="_blank" class="small text-decoration-none text-muted">
+                        <div style="margin-top:6px;">
+                            <a href="${data.file_url}" target="_blank" style="font-size:0.78rem; text-decoration:none; color:var(--text-muted);">
                                 📎 ${data.original_filename}
                             </a>
-                            <small class="text-muted ms-2">${data.created_at}</small>
+                            <span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">${data.created_at}</span>
                         </div>
                     </div>
-                    <div class="d-flex gap-1">
-                        <span class="badge bg-secondary btn-toggle-summary" style="cursor:pointer;">요약</span>
-                        <span class="badge bg-danger btn-delete-uploaded" data-id="${data.id}" style="cursor:pointer;">삭제</span>
+                    <div style="display:flex; gap:6px;">
+                        <span class="prompt-badge btn-toggle-summary" style="cursor:pointer; background:#f3f4f6; color:var(--text-secondary);">요약</span>
+                        <span class="prompt-badge btn-delete-uploaded" data-id="${data.id}" style="cursor:pointer; background:#fef2f2; color:var(--up-color);">삭제</span>
                     </div>
                 </div>
                 <div class="summary-section d-none">
-                    <textarea class="form-control form-control-sm font-monospace ur-summary" rows="6" placeholder="요약 내용을 마크다운 형식으로 입력하세요..."></textarea>
-                    <div class="d-flex justify-content-between align-items-center mt-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary btn-preview-summary">미리보기</button>
-                        <button type="button" class="btn btn-sm btn-primary btn-save-summary" data-id="${data.id}">저장</button>
+                    <textarea class="form-control ur-summary" rows="6" style="font-family:monospace; font-size:0.82rem;" placeholder="요약 내용을 마크다운 형식으로 입력하세요..."></textarea>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                        <button type="button" class="btn-refresh btn-preview-summary">미리보기</button>
+                        <button type="button" class="btn-refresh primary btn-save-summary" data-id="${data.id}">저장</button>
                     </div>
                 </div>
             `;
@@ -2452,7 +2553,7 @@ document.getElementById('btnUploadReport')?.addEventListener('click', async () =
 document.addEventListener('click', (e) => {
     if (!e.target.classList.contains('btn-toggle-summary')) return;
 
-    const item = e.target.closest('.list-group-item');
+    const item = e.target.closest('.edit-list-item');
     const summarySection = item.querySelector('.summary-section');
     summarySection.classList.toggle('d-none');
 });
@@ -2461,7 +2562,7 @@ document.addEventListener('click', (e) => {
 document.addEventListener('click', (e) => {
     if (!e.target.classList.contains('btn-preview-summary')) return;
 
-    const item = e.target.closest('.list-group-item');
+    const item = e.target.closest('.edit-list-item');
     const summary = item.querySelector('.ur-summary').value;
 
     const previewWindow = window.open('', '_blank', 'width=800,height=600');
@@ -2497,7 +2598,7 @@ document.addEventListener('click', async (e) => {
 
     const btn = e.target;
     const reportId = btn.dataset.id;
-    const item = btn.closest('.list-group-item');
+    const item = btn.closest('.edit-list-item');
     const summary = item.querySelector('.ur-summary').value;
 
     btn.disabled = true;
@@ -2516,21 +2617,21 @@ document.addEventListener('click', async (e) => {
 
         if (data.success) {
             btn.textContent = '저장됨!';
-            btn.classList.remove('btn-primary');
-            btn.classList.add('btn-success');
+            btn.classList.remove('primary');
+            btn.classList.add('success');
             // 요약 배지 색상 업데이트
             const summaryBadge = item.querySelector('.btn-toggle-summary');
             if (summary.trim()) {
-                summaryBadge.classList.remove('bg-secondary');
-                summaryBadge.classList.add('bg-success');
+                summaryBadge.style.background = '#ecfdf5';
+                summaryBadge.style.color = '#059669';
             } else {
-                summaryBadge.classList.remove('bg-success');
-                summaryBadge.classList.add('bg-secondary');
+                summaryBadge.style.background = '#f3f4f6';
+                summaryBadge.style.color = 'var(--text-secondary)';
             }
             setTimeout(() => {
                 btn.textContent = '저장';
-                btn.classList.remove('btn-success');
-                btn.classList.add('btn-primary');
+                btn.classList.remove('success');
+                btn.classList.add('primary');
                 btn.disabled = false;
             }, 1500);
         } else {
@@ -2551,7 +2652,7 @@ document.addEventListener('click', async (e) => {
 
     const btn = e.target;
     const reportId = btn.dataset.id;
-    const item = btn.closest('.list-group-item');
+    const item = btn.closest('.edit-list-item');
     const title = item.querySelector('.ur-title').value;
 
     btn.disabled = true;
@@ -2570,12 +2671,12 @@ document.addEventListener('click', async (e) => {
 
         if (data.success) {
             btn.textContent = '저장됨!';
-            btn.classList.remove('btn-outline-primary');
-            btn.classList.add('btn-success');
+            btn.classList.remove('primary');
+            btn.classList.add('success');
             setTimeout(() => {
                 btn.textContent = '저장';
-                btn.classList.remove('btn-success');
-                btn.classList.add('btn-outline-primary');
+                btn.classList.remove('success');
+                btn.classList.add('primary');
                 btn.disabled = false;
             }, 1500);
         } else {
@@ -2608,7 +2709,7 @@ document.addEventListener('click', async (e) => {
         const data = await response.json();
 
         if (data.success) {
-            const item = btn.closest('.list-group-item');
+            const item = btn.closest('.edit-list-item');
             item.remove();
 
             const countEl = document.getElementById('uploadedReportCount');
@@ -2617,7 +2718,7 @@ document.addEventListener('click', async (e) => {
 
             if (newCount === 0) {
                 document.getElementById('uploadedReportList').innerHTML = `
-                    <div class="text-center text-muted py-4" id="noUploadedReport">
+                    <div style="text-align:center; color:var(--text-muted); padding:24px;" id="noUploadedReport">
                         업로드된 리포트가 없습니다.
                     </div>`;
             }
@@ -2636,8 +2737,8 @@ const btnCopyBriefingPrompt = document.getElementById('btnCopyBriefingPrompt');
 btnCopyBriefingPrompt.addEventListener('click', async () => {
     const originalText = btnCopyBriefingPrompt.textContent;
     btnCopyBriefingPrompt.textContent = '로딩...';
-    btnCopyBriefingPrompt.classList.remove('bg-success');
-    btnCopyBriefingPrompt.classList.add('bg-secondary');
+    btnCopyBriefingPrompt.style.background = '#f3f4f6';
+    btnCopyBriefingPrompt.style.color = 'var(--text-secondary)';
 
     try {
         const response = await fetch('/api/stock/{{ stock.code }}/data-loader-with-summary/');
@@ -2648,20 +2749,20 @@ btnCopyBriefingPrompt.addEventListener('click', async () => {
             btnCopyBriefingPrompt.textContent = '복사됨!';
             setTimeout(() => {
                 btnCopyBriefingPrompt.textContent = originalText;
-                btnCopyBriefingPrompt.classList.remove('bg-secondary');
-                btnCopyBriefingPrompt.classList.add('bg-success');
+                btnCopyBriefingPrompt.style.background = '#ecfdf5';
+                btnCopyBriefingPrompt.style.color = '#059669';
             }, 1500);
         } else {
             alert('데이터 조회 실패');
             btnCopyBriefingPrompt.textContent = originalText;
-            btnCopyBriefingPrompt.classList.remove('bg-secondary');
-            btnCopyBriefingPrompt.classList.add('bg-success');
+            btnCopyBriefingPrompt.style.background = '#ecfdf5';
+            btnCopyBriefingPrompt.style.color = '#059669';
         }
     } catch (err) {
         alert('오류: ' + err.message);
         btnCopyBriefingPrompt.textContent = originalText;
-        btnCopyBriefingPrompt.classList.remove('bg-secondary');
-        btnCopyBriefingPrompt.classList.add('bg-success');
+        btnCopyBriefingPrompt.style.background = '#ecfdf5';
+        btnCopyBriefingPrompt.style.color = '#059669';
     }
 });
 
@@ -2670,8 +2771,8 @@ const btnCopyValuationPrompt = document.getElementById('btnCopyValuationPrompt')
 btnCopyValuationPrompt.addEventListener('click', async () => {
     const originalText = btnCopyValuationPrompt.textContent;
     btnCopyValuationPrompt.textContent = '로딩...';
-    btnCopyValuationPrompt.classList.remove('bg-success');
-    btnCopyValuationPrompt.classList.add('bg-secondary');
+    btnCopyValuationPrompt.style.background = '#f3f4f6';
+    btnCopyValuationPrompt.style.color = 'var(--text-secondary)';
 
     try {
         const response = await fetch('/api/stock/{{ stock.code }}/data-loader-valuation/');
@@ -2682,20 +2783,20 @@ btnCopyValuationPrompt.addEventListener('click', async () => {
             btnCopyValuationPrompt.textContent = '복사됨!';
             setTimeout(() => {
                 btnCopyValuationPrompt.textContent = originalText;
-                btnCopyValuationPrompt.classList.remove('bg-secondary');
-                btnCopyValuationPrompt.classList.add('bg-success');
+                btnCopyValuationPrompt.style.background = '#ecfdf5';
+                btnCopyValuationPrompt.style.color = '#059669';
             }, 1500);
         } else {
             alert('데이터 조회 실패');
             btnCopyValuationPrompt.textContent = originalText;
-            btnCopyValuationPrompt.classList.remove('bg-secondary');
-            btnCopyValuationPrompt.classList.add('bg-success');
+            btnCopyValuationPrompt.style.background = '#ecfdf5';
+            btnCopyValuationPrompt.style.color = '#059669';
         }
     } catch (err) {
         alert('오류: ' + err.message);
         btnCopyValuationPrompt.textContent = originalText;
-        btnCopyValuationPrompt.classList.remove('bg-secondary');
-        btnCopyValuationPrompt.classList.add('bg-success');
+        btnCopyValuationPrompt.style.background = '#ecfdf5';
+        btnCopyValuationPrompt.style.color = '#059669';
     }
 });
 
@@ -2712,12 +2813,12 @@ btnCopyFinancialAnalysisPrompt.addEventListener('click', async () => {
         await copyToClipboard(prompt);
         const originalText = btnCopyFinancialAnalysisPrompt.textContent;
         btnCopyFinancialAnalysisPrompt.textContent = '복사됨!';
-        btnCopyFinancialAnalysisPrompt.classList.remove('bg-success');
-        btnCopyFinancialAnalysisPrompt.classList.add('bg-secondary');
+        btnCopyFinancialAnalysisPrompt.style.background = '#f3f4f6';
+        btnCopyFinancialAnalysisPrompt.style.color = 'var(--text-secondary)';
         setTimeout(() => {
             btnCopyFinancialAnalysisPrompt.textContent = originalText;
-            btnCopyFinancialAnalysisPrompt.classList.remove('bg-secondary');
-            btnCopyFinancialAnalysisPrompt.classList.add('bg-success');
+            btnCopyFinancialAnalysisPrompt.style.background = '#ecfdf5';
+            btnCopyFinancialAnalysisPrompt.style.color = '#059669';
         }, 1500);
     } catch (err) {
         alert('복사 실패: ' + err.message);
@@ -2737,63 +2838,16 @@ btnCopyInvestmentIndicatorPrompt.addEventListener('click', async () => {
         await copyToClipboard(prompt);
         const originalText = btnCopyInvestmentIndicatorPrompt.textContent;
         btnCopyInvestmentIndicatorPrompt.textContent = '복사됨!';
-        btnCopyInvestmentIndicatorPrompt.classList.remove('bg-success');
-        btnCopyInvestmentIndicatorPrompt.classList.add('bg-secondary');
+        btnCopyInvestmentIndicatorPrompt.style.background = '#f3f4f6';
+        btnCopyInvestmentIndicatorPrompt.style.color = 'var(--text-secondary)';
         setTimeout(() => {
             btnCopyInvestmentIndicatorPrompt.textContent = originalText;
-            btnCopyInvestmentIndicatorPrompt.classList.remove('bg-secondary');
-            btnCopyInvestmentIndicatorPrompt.classList.add('bg-success');
+            btnCopyInvestmentIndicatorPrompt.style.background = '#ecfdf5';
+            btnCopyInvestmentIndicatorPrompt.style.color = '#059669';
         }, 1500);
     } catch (err) {
         alert('복사 실패: ' + err.message);
     }
 });
 </script>
-<style>
-.highlight {
-    background-color: #fff3cd;
-    padding: 0 2px;
-    border-radius: 2px;
-    font-weight: bold;
-}
-#channelTabs {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4px;
-    border-bottom: none;
-    padding-bottom: 8px;
-    margin-bottom: 8px;
-    border-bottom: 1px solid #dee2e6;
-}
-@media (min-width: 768px) {
-    #channelTabs {
-        grid-template-columns: repeat(6, 1fr);
-    }
-}
-#channelTabs .nav-item {
-    margin: 0;
-}
-#channelTabs .nav-link {
-    display: block;
-    width: 100%;
-    padding: 4px 6px;
-    font-size: 0.7rem;
-    border-radius: 4px;
-    border: 1px solid #dee2e6;
-    background: #f8f9fa;
-    color: #495057;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-#channelTabs .nav-link:hover {
-    background: #e9ecef;
-}
-#channelTabs .nav-link.active {
-    background: #0d6efd;
-    color: white;
-    border-color: #0d6efd;
-}
-</style>
 {% endblock %}

@@ -3,11 +3,110 @@
 
 {% block title %}종목 - JStocks{% endblock %}
 
+{% block extra_style %}
+/* Dashboard tabs */
+.dash-tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+.market-tab { padding:10px 22px; background:none; border:1px solid transparent; border-radius:var(--radius); font-size:0.9rem; font-weight:500; color:var(--text-secondary); cursor:pointer; }
+.market-tab.active { color:var(--text-primary); font-weight:700; border-color:var(--border-color); background:var(--bg-card); box-shadow:var(--shadow-card); }
+.market-tab .tab-badge { display:inline-block; font-size:0.72rem; padding:1px 6px; border-radius:10px; margin-left:4px; }
+.market-tab .tab-badge-total { background:var(--border-color); color:var(--text-secondary); }
+.market-tab .tab-badge-filtered { background:#e5e7eb; color:var(--text-muted); }
+
+/* Section heading */
+.section-heading { font-size:1rem; font-weight:700; color:var(--text-primary); margin-bottom:16px; padding-bottom:10px; border-bottom:2px solid var(--text-primary); display:flex; justify-content:space-between; align-items:center; }
+.btn-refresh { background:none; border:1px solid var(--border-color); border-radius:6px; padding:4px 12px; font-size:0.78rem; color:var(--text-secondary); cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
+.btn-refresh:hover { color:var(--text-primary); border-color:var(--text-primary); }
+
+/* Signal card grid */
+.signal-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-bottom:24px; }
+@media(max-width:768px){ .signal-grid { grid-template-columns:1fr; } }
+
+/* Signal card */
+.signal-card { background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius); box-shadow:var(--shadow-card); overflow:hidden; }
+.signal-card-header { padding:14px 20px; border-bottom:1px solid var(--border-color); }
+.signal-card-title { font-size:0.9rem; font-weight:700; color:var(--text-primary); }
+.signal-card-subtitle { font-size:0.75rem; color:var(--text-muted); margin-top:2px; }
+.signal-card-body { padding:0; }
+.signal-card-empty { text-align:center; color:var(--text-muted); padding:24px; font-size:0.82rem; }
+
+/* Section divider rows */
+.section-row td { padding:4px 16px !important; font-size:0.78rem; font-weight:700; }
+.section-row.up td { color:var(--up-color); background:#fef2f2; }
+.section-row.down td { color:var(--down-color); background:#eff6ff; }
+
+/* Modern table */
+.modern-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+.modern-table thead th { padding:10px 16px; font-weight:600; color:var(--text-secondary); border-bottom:2px solid var(--border-color); white-space:nowrap; background:var(--bg-card); text-align:left; }
+.modern-table thead th.text-end { text-align:right; }
+.modern-table thead th.text-center { text-align:center; }
+.modern-table tbody tr { cursor:pointer; transition:background 0.1s; }
+.modern-table tbody tr:hover { background:#f9fafb; }
+.modern-table tbody td { padding:8px 16px; border-bottom:1px solid #f3f4f6; white-space:nowrap; }
+.modern-table tbody td.text-end { text-align:right; }
+.modern-table tbody td.text-center { text-align:center; }
+.modern-table .text-truncate { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* Color utilities */
+.text-up { color: var(--up-color) !important; }
+.text-down { color: var(--down-color) !important; }
+.text-muted { color: var(--text-muted) !important; }
+.text-secondary-c { color: var(--text-secondary) !important; }
+.fw-bold { font-weight: 700 !important; }
+.opacity-50 { opacity: 0.5; }
+
+/* Brief card */
+.brief-card { background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius); box-shadow:var(--shadow-card); padding:24px; margin-bottom:12px; }
+
+/* Mobile stock items */
+.mobile-stock-item { padding:10px 16px; cursor:pointer; transition:background 0.1s; border-bottom:1px solid #f3f4f6; }
+.mobile-stock-item:hover { background:#f9fafb; }
+.mobile-stock-item:last-child { border-bottom:none; }
+.mobile-flex { display:flex; justify-content:space-between; align-items:center; }
+.mobile-sub { display:flex; justify-content:space-between; align-items:center; color:var(--text-muted); font-size:0.78rem; margin-top:4px; }
+
+/* Desktop/Mobile visibility */
+.hide-mobile { }
+@media(max-width:767px){
+    .hide-mobile { display:none !important; }
+    .show-mobile-only { display:block !important; }
+    .hide-on-mobile { display:none !important; }
+}
+@media(min-width:768px){
+    .show-mobile-only { display:none !important; }
+}
+
+/* Badge inline */
+.inline-badge { display:inline-block; font-size:0.65rem; padding:2px 6px; border-radius:4px; color:#fff; }
+.badge-green { background:#4caf50; }
+.badge-blue { background:#2196f3; }
+.badge-gray { background:#9ca3af; }
+.badge-sector { background:#22c55e; text-decoration:none; color:#fff; font-size:0.7em; padding:2px 6px; border-radius:4px; cursor:pointer; }
+
+/* Stock list container */
+.stock-list-wrap { background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius); box-shadow:var(--shadow-card); overflow:hidden; margin-top:24px; }
+.stock-list-wrap .modern-table thead th { position:sticky; top:0; z-index:1; }
+
+/* Empty stock list */
+.empty-stock-list { display:none; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius); box-shadow:var(--shadow-card); padding:24px; text-align:center; color:var(--text-muted); margin-top:24px; }
+
+/* Custom Modal */
+.modal-overlay { display:none; position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,0.4); z-index:1000; justify-content:center; align-items:center; }
+.modal-overlay.show { display:flex; }
+.modal-box { background:#fff; border-radius:var(--radius); max-width:900px; width:95%; max-height:85vh; overflow-y:auto; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,0.15); }
+.modal-header-custom { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+.modal-header-custom h6 { font-size:0.9rem; font-weight:700; color:var(--text-primary); margin:0; }
+.modal-close-btn { background:none; border:none; font-size:1.2rem; color:var(--text-muted); cursor:pointer; padding:4px 8px; line-height:1; }
+.modal-close-btn:hover { color:var(--text-primary); }
+
+/* Scrollable table wrapper */
+.table-scroll { overflow-x:auto; }
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">종목</h4>
-    <a href="{% url 'stocks:stock_list' %}" class="btn btn-outline-primary btn-sm">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search me-1" viewBox="0 0 16 16">
+<div class="section-heading">
+    <span>종목</span>
+    <a href="{% url 'stocks:stock_list' %}" class="btn-refresh">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
             <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
         </svg>
         종목 검색
@@ -15,562 +114,522 @@
 </div>
 
 <!-- 대시보드 탭 -->
-<ul class="nav nav-pills mb-3" id="dashboardTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active" data-filter="super" type="button">초관심 <span class="badge bg-secondary">{{ super_stocks|length }}</span> <span class="badge bg-light text-dark" id="count-super">0</span></button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" data-filter="normal" type="button">관심 <span class="badge bg-secondary">{{ normal_stocks|length }}</span> <span class="badge bg-light text-dark" id="count-normal">0</span></button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" data-filter="incubator" type="button">인큐베이터 <span class="badge bg-secondary">{{ incubator_stocks|length }}</span> <span class="badge bg-light text-dark" id="count-incubator">0</span></button>
-    </li>
-</ul>
+<div class="dash-tabs" id="dashboardTabs">
+    <button class="market-tab active" data-filter="super" type="button">초관심 <span class="tab-badge tab-badge-total">{{ super_stocks|length }}</span> <span class="tab-badge tab-badge-filtered" id="count-super">0</span></button>
+    <button class="market-tab" data-filter="normal" type="button">관심 <span class="tab-badge tab-badge-total">{{ normal_stocks|length }}</span> <span class="tab-badge tab-badge-filtered" id="count-normal">0</span></button>
+    <button class="market-tab" data-filter="incubator" type="button">인큐베이터 <span class="tab-badge tab-badge-total">{{ incubator_stocks|length }}</span> <span class="tab-badge tab-badge-filtered" id="count-incubator">0</span></button>
+</div>
 
 <!-- 대시보드 카드 -->
-<div class="row mb-4" id="dashboardCards">
+<div class="signal-grid" id="dashboardCards">
     <!-- 카드 A: 장기 신호 (60일 신고거래량) -->
-    <div class="col-md-6 mb-3">
-        <div class="card h-100 signal-card">
-            <div class="card-header py-2">
-                <strong>🥇 장기 신호</strong>
-                <small class="text-muted d-block">60일 신고거래량 · 급등(양봉+MA20↑) · 급락(음봉+MA20↓)</small>
+    <div class="signal-card signal-card-ab">
+        <div class="signal-card-header">
+            <div class="signal-card-title">장기 신호</div>
+            <div class="signal-card-subtitle">60일 신고거래량 · 급등(양봉+MA20↑) · 급락(음봉+MA20↓)</div>
+        </div>
+        <!-- PC: 테이블 -->
+        <div class="signal-card-body hide-on-mobile">
+            <div class="table-scroll">
+                <table class="modern-table dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>종목명</th>
+                            <th class="text-end">등락율</th>
+                            <th class="text-end">고점대비</th>
+                            <th class="text-end">거래대금</th>
+                            <th class="text-end">10일</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="section-row up"><td colspan="5">급등</td></tr>
+                        {% for item in card_a_stocks %}
+                        <tr class="dashboard-row signal-up-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                            <td>
+                                <strong style="font-size:0.82rem;" class="{% if item.above_ma120 %}text-up{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
+                            </td>
+                            <td class="text-end {% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}">
+                                {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
+                            </td>
+                            <td class="text-end" style="font-size:0.78rem;"><span class="{% if item.high_position >= -15 %}text-up fw-bold{% elif item.high_position <= -40 %}text-secondary-c{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></td>
+                            <td class="text-end" style="font-size:0.78rem;">{{ item.trading_value|intcomma }}억</td>
+                            <td class="text-end"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="signal-up-empty"{% if card_a_stocks %} style="display:none"{% endif %}><td colspan="5" style="text-align:center;color:var(--text-muted);padding:12px;font-size:0.8rem;">해당 종목 없음</td></tr>
+                        <tr class="section-row down"><td colspan="5">급락</td></tr>
+                        {% for item in card_a_down_stocks %}
+                        <tr class="dashboard-row signal-down-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                            <td>
+                                <strong style="font-size:0.82rem;" class="{% if item.above_ma120 %}text-up{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
+                            </td>
+                            <td class="text-end {% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}">
+                                {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
+                            </td>
+                            <td class="text-end" style="font-size:0.78rem;"><span class="{% if item.high_position >= -15 %}text-up fw-bold{% elif item.high_position <= -40 %}text-secondary-c{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></td>
+                            <td class="text-end" style="font-size:0.78rem;">{{ item.trading_value|intcomma }}억</td>
+                            <td class="text-end"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="signal-down-empty"{% if card_a_down_stocks %} style="display:none"{% endif %}><td colspan="5" style="text-align:center;color:var(--text-muted);padding:12px;font-size:0.8rem;">해당 종목 없음</td></tr>
+                    </tbody>
+                </table>
             </div>
-            <!-- PC: 테이블 -->
-            <div class="card-body p-0 d-none d-md-block">
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm mb-0 dashboard-table">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="px-3">종목명</th>
-                                <th class="text-end px-3">등락율</th>
-                                <th class="text-end px-3">고점대비</th>
-                                <th class="text-end px-3">거래대금</th>
-                                <th class="text-end px-3">10일</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="table-danger"><td colspan="5" class="px-3 py-1 small fw-bold text-danger">급등</td></tr>
-                            {% for item in card_a_stocks %}
-                            <tr class="dashboard-row signal-up-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
-                                <td class="px-3 py-2">
-                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
-                                </td>
-                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
-                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
-                                </td>
-                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</td>
-                                <td class="text-end px-3 py-2 small">{{ item.trading_value|intcomma }}억</td>
-                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
-                            </tr>
-                            {% endfor %}
-                            <tr class="signal-up-empty"{% if card_a_stocks %} style="display:none"{% endif %}><td colspan="5" class="text-center text-muted py-2"><small>해당 종목 없음</small></td></tr>
-                            <tr class="table-primary"><td colspan="5" class="px-3 py-1 small fw-bold text-primary">급락</td></tr>
-                            {% for item in card_a_down_stocks %}
-                            <tr class="dashboard-row signal-down-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
-                                <td class="px-3 py-2">
-                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
-                                </td>
-                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
-                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
-                                </td>
-                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</td>
-                                <td class="text-end px-3 py-2 small">{{ item.trading_value|intcomma }}억</td>
-                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
-                            </tr>
-                            {% endfor %}
-                            <tr class="signal-down-empty"{% if card_a_down_stocks %} style="display:none"{% endif %}><td colspan="5" class="text-center text-muted py-2"><small>해당 종목 없음</small></td></tr>
-                        </tbody>
-                    </table>
+        </div>
+        <!-- 모바일: 카드 리스트 -->
+        <div class="show-mobile-only" style="padding:8px;">
+            <div style="padding:4px 12px;font-size:0.78rem;font-weight:700;color:var(--up-color);background:#fef2f2;border-radius:4px;margin-bottom:4px;">급등</div>
+            {% for item in card_a_stocks %}
+            <div class="mobile-stock-item dashboard-row signal-up-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
+                <div class="mobile-flex">
+                    <strong class="{% if item.above_ma120 %}text-up{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
+                    <span class="{% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
+                </div>
+                <div class="mobile-sub">
+                    <span>고점 <span class="{% if item.high_position >= -15 %}text-up fw-bold{% elif item.high_position <= -40 %}text-secondary-c{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
+                    <span>{{ item.trading_value|intcomma }}억</span>
                 </div>
             </div>
-            <!-- 모바일: 카드 리스트 -->
-            <div class="card-body p-2 d-md-none">
-                <div class="bg-danger-subtle px-2 py-1 mb-1 small fw-bold text-danger">급등</div>
-                {% for item in card_a_stocks %}
-                <div class="mobile-stock-item dashboard-row signal-up-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
-                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
-                        <span>고점 <span class="{% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
-                        <span>{{ item.trading_value|intcomma }}억</span>
-                    </div>
+            {% endfor %}
+            <div class="signal-up-empty"{% if card_a_stocks %} style="display:none"{% else %} style="text-align:center;color:var(--text-muted);padding:12px;font-size:0.8rem;"{% endif %}>해당 종목 없음</div>
+            <div style="padding:4px 12px;font-size:0.78rem;font-weight:700;color:var(--down-color);background:#eff6ff;border-radius:4px;margin:8px 0 4px;">급락</div>
+            {% for item in card_a_down_stocks %}
+            <div class="mobile-stock-item dashboard-row signal-down-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
+                <div class="mobile-flex">
+                    <strong class="{% if item.above_ma120 %}text-up{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
+                    <span class="{% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
                 </div>
-                {% endfor %}
-                <div class="signal-up-empty text-center text-muted py-2"{% if card_a_stocks %} style="display:none"{% endif %}><small>해당 종목 없음</small></div>
-                <div class="bg-primary-subtle px-2 py-1 mb-1 mt-2 small fw-bold text-primary">급락</div>
-                {% for item in card_a_down_stocks %}
-                <div class="mobile-stock-item dashboard-row signal-down-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
-                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
-                        <span>고점 <span class="{% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
-                        <span>{{ item.trading_value|intcomma }}억</span>
-                    </div>
+                <div class="mobile-sub">
+                    <span>고점 <span class="{% if item.high_position >= -15 %}text-up fw-bold{% elif item.high_position <= -40 %}text-secondary-c{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
+                    <span>{{ item.trading_value|intcomma }}억</span>
                 </div>
-                {% endfor %}
-                <div class="signal-down-empty text-center text-muted py-2"{% if card_a_down_stocks %} style="display:none"{% endif %}><small>해당 종목 없음</small></div>
             </div>
+            {% endfor %}
+            <div class="signal-down-empty"{% if card_a_down_stocks %} style="display:none"{% else %} style="text-align:center;color:var(--text-muted);padding:12px;font-size:0.8rem;"{% endif %}>해당 종목 없음</div>
         </div>
     </div>
 
     <!-- 카드 B: 단기 신호 (20일 신고거래량) -->
-    <div class="col-md-6 mb-3">
-        <div class="card h-100 signal-card">
-            <div class="card-header py-2">
-                <strong>🥈 단기 신호</strong>
-                <small class="text-muted d-block">20일 신고거래량 · 급등(양봉+MA20↑) · 급락(음봉+MA20↓)</small>
+    <div class="signal-card signal-card-ab">
+        <div class="signal-card-header">
+            <div class="signal-card-title">단기 신호</div>
+            <div class="signal-card-subtitle">20일 신고거래량 · 급등(양봉+MA20↑) · 급락(음봉+MA20↓)</div>
+        </div>
+        <!-- PC: 테이블 -->
+        <div class="signal-card-body hide-on-mobile">
+            <div class="table-scroll">
+                <table class="modern-table dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>종목명</th>
+                            <th class="text-end">등락율</th>
+                            <th class="text-end">고점대비</th>
+                            <th class="text-end">거래대금</th>
+                            <th class="text-end">10일</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="section-row up"><td colspan="5">급등</td></tr>
+                        {% for item in card_b_stocks %}
+                        <tr class="dashboard-row signal-up-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                            <td>
+                                <strong style="font-size:0.82rem;" class="{% if item.above_ma120 %}text-up{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
+                            </td>
+                            <td class="text-end {% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}">
+                                {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
+                            </td>
+                            <td class="text-end" style="font-size:0.78rem;"><span class="{% if item.high_position >= -15 %}text-up fw-bold{% elif item.high_position <= -40 %}text-secondary-c{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></td>
+                            <td class="text-end" style="font-size:0.78rem;">{{ item.trading_value|intcomma }}억</td>
+                            <td class="text-end"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="signal-up-empty"{% if card_b_stocks %} style="display:none"{% endif %}><td colspan="5" style="text-align:center;color:var(--text-muted);padding:12px;font-size:0.8rem;">해당 종목 없음</td></tr>
+                        <tr class="section-row down"><td colspan="5">급락</td></tr>
+                        {% for item in card_b_down_stocks %}
+                        <tr class="dashboard-row signal-down-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                            <td>
+                                <strong style="font-size:0.82rem;" class="{% if item.above_ma120 %}text-up{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
+                            </td>
+                            <td class="text-end {% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}">
+                                {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
+                            </td>
+                            <td class="text-end" style="font-size:0.78rem;"><span class="{% if item.high_position >= -15 %}text-up fw-bold{% elif item.high_position <= -40 %}text-secondary-c{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></td>
+                            <td class="text-end" style="font-size:0.78rem;">{{ item.trading_value|intcomma }}억</td>
+                            <td class="text-end"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="signal-down-empty"{% if card_b_down_stocks %} style="display:none"{% endif %}><td colspan="5" style="text-align:center;color:var(--text-muted);padding:12px;font-size:0.8rem;">해당 종목 없음</td></tr>
+                    </tbody>
+                </table>
             </div>
-            <!-- PC: 테이블 -->
-            <div class="card-body p-0 d-none d-md-block">
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm mb-0 dashboard-table">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="px-3">종목명</th>
-                                <th class="text-end px-3">등락율</th>
-                                <th class="text-end px-3">고점대비</th>
-                                <th class="text-end px-3">거래대금</th>
-                                <th class="text-end px-3">10일</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="table-danger"><td colspan="5" class="px-3 py-1 small fw-bold text-danger">급등</td></tr>
-                            {% for item in card_b_stocks %}
-                            <tr class="dashboard-row signal-up-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
-                                <td class="px-3 py-2">
-                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
-                                </td>
-                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
-                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
-                                </td>
-                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</td>
-                                <td class="text-end px-3 py-2 small">{{ item.trading_value|intcomma }}억</td>
-                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
-                            </tr>
-                            {% endfor %}
-                            <tr class="signal-up-empty"{% if card_b_stocks %} style="display:none"{% endif %}><td colspan="5" class="text-center text-muted py-2"><small>해당 종목 없음</small></td></tr>
-                            <tr class="table-primary"><td colspan="5" class="px-3 py-1 small fw-bold text-primary">급락</td></tr>
-                            {% for item in card_b_down_stocks %}
-                            <tr class="dashboard-row signal-down-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
-                                <td class="px-3 py-2">
-                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
-                                </td>
-                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
-                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
-                                </td>
-                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</td>
-                                <td class="text-end px-3 py-2 small">{{ item.trading_value|intcomma }}억</td>
-                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
-                            </tr>
-                            {% endfor %}
-                            <tr class="signal-down-empty"{% if card_b_down_stocks %} style="display:none"{% endif %}><td colspan="5" class="text-center text-muted py-2"><small>해당 종목 없음</small></td></tr>
-                        </tbody>
-                    </table>
+        </div>
+        <!-- 모바일: 카드 리스트 -->
+        <div class="show-mobile-only" style="padding:8px;">
+            <div style="padding:4px 12px;font-size:0.78rem;font-weight:700;color:var(--up-color);background:#fef2f2;border-radius:4px;margin-bottom:4px;">급등</div>
+            {% for item in card_b_stocks %}
+            <div class="mobile-stock-item dashboard-row signal-up-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
+                <div class="mobile-flex">
+                    <strong class="{% if item.above_ma120 %}text-up{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
+                    <span class="{% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
+                </div>
+                <div class="mobile-sub">
+                    <span>고점 <span class="{% if item.high_position >= -15 %}text-up fw-bold{% elif item.high_position <= -40 %}text-secondary-c{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
+                    <span>{{ item.trading_value|intcomma }}억</span>
                 </div>
             </div>
-            <!-- 모바일: 카드 리스트 -->
-            <div class="card-body p-2 d-md-none">
-                <div class="bg-danger-subtle px-2 py-1 mb-1 small fw-bold text-danger">급등</div>
-                {% for item in card_b_stocks %}
-                <div class="mobile-stock-item dashboard-row signal-up-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
-                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
-                        <span>고점 <span class="{% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
-                        <span>{{ item.trading_value|intcomma }}억</span>
-                    </div>
+            {% endfor %}
+            <div class="signal-up-empty"{% if card_b_stocks %} style="display:none"{% else %} style="text-align:center;color:var(--text-muted);padding:12px;font-size:0.8rem;"{% endif %}>해당 종목 없음</div>
+            <div style="padding:4px 12px;font-size:0.78rem;font-weight:700;color:var(--down-color);background:#eff6ff;border-radius:4px;margin:8px 0 4px;">급락</div>
+            {% for item in card_b_down_stocks %}
+            <div class="mobile-stock-item dashboard-row signal-down-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
+                <div class="mobile-flex">
+                    <strong class="{% if item.above_ma120 %}text-up{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
+                    <span class="{% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
                 </div>
-                {% endfor %}
-                <div class="signal-up-empty text-center text-muted py-2"{% if card_b_stocks %} style="display:none"{% endif %}><small>해당 종목 없음</small></div>
-                <div class="bg-primary-subtle px-2 py-1 mb-1 mt-2 small fw-bold text-primary">급락</div>
-                {% for item in card_b_down_stocks %}
-                <div class="mobile-stock-item dashboard-row signal-down-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
-                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
-                        <span>고점 <span class="{% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
-                        <span>{{ item.trading_value|intcomma }}억</span>
-                    </div>
+                <div class="mobile-sub">
+                    <span>고점 <span class="{% if item.high_position >= -15 %}text-up fw-bold{% elif item.high_position <= -40 %}text-secondary-c{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
+                    <span>{{ item.trading_value|intcomma }}억</span>
                 </div>
-                {% endfor %}
-                <div class="signal-down-empty text-center text-muted py-2"{% if card_b_down_stocks %} style="display:none"{% endif %}><small>해당 종목 없음</small></div>
             </div>
+            {% endfor %}
+            <div class="signal-down-empty"{% if card_b_down_stocks %} style="display:none"{% else %} style="text-align:center;color:var(--text-muted);padding:12px;font-size:0.8rem;"{% endif %}>해당 종목 없음</div>
         </div>
     </div>
 
     <!-- 카드 D: 이평선 줍줍 -->
-    <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header py-2">
-                <strong>🧲 이평선 줍줍</strong>
-                <small class="text-muted d-block">정배열 + 60선↗ + 종가&lt;MA20</small>
-            </div>
-            {% if card_d_stocks %}
-            <!-- PC: 테이블 -->
-            <div class="card-body p-0 d-none d-md-block">
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm mb-0 dashboard-table">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="px-3">종목명</th>
-                                <th class="text-end px-3">등락율</th>
-                                <th class="text-end px-3">60선대비</th>
-                                <th class="text-end px-3">고점대비</th>
-                                <th class="text-end px-3">10일</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in card_d_stocks %}
-                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
-                                <td class="px-3 py-2">
-                                    <strong class="small{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
-                                </td>
-                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
-                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
-                                </td>
-                                <td class="text-end px-3 py-2 small {% if item.gap_from_ma60 >= 0 %}text-danger{% elif item.gap_from_ma60 < -5 %}text-primary{% endif %}">{{ item.gap_from_ma60 }}%</td>
-                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%</td>
-                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <!-- 모바일: 카드 리스트 -->
-            <div class="card-body p-2 d-md-none">
-                {% for item in card_d_stocks %}
-                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <strong class="{% if not item.stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ item.stock.name }}</strong>
-                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
-                        <span>60선 <span class="{% if item.gap_from_ma60 >= 0 %}text-danger{% elif item.gap_from_ma60 < -5 %}text-primary{% endif %}">{{ item.gap_from_ma60 }}%</span></span>
-                        <span>고점 {{ item.high_position }}%</span>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="card-body text-center text-muted py-4">
-                <small>해당 종목 없음</small>
-            </div>
-            {% endif %}
+    <div class="signal-card">
+        <div class="signal-card-header">
+            <div class="signal-card-title">이평선 줍줍</div>
+            <div class="signal-card-subtitle">정배열 + 60선↗ + 종가&lt;MA20</div>
         </div>
+        {% if card_d_stocks %}
+        <!-- PC: 테이블 -->
+        <div class="signal-card-body hide-on-mobile">
+            <div class="table-scroll">
+                <table class="modern-table dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>종목명</th>
+                            <th class="text-end">등락율</th>
+                            <th class="text-end">60선대비</th>
+                            <th class="text-end">고점대비</th>
+                            <th class="text-end">10일</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in card_d_stocks %}
+                        <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                            <td>
+                                <strong style="font-size:0.82rem;" class="{% if not item.stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ item.stock.name }}</strong>
+                            </td>
+                            <td class="text-end {% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}">
+                                {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
+                            </td>
+                            <td class="text-end" style="font-size:0.78rem;"><span class="{% if item.gap_from_ma60 >= 0 %}text-up{% elif item.gap_from_ma60 < -5 %}text-down{% endif %}">{{ item.gap_from_ma60 }}%</span></td>
+                            <td class="text-end" style="font-size:0.78rem;"><span class="{% if item.high_position >= -15 %}text-up fw-bold{% elif item.high_position <= -40 %}text-secondary-c{% endif %}">{{ item.high_position }}%</span></td>
+                            <td class="text-end"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- 모바일: 카드 리스트 -->
+        <div class="show-mobile-only" style="padding:8px;">
+            {% for item in card_d_stocks %}
+            <div class="mobile-stock-item dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
+                <div class="mobile-flex">
+                    <strong class="{% if not item.stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ item.stock.name }}</strong>
+                    <span class="{% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
+                </div>
+                <div class="mobile-sub">
+                    <span>60선 <span class="{% if item.gap_from_ma60 >= 0 %}text-up{% elif item.gap_from_ma60 < -5 %}text-down{% endif %}">{{ item.gap_from_ma60 }}%</span></span>
+                    <span>고점 {{ item.high_position }}%</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="signal-card-empty">해당 종목 없음</div>
+        {% endif %}
     </div>
 
     <!-- 카드 C: 신호 추적 -->
-    <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header py-2">
-                <strong>📡 신호 추적</strong>
-                <small class="text-muted d-block">최근 5거래일 내 조건 충족</small>
-            </div>
-            {% if card_c_stocks %}
-            <!-- PC: 테이블 -->
-            <div class="card-body p-0 d-none d-md-block">
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm mb-0 dashboard-table">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="px-3">종목명</th>
-                                <th class="text-center px-3">신호</th>
-                                <th class="text-center px-3">날짜</th>
-                                <th class="text-end px-3">양봉대비</th>
-                                <th class="text-end px-3">고점대비</th>
-                                <th class="text-end px-3">10일</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in card_c_stocks %}
-                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" style="cursor:pointer;">
-                                <td class="px-3 py-2" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
-                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
-                                </td>
-                                <td class="text-center px-3 py-2" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'"><span class="badge" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %};">{{ item.signal_type }}</span></td>
-                                <td class="text-center px-3 py-2 small" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">{{ item.signal_days_ago }}일전</td>
-                                <td class="text-end px-3 py-2 signal-chart-btn {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %}"
-                                    data-code="{{ item.stock.code }}"
-                                    data-name="{{ item.stock.name }}"
-                                    data-signal-date="{{ item.signal_date }}"
-                                    data-signal-open="{{ item.signal_open }}"
-                                    data-signal-close="{{ item.signal_close }}"
-                                    data-current-price="{{ item.current_price }}"
-                                    style="text-decoration: underline; cursor: pointer;">
-                                    {% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%
-                                </td>
-                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</td>
-                                <td class="text-end px-3 py-2" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <!-- 모바일: 카드 리스트 -->
-            <div class="card-body p-2 d-md-none">
-                {% for item in card_c_stocks %}
-                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" style="cursor:pointer;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
-                            <strong class="{% if item.above_ma120 %}text-danger{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
-                            <span class="badge ms-1" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %}; font-size: 0.7em;">{{ item.signal_type }}</span>
-                        </span>
-                        <span class="signal-chart-btn {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %} fw-bold"
-                            data-code="{{ item.stock.code }}"
-                            data-name="{{ item.stock.name }}"
-                            data-signal-date="{{ item.signal_date }}"
-                            data-signal-open="{{ item.signal_open }}"
-                            data-signal-close="{{ item.signal_close }}"
-                            data-current-price="{{ item.current_price }}"
-                            style="text-decoration: underline;">{% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
-                        <span>{{ item.signal_days_ago }}일전 · 고점 <span class="{% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="card-body text-center text-muted py-4">
-                <small>해당 종목 없음</small>
-            </div>
-            {% endif %}
+    <div class="signal-card">
+        <div class="signal-card-header">
+            <div class="signal-card-title">신호 추적</div>
+            <div class="signal-card-subtitle">최근 5거래일 내 조건 충족</div>
         </div>
+        {% if card_c_stocks %}
+        <!-- PC: 테이블 -->
+        <div class="signal-card-body hide-on-mobile">
+            <div class="table-scroll">
+                <table class="modern-table dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>종목명</th>
+                            <th class="text-center">신호</th>
+                            <th class="text-center">날짜</th>
+                            <th class="text-end">양봉대비</th>
+                            <th class="text-end">고점대비</th>
+                            <th class="text-end">10일</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in card_c_stocks %}
+                        <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" style="cursor:pointer;">
+                            <td onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
+                                <strong style="font-size:0.82rem;" class="{% if item.above_ma120 %}text-up{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
+                            </td>
+                            <td class="text-center" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'"><span class="inline-badge {% if item.signal_type == '60일' %}badge-green{% else %}badge-blue{% endif %}">{{ item.signal_type }}</span></td>
+                            <td class="text-center" style="font-size:0.78rem;" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">{{ item.signal_days_ago }}일전</td>
+                            <td class="text-end signal-chart-btn {% if item.signal_price_change > 0 %}text-up{% elif item.signal_price_change < 0 %}text-down{% endif %}"
+                                data-code="{{ item.stock.code }}"
+                                data-name="{{ item.stock.name }}"
+                                data-signal-date="{{ item.signal_date }}"
+                                data-signal-open="{{ item.signal_open }}"
+                                data-signal-close="{{ item.signal_close }}"
+                                data-current-price="{{ item.current_price }}"
+                                style="text-decoration: underline; cursor: pointer;">
+                                {% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%
+                            </td>
+                            <td class="text-end" style="font-size:0.78rem;" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'"><span class="{% if item.high_position >= -15 %}text-up fw-bold{% elif item.high_position <= -40 %}text-secondary-c{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></td>
+                            <td class="text-end" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- 모바일: 카드 리스트 -->
+        <div class="show-mobile-only" style="padding:8px;">
+            {% for item in card_c_stocks %}
+            <div class="mobile-stock-item dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" style="cursor:pointer;">
+                <div class="mobile-flex">
+                    <span onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
+                        <strong class="{% if item.above_ma120 %}text-up{% endif %}{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
+                        <span class="inline-badge {% if item.signal_type == '60일' %}badge-green{% else %}badge-blue{% endif %}" style="margin-left:4px;font-size:0.7em;">{{ item.signal_type }}</span>
+                    </span>
+                    <span class="signal-chart-btn {% if item.signal_price_change > 0 %}text-up{% elif item.signal_price_change < 0 %}text-down{% endif %} fw-bold"
+                        data-code="{{ item.stock.code }}"
+                        data-name="{{ item.stock.name }}"
+                        data-signal-date="{{ item.signal_date }}"
+                        data-signal-open="{{ item.signal_open }}"
+                        data-signal-close="{{ item.signal_close }}"
+                        data-current-price="{{ item.current_price }}"
+                        style="text-decoration: underline;">{% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%</span>
+                </div>
+                <div class="mobile-sub" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}'">
+                    <span>{{ item.signal_days_ago }}일전 · 고점 <span class="{% if item.high_position >= -15 %}text-up fw-bold{% elif item.high_position <= -40 %}text-secondary-c{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="signal-card-empty">해당 종목 없음</div>
+        {% endif %}
     </div>
 
     <!-- 카드 E: 리포트 -->
-    <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header py-2">
-                <strong>📊 리포트</strong>
-                <small class="text-muted d-block">최근 3거래일 신규</small>
-            </div>
-            {% if card_report_stocks %}
-            <!-- PC: 테이블 -->
-            <div class="card-body p-0 d-none d-md-block">
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm mb-0 dashboard-table">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="px-3">종목명</th>
-                                <th class="text-end px-3">등락율</th>
-                                <th class="px-3">제목</th>
-                                <th class="text-end px-3">목표가</th>
-                                <th class="text-end px-3">괴리율</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in card_report_stocks %}
-                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}#report-content'" style="cursor:pointer;">
-                                <td class="px-3 py-2">
-                                    <strong class="small{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
-                                    {% if item.total_count > 1 %}<span class="badge bg-secondary ms-1" style="font-size: 0.65em;">+{{ item.total_count|add:"-1" }}</span>{% endif %}
-                                </td>
-                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
-                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
-                                </td>
-                                <td class="px-3 py-2 small text-truncate" style="max-width: 200px;" title="{{ item.title }}">{{ item.title }}</td>
-                                <td class="text-end px-3 py-2 small">{% if item.target_price %}{{ item.target_price|intcomma }}{% else %}-{% endif %}</td>
-                                <td class="text-end px-3 py-2 {% if item.gap_rate > 30 %}text-danger fw-bold{% elif item.gap_rate > 0 %}text-danger{% else %}text-secondary{% endif %}">
-                                    {% if item.gap_rate > 0 %}+{% endif %}{{ item.gap_rate }}%
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <!-- 모바일: 카드 리스트 -->
-            <div class="card-body p-2 d-md-none">
-                {% for item in card_report_stocks %}
-                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}#report-content'" style="cursor:pointer;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span>
-                            <strong class="{% if not item.stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ item.stock.name }}</strong>
-                            {% if item.total_count > 1 %}<span class="badge bg-secondary ms-1" style="font-size: 0.7em;">+{{ item.total_count|add:"-1" }}</span>{% endif %}
-                        </span>
-                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
-                    </div>
-                    <div class="text-muted small mt-1 text-truncate">{{ item.title }}</div>
-                    <div class="d-flex justify-content-between align-items-center small mt-1">
-                        <span class="text-muted">목표 {% if item.target_price %}{{ item.target_price|intcomma }}{% else %}-{% endif %}</span>
-                        <span class="{% if item.gap_rate > 30 %}text-danger fw-bold{% elif item.gap_rate > 0 %}text-danger{% else %}text-secondary{% endif %}">괴리 {% if item.gap_rate > 0 %}+{% endif %}{{ item.gap_rate }}%</span>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="card-body text-center text-muted py-4">
-                <small>해당 종목 없음</small>
-            </div>
-            {% endif %}
+    <div class="signal-card">
+        <div class="signal-card-header">
+            <div class="signal-card-title">리포트</div>
+            <div class="signal-card-subtitle">최근 3거래일 신규</div>
         </div>
+        {% if card_report_stocks %}
+        <!-- PC: 테이블 -->
+        <div class="signal-card-body hide-on-mobile">
+            <div class="table-scroll">
+                <table class="modern-table dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>종목명</th>
+                            <th class="text-end">등락율</th>
+                            <th>제목</th>
+                            <th class="text-end">목표가</th>
+                            <th class="text-end">괴리율</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in card_report_stocks %}
+                        <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}#report-content'" style="cursor:pointer;">
+                            <td>
+                                <strong style="font-size:0.82rem;" class="{% if not item.stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ item.stock.name }}</strong>
+                                {% if item.total_count > 1 %}<span class="inline-badge badge-gray" style="margin-left:4px;">+{{ item.total_count|add:"-1" }}</span>{% endif %}
+                            </td>
+                            <td class="text-end {% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}">
+                                {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
+                            </td>
+                            <td class="text-truncate" style="max-width:200px;font-size:0.78rem;" title="{{ item.title }}">{{ item.title }}</td>
+                            <td class="text-end" style="font-size:0.78rem;">{% if item.target_price %}{{ item.target_price|intcomma }}{% else %}-{% endif %}</td>
+                            <td class="text-end {% if item.gap_rate > 30 %}text-up fw-bold{% elif item.gap_rate > 0 %}text-up{% else %}text-secondary-c{% endif %}">
+                                {% if item.gap_rate > 0 %}+{% endif %}{{ item.gap_rate }}%
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- 모바일: 카드 리스트 -->
+        <div class="show-mobile-only" style="padding:8px;">
+            {% for item in card_report_stocks %}
+            <div class="mobile-stock-item dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}#report-content'">
+                <div class="mobile-flex">
+                    <span>
+                        <strong class="{% if not item.stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ item.stock.name }}</strong>
+                        {% if item.total_count > 1 %}<span class="inline-badge badge-gray" style="margin-left:4px;">+{{ item.total_count|add:"-1" }}</span>{% endif %}
+                    </span>
+                    <span class="{% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
+                </div>
+                <div style="color:var(--text-muted);font-size:0.78rem;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ item.title }}</div>
+                <div class="mobile-sub" style="margin-top:4px;">
+                    <span>목표 {% if item.target_price %}{{ item.target_price|intcomma }}{% else %}-{% endif %}</span>
+                    <span class="{% if item.gap_rate > 30 %}text-up fw-bold{% elif item.gap_rate > 0 %}text-up{% else %}text-secondary-c{% endif %}">괴리 {% if item.gap_rate > 0 %}+{% endif %}{{ item.gap_rate }}%</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="signal-card-empty">해당 종목 없음</div>
+        {% endif %}
     </div>
 
     <!-- 카드 F: 노다지 -->
-    <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header py-2">
-                <strong>⛏️ 노다지</strong>
-                <small class="text-muted d-block">최근 5거래일 신규</small>
-            </div>
-            {% if card_nodaji_stocks %}
-            <!-- PC: 테이블 -->
-            <div class="card-body p-0 d-none d-md-block">
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm mb-0 dashboard-table">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="px-3">종목명</th>
-                                <th class="text-end px-3">등락율</th>
-                                <th class="px-3">제목</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in card_nodaji_stocks %}
-                            <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}#nodaji-content'" style="cursor:pointer;">
-                                <td class="px-3 py-2">
-                                    <strong class="small{% if not item.stock.has_insight_and_analysis %} opacity-50{% endif %}">{{ item.stock.name }}</strong>
-                                </td>
-                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
-                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
-                                </td>
-                                <td class="px-3 py-2 small text-truncate" style="max-width: 300px;" title="{{ item.title }}">{{ item.title }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <!-- 모바일: 카드 리스트 -->
-            <div class="card-body p-2 d-md-none">
-                {% for item in card_nodaji_stocks %}
-                <div class="mobile-stock-item dashboard-row border-bottom py-2" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}#nodaji-content'" style="cursor:pointer;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <strong class="{% if not item.stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ item.stock.name }}</strong>
-                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
-                    </div>
-                    <div class="text-muted small mt-1 text-truncate">{{ item.title }}</div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="card-body text-center text-muted py-4">
-                <small>해당 종목 없음</small>
-            </div>
-            {% endif %}
+    <div class="signal-card">
+        <div class="signal-card-header">
+            <div class="signal-card-title">노다지</div>
+            <div class="signal-card-subtitle">최근 5거래일 신규</div>
         </div>
+        {% if card_nodaji_stocks %}
+        <!-- PC: 테이블 -->
+        <div class="signal-card-body hide-on-mobile">
+            <div class="table-scroll">
+                <table class="modern-table dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>종목명</th>
+                            <th class="text-end">등락율</th>
+                            <th>제목</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in card_nodaji_stocks %}
+                        <tr class="dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}#nodaji-content'" style="cursor:pointer;">
+                            <td>
+                                <strong style="font-size:0.82rem;" class="{% if not item.stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ item.stock.name }}</strong>
+                            </td>
+                            <td class="text-end {% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}">
+                                {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
+                            </td>
+                            <td class="text-truncate" style="max-width:300px;font-size:0.78rem;" title="{{ item.title }}">{{ item.title }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- 모바일: 카드 리스트 -->
+        <div class="show-mobile-only" style="padding:8px;">
+            {% for item in card_nodaji_stocks %}
+            <div class="mobile-stock-item dashboard-row" data-level="{{ item.stock.interest_level }}" data-code="{{ item.stock.code }}" onclick="location.href='{% url 'stocks:stock_detail' item.stock.code %}#nodaji-content'">
+                <div class="mobile-flex">
+                    <strong class="{% if not item.stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ item.stock.name }}</strong>
+                    <span class="{% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
+                </div>
+                <div style="color:var(--text-muted);font-size:0.78rem;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ item.title }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="signal-card-empty">해당 종목 없음</div>
+        {% endif %}
     </div>
 </div>
 
 <!-- 종목 리스트 -->
-<div class="table-responsive" id="stockListContainer">
-    <table class="table table-hover stock-table mb-0">
-        <thead class="table-light">
-            <tr>
-                <th>종목명</th>
-                <th class="hide-mobile">대분류</th>
-                <th class="hide-mobile">소분류</th>
-                <th class="text-end">현재가</th>
-                <th class="text-end">등락율</th>
-                <th class="text-end hide-mobile">시가총액</th>
-            </tr>
-        </thead>
-        <tbody id="stockListBody">
-            {% for stock in super_stocks %}
-            <tr class="stock-row" data-level="super" onclick="location.href='{% url 'stocks:stock_detail' stock.code %}'" style="cursor:pointer;">
-                <td>
-                    <strong class="{% if not stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ stock.name }}</strong>
-                    {% if stock.is_holding %}<span title="보유중">💰</span>{% endif %}
-                    <small class="text-muted ms-1">{{ stock.code }}</small>
-                    {% if stock.custom_sectors.all %}<div class="d-md-none mt-1">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success me-1 text-decoration-none" style="font-size: 0.7em;" onclick="event.stopPropagation();">{{ sector.name }}</a>{% endfor %}</div>{% endif %}
-                </td>
-                <td class="hide-mobile small text-muted">{% for theme in stock.themes.all %}{% if forloop.first %}{{ theme.category.name }}{% endif %}{% empty %}-{% endfor %}</td>
-                <td class="hide-mobile small">{% for theme in stock.themes.all %}{{ theme.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}{% if stock.custom_sectors.all %}<span class="ms-2">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success text-decoration-none" style="font-size: 0.8em;" onclick="event.stopPropagation();">{{ sector.name }}</a>{% if not forloop.last %} {% endif %}{% endfor %}</span>{% endif %}</td>
-                <td class="text-end">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</td>
-                <td class="text-end {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}">
-                    {% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}
-                </td>
-                <td class="text-end hide-mobile">{% if stock.market_cap %}{{ stock.market_cap|intcomma }}억{% else %}-{% endif %}</td>
-            </tr>
-            {% endfor %}
-            {% for stock in normal_stocks %}
-            <tr class="stock-row" data-level="normal" onclick="location.href='{% url 'stocks:stock_detail' stock.code %}'" style="cursor:pointer;">
-                <td>
-                    <strong class="{% if not stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ stock.name }}</strong>
-                    {% if stock.is_holding %}<span title="보유중">💰</span>{% endif %}
-                    <small class="text-muted ms-1">{{ stock.code }}</small>
-                    {% if stock.custom_sectors.all %}<div class="d-md-none mt-1">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success me-1 text-decoration-none" style="font-size: 0.7em;" onclick="event.stopPropagation();">{{ sector.name }}</a>{% endfor %}</div>{% endif %}
-                </td>
-                <td class="hide-mobile small text-muted">{% for theme in stock.themes.all %}{% if forloop.first %}{{ theme.category.name }}{% endif %}{% empty %}-{% endfor %}</td>
-                <td class="hide-mobile small">{% for theme in stock.themes.all %}{{ theme.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}{% if stock.custom_sectors.all %}<span class="ms-2">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success text-decoration-none" style="font-size: 0.8em;" onclick="event.stopPropagation();">{{ sector.name }}</a>{% if not forloop.last %} {% endif %}{% endfor %}</span>{% endif %}</td>
-                <td class="text-end">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</td>
-                <td class="text-end {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}">
-                    {% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}
-                </td>
-                <td class="text-end hide-mobile">{% if stock.market_cap %}{{ stock.market_cap|intcomma }}억{% else %}-{% endif %}</td>
-            </tr>
-            {% endfor %}
-            {% for stock in incubator_stocks %}
-            <tr class="stock-row" data-level="incubator" onclick="location.href='{% url 'stocks:stock_detail' stock.code %}'" style="cursor:pointer;">
-                <td>
-                    <strong class="{% if not stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ stock.name }}</strong>
-                    {% if stock.is_holding %}<span title="보유중">💰</span>{% endif %}
-                    <small class="text-muted ms-1">{{ stock.code }}</small>
-                    {% if stock.custom_sectors.all %}<div class="d-md-none mt-1">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success me-1 text-decoration-none" style="font-size: 0.7em;" onclick="event.stopPropagation();">{{ sector.name }}</a>{% endfor %}</div>{% endif %}
-                </td>
-                <td class="hide-mobile small text-muted">{% for theme in stock.themes.all %}{% if forloop.first %}{{ theme.category.name }}{% endif %}{% empty %}-{% endfor %}</td>
-                <td class="hide-mobile small">{% for theme in stock.themes.all %}{{ theme.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}{% if stock.custom_sectors.all %}<span class="ms-2">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success text-decoration-none" style="font-size: 0.8em;" onclick="event.stopPropagation();">{{ sector.name }}</a>{% if not forloop.last %} {% endif %}{% endfor %}</span>{% endif %}</td>
-                <td class="text-end">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</td>
-                <td class="text-end {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}">
-                    {% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}
-                </td>
-                <td class="text-end hide-mobile">{% if stock.market_cap %}{{ stock.market_cap|intcomma }}억{% else %}-{% endif %}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="stock-list-wrap" id="stockListContainer">
+    <div class="table-scroll">
+        <table class="modern-table" id="stockTable">
+            <thead>
+                <tr>
+                    <th>종목명</th>
+                    <th class="hide-mobile">대분류</th>
+                    <th class="hide-mobile">소분류</th>
+                    <th class="text-end">현재가</th>
+                    <th class="text-end">등락율</th>
+                    <th class="text-end hide-mobile">시가총액</th>
+                </tr>
+            </thead>
+            <tbody id="stockListBody">
+                {% for stock in super_stocks %}
+                <tr class="stock-row" data-level="super" onclick="location.href='{% url 'stocks:stock_detail' stock.code %}'" style="cursor:pointer;">
+                    <td>
+                        <strong class="{% if not stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ stock.name }}</strong>
+                        {% if stock.is_holding %}<span title="보유중">💰</span>{% endif %}
+                        <span style="color:var(--text-muted);font-size:0.78rem;margin-left:4px;">{{ stock.code }}</span>
+                        {% if stock.custom_sectors.all %}<div class="show-mobile-only" style="margin-top:4px;">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge-sector" style="margin-right:4px;" onclick="event.stopPropagation();">{{ sector.name }}</a>{% endfor %}</div>{% endif %}
+                    </td>
+                    <td class="hide-mobile" style="font-size:0.78rem;color:var(--text-muted);">{% for theme in stock.themes.all %}{% if forloop.first %}{{ theme.category.name }}{% endif %}{% empty %}-{% endfor %}</td>
+                    <td class="hide-mobile" style="font-size:0.78rem;">{% for theme in stock.themes.all %}{{ theme.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}{% if stock.custom_sectors.all %}<span style="margin-left:8px;">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge-sector" onclick="event.stopPropagation();">{{ sector.name }}</a>{% if not forloop.last %} {% endif %}{% endfor %}</span>{% endif %}</td>
+                    <td class="text-end">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</td>
+                    <td class="text-end {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}">
+                        {% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}
+                    </td>
+                    <td class="text-end hide-mobile">{% if stock.market_cap %}{{ stock.market_cap|intcomma }}억{% else %}-{% endif %}</td>
+                </tr>
+                {% endfor %}
+                {% for stock in normal_stocks %}
+                <tr class="stock-row" data-level="normal" onclick="location.href='{% url 'stocks:stock_detail' stock.code %}'" style="cursor:pointer;">
+                    <td>
+                        <strong class="{% if not stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ stock.name }}</strong>
+                        {% if stock.is_holding %}<span title="보유중">💰</span>{% endif %}
+                        <span style="color:var(--text-muted);font-size:0.78rem;margin-left:4px;">{{ stock.code }}</span>
+                        {% if stock.custom_sectors.all %}<div class="show-mobile-only" style="margin-top:4px;">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge-sector" style="margin-right:4px;" onclick="event.stopPropagation();">{{ sector.name }}</a>{% endfor %}</div>{% endif %}
+                    </td>
+                    <td class="hide-mobile" style="font-size:0.78rem;color:var(--text-muted);">{% for theme in stock.themes.all %}{% if forloop.first %}{{ theme.category.name }}{% endif %}{% empty %}-{% endfor %}</td>
+                    <td class="hide-mobile" style="font-size:0.78rem;">{% for theme in stock.themes.all %}{{ theme.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}{% if stock.custom_sectors.all %}<span style="margin-left:8px;">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge-sector" onclick="event.stopPropagation();">{{ sector.name }}</a>{% if not forloop.last %} {% endif %}{% endfor %}</span>{% endif %}</td>
+                    <td class="text-end">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</td>
+                    <td class="text-end {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}">
+                        {% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}
+                    </td>
+                    <td class="text-end hide-mobile">{% if stock.market_cap %}{{ stock.market_cap|intcomma }}억{% else %}-{% endif %}</td>
+                </tr>
+                {% endfor %}
+                {% for stock in incubator_stocks %}
+                <tr class="stock-row" data-level="incubator" onclick="location.href='{% url 'stocks:stock_detail' stock.code %}'" style="cursor:pointer;">
+                    <td>
+                        <strong class="{% if not stock.has_insight_and_analysis %}opacity-50{% endif %}">{{ stock.name }}</strong>
+                        {% if stock.is_holding %}<span title="보유중">💰</span>{% endif %}
+                        <span style="color:var(--text-muted);font-size:0.78rem;margin-left:4px;">{{ stock.code }}</span>
+                        {% if stock.custom_sectors.all %}<div class="show-mobile-only" style="margin-top:4px;">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge-sector" style="margin-right:4px;" onclick="event.stopPropagation();">{{ sector.name }}</a>{% endfor %}</div>{% endif %}
+                    </td>
+                    <td class="hide-mobile" style="font-size:0.78rem;color:var(--text-muted);">{% for theme in stock.themes.all %}{% if forloop.first %}{{ theme.category.name }}{% endif %}{% empty %}-{% endfor %}</td>
+                    <td class="hide-mobile" style="font-size:0.78rem;">{% for theme in stock.themes.all %}{{ theme.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}{% if stock.custom_sectors.all %}<span style="margin-left:8px;">{% for sector in stock.custom_sectors.all %}<a href="{% url 'stocks:sector_detail' sector.id %}" class="badge-sector" onclick="event.stopPropagation();">{{ sector.name }}</a>{% if not forloop.last %} {% endif %}{% endfor %}</span>{% endif %}</td>
+                    <td class="text-end">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</td>
+                    <td class="text-end {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}">
+                        {% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}
+                    </td>
+                    <td class="text-end hide-mobile">{% if stock.market_cap %}{{ stock.market_cap|intcomma }}억{% else %}-{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
-<div class="card d-none" id="emptyStockList">
-    <div class="card-body text-center text-muted py-4">등록된 종목이 없습니다.</div>
-</div>
-
-<style>
-/* 모바일 카드 리스트 hover 효과 */
-.mobile-stock-item:hover {
-    background-color: rgba(0,0,0,.03);
-}
-.mobile-stock-item:last-child {
-    border-bottom: none !important;
-}
-</style>
+<div class="empty-stock-list" id="emptyStockList">등록된 종목이 없습니다.</div>
 
 <!-- 신호 차트 모달 -->
-<div class="modal fade" id="signalChartModal" tabindex="-1" aria-labelledby="signalChartModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header py-2">
-                <h6 class="modal-title" id="signalChartModalLabel">신호 차트</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-2">
-                <div id="signalChartContainer" style="height: 400px;"></div>
-                <div class="mt-2 small text-muted">
-                    <span class="me-3"><span style="color: #ff9800;">- - -</span> 봉 범위</span>
-                    <span><span style="color: #2196f3;">- - -</span> 현재가</span>
-                </div>
-            </div>
+<div class="modal-overlay" id="signalChartModal">
+    <div class="modal-box">
+        <div class="modal-header-custom">
+            <h6 id="signalChartModalLabel">신호 차트</h6>
+            <button type="button" class="modal-close-btn" id="signalChartClose">&times;</button>
+        </div>
+        <div id="signalChartContainer" style="height: 400px;"></div>
+        <div style="margin-top:8px;font-size:0.78rem;color:var(--text-muted);">
+            <span style="margin-right:12px;"><span style="color: #ff9800;">- - -</span> 봉 범위</span>
+            <span><span style="color: #2196f3;">- - -</span> 현재가</span>
         </div>
     </div>
 </div>
@@ -645,8 +704,8 @@ function applyFilter(filter) {
         }
     });
 
-    // 각 카드별로 보이는 행이 없으면 "해당 종목 없음" 표시 (signal-card 제외)
-    document.querySelectorAll('#dashboardCards .card:not(.signal-card)').forEach(card => {
+    // 각 카드별로 보이는 행이 없으면 "해당 종목 없음" 표시 (signal-card-ab 제외)
+    document.querySelectorAll('#dashboardCards .signal-card:not(.signal-card-ab)').forEach(card => {
         const tbody = card.querySelector('tbody');
         const emptyMsg = card.querySelector('.empty-filter-msg');
 
@@ -657,7 +716,7 @@ function applyFilter(filter) {
                 if (!emptyMsg) {
                     const msg = document.createElement('tr');
                     msg.className = 'empty-filter-msg';
-                    msg.innerHTML = '<td colspan="10" class="text-center text-muted py-3"><small>해당 종목 없음</small></td>';
+                    msg.innerHTML = '<td colspan="10" style="text-align:center;color:var(--text-muted);padding:16px;font-size:0.8rem;">해당 종목 없음</td>';
                     tbody.appendChild(msg);
                 }
             } else {
@@ -666,8 +725,8 @@ function applyFilter(filter) {
         }
     });
 
-    // signal-card 섹션별 empty 관리 (PC 테이블 + 모바일)
-    document.querySelectorAll('#dashboardCards .signal-card').forEach(card => {
+    // signal-card-ab 섹션별 empty 관리 (PC 테이블 + 모바일)
+    document.querySelectorAll('#dashboardCards .signal-card-ab').forEach(card => {
         // 급등 섹션
         const upRows = card.querySelectorAll('.signal-up-row:not([style*="display: none"])');
         card.querySelectorAll('.signal-up-empty').forEach(el => {
@@ -696,11 +755,11 @@ function applyFilter(filter) {
     const container = document.getElementById('stockListContainer');
     const emptyList = document.getElementById('emptyStockList');
     if (visibleCount === 0) {
-        container.classList.add('d-none');
-        emptyList.classList.remove('d-none');
+        container.style.display = 'none';
+        emptyList.style.display = 'block';
     } else {
-        container.classList.remove('d-none');
-        emptyList.classList.add('d-none');
+        container.style.display = '';
+        emptyList.style.display = 'none';
     }
 }
 
@@ -870,9 +929,23 @@ function renderSignalChart() {
     pendingChartData = null;
 }
 
-// 모달이 완전히 표시된 후 차트 렌더링
-document.getElementById('signalChartModal').addEventListener('shown.bs.modal', function() {
-    renderSignalChart();
+// 모달 닫기 함수
+function closeSignalModal() {
+    document.getElementById('signalChartModal').classList.remove('show');
+    if (signalChart) {
+        signalChart.remove();
+        signalChart = null;
+        signalCandleSeries = null;
+        signalVolumeSeries = null;
+    }
+}
+
+// 닫기 버튼
+document.getElementById('signalChartClose').addEventListener('click', closeSignalModal);
+
+// 배경 클릭으로 닫기
+document.getElementById('signalChartModal').addEventListener('click', function(e) {
+    if (e.target === this) closeSignalModal();
 });
 
 document.addEventListener('click', function(e) {
@@ -892,22 +965,21 @@ document.addEventListener('click', function(e) {
     document.getElementById('signalChartModalLabel').textContent = `${name} 신호 차트`;
 
     // 로딩 표시
-    document.getElementById('signalChartContainer').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">차트 로딩 중...</p></div>';
+    document.getElementById('signalChartContainer').innerHTML = '<div style="text-align:center;padding:40px;"><div style="color:var(--text-muted);">차트 로딩 중...</div></div>';
 
     // 모달 열기
-    const modal = new bootstrap.Modal(document.getElementById('signalChartModal'));
-    modal.show();
+    document.getElementById('signalChartModal').classList.add('show');
 
     // 차트 데이터 가져오기
     fetch(`/api/stock/${code}/signal-chart/`)
         .then(res => res.json())
         .then(data => {
             if (!data.success) {
-                document.getElementById('signalChartContainer').innerHTML = '<div class="text-center py-5 text-muted">차트 데이터를 불러올 수 없습니다.</div>';
+                document.getElementById('signalChartContainer').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">차트 데이터를 불러올 수 없습니다.</div>';
                 return;
             }
 
-            // 데이터 저장 (모달이 열린 후 렌더링)
+            // 데이터 저장
             pendingChartData = {
                 signalDate,
                 signalOpen,
@@ -917,26 +989,13 @@ document.addEventListener('click', function(e) {
                 volumeData: data.volume_data,
             };
 
-            // 모달이 이미 열려 있으면 바로 렌더링
-            const modalEl = document.getElementById('signalChartModal');
-            if (modalEl.classList.contains('show')) {
-                renderSignalChart();
-            }
+            // 모달이 열려 있으므로 바로 렌더링
+            renderSignalChart();
         })
         .catch(err => {
             console.error('차트 로드 에러:', err);
-            document.getElementById('signalChartContainer').innerHTML = '<div class="text-center py-5 text-danger">차트 로드 에러</div>';
+            document.getElementById('signalChartContainer').innerHTML = '<div style="text-align:center;padding:40px;color:var(--up-color);">차트 로드 에러</div>';
         });
-});
-
-// 모달 닫힐 때 차트 정리
-document.getElementById('signalChartModal').addEventListener('hidden.bs.modal', function() {
-    if (signalChart) {
-        signalChart.remove();
-        signalChart = null;
-        signalCandleSeries = null;
-        signalVolumeSeries = null;
-    }
 });
 
 // 창 크기 변경 시 차트 리사이즈

@@ -3,517 +3,492 @@
 
 {% block title %}ETF - JStocks{% endblock %}
 
-{% block content %}
-<h4 class="mb-3">ETF</h4>
+{% block extra_style %}
+.section-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--text-primary);
+}
+.brief-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    padding: 24px;
+    margin-bottom: 12px;
+}
+.btn-refresh {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+}
+.btn-refresh:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+.btn-refresh.btn-primary { background: #2962ff; color: #fff !important; border-color: #2962ff; }
+.btn-refresh.btn-primary:hover { background: #1e4fcc; border-color: #1e4fcc; color: #fff !important; }
+.btn-refresh.btn-danger { background: none; color: var(--up-color); border-color: var(--up-color); }
+.btn-refresh.btn-danger:hover { background: var(--up-color); color: #fff; }
 
-<!-- ETF 추가 폼 -->
-<div class="card mb-3">
-    <div class="card-body py-2">
-        <form id="add-etf-form" class="d-flex align-items-center gap-2">
-            {% csrf_token %}
-            <label for="etf-code" class="form-label mb-0 text-nowrap">종목코드</label>
-            <input type="text" class="form-control form-control-sm" id="etf-code" placeholder="예: 069500" style="max-width: 120px;">
-            <button type="submit" class="btn btn-primary btn-sm" id="add-etf-btn">조회</button>
-            <span id="add-etf-result" class="ms-2 small"></span>
-        </form>
-    </div>
+/* Signal cards */
+.signal-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+@media (max-width: 768px) {
+    .signal-card-grid { grid-template-columns: 1fr; }
+}
+.signal-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+}
+.signal-card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+.signal-card-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.signal-card-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* Modern table */
+.modern-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+.modern-table thead th {
+    padding: 10px 16px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 2px solid var(--border-color);
+    white-space: nowrap;
+    background: var(--bg-card);
+}
+.modern-table tbody tr {
+    cursor: pointer;
+    transition: background 0.1s;
+}
+.modern-table tbody tr:hover { background: #f9fafb; }
+.modern-table tbody td {
+    padding: 8px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    white-space: nowrap;
+}
+
+/* Section divider row */
+.section-row td {
+    padding: 6px 16px !important;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-bottom: 1px solid #f3f4f6;
+}
+.section-row.up td { color: var(--up-color); background: #fef2f2; }
+.section-row.down td { color: var(--down-color); background: #eff6ff; }
+
+/* Search form */
+.search-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.search-input {
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    max-width: 140px;
+    outline: none;
+}
+.search-input:focus { border-color: #2962ff; }
+
+/* Mobile items */
+.mobile-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+.mobile-item:last-child { border-bottom: none; }
+
+/* Modal */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+    background: #fff;
+    border-radius: var(--radius);
+    max-width: 900px;
+    width: 95%;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+.modal-box-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+.modal-close {
+    background: none; border: none; font-size: 1.2rem;
+    color: var(--text-muted); cursor: pointer; padding: 4px 8px;
+}
+.modal-close:hover { color: var(--text-primary); }
+
+@media (max-width: 768px) {
+    .hide-mobile { display: none; }
+}
+{% endblock %}
+
+{% block content %}
+<h5 class="section-heading" style="margin-top: 0;">ETF</h5>
+
+<!-- ETF 추가 -->
+<div class="brief-card">
+    <form id="add-etf-form" class="search-form">
+        {% csrf_token %}
+        <span style="font-size:0.85rem;color:var(--text-secondary);white-space:nowrap;">종목코드</span>
+        <input type="text" class="search-input" id="etf-code" placeholder="예: 069500">
+        <button type="submit" class="btn-refresh btn-primary" id="add-etf-btn" style="padding:6px 16px;">조회</button>
+        <span id="add-etf-result" style="font-size:0.82rem;"></span>
+    </form>
 </div>
 
 <!-- 대시보드 카드 -->
-<div class="row mb-4">
-    <!-- 카드 A: 장기 신호 (60일 신고거래량) -->
-    <div class="col-md-6 mb-3">
-        <div class="card h-100 signal-card">
-            <div class="card-header py-2">
-                <strong>🥇 장기 신호</strong>
-                <small class="text-muted d-block">60일 신고거래량 · 급등(양봉+MA20↑) · 급락(음봉+MA20↓)</small>
+<div class="signal-card-grid">
+    <!-- 카드 A: 장기 신호 -->
+    <div class="signal-card">
+        <div class="signal-card-header">
+            <div class="signal-card-title">장기 신호</div>
+            <div class="signal-card-sub">60일 신고거래량 · 급등(양봉+MA20↑) · 급락(음봉+MA20↓)</div>
+        </div>
+        <!-- PC -->
+        <div class="d-none d-md-block">
+            <table class="modern-table">
+                <thead><tr><th>ETF명</th><th class="text-end">등락율</th><th class="text-end">고점대비</th><th class="text-end">10일</th></tr></thead>
+                <tbody>
+                    <tr class="section-row up"><td colspan="4">급등</td></tr>
+                    {% for item in card_a_etfs %}
+                    <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">
+                        <td><strong {% if item.above_ma120 %}style="color:var(--up-color);"{% endif %}>{{ item.etf.name }}</strong></td>
+                        <td class="text-end {% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</td>
+                        <td class="text-end {% if item.high_position >= -15 %}text-up{% elif item.high_position <= -40 %}text-down{% endif %}">{{ item.high_position }}%</td>
+                        <td class="text-end"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                    </tr>
+                    {% empty %}<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:12px;">해당 ETF 없음</td></tr>{% endfor %}
+                    <tr class="section-row down"><td colspan="4">급락</td></tr>
+                    {% for item in card_a_down_etfs %}
+                    <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">
+                        <td><strong {% if item.above_ma120 %}style="color:var(--up-color);"{% endif %}>{{ item.etf.name }}</strong></td>
+                        <td class="text-end {% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</td>
+                        <td class="text-end {% if item.high_position >= -15 %}text-up{% elif item.high_position <= -40 %}text-down{% endif %}">{{ item.high_position }}%</td>
+                        <td class="text-end"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                    </tr>
+                    {% empty %}<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:12px;">해당 ETF 없음</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <!-- Mobile -->
+        <div class="d-md-none" style="padding:12px;">
+            <div style="font-size:0.75rem;font-weight:700;color:var(--up-color);padding:4px 0;margin-bottom:4px;">급등</div>
+            {% for item in card_a_etfs %}
+            <div class="mobile-item" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                <div class="d-flex justify-content-between"><strong {% if item.above_ma120 %}style="color:var(--up-color);"{% endif %}>{{ item.etf.name }}</strong><span class="{% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}" style="font-weight:600;">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span></div>
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">고점 <span class="{% if item.high_position >= -15 %}text-up{% elif item.high_position <= -40 %}text-down{% endif %}">{{ item.high_position }}%</span></div>
             </div>
-            <!-- PC: 테이블 -->
-            <div class="card-body p-0 d-none d-md-block">
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="px-3">ETF명</th>
-                                <th class="text-end px-3">등락율</th>
-                                <th class="text-end px-3">고점대비</th>
-                                <th class="text-end px-3">10일</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="table-danger"><td colspan="4" class="px-3 py-1 small fw-bold text-danger">급등</td></tr>
-                            {% for item in card_a_etfs %}
-                            <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
-                                <td class="px-3 py-2">
-                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
-                                </td>
-                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
-                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
-                                </td>
-                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</td>
-                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="4" class="text-center text-muted py-2"><small>해당 ETF 없음</small></td></tr>
-                            {% endfor %}
-                            <tr class="table-primary"><td colspan="4" class="px-3 py-1 small fw-bold text-primary">급락</td></tr>
-                            {% for item in card_a_down_etfs %}
-                            <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
-                                <td class="px-3 py-2">
-                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
-                                </td>
-                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
-                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
-                                </td>
-                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</td>
-                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="4" class="text-center text-muted py-2"><small>해당 ETF 없음</small></td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+            {% empty %}<div style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">해당 ETF 없음</div>{% endfor %}
+            <div style="font-size:0.75rem;font-weight:700;color:var(--down-color);padding:4px 0;margin:8px 0 4px;">급락</div>
+            {% for item in card_a_down_etfs %}
+            <div class="mobile-item" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                <div class="d-flex justify-content-between"><strong {% if item.above_ma120 %}style="color:var(--up-color);"{% endif %}>{{ item.etf.name }}</strong><span class="{% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}" style="font-weight:600;">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span></div>
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">고점 <span class="{% if item.high_position >= -15 %}text-up{% elif item.high_position <= -40 %}text-down{% endif %}">{{ item.high_position }}%</span></div>
             </div>
-            <!-- 모바일: 카드 리스트 -->
-            <div class="card-body p-2 d-md-none">
-                <div class="bg-danger-subtle px-2 py-1 mb-1 small fw-bold text-danger">급등</div>
-                {% for item in card_a_etfs %}
-                <div class="mobile-stock-item border-bottom py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
-                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
-                        <span>고점 <span class="{% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="text-center text-muted py-2"><small>해당 ETF 없음</small></div>
-                {% endfor %}
-                <div class="bg-primary-subtle px-2 py-1 mb-1 mt-2 small fw-bold text-primary">급락</div>
-                {% for item in card_a_down_etfs %}
-                <div class="mobile-stock-item border-bottom py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
-                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
-                        <span>고점 <span class="{% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="text-center text-muted py-2"><small>해당 ETF 없음</small></div>
-                {% endfor %}
-            </div>
+            {% empty %}<div style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">해당 ETF 없음</div>{% endfor %}
         </div>
     </div>
 
-    <!-- 카드 B: 단기 신호 (20일 신고거래량) -->
-    <div class="col-md-6 mb-3">
-        <div class="card h-100 signal-card">
-            <div class="card-header py-2">
-                <strong>🥈 단기 신호</strong>
-                <small class="text-muted d-block">20일 신고거래량 · 급등(양봉+MA20↑) · 급락(음봉+MA20↓)</small>
+    <!-- 카드 B: 단기 신호 -->
+    <div class="signal-card">
+        <div class="signal-card-header">
+            <div class="signal-card-title">단기 신호</div>
+            <div class="signal-card-sub">20일 신고거래량 · 급등(양봉+MA20↑) · 급락(음봉+MA20↓)</div>
+        </div>
+        <div class="d-none d-md-block">
+            <table class="modern-table">
+                <thead><tr><th>ETF명</th><th class="text-end">등락율</th><th class="text-end">고점대비</th><th class="text-end">10일</th></tr></thead>
+                <tbody>
+                    <tr class="section-row up"><td colspan="4">급등</td></tr>
+                    {% for item in card_b_etfs %}
+                    <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">
+                        <td><strong {% if item.above_ma120 %}style="color:var(--up-color);"{% endif %}>{{ item.etf.name }}</strong></td>
+                        <td class="text-end {% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</td>
+                        <td class="text-end {% if item.high_position >= -15 %}text-up{% elif item.high_position <= -40 %}text-down{% endif %}">{{ item.high_position }}%</td>
+                        <td class="text-end"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                    </tr>
+                    {% empty %}<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:12px;">해당 ETF 없음</td></tr>{% endfor %}
+                    <tr class="section-row down"><td colspan="4">급락</td></tr>
+                    {% for item in card_b_down_etfs %}
+                    <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">
+                        <td><strong {% if item.above_ma120 %}style="color:var(--up-color);"{% endif %}>{{ item.etf.name }}</strong></td>
+                        <td class="text-end {% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</td>
+                        <td class="text-end {% if item.high_position >= -15 %}text-up{% elif item.high_position <= -40 %}text-down{% endif %}">{{ item.high_position }}%</td>
+                        <td class="text-end"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                    </tr>
+                    {% empty %}<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:12px;">해당 ETF 없음</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="d-md-none" style="padding:12px;">
+            <div style="font-size:0.75rem;font-weight:700;color:var(--up-color);padding:4px 0;margin-bottom:4px;">급등</div>
+            {% for item in card_b_etfs %}
+            <div class="mobile-item" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                <div class="d-flex justify-content-between"><strong {% if item.above_ma120 %}style="color:var(--up-color);"{% endif %}>{{ item.etf.name }}</strong><span class="{% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}" style="font-weight:600;">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span></div>
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">고점 <span class="{% if item.high_position >= -15 %}text-up{% elif item.high_position <= -40 %}text-down{% endif %}">{{ item.high_position }}%</span></div>
             </div>
-            <!-- PC: 테이블 -->
-            <div class="card-body p-0 d-none d-md-block">
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="px-3">ETF명</th>
-                                <th class="text-end px-3">등락율</th>
-                                <th class="text-end px-3">고점대비</th>
-                                <th class="text-end px-3">10일</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="table-danger"><td colspan="4" class="px-3 py-1 small fw-bold text-danger">급등</td></tr>
-                            {% for item in card_b_etfs %}
-                            <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
-                                <td class="px-3 py-2">
-                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
-                                </td>
-                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
-                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
-                                </td>
-                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</td>
-                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="4" class="text-center text-muted py-2"><small>해당 ETF 없음</small></td></tr>
-                            {% endfor %}
-                            <tr class="table-primary"><td colspan="4" class="px-3 py-1 small fw-bold text-primary">급락</td></tr>
-                            {% for item in card_b_down_etfs %}
-                            <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
-                                <td class="px-3 py-2">
-                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
-                                </td>
-                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
-                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
-                                </td>
-                                <td class="text-end px-3 py-2 small {% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</td>
-                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="4" class="text-center text-muted py-2"><small>해당 ETF 없음</small></td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+            {% empty %}<div style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">해당 ETF 없음</div>{% endfor %}
+            <div style="font-size:0.75rem;font-weight:700;color:var(--down-color);padding:4px 0;margin:8px 0 4px;">급락</div>
+            {% for item in card_b_down_etfs %}
+            <div class="mobile-item" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                <div class="d-flex justify-content-between"><strong {% if item.above_ma120 %}style="color:var(--up-color);"{% endif %}>{{ item.etf.name }}</strong><span class="{% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}" style="font-weight:600;">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span></div>
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">고점 <span class="{% if item.high_position >= -15 %}text-up{% elif item.high_position <= -40 %}text-down{% endif %}">{{ item.high_position }}%</span></div>
             </div>
-            <!-- 모바일: 카드 리스트 -->
-            <div class="card-body p-2 d-md-none">
-                <div class="bg-danger-subtle px-2 py-1 mb-1 small fw-bold text-danger">급등</div>
-                {% for item in card_b_etfs %}
-                <div class="mobile-stock-item border-bottom py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
-                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
-                        <span>고점 <span class="{% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="text-center text-muted py-2"><small>해당 ETF 없음</small></div>
-                {% endfor %}
-                <div class="bg-primary-subtle px-2 py-1 mb-1 mt-2 small fw-bold text-primary">급락</div>
-                {% for item in card_b_down_etfs %}
-                <div class="mobile-stock-item border-bottom py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
-                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
-                        <span>고점 <span class="{% if item.high_position >= -15 %}text-danger fw-bold{% elif item.high_position <= -40 %}text-secondary{% endif %}">{{ item.high_position }}%{% if item.high_position >= -15 %} 🚀{% elif item.high_position <= -40 %} ♻️{% endif %}</span></span>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="text-center text-muted py-2"><small>해당 ETF 없음</small></div>
-                {% endfor %}
-            </div>
+            {% empty %}<div style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">해당 ETF 없음</div>{% endfor %}
         </div>
     </div>
 
     <!-- 카드 D: 이평선 줍줍 -->
-    <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header py-2">
-                <strong>🧲 이평선 줍줍</strong>
-                <small class="text-muted d-block">정배열 + 60선↗ + 종가&lt;MA20</small>
-            </div>
-            {% if card_d_etfs %}
-            <!-- PC: 테이블 -->
-            <div class="card-body p-0 d-none d-md-block">
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="px-3">ETF명</th>
-                                <th class="text-end px-3">등락율</th>
-                                <th class="text-end px-3">60선대비</th>
-                                <th class="text-end px-3">10일</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in card_d_etfs %}
-                            <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
-                                <td class="px-3 py-2">
-                                    <strong class="small">{{ item.etf.name }}</strong>
-                                </td>
-                                <td class="text-end px-3 py-2 {% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %}">
-                                    {% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%
-                                </td>
-                                <td class="text-end px-3 py-2 small {% if item.gap_from_ma60 >= 0 %}text-danger{% elif item.gap_from_ma60 < -5 %}text-primary{% endif %}">{{ item.gap_from_ma60 }}%</td>
-                                <td class="text-end px-3 py-2"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <!-- 모바일: 카드 리스트 -->
-            <div class="card-body p-2 d-md-none">
-                {% for item in card_d_etfs %}
-                <div class="mobile-stock-item border-bottom py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <strong>{{ item.etf.name }}</strong>
-                        <span class="{% if item.change_rate > 0 %}text-danger{% elif item.change_rate < 0 %}text-primary{% endif %} fw-bold">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
-                        <span>60선 <span class="{% if item.gap_from_ma60 >= 0 %}text-danger{% elif item.gap_from_ma60 < -5 %}text-primary{% endif %}">{{ item.gap_from_ma60 }}%</span></span>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="card-body text-center text-muted py-4">
-                <small>해당 ETF 없음</small>
-            </div>
-            {% endif %}
+    <div class="signal-card">
+        <div class="signal-card-header">
+            <div class="signal-card-title">이평선 줍줍</div>
+            <div class="signal-card-sub">정배열 + 60선↗ + 종가&lt;MA20</div>
         </div>
-    </div>
-
-    <!-- 카드 C: 신호 추적 -->
-    <div class="col-md-6 mb-3">
-        <div class="card h-100">
-            <div class="card-header py-2">
-                <strong>📡 신호 추적</strong>
-                <small class="text-muted d-block">최근 5거래일 내 조건 충족</small>
-            </div>
-            {% if card_c_etfs %}
-            <!-- PC: 테이블 -->
-            <div class="card-body p-0 d-none d-md-block">
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="px-3">ETF명</th>
-                                <th class="text-center px-3">신호</th>
-                                <th class="text-center px-3">날짜</th>
-                                <th class="text-end px-3">양봉대비</th>
-                                <th class="text-end px-3">10일</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in card_c_etfs %}
-                            <tr style="cursor:pointer;">
-                                <td class="px-3 py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">
-                                    <strong class="small {% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
-                                </td>
-                                <td class="text-center px-3 py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'"><span class="badge" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %};">{{ item.signal_type }}</span></td>
-                                <td class="text-center px-3 py-2 small" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">{{ item.signal_days_ago }}일전</td>
-                                <td class="text-end px-3 py-2 signal-chart-btn {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %}"
-                                    data-code="{{ item.etf.code }}"
-                                    data-name="{{ item.etf.name }}"
-                                    data-signal-date="{{ item.signal_date }}"
-                                    data-signal-close="{{ item.signal_close }}"
-                                    data-current-price="{{ item.current_price }}"
-                                    style="text-decoration: underline; cursor: pointer;">
-                                    {% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%
-                                </td>
-                                <td class="text-end px-3 py-2" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <!-- 모바일: 카드 리스트 -->
-            <div class="card-body p-2 d-md-none">
-                {% for item in card_c_etfs %}
-                <div class="mobile-stock-item border-bottom py-2" style="cursor:pointer;">
-                    <div class="d-flex justify-content-between align-items-center" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">
-                        <span>
-                            <strong class="{% if item.above_ma120 %}text-danger{% endif %}">{{ item.etf.name }}</strong>
-                            <span class="badge ms-1" style="background-color: {% if item.signal_type == '60일' %}#4caf50{% else %}#2196f3{% endif %}; font-size: 0.7em;">{{ item.signal_type }}</span>
-                        </span>
-                        <span class="signal-chart-btn {% if item.signal_price_change > 0 %}text-danger{% elif item.signal_price_change < 0 %}text-primary{% endif %} fw-bold"
-                            data-code="{{ item.etf.code }}"
-                            data-name="{{ item.etf.name }}"
-                            data-signal-date="{{ item.signal_date }}"
-                            data-signal-close="{{ item.signal_close }}"
-                            data-current-price="{{ item.current_price }}"
-                            style="text-decoration: underline;">{% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%</span>
-                    </div>
-                    <div class="text-muted small mt-1" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">{{ item.signal_days_ago }}일전</div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="card-body text-center text-muted py-4">
-                <small>해당 ETF 없음</small>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-</div>
-
-<!-- 관심 ETF 목록 -->
-{% if etfs %}
-<div class="card mb-3">
-    <div class="card-header py-2">
-        <strong>관심 ETF</strong>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover stock-table mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="px-3">종목명</th>
-                        <th class="text-end px-3">현재가</th>
-                        <th class="text-end px-3">등락률</th>
-                        <th class="text-end px-3 hide-mobile">시가총액</th>
-                    </tr>
-                </thead>
+        {% if card_d_etfs %}
+        <div class="d-none d-md-block">
+            <table class="modern-table">
+                <thead><tr><th>ETF명</th><th class="text-end">등락율</th><th class="text-end">60선대비</th><th class="text-end">10일</th></tr></thead>
                 <tbody>
-                    {% for etf in etfs %}
-                    <tr style="cursor:pointer;" onclick="location.href='{% url 'stocks:etf_detail' etf.code %}'">
-                        <td class="px-3">
-                            <strong>{{ etf.name }}</strong>
-                            {% if etf.is_holding %}<span title="보유중">💰</span>{% endif %}
-                            <small class="text-muted ms-1">{{ etf.code }}</small>
-                            {% for sector in etf.custom_sectors.all %}
-                            <a href="{% url 'stocks:sector_detail' sector.id %}" class="badge bg-success ms-1 text-decoration-none" style="font-size: 0.7em;" onclick="event.stopPropagation();">{{ sector.name }}</a>
-                            {% endfor %}
-                        </td>
-                        <td class="text-end px-3">{% if etf.current_price %}{{ etf.current_price|intcomma }}{% else %}-{% endif %}</td>
-                        <td class="text-end px-3 {% if etf.change_rate > 0 %}text-up{% elif etf.change_rate < 0 %}text-down{% endif %}">
-                            {% if etf.change_rate %}{% if etf.change_rate > 0 %}+{% endif %}{{ etf.change_rate }}%{% else %}-{% endif %}
-                        </td>
-                        <td class="text-end px-3 hide-mobile">{% if etf.market_cap %}{{ etf.market_cap|intcomma }}억{% else %}-{% endif %}</td>
+                    {% for item in card_d_etfs %}
+                    <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">
+                        <td><strong>{{ item.etf.name }}</strong></td>
+                        <td class="text-end {% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</td>
+                        <td class="text-end {% if item.gap_from_ma60 >= 0 %}text-up{% elif item.gap_from_ma60 < -5 %}text-down{% endif %}">{{ item.gap_from_ma60 }}%</td>
+                        <td class="text-end"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+        <div class="d-md-none" style="padding:12px;">
+            {% for item in card_d_etfs %}
+            <div class="mobile-item" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
+                <div class="d-flex justify-content-between"><strong>{{ item.etf.name }}</strong><span class="{% if item.change_rate > 0 %}text-up{% elif item.change_rate < 0 %}text-down{% endif %}" style="font-weight:600;">{% if item.change_rate > 0 %}+{% endif %}{{ item.change_rate }}%</span></div>
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">60선 <span class="{% if item.gap_from_ma60 >= 0 %}text-up{% elif item.gap_from_ma60 < -5 %}text-down{% endif %}">{{ item.gap_from_ma60 }}%</span></div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:0.85rem;">해당 ETF 없음</div>
+        {% endif %}
     </div>
+
+    <!-- 카드 C: 신호 추적 -->
+    <div class="signal-card">
+        <div class="signal-card-header">
+            <div class="signal-card-title">신호 추적</div>
+            <div class="signal-card-sub">최근 5거래일 내 조건 충족</div>
+        </div>
+        {% if card_c_etfs %}
+        <div class="d-none d-md-block">
+            <table class="modern-table">
+                <thead><tr><th>ETF명</th><th class="text-center">신호</th><th class="text-center">날짜</th><th class="text-end">양봉대비</th><th class="text-end">10일</th></tr></thead>
+                <tbody>
+                    {% for item in card_c_etfs %}
+                    <tr>
+                        <td onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'"><strong {% if item.above_ma120 %}style="color:var(--up-color);"{% endif %}>{{ item.etf.name }}</strong></td>
+                        <td class="text-center" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'"><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:500;color:#fff;background:{% if item.signal_type == '60일' %}#198754{% else %}#2962ff{% endif %};">{{ item.signal_type }}</span></td>
+                        <td class="text-center" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="font-size:0.8rem;">{{ item.signal_days_ago }}일전</td>
+                        <td class="text-end signal-chart-btn {% if item.signal_price_change > 0 %}text-up{% elif item.signal_price_change < 0 %}text-down{% endif %}" data-code="{{ item.etf.code }}" data-name="{{ item.etf.name }}" data-signal-date="{{ item.signal_date }}" data-signal-close="{{ item.signal_close }}" data-current-price="{{ item.current_price }}" style="text-decoration:underline;cursor:pointer;">{% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%</td>
+                        <td class="text-end" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="d-md-none" style="padding:12px;">
+            {% for item in card_c_etfs %}
+            <div class="mobile-item" style="cursor:pointer;">
+                <div class="d-flex justify-content-between align-items-center" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">
+                    <span><strong {% if item.above_ma120 %}style="color:var(--up-color);"{% endif %}>{{ item.etf.name }}</strong> <span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:0.68rem;color:#fff;background:{% if item.signal_type == '60일' %}#198754{% else %}#2962ff{% endif %};">{{ item.signal_type }}</span></span>
+                    <span class="signal-chart-btn {% if item.signal_price_change > 0 %}text-up{% elif item.signal_price_change < 0 %}text-down{% endif %}" data-code="{{ item.etf.code }}" data-name="{{ item.etf.name }}" data-signal-date="{{ item.signal_date }}" data-signal-close="{{ item.signal_close }}" data-current-price="{{ item.current_price }}" style="text-decoration:underline;font-weight:600;">{% if item.signal_price_change > 0 %}+{% endif %}{{ item.signal_price_change }}%</span>
+                </div>
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;" onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'">{{ item.signal_days_ago }}일전</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:0.85rem;">해당 ETF 없음</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 관심 ETF 목록 -->
+{% if etfs %}
+<h5 class="section-heading" style="margin-top: 32px;">관심 ETF</h5>
+<div class="brief-card" style="padding:0;">
+    <table class="modern-table">
+        <thead>
+            <tr>
+                <th style="padding-left:24px;">종목명</th>
+                <th class="text-end">현재가</th>
+                <th class="text-end">등락률</th>
+                <th class="text-end hide-mobile" style="padding-right:24px;">시가총액</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for etf in etfs %}
+            <tr onclick="location.href='{% url 'stocks:etf_detail' etf.code %}'">
+                <td style="padding-left:24px;">
+                    <strong>{{ etf.name }}</strong>
+                    {% if etf.is_holding %}<span style="font-size:0.7rem;background:#fef3c7;padding:1px 5px;border-radius:3px;margin-left:4px;">보유</span>{% endif %}
+                    <span style="font-size:0.75rem;color:var(--text-muted);margin-left:4px;">{{ etf.code }}</span>
+                    {% for sector in etf.custom_sectors.all %}
+                    <a href="{% url 'stocks:sector_detail' sector.id %}" style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:0.68rem;background:#ecfdf5;color:#059669;text-decoration:none;margin-left:4px;" onclick="event.stopPropagation();">{{ sector.name }}</a>
+                    {% endfor %}
+                </td>
+                <td class="text-end">{% if etf.current_price %}{{ etf.current_price|intcomma }}{% else %}-{% endif %}</td>
+                <td class="text-end {% if etf.change_rate > 0 %}text-up{% elif etf.change_rate < 0 %}text-down{% endif %}">
+                    {% if etf.change_rate %}{% if etf.change_rate > 0 %}+{% endif %}{{ etf.change_rate }}%{% else %}-{% endif %}
+                </td>
+                <td class="text-end hide-mobile" style="padding-right:24px;">{% if etf.market_cap %}{{ etf.market_cap|intcomma }}억{% else %}-{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endif %}
 
 <!-- 조회 결과 -->
-<div id="etf-data" class="card d-none">
-    <div class="card-body">
-        <h5 id="etf-name" class="mb-3"></h5>
-        <table class="table table-sm mb-3">
-            <tbody>
-                <tr><th style="width:100px">종목코드</th><td id="etf-code-result"></td></tr>
-                <tr><th>현재가</th><td id="etf-price"></td></tr>
-                <tr><th>등락률</th><td id="etf-rate"></td></tr>
-                <tr><th>NAV</th><td id="etf-nav"></td></tr>
-                <tr><th>시가총액</th><td id="etf-market-cap"></td></tr>
-            </tbody>
-        </table>
-        <h6>구성종목</h6>
-        <table class="table table-sm">
-            <thead><tr><th>종목</th><th class="text-end">비중</th></tr></thead>
-            <tbody id="etf-holdings"></tbody>
-        </table>
-        <div class="mt-3 d-flex align-items-center gap-2">
-            <button type="button" class="btn btn-success btn-sm" id="save-etf-btn">관심종목 저장</button>
-            <span id="save-etf-result" class="small"></span>
+<div id="etf-data" class="brief-card d-none" style="margin-top:12px;">
+    <h6 id="etf-name" style="font-weight:700;margin-bottom:12px;"></h6>
+    <div style="font-size:0.85rem;margin-bottom:16px;">
+        <div class="d-flex gap-4 flex-wrap" style="line-height:2;">
+            <span>종목코드: <strong id="etf-code-result"></strong></span>
+            <span>현재가: <strong id="etf-price"></strong></span>
+            <span>등락률: <strong id="etf-rate"></strong></span>
+            <span>NAV: <strong id="etf-nav"></strong></span>
+            <span>시가총액: <strong id="etf-market-cap"></strong></span>
         </div>
+    </div>
+    <div style="font-size:0.88rem;font-weight:600;margin-bottom:8px;">구성종목</div>
+    <table class="modern-table" style="max-width:400px;">
+        <thead><tr><th>종목</th><th class="text-end">비중</th></tr></thead>
+        <tbody id="etf-holdings"></tbody>
+    </table>
+    <div class="d-flex align-items-center gap-2" style="margin-top:16px;">
+        <button type="button" class="btn-refresh btn-primary" id="save-etf-btn" style="padding:6px 16px;">관심종목 저장</button>
+        <span id="save-etf-result" style="font-size:0.82rem;"></span>
     </div>
 </div>
 
 <!-- 신호 차트 모달 -->
-<div class="modal fade" id="signalChartModal" tabindex="-1" aria-labelledby="signalChartModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header py-2">
-                <h6 class="modal-title" id="signalChartModalLabel">신호 차트</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-2">
-                <div id="signalChartContainer" style="height: 400px;"></div>
-                <div class="mt-2 small text-muted">
-                    <span class="me-3"><span style="color: #ff9800;">- - -</span> 신호일 종가</span>
-                    <span><span style="color: #2196f3;">- - -</span> 현재가</span>
-                </div>
-            </div>
+<div class="modal-overlay" id="signalChartModal">
+    <div class="modal-box">
+        <div class="modal-box-header">
+            <span style="font-weight:600;" id="signalChartModalLabel">신호 차트</span>
+            <button class="modal-close" id="signalChartModalClose">&times;</button>
+        </div>
+        <div id="signalChartContainer" style="height: 400px;"></div>
+        <div style="margin-top:8px;font-size:0.78rem;color:var(--text-muted);">
+            <span style="margin-right:16px;"><span style="color:#ff9800;">- - -</span> 신호일 종가</span>
+            <span><span style="color:#2196f3;">- - -</span> 현재가</span>
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-// 현재 조회된 ETF 데이터 저장
 let currentETFData = null;
 
 document.getElementById('add-etf-form').addEventListener('submit', async function(e) {
     e.preventDefault();
-
     const code = document.getElementById('etf-code').value.trim();
     const resultSpan = document.getElementById('add-etf-result');
     const submitBtn = document.getElementById('add-etf-btn');
     const dataCard = document.getElementById('etf-data');
     const saveResultSpan = document.getElementById('save-etf-result');
 
-    if (!code) {
-        resultSpan.innerHTML = '<span class="text-danger">종목코드를 입력해주세요.</span>';
-        return;
-    }
+    if (!code) { resultSpan.innerHTML = '<span style="color:var(--up-color);">종목코드를 입력해주세요.</span>'; return; }
 
-    // 로딩 상태
-    submitBtn.disabled = true;
-    submitBtn.textContent = '조회 중...';
-    resultSpan.innerHTML = '<span class="text-muted">네이버에서 정보를 가져오는 중...</span>';
-    dataCard.classList.add('d-none');
-    saveResultSpan.innerHTML = '';
-    currentETFData = null;
+    submitBtn.disabled = true; submitBtn.textContent = '조회 중...';
+    resultSpan.innerHTML = '<span style="color:var(--text-muted);">네이버에서 정보를 가져오는 중...</span>';
+    dataCard.classList.add('d-none'); saveResultSpan.innerHTML = ''; currentETFData = null;
 
     try {
         const formData = new FormData();
         formData.append('code', code);
         formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-
-        const response = await fetch('{% url "stocks:add_etf" %}', {
-            method: 'POST',
-            body: formData,
-        });
-
+        const response = await fetch('{% url "stocks:add_etf" %}', { method: 'POST', body: formData });
         const data = await response.json();
 
         if (data.success) {
-            resultSpan.innerHTML = '<span class="text-success">조회 완료</span>';
-
-            // 데이터 저장
+            resultSpan.innerHTML = '<span style="color:#059669;">조회 완료</span>';
             currentETFData = data;
-
-            // 데이터 표시
             document.getElementById('etf-name').textContent = data.name;
             document.getElementById('etf-code-result').textContent = data.code;
             document.getElementById('etf-price').textContent = data.current_price ? data.current_price.toLocaleString() + '원' : '-';
-
             const rateEl = document.getElementById('etf-rate');
             if (data.change_rate !== null) {
-                const sign = data.change_rate > 0 ? '+' : '';
-                rateEl.textContent = sign + data.change_rate.toFixed(2) + '%';
+                rateEl.textContent = (data.change_rate > 0 ? '+' : '') + data.change_rate.toFixed(2) + '%';
                 rateEl.className = data.change_rate > 0 ? 'text-up' : (data.change_rate < 0 ? 'text-down' : '');
-            } else {
-                rateEl.textContent = '-';
-            }
-
+            } else { rateEl.textContent = '-'; }
             document.getElementById('etf-nav').textContent = data.nav ? data.nav.toLocaleString() + '원' : '-';
             document.getElementById('etf-market-cap').textContent = data.market_cap ? data.market_cap.toLocaleString() + '억원' : '-';
-
-            // 구성종목
             const holdingsBody = document.getElementById('etf-holdings');
             holdingsBody.innerHTML = '';
             if (data.holdings && data.holdings.length > 0) {
-                data.holdings.forEach(h => {
-                    holdingsBody.innerHTML += `<tr><td>${h.name}</td><td class="text-end">${h.ratio}</td></tr>`;
-                });
-            } else {
-                holdingsBody.innerHTML = '<tr><td colspan="2" class="text-muted">구성종목 정보 없음</td></tr>';
-            }
-
+                data.holdings.forEach(h => { holdingsBody.innerHTML += `<tr><td>${h.name}</td><td class="text-end">${h.ratio}</td></tr>`; });
+            } else { holdingsBody.innerHTML = '<tr><td colspan="2" style="color:var(--text-muted);">구성종목 정보 없음</td></tr>'; }
             dataCard.classList.remove('d-none');
-        } else {
-            resultSpan.innerHTML = `<span class="text-danger">${data.error}</span>`;
-        }
-    } catch (error) {
-        resultSpan.innerHTML = `<span class="text-danger">오류: ${error.message}</span>`;
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = '조회';
-    }
+        } else { resultSpan.innerHTML = `<span style="color:var(--up-color);">${data.error}</span>`; }
+    } catch (error) { resultSpan.innerHTML = `<span style="color:var(--up-color);">오류: ${error.message}</span>`; }
+    finally { submitBtn.disabled = false; submitBtn.textContent = '조회'; }
 });
 
-// 관심종목 저장 버튼
 document.getElementById('save-etf-btn').addEventListener('click', async function() {
-    if (!currentETFData) {
-        return;
-    }
-
+    if (!currentETFData) return;
     const saveBtn = this;
     const saveResultSpan = document.getElementById('save-etf-result');
-
-    saveBtn.disabled = true;
-    saveBtn.textContent = '저장 중...';
-    saveResultSpan.innerHTML = '<span class="text-muted">차트 데이터 저장 중... (최대 30초)</span>';
-
+    saveBtn.disabled = true; saveBtn.textContent = '저장 중...';
+    saveResultSpan.innerHTML = '<span style="color:var(--text-muted);">차트 데이터 저장 중... (최대 30초)</span>';
     try {
         const formData = new FormData();
         formData.append('code', currentETFData.code);
@@ -524,247 +499,102 @@ document.getElementById('save-etf-btn').addEventListener('click', async function
         formData.append('market_cap', currentETFData.market_cap || '');
         formData.append('holdings', JSON.stringify(currentETFData.holdings || []));
         formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-
-        const response = await fetch('{% url "stocks:save_etf" %}', {
-            method: 'POST',
-            body: formData,
-        });
-
+        const response = await fetch('{% url "stocks:save_etf" %}', { method: 'POST', body: formData });
         const data = await response.json();
-
         if (data.success) {
-            const msg = data.created ? '관심종목에 추가되었습니다.' : '정보가 업데이트되었습니다.';
-            saveResultSpan.innerHTML = `<span class="text-success">${msg}</span>`;
-        } else {
-            saveResultSpan.innerHTML = `<span class="text-danger">${data.error}</span>`;
-        }
-    } catch (error) {
-        saveResultSpan.innerHTML = `<span class="text-danger">오류: ${error.message}</span>`;
-    } finally {
-        saveBtn.disabled = false;
-        saveBtn.textContent = '관심종목 저장';
-    }
+            saveResultSpan.innerHTML = `<span style="color:#059669;">${data.created ? '관심종목에 추가되었습니다.' : '정보가 업데이트되었습니다.'}</span>`;
+        } else { saveResultSpan.innerHTML = `<span style="color:var(--up-color);">${data.error}</span>`; }
+    } catch (error) { saveResultSpan.innerHTML = `<span style="color:var(--up-color);">오류: ${error.message}</span>`; }
+    finally { saveBtn.disabled = false; saveBtn.textContent = '관심종목 저장'; }
 });
 
-// 스파크라인 그리기
+// Sparklines
 function drawSparklines() {
     document.querySelectorAll('.sparkline').forEach(canvas => {
         const ctx = canvas.getContext('2d');
         const values = canvas.dataset.values.split(',').map(Number);
         if (values.length < 2 || values.every(v => v === 0)) return;
-
-        const width = canvas.width;
-        const height = canvas.height;
-        const min = Math.min(...values);
-        const max = Math.max(...values);
-        const range = max - min || 1;
-
-        ctx.clearRect(0, 0, width, height);
+        const w = canvas.width, h = canvas.height;
+        const min = Math.min(...values), max = Math.max(...values), range = max - min || 1;
+        ctx.clearRect(0, 0, w, h);
         ctx.beginPath();
-        ctx.strokeStyle = values[values.length - 1] >= values[0] ? '#dc3545' : '#0d6efd';
+        ctx.strokeStyle = values[values.length-1] >= values[0] ? '#dc3545' : '#2962ff';
         ctx.lineWidth = 1.5;
-
         values.forEach((val, i) => {
-            const x = (i / (values.length - 1)) * width;
-            const y = height - ((val - min) / range) * (height - 4) - 2;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+            const x = (i / (values.length-1)) * w;
+            const y = h - ((val - min) / range) * (h - 4) - 2;
+            i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         });
         ctx.stroke();
     });
 }
 drawSparklines();
 
-// 신호 차트 팝업
-let signalChart = null;
-let signalCandleSeries = null;
-let signalVolumeSeries = null;
-let pendingChartData = null;
+// Signal chart modal
+let signalChart = null, signalCandleSeries = null, signalVolumeSeries = null, pendingChartData = null;
 
 function renderSignalChart() {
     if (!pendingChartData) return;
-
     const { signalDate, signalClose, currentPrice, candleData, volumeData } = pendingChartData;
-
-    // 신호 발생일 봉을 검정색으로 변경
-    const styledCandleData = candleData.map(candle => {
-        if (candle.time === signalDate) {
-            return {
-                ...candle,
-                color: '#000000',
-                borderColor: '#000000',
-                wickColor: '#000000',
-            };
-        }
-        return candle;
-    });
-
+    const styledCandleData = candleData.map(c => c.time === signalDate ? {...c, color:'#000', borderColor:'#000', wickColor:'#000'} : c);
     const container = document.getElementById('signalChartContainer');
     container.innerHTML = '';
-
-    const containerWidth = container.clientWidth || 750;
-
     signalChart = LightweightCharts.createChart(container, {
-        width: containerWidth,
-        height: 400,
-        layout: {
-            background: { type: 'solid', color: '#ffffff' },
-            textColor: '#333',
-        },
-        grid: {
-            vertLines: { color: '#f0f0f0' },
-            horzLines: { color: '#f0f0f0' },
-        },
-        crosshair: {
-            mode: LightweightCharts.CrosshairMode.Normal,
-        },
-        rightPriceScale: {
-            borderColor: '#ddd',
-        },
-        timeScale: {
-            borderColor: '#ddd',
-            timeVisible: false,
-            rightOffset: 0,
-            fixLeftEdge: true,
-            fixRightEdge: true,
-            lockVisibleTimeRangeOnResize: true,
-        },
-        handleScroll: {
-            mouseWheel: true,
-            pressedMouseMove: true,
-            horzTouchDrag: true,
-            vertTouchDrag: false,
-        },
-        handleScale: {
-            axisPressedMouseMove: true,
-            mouseWheel: true,
-            pinch: true,
-        },
+        width: container.clientWidth || 750, height: 400,
+        layout: { background: { type: 'solid', color: '#fff' }, textColor: '#333' },
+        grid: { vertLines: { color: '#f0f0f0' }, horzLines: { color: '#f0f0f0' } },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        rightPriceScale: { borderColor: '#ddd' },
+        timeScale: { borderColor: '#ddd', timeVisible: false, rightOffset: 0, fixLeftEdge: true, fixRightEdge: true, lockVisibleTimeRangeOnResize: true },
+        handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+        handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
     });
-
-    signalCandleSeries = signalChart.addCandlestickSeries({
-        upColor: '#ef5350',
-        downColor: '#2196f3',
-        borderUpColor: '#ef5350',
-        borderDownColor: '#2196f3',
-        wickUpColor: '#ef5350',
-        wickDownColor: '#2196f3',
-    });
-
+    signalCandleSeries = signalChart.addCandlestickSeries({ upColor:'#ef5350', downColor:'#2196f3', borderUpColor:'#ef5350', borderDownColor:'#2196f3', wickUpColor:'#ef5350', wickDownColor:'#2196f3' });
     signalCandleSeries.setData(styledCandleData);
-
-    signalVolumeSeries = signalChart.addHistogramSeries({
-        priceFormat: {
-            type: 'volume',
-        },
-        priceScaleId: '',
-        scaleMargins: {
-            top: 0.8,
-            bottom: 0,
-        },
-    });
-
+    signalVolumeSeries = signalChart.addHistogramSeries({ priceFormat:{type:'volume'}, priceScaleId:'', scaleMargins:{top:0.8,bottom:0} });
     signalVolumeSeries.setData(volumeData);
-
-    // 신호일 종가 라인
-    if (signalClose) {
-        signalCandleSeries.createPriceLine({
-            price: signalClose,
-            color: '#ff9800',
-            lineWidth: 1,
-            lineStyle: LightweightCharts.LineStyle.Dashed,
-            axisLabelVisible: false,
-            title: '',
-        });
-    }
-
-    // 현재가 라인
-    if (currentPrice) {
-        signalCandleSeries.createPriceLine({
-            price: currentPrice,
-            color: '#2196f3',
-            lineWidth: 2,
-            lineStyle: LightweightCharts.LineStyle.Dashed,
-            axisLabelVisible: false,
-            title: '',
-        });
-    }
-
-    // 정보 표시
-    const priceChange = signalClose && currentPrice ? ((currentPrice - signalClose) / signalClose * 100).toFixed(1) : 0;
-    const legendDiv = document.createElement('div');
-    legendDiv.style.cssText = 'position: absolute; top: 10px; left: 10px; z-index: 10; font-size: 12px; background: rgba(255,255,255,0.9); padding: 5px 10px; border-radius: 4px;';
-    legendDiv.innerHTML = `<span style="color: #ff9800;">신호일 종가</span> &nbsp; <span style="color: ${priceChange >= 0 ? '#ef5350' : '#2196f3'};">양봉대비: ${priceChange >= 0 ? '+' : ''}${priceChange}%</span>`;
+    if (signalClose) signalCandleSeries.createPriceLine({ price:signalClose, color:'#ff9800', lineWidth:1, lineStyle:LightweightCharts.LineStyle.Dashed, axisLabelVisible:false, title:'' });
+    if (currentPrice) signalCandleSeries.createPriceLine({ price:currentPrice, color:'#2196f3', lineWidth:2, lineStyle:LightweightCharts.LineStyle.Dashed, axisLabelVisible:false, title:'' });
+    const priceChange = signalClose && currentPrice ? ((currentPrice-signalClose)/signalClose*100).toFixed(1) : 0;
+    const legend = document.createElement('div');
+    legend.style.cssText = 'position:absolute;top:10px;left:10px;z-index:10;font-size:12px;background:rgba(255,255,255,0.9);padding:5px 10px;border-radius:4px;';
+    legend.innerHTML = `<span style="color:#ff9800;">신호일 종가</span> &nbsp; <span style="color:${priceChange>=0?'#ef5350':'#2196f3'};">양봉대비: ${priceChange>=0?'+':''}${priceChange}%</span>`;
     container.style.position = 'relative';
-    container.appendChild(legendDiv);
-
+    container.appendChild(legend);
     signalChart.timeScale().fitContent();
     pendingChartData = null;
 }
 
-document.getElementById('signalChartModal').addEventListener('shown.bs.modal', function() {
-    renderSignalChart();
+document.getElementById('signalChartModalClose').addEventListener('click', () => {
+    document.getElementById('signalChartModal').classList.remove('show');
+    if (signalChart) { signalChart.remove(); signalChart = null; signalCandleSeries = null; signalVolumeSeries = null; }
+});
+document.getElementById('signalChartModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.classList.remove('show');
+        if (signalChart) { signalChart.remove(); signalChart = null; signalCandleSeries = null; signalVolumeSeries = null; }
+    }
 });
 
 document.addEventListener('click', function(e) {
     const btn = e.target.closest('.signal-chart-btn');
     if (!btn) return;
-
     e.stopPropagation();
-
-    const code = btn.dataset.code;
-    const name = btn.dataset.name;
-    const signalDate = btn.dataset.signalDate;
-    const signalClose = parseFloat(btn.dataset.signalClose) || 0;
-    const currentPrice = parseFloat(btn.dataset.currentPrice) || 0;
-
+    const code = btn.dataset.code, name = btn.dataset.name;
+    const signalDate = btn.dataset.signalDate, signalClose = parseFloat(btn.dataset.signalClose)||0, currentPrice = parseFloat(btn.dataset.currentPrice)||0;
     document.getElementById('signalChartModalLabel').textContent = `${name} 신호 차트`;
-    document.getElementById('signalChartContainer').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">차트 로딩 중...</p></div>';
+    document.getElementById('signalChartContainer').innerHTML = '<div style="text-align:center;padding:40px;"><div class="spinner-border spinner-border-sm" role="status" style="color:var(--text-muted);"></div><p style="margin-top:8px;color:var(--text-muted);font-size:0.85rem;">차트 로딩 중...</p></div>';
+    document.getElementById('signalChartModal').classList.add('show');
 
-    const modal = new bootstrap.Modal(document.getElementById('signalChartModal'));
-    modal.show();
-
-    fetch(`/api/etf/${code}/signal-chart/`)
-        .then(res => res.json())
-        .then(data => {
-            if (!data.success) {
-                document.getElementById('signalChartContainer').innerHTML = '<div class="text-center py-5 text-muted">차트 데이터를 불러올 수 없습니다.</div>';
-                return;
-            }
-
-            pendingChartData = {
-                signalDate,
-                signalClose,
-                currentPrice,
-                candleData: data.candle_data,
-                volumeData: data.volume_data,
-            };
-
-            const modalEl = document.getElementById('signalChartModal');
-            if (modalEl.classList.contains('show')) {
-                renderSignalChart();
-            }
-        })
-        .catch(err => {
-            console.error('차트 로드 에러:', err);
-            document.getElementById('signalChartContainer').innerHTML = '<div class="text-center py-5 text-danger">차트 로드 에러</div>';
-        });
+    fetch(`/api/etf/${code}/signal-chart/`).then(res=>res.json()).then(data=>{
+        if (!data.success) { document.getElementById('signalChartContainer').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">차트 데이터를 불러올 수 없습니다.</div>'; return; }
+        pendingChartData = { signalDate, signalClose, currentPrice, candleData:data.candle_data, volumeData:data.volume_data };
+        renderSignalChart();
+    }).catch(err=>{
+        document.getElementById('signalChartContainer').innerHTML = '<div style="text-align:center;padding:40px;color:var(--up-color);">차트 로드 에러</div>';
+    });
 });
 
-document.getElementById('signalChartModal').addEventListener('hidden.bs.modal', function() {
-    if (signalChart) {
-        signalChart.remove();
-        signalChart = null;
-        signalCandleSeries = null;
-        signalVolumeSeries = null;
-    }
-});
-
-window.addEventListener('resize', function() {
-    if (signalChart) {
-        const container = document.getElementById('signalChartContainer');
-        signalChart.applyOptions({ width: container.clientWidth });
-    }
-});
+window.addEventListener('resize', function() { if (signalChart) signalChart.applyOptions({width:document.getElementById('signalChartContainer').clientWidth}); });
 </script>
 {% endblock %}

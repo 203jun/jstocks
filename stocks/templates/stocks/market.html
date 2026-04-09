@@ -3,676 +3,1022 @@
 
 {% block title %}시황 - JStocks{% endblock %}
 
+{% block extra_style %}
+/* Hero card */
+.hero-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+.hero-info-line {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+.hero-chart {
+    padding: 12px 20px 16px;
+    display: flex;
+    flex-direction: column;
+}
+.index-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.index-badge .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+}
+.price-main {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+.price-change {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+.price-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.chart-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.ma-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 22px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    opacity: 1;
+    transition: opacity 0.2s;
+    user-select: none;
+}
+.ma-badge:not(.active) { opacity: 0.25; }
+
+/* Range buttons */
+.range-btn {
+    padding: 3px 10px;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.range-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+.range-btn.active {
+    background: var(--text-primary);
+    color: #fff;
+    border-color: var(--text-primary);
+}
+
+/* Sub tabs */
+.market-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+.market-tab {
+    padding: 10px 22px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.market-tab:hover {
+    color: var(--text-primary);
+}
+.market-tab.active {
+    color: var(--text-primary);
+    font-weight: 700;
+    border-color: var(--border-color);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-card);
+}
+
+/* Trend cards */
+.trend-summary-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    padding: 20px 24px;
+}
+.trend-summary-card .card-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.trend-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+.trend-item:last-child { border-bottom: none; }
+.trend-item-label {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+.trend-item-value {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* Table */
+.modern-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.modern-table thead th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+.modern-table tbody td {
+    font-size: 0.82rem;
+    padding: 9px 12px;
+    border-bottom: 1px solid #f3f4f6;
+    white-space: nowrap;
+}
+.modern-table tbody tr:last-child td { border-bottom: none; }
+.modern-table tbody tr:hover { background: #f9fafb; }
+
+/* Cumulative chart card */
+.chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+}
+.chart-card-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-color);
+}
+.chart-card-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+.legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 4px;
+}
+
+/* Refresh button */
+.btn-refresh {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.btn-refresh:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+}
+.btn-refresh.btn-primary {
+    background: #2962ff;
+    color: #fff !important;
+    border-color: #2962ff;
+}
+.btn-refresh.btn-primary:hover {
+    background: #1e4fcc;
+    border-color: #1e4fcc;
+    color: #fff !important;
+}
+.btn-refresh.spin { animation: spin 1s linear infinite; }
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Nodaji */
+.brief-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    padding: 24px;
+}
+.morning-md strong { font-weight: 700; }
+.morning-md em { font-style: italic; }
+.morning-md del { text-decoration: line-through; color: var(--text-muted); }
+
+/* Timeline */
+.timeline { position: relative; padding-left: 24px; }
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border-color);
+}
+.timeline-date {
+    position: relative;
+    display: inline-block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    background: var(--bg-page);
+    padding: 3px 10px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    margin-left: -8px;
+}
+.timeline-item {
+    position: relative;
+    margin-bottom: 14px;
+}
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -23px;
+    top: 18px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4f46e5;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #4f46e5;
+}
+.timeline-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    transition: box-shadow 0.2s;
+    display: flex;
+    gap: 16px;
+}
+.timeline-card:hover {
+    box-shadow: var(--shadow-card-hover);
+}
+.yt-thumb {
+    flex-shrink: 0;
+    width: 140px;
+    height: 79px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+.yt-card-body { flex: 1; min-width: 0; }
+.timeline-card-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.timeline-card-title a {
+    color: var(--text-primary);
+    text-decoration: none;
+}
+.timeline-card-title a:hover {
+    text-decoration: underline;
+}
+.timeline-card-summary {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-height: 3.2em;
+    overflow: hidden;
+    position: relative;
+    transition: max-height 0.3s ease;
+}
+.timeline-card-summary.expanded {
+    max-height: none;
+}
+.btn-yt-toggle {
+    font-size: 0.72rem;
+    color: #4f46e5;
+    cursor: pointer;
+    margin-top: 4px;
+    display: inline-block;
+}
+.timeline-group { margin-bottom: 24px; }
+.yt-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #fef2f2;
+    color: #dc3545;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+.yt-channel {
+    display: inline-block;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    background: var(--bg-page);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-top: 6px;
+}
+
+/* Section heading */
+.section-heading {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 28px 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero-info-line { gap: 8px; padding: 10px 14px; }
+    .price-main { font-size: 1.1rem; }
+    .hero-chart { padding: 10px 12px 14px; }
+}
+{% endblock %}
+
 {% block content %}
-<h4 class="mb-3">시황</h4>
+<!-- 차트 -->
+<h5 class="section-heading" style="margin-top: 0;">차트</h5>
 
-<!-- KOSPI / KOSDAQ 가격 정보 -->
-<div class="row mb-3">
-    <div class="col-md-6 mb-3 mb-md-0">
-        <div class="card h-100">
-            <div class="card-body py-2">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong class="fs-5">KOSPI</strong>
-                        {% if kospi_latest %}
-                        <span class="fs-4 fw-bold ms-2">{{ kospi_latest.closing_price|floatformat:2 }}</span>
-                        {% endif %}
-                    </div>
-                    <div class="text-end">
-                        {% if kospi_change_rate > 0 %}
-                        <span class="text-up fs-5">+{{ kospi_change|floatformat:2 }} (+{{ kospi_change_rate }}%)</span>
-                        {% elif kospi_change_rate < 0 %}
-                        <span class="text-down fs-5">{{ kospi_change|floatformat:2 }} ({{ kospi_change_rate }}%)</span>
-                        {% else %}
-                        <span class="text-muted fs-5">0.00 (0.00%)</span>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- KOSPI Hero Card -->
+<div class="hero-card">
+    <div class="hero-info-line">
+        <span class="index-badge">KOSPI <span class="dot"></span></span>
+        {% if kospi_latest %}
+        <span class="price-main">{{ kospi_latest.closing_price|floatformat:2 }}</span>
+        <span class="price-change {% if kospi_change_rate > 0 %}text-up{% elif kospi_change_rate < 0 %}text-down{% endif %}">
+            {% if kospi_change_rate > 0 %}+{% endif %}{{ kospi_change_rate }}%
+            ({% if kospi_change > 0 %}+{% endif %}{{ kospi_change|floatformat:2 }})
+        </span>
+        <span class="price-date">{{ kospi_latest.date|date:"m.d" }} 기준</span>
+        {% endif %}
     </div>
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-body py-2">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong class="fs-5">KOSDAQ</strong>
-                        {% if kosdaq_latest %}
-                        <span class="fs-4 fw-bold ms-2">{{ kosdaq_latest.closing_price|floatformat:2 }}</span>
-                        {% endif %}
-                    </div>
-                    <div class="text-end">
-                        {% if kosdaq_change_rate > 0 %}
-                        <span class="text-up fs-5">+{{ kosdaq_change|floatformat:2 }} (+{{ kosdaq_change_rate }}%)</span>
-                        {% elif kosdaq_change_rate < 0 %}
-                        <span class="text-down fs-5">{{ kosdaq_change|floatformat:2 }} ({{ kosdaq_change_rate }}%)</span>
-                        {% else %}
-                        <span class="text-muted fs-5">0.00 (0.00%)</span>
-                        {% endif %}
+    <div class="hero-chart">
+                <div class="chart-header">
+                    <span class="chart-title">KOSPI 일봉</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex gap-1 range-btns" data-chart="kospi">
+                            <button class="range-btn" data-days="20">20일</button>
+                            <button class="range-btn" data-days="60">60일</button>
+                            <button class="range-btn active" data-days="120">120일</button>
+                            <button class="range-btn" data-days="240">240일</button>
+                        </div>
+                        <div style="width:1px;height:16px;background:var(--border-color);"></div>
+                        <div class="d-flex gap-1">
+                            <span class="ma-badge ma-toggle active" data-ma="10" data-chart="kospi" style="background-color:#ff9800;">10</span>
+                            <span class="ma-badge ma-toggle active" data-ma="20" data-chart="kospi" style="background-color:#2196f3;">20</span>
+                            <span class="ma-badge ma-toggle active" data-ma="60" data-chart="kospi" style="background-color:#4caf50;">60</span>
+                            <span class="ma-badge ma-toggle active" data-ma="120" data-chart="kospi" style="background-color:#9c27b0;">120</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
+                <div id="kospiChart" style="height: 340px; flex: 1;"></div>
     </div>
 </div>
 
-<!-- KOSPI / KOSDAQ 차트 -->
-<div class="row mb-3">
-    <div class="col-md-6 mb-3 mb-md-0">
-        <div class="card h-100">
-            <div class="card-header py-2 d-flex align-items-center justify-content-between">
-                <strong>KOSPI</strong>
+<!-- KOSDAQ Hero Card -->
+<div class="hero-card">
+    <div class="hero-info-line">
+        <span class="index-badge">KOSDAQ <span class="dot"></span></span>
+        {% if kosdaq_latest %}
+        <span class="price-main">{{ kosdaq_latest.closing_price|floatformat:2 }}</span>
+        <span class="price-change {% if kosdaq_change_rate > 0 %}text-up{% elif kosdaq_change_rate < 0 %}text-down{% endif %}">
+            {% if kosdaq_change_rate > 0 %}+{% endif %}{{ kosdaq_change_rate }}%
+            ({% if kosdaq_change > 0 %}+{% endif %}{{ kosdaq_change|floatformat:2 }})
+        </span>
+        <span class="price-date">{{ kosdaq_latest.date|date:"m.d" }} 기준</span>
+        {% endif %}
+    </div>
+    <div class="hero-chart">
+        <div class="chart-header">
+            <span class="chart-title">KOSDAQ 일봉</span>
+            <div class="d-flex align-items-center gap-2">
+                <div class="d-flex gap-1 range-btns" data-chart="kosdaq">
+                    <button class="range-btn" data-days="20">20일</button>
+                    <button class="range-btn" data-days="60">60일</button>
+                    <button class="range-btn active" data-days="120">120일</button>
+                    <button class="range-btn" data-days="240">240일</button>
+                </div>
+                <div style="width:1px;height:16px;background:var(--border-color);"></div>
                 <div class="d-flex gap-1">
-                    <span class="badge ma-toggle active" data-ma="10" data-chart="kospi" style="background-color: #ff9800; cursor: pointer;">10</span>
-                    <span class="badge ma-toggle active" data-ma="20" data-chart="kospi" style="background-color: #2196f3; cursor: pointer;">20</span>
-                    <span class="badge ma-toggle active" data-ma="60" data-chart="kospi" style="background-color: #4caf50; cursor: pointer;">60</span>
-                    <span class="badge ma-toggle active" data-ma="120" data-chart="kospi" style="background-color: #9c27b0; cursor: pointer;">120</span>
+                    <span class="ma-badge ma-toggle active" data-ma="10" data-chart="kosdaq" style="background-color:#ff9800;">10</span>
+                    <span class="ma-badge ma-toggle active" data-ma="20" data-chart="kosdaq" style="background-color:#2196f3;">20</span>
+                    <span class="ma-badge ma-toggle active" data-ma="60" data-chart="kosdaq" style="background-color:#4caf50;">60</span>
+                    <span class="ma-badge ma-toggle active" data-ma="120" data-chart="kosdaq" style="background-color:#9c27b0;">120</span>
                 </div>
-            </div>
-            <div class="card-body p-0">
-                <div id="kospiChart" style="height: 300px;"></div>
             </div>
         </div>
+        <div id="kosdaqChart" style="height: 340px; flex: 1;"></div>
     </div>
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header py-2 d-flex align-items-center justify-content-between">
-                <strong>KOSDAQ</strong>
-                <div class="d-flex gap-1">
-                    <span class="badge ma-toggle active" data-ma="10" data-chart="kosdaq" style="background-color: #ff9800; cursor: pointer;">10</span>
-                    <span class="badge ma-toggle active" data-ma="20" data-chart="kosdaq" style="background-color: #2196f3; cursor: pointer;">20</span>
-                    <span class="badge ma-toggle active" data-ma="60" data-chart="kosdaq" style="background-color: #4caf50; cursor: pointer;">60</span>
-                    <span class="badge ma-toggle active" data-ma="120" data-chart="kosdaq" style="background-color: #9c27b0; cursor: pointer;">120</span>
-                </div>
+</div>
+
+<!-- 투자일기 -->
+<h5 class="section-heading" style="margin-top: 32px;">투자일기</h5>
+<div id="section-diary">
+    <div class="brief-card">
+        <!-- 작성 폼 -->
+        <div id="diaryForm" class="d-none" style="margin-bottom:16px;padding:16px;background:#f9fafb;border-radius:8px;">
+            <div class="d-flex gap-2 mb-2">
+                <input type="date" id="diaryDate" style="border:1px solid #ddd;border-radius:6px;padding:4px 10px;font-size:0.82rem;color:var(--text-body);">
             </div>
-            <div class="card-body p-0">
-                <div id="kosdaqChart" style="height: 300px;"></div>
+            <textarea id="diaryContent" rows="5" placeholder="오늘의 투자 기록을 남겨보세요..." style="width:100%;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:0.85rem;line-height:1.7;resize:vertical;font-family:inherit;"></textarea>
+            <div class="d-flex justify-content-end gap-2 mt-2">
+                <button type="button" id="btnDiaryCancel" class="btn-refresh" style="padding: 6px 16px;">취소</button>
+                <button type="button" id="btnDiarySave" class="btn-refresh" style="padding: 6px 16px;">저장</button>
             </div>
+        </div>
+        <div class="d-flex justify-content-end mb-3">
+            <button type="button" id="btnDiaryNew" class="btn-refresh" style="padding: 6px 16px;">새 글 작성</button>
+        </div>
+        <!-- 타임라인 -->
+        <div id="diaryTimeline"></div>
+        <div id="diaryEmpty" style="color:var(--text-muted);font-size:0.85rem;">아직 작성한 일기가 없습니다.</div>
+        <div id="diaryMore" class="text-center d-none" style="margin-top:12px;">
+            <button type="button" id="btnDiaryMore" class="btn-refresh" style="padding: 6px 20px;">더보기</button>
         </div>
     </div>
 </div>
 
-<!-- 탭 메뉴 -->
-<ul class="nav nav-tabs mb-3" id="marketTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="trend-tab" data-bs-toggle="tab" data-bs-target="#trend-content" type="button" role="tab">매매동향</button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="nodaji-tab" data-bs-toggle="tab" data-bs-target="#nodaji-content" type="button" role="tab">노다지</button>
-    </li>
-</ul>
+<!-- 매매동향 -->
+<h5 class="section-heading">매매동향</h5>
+<div id="section-trend">
+    <!-- 시장 선택 탭 -->
+    <div class="market-tabs">
+        <button class="market-tab active" data-market="kospi">KOSPI</button>
+        <button class="market-tab" data-market="kosdaq">KOSDAQ</button>
+        <button class="market-tab" data-market="futures">FUTURES</button>
+    </div>
 
-<!-- 탭 콘텐츠 -->
-<div class="tab-content" id="marketTabsContent">
-    <!-- 매매동향 탭 -->
-    <div class="tab-pane fade show active" id="trend-content" role="tabpanel">
-        <!-- 매매동향 서브탭 -->
-        <ul class="nav nav-pills mb-3" id="trendSubTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="kospi-trend-tab" data-bs-toggle="pill" data-bs-target="#kospi-trend" type="button" role="tab">KOSPI</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="kosdaq-trend-tab" data-bs-toggle="pill" data-bs-target="#kosdaq-trend" type="button" role="tab">KOSDAQ</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="futures-trend-tab" data-bs-toggle="pill" data-bs-target="#futures-trend" type="button" role="tab">FUTURES</button>
-            </li>
-        </ul>
-        <div class="tab-content" id="trendSubTabsContent">
-            <!-- KOSPI -->
-            <div class="tab-pane fade show active" id="kospi-trend" role="tabpanel">
-                <div class="card mb-3">
-                    <div class="card-header py-2 d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-2">
-                            <strong>120일 누적 순매수</strong>
-                            <button type="button" class="btn btn-sm btn-refresh-trend" data-market="KOSPI" title="새로고침" style="padding: 0; border: none; background: none; font-size: 1rem; line-height: 1; cursor: pointer;">🔄</button>
-                        </div>
-                        <div class="d-flex gap-1">
-                            <span class="badge text-bg-warning text-dark" style="font-size: 0.65rem;">개인</span>
-                            <span class="badge text-bg-success" style="font-size: 0.65rem;">외국인</span>
-                            <span class="badge text-bg-danger" style="font-size: 0.65rem;">기관</span>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <div id="kospiCumulativeChart" style="height: 250px;"></div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0" id="kospiTrendTable">
-                                <thead class="table-light">
-                                    <tr class="small">
-                                        <th class="ps-3">날짜</th>
-                                        <th class="text-end">개인</th>
-                                        <th class="text-end">외국인</th>
-                                        <th class="text-end">기관계</th>
-                                        <th class="text-end">금융투자</th>
-                                        <th class="text-end">보험</th>
-                                        <th class="text-end">투신</th>
-                                        <th class="text-end">은행</th>
-                                        <th class="text-end">기타금융</th>
-                                        <th class="text-end">연기금</th>
-                                        <th class="text-end pe-3">기타법인</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for t in kospi_trends %}
-                                    <tr class="small">
-                                        <td class="ps-3 text-muted">{{ t.date|date:"m.d" }}</td>
-                                        <td class="text-end {% if t.individual > 0 %}text-up{% elif t.individual < 0 %}text-down{% endif %}">{{ t.individual|intcomma }}</td>
-                                        <td class="text-end {% if t.foreign > 0 %}text-up{% elif t.foreign < 0 %}text-down{% endif %}">{{ t.foreign|intcomma }}</td>
-                                        <td class="text-end {% if t.institution > 0 %}text-up{% elif t.institution < 0 %}text-down{% endif %}">{{ t.institution|intcomma }}</td>
-                                        <td class="text-end {% if t.financial_investment > 0 %}text-up{% elif t.financial_investment < 0 %}text-down{% endif %}">{{ t.financial_investment|intcomma }}</td>
-                                        <td class="text-end {% if t.insurance > 0 %}text-up{% elif t.insurance < 0 %}text-down{% endif %}">{{ t.insurance|intcomma }}</td>
-                                        <td class="text-end {% if t.trust > 0 %}text-up{% elif t.trust < 0 %}text-down{% endif %}">{{ t.trust|intcomma }}</td>
-                                        <td class="text-end {% if t.bank > 0 %}text-up{% elif t.bank < 0 %}text-down{% endif %}">{{ t.bank|intcomma }}</td>
-                                        <td class="text-end {% if t.other_financial > 0 %}text-up{% elif t.other_financial < 0 %}text-down{% endif %}">{{ t.other_financial|intcomma }}</td>
-                                        <td class="text-end {% if t.pension_fund > 0 %}text-up{% elif t.pension_fund < 0 %}text-down{% endif %}">{{ t.pension_fund|intcomma }}</td>
-                                        <td class="text-end pe-3 {% if t.other_corporation > 0 %}text-up{% elif t.other_corporation < 0 %}text-down{% endif %}">{{ t.other_corporation|intcomma }}</td>
-                                    </tr>
-                                    {% empty %}
-                                    <tr><td colspan="11" class="text-center text-muted py-3">데이터가 없습니다.</td></tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+    <!-- 누적 순매수 차트 -->
+    <div class="chart-card mb-4">
+        <div class="chart-card-header">
+            <div class="d-flex align-items-center gap-3">
+                <span class="chart-card-title">누적 순매수</span>
+                <button type="button" class="btn-refresh btn-refresh-trend" data-market="KOSPI" title="새로고침">새로고침</button>
             </div>
-            <!-- KOSDAQ -->
-            <div class="tab-pane fade" id="kosdaq-trend" role="tabpanel">
-                <div class="card mb-3">
-                    <div class="card-header py-2 d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-2">
-                            <strong>120일 누적 순매수</strong>
-                            <button type="button" class="btn btn-sm btn-refresh-trend" data-market="KOSDAQ" title="새로고침" style="padding: 0; border: none; background: none; font-size: 1rem; line-height: 1; cursor: pointer;">🔄</button>
-                        </div>
-                        <div class="d-flex gap-1">
-                            <span class="badge text-bg-warning text-dark" style="font-size: 0.65rem;">개인</span>
-                            <span class="badge text-bg-success" style="font-size: 0.65rem;">외국인</span>
-                            <span class="badge text-bg-danger" style="font-size: 0.65rem;">기관</span>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <div id="kosdaqCumulativeChart" style="height: 250px;"></div>
-                    </div>
+            <div class="d-flex align-items-center gap-2">
+                <div class="d-flex gap-1 cumulative-range-btns">
+                    <button class="range-btn" data-days="20">20일</button>
+                    <button class="range-btn" data-days="60">60일</button>
+                    <button class="range-btn active" data-days="120">120일</button>
                 </div>
-                <div class="card">
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0" id="kosdaqTrendTable">
-                                <thead class="table-light">
-                                    <tr class="small">
-                                        <th class="ps-3">날짜</th>
-                                        <th class="text-end">개인</th>
-                                        <th class="text-end">외국인</th>
-                                        <th class="text-end">기관계</th>
-                                        <th class="text-end">금융투자</th>
-                                        <th class="text-end">보험</th>
-                                        <th class="text-end">투신</th>
-                                        <th class="text-end">은행</th>
-                                        <th class="text-end">기타금융</th>
-                                        <th class="text-end">연기금</th>
-                                        <th class="text-end pe-3">기타법인</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for t in kosdaq_trends %}
-                                    <tr class="small">
-                                        <td class="ps-3 text-muted">{{ t.date|date:"m.d" }}</td>
-                                        <td class="text-end {% if t.individual > 0 %}text-up{% elif t.individual < 0 %}text-down{% endif %}">{{ t.individual|intcomma }}</td>
-                                        <td class="text-end {% if t.foreign > 0 %}text-up{% elif t.foreign < 0 %}text-down{% endif %}">{{ t.foreign|intcomma }}</td>
-                                        <td class="text-end {% if t.institution > 0 %}text-up{% elif t.institution < 0 %}text-down{% endif %}">{{ t.institution|intcomma }}</td>
-                                        <td class="text-end {% if t.financial_investment > 0 %}text-up{% elif t.financial_investment < 0 %}text-down{% endif %}">{{ t.financial_investment|intcomma }}</td>
-                                        <td class="text-end {% if t.insurance > 0 %}text-up{% elif t.insurance < 0 %}text-down{% endif %}">{{ t.insurance|intcomma }}</td>
-                                        <td class="text-end {% if t.trust > 0 %}text-up{% elif t.trust < 0 %}text-down{% endif %}">{{ t.trust|intcomma }}</td>
-                                        <td class="text-end {% if t.bank > 0 %}text-up{% elif t.bank < 0 %}text-down{% endif %}">{{ t.bank|intcomma }}</td>
-                                        <td class="text-end {% if t.other_financial > 0 %}text-up{% elif t.other_financial < 0 %}text-down{% endif %}">{{ t.other_financial|intcomma }}</td>
-                                        <td class="text-end {% if t.pension_fund > 0 %}text-up{% elif t.pension_fund < 0 %}text-down{% endif %}">{{ t.pension_fund|intcomma }}</td>
-                                        <td class="text-end pe-3 {% if t.other_corporation > 0 %}text-up{% elif t.other_corporation < 0 %}text-down{% endif %}">{{ t.other_corporation|intcomma }}</td>
-                                    </tr>
-                                    {% empty %}
-                                    <tr><td colspan="11" class="text-center text-muted py-3">데이터가 없습니다.</td></tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- FUTURES -->
-            <div class="tab-pane fade" id="futures-trend" role="tabpanel">
-                <div class="card mb-3">
-                    <div class="card-header py-2 d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-2">
-                            <strong>120일 누적 순매수</strong>
-                            <button type="button" class="btn btn-sm btn-refresh-trend" data-market="FUTURES" title="새로고침" style="padding: 0; border: none; background: none; font-size: 1rem; line-height: 1; cursor: pointer;">🔄</button>
-                        </div>
-                        <div class="d-flex gap-1">
-                            <span class="badge text-bg-warning text-dark" style="font-size: 0.65rem;">개인</span>
-                            <span class="badge text-bg-success" style="font-size: 0.65rem;">외국인</span>
-                            <span class="badge text-bg-danger" style="font-size: 0.65rem;">기관</span>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <div id="futuresCumulativeChart" style="height: 250px;"></div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0" id="futuresTrendTable">
-                                <thead class="table-light">
-                                    <tr class="small">
-                                        <th class="ps-3">날짜</th>
-                                        <th class="text-end">개인</th>
-                                        <th class="text-end">외국인</th>
-                                        <th class="text-end">기관계</th>
-                                        <th class="text-end">금융투자</th>
-                                        <th class="text-end">보험</th>
-                                        <th class="text-end">투신</th>
-                                        <th class="text-end">은행</th>
-                                        <th class="text-end">기타금융</th>
-                                        <th class="text-end">연기금</th>
-                                        <th class="text-end pe-3">기타법인</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for t in futures_trends %}
-                                    <tr class="small">
-                                        <td class="ps-3 text-muted">{{ t.date|date:"m.d" }}</td>
-                                        <td class="text-end {% if t.individual > 0 %}text-up{% elif t.individual < 0 %}text-down{% endif %}">{{ t.individual|intcomma }}</td>
-                                        <td class="text-end {% if t.foreign > 0 %}text-up{% elif t.foreign < 0 %}text-down{% endif %}">{{ t.foreign|intcomma }}</td>
-                                        <td class="text-end {% if t.institution > 0 %}text-up{% elif t.institution < 0 %}text-down{% endif %}">{{ t.institution|intcomma }}</td>
-                                        <td class="text-end {% if t.financial_investment > 0 %}text-up{% elif t.financial_investment < 0 %}text-down{% endif %}">{{ t.financial_investment|intcomma }}</td>
-                                        <td class="text-end {% if t.insurance > 0 %}text-up{% elif t.insurance < 0 %}text-down{% endif %}">{{ t.insurance|intcomma }}</td>
-                                        <td class="text-end {% if t.trust > 0 %}text-up{% elif t.trust < 0 %}text-down{% endif %}">{{ t.trust|intcomma }}</td>
-                                        <td class="text-end {% if t.bank > 0 %}text-up{% elif t.bank < 0 %}text-down{% endif %}">{{ t.bank|intcomma }}</td>
-                                        <td class="text-end {% if t.other_financial > 0 %}text-up{% elif t.other_financial < 0 %}text-down{% endif %}">{{ t.other_financial|intcomma }}</td>
-                                        <td class="text-end {% if t.pension_fund > 0 %}text-up{% elif t.pension_fund < 0 %}text-down{% endif %}">{{ t.pension_fund|intcomma }}</td>
-                                        <td class="text-end pe-3 {% if t.other_corporation > 0 %}text-up{% elif t.other_corporation < 0 %}text-down{% endif %}">{{ t.other_corporation|intcomma }}</td>
-                                    </tr>
-                                    {% empty %}
-                                    <tr><td colspan="11" class="text-center text-muted py-3">데이터가 없습니다.</td></tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                <div style="width:1px;height:16px;background:var(--border-color);margin:0 4px;"></div>
+                <div class="d-flex align-items-center" style="gap: 12px;">
+                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:#ffc107;"></span>개인</span>
+                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:#198754;"></span>외국인</span>
+                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:#dc3545;"></span>기관</span>
                 </div>
             </div>
         </div>
+        <div style="padding: 8px;">
+            <div id="kospiCumulativeChart" style="height: 260px;"></div>
+            <div id="kosdaqCumulativeChart" style="height: 260px; display: none;"></div>
+            <div id="futuresCumulativeChart" style="height: 260px; display: none;"></div>
+        </div>
     </div>
 
-    <!-- 노다지 탭 -->
-    <div class="tab-pane fade" id="nodaji-content" role="tabpanel">
-        <div class="card">
-            <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>노다지 브리프</strong>
-                    <small class="text-muted ms-2">모닝브리프 / 마감브리프</small>
-                </div>
-                <button type="button" id="btnFetchBrief" class="btn btn-sm btn-outline-success">
-                    불러오기
-                </button>
-            </div>
-            <div class="card-body">
-                <div id="briefLoading" class="text-center py-3 d-none">
-                    <div class="spinner-border spinner-border-sm text-success" role="status"></div>
-                    <span class="ms-2">불러오는 중... (5~10초 소요)</span>
-                </div>
-                <div id="briefResult" class="d-none"></div>
-                <div id="briefEmpty" class="text-muted">버튼을 클릭하면 최신 브리프를 불러옵니다.</div>
-            </div>
+    <!-- 매매동향 테이블 -->
+    <div class="card-v2" style="overflow: hidden;">
+        <div style="overflow-x: auto;">
+            <!-- KOSPI Table -->
+            <table class="modern-table" id="kospiTrendTable">
+                <thead>
+                    <tr>
+                        <th style="padding-left:20px;">날짜</th>
+                        <th class="text-end">개인</th>
+                        <th class="text-end">외국인</th>
+                        <th class="text-end">기관계</th>
+                        <th class="text-end">금융투자</th>
+                        <th class="text-end">보험</th>
+                        <th class="text-end">투신</th>
+                        <th class="text-end">은행</th>
+                        <th class="text-end">기타금융</th>
+                        <th class="text-end">연기금</th>
+                        <th class="text-end" style="padding-right:20px;">기타법인</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in kospi_trends %}
+                    <tr>
+                        <td style="padding-left:20px;color:var(--text-muted);">{{ t.date|date:"m.d" }}</td>
+                        <td class="text-end {% if t.individual > 0 %}text-up{% elif t.individual < 0 %}text-down{% endif %}" {% if t.individual > 10000 or t.individual < -10000 %}style="font-weight:700;"{% endif %}>{{ t.individual|intcomma }}</td>
+                        <td class="text-end {% if t.foreign > 0 %}text-up{% elif t.foreign < 0 %}text-down{% endif %}" {% if t.foreign > 10000 or t.foreign < -10000 %}style="font-weight:700;"{% endif %}>{{ t.foreign|intcomma }}</td>
+                        <td class="text-end {% if t.institution > 0 %}text-up{% elif t.institution < 0 %}text-down{% endif %}" {% if t.institution > 10000 or t.institution < -10000 %}style="font-weight:700;"{% endif %}>{{ t.institution|intcomma }}</td>
+                        <td class="text-end {% if t.financial_investment > 0 %}text-up{% elif t.financial_investment < 0 %}text-down{% endif %}">{{ t.financial_investment|intcomma }}</td>
+                        <td class="text-end {% if t.insurance > 0 %}text-up{% elif t.insurance < 0 %}text-down{% endif %}">{{ t.insurance|intcomma }}</td>
+                        <td class="text-end {% if t.trust > 0 %}text-up{% elif t.trust < 0 %}text-down{% endif %}">{{ t.trust|intcomma }}</td>
+                        <td class="text-end {% if t.bank > 0 %}text-up{% elif t.bank < 0 %}text-down{% endif %}">{{ t.bank|intcomma }}</td>
+                        <td class="text-end {% if t.other_financial > 0 %}text-up{% elif t.other_financial < 0 %}text-down{% endif %}">{{ t.other_financial|intcomma }}</td>
+                        <td class="text-end {% if t.pension_fund > 0 %}text-up{% elif t.pension_fund < 0 %}text-down{% endif %}">{{ t.pension_fund|intcomma }}</td>
+                        <td class="text-end {% if t.other_corporation > 0 %}text-up{% elif t.other_corporation < 0 %}text-down{% endif %}" style="padding-right:20px;">{{ t.other_corporation|intcomma }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:24px;">데이터가 없습니다.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <!-- KOSDAQ Table -->
+            <table class="modern-table" id="kosdaqTrendTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th style="padding-left:20px;">날짜</th>
+                        <th class="text-end">개인</th>
+                        <th class="text-end">외국인</th>
+                        <th class="text-end">기관계</th>
+                        <th class="text-end">금융투자</th>
+                        <th class="text-end">보험</th>
+                        <th class="text-end">투신</th>
+                        <th class="text-end">은행</th>
+                        <th class="text-end">기타금융</th>
+                        <th class="text-end">연기금</th>
+                        <th class="text-end" style="padding-right:20px;">기타법인</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in kosdaq_trends %}
+                    <tr>
+                        <td style="padding-left:20px;color:var(--text-muted);">{{ t.date|date:"m.d" }}</td>
+                        <td class="text-end {% if t.individual > 0 %}text-up{% elif t.individual < 0 %}text-down{% endif %}" {% if t.individual > 10000 or t.individual < -10000 %}style="font-weight:700;"{% endif %}>{{ t.individual|intcomma }}</td>
+                        <td class="text-end {% if t.foreign > 0 %}text-up{% elif t.foreign < 0 %}text-down{% endif %}" {% if t.foreign > 10000 or t.foreign < -10000 %}style="font-weight:700;"{% endif %}>{{ t.foreign|intcomma }}</td>
+                        <td class="text-end {% if t.institution > 0 %}text-up{% elif t.institution < 0 %}text-down{% endif %}" {% if t.institution > 10000 or t.institution < -10000 %}style="font-weight:700;"{% endif %}>{{ t.institution|intcomma }}</td>
+                        <td class="text-end {% if t.financial_investment > 0 %}text-up{% elif t.financial_investment < 0 %}text-down{% endif %}">{{ t.financial_investment|intcomma }}</td>
+                        <td class="text-end {% if t.insurance > 0 %}text-up{% elif t.insurance < 0 %}text-down{% endif %}">{{ t.insurance|intcomma }}</td>
+                        <td class="text-end {% if t.trust > 0 %}text-up{% elif t.trust < 0 %}text-down{% endif %}">{{ t.trust|intcomma }}</td>
+                        <td class="text-end {% if t.bank > 0 %}text-up{% elif t.bank < 0 %}text-down{% endif %}">{{ t.bank|intcomma }}</td>
+                        <td class="text-end {% if t.other_financial > 0 %}text-up{% elif t.other_financial < 0 %}text-down{% endif %}">{{ t.other_financial|intcomma }}</td>
+                        <td class="text-end {% if t.pension_fund > 0 %}text-up{% elif t.pension_fund < 0 %}text-down{% endif %}">{{ t.pension_fund|intcomma }}</td>
+                        <td class="text-end {% if t.other_corporation > 0 %}text-up{% elif t.other_corporation < 0 %}text-down{% endif %}" style="padding-right:20px;">{{ t.other_corporation|intcomma }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:24px;">데이터가 없습니다.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <!-- FUTURES Table -->
+            <table class="modern-table" id="futuresTrendTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th style="padding-left:20px;">날짜</th>
+                        <th class="text-end">개인</th>
+                        <th class="text-end">외국인</th>
+                        <th class="text-end">기관계</th>
+                        <th class="text-end">금융투자</th>
+                        <th class="text-end">보험</th>
+                        <th class="text-end">투신</th>
+                        <th class="text-end">은행</th>
+                        <th class="text-end">기타금융</th>
+                        <th class="text-end">연기금</th>
+                        <th class="text-end" style="padding-right:20px;">기타법인</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in futures_trends %}
+                    <tr>
+                        <td style="padding-left:20px;color:var(--text-muted);">{{ t.date|date:"m.d" }}</td>
+                        <td class="text-end {% if t.individual > 0 %}text-up{% elif t.individual < 0 %}text-down{% endif %}" {% if t.individual > 10000 or t.individual < -10000 %}style="font-weight:700;"{% endif %}>{{ t.individual|intcomma }}</td>
+                        <td class="text-end {% if t.foreign > 0 %}text-up{% elif t.foreign < 0 %}text-down{% endif %}" {% if t.foreign > 10000 or t.foreign < -10000 %}style="font-weight:700;"{% endif %}>{{ t.foreign|intcomma }}</td>
+                        <td class="text-end {% if t.institution > 0 %}text-up{% elif t.institution < 0 %}text-down{% endif %}" {% if t.institution > 10000 or t.institution < -10000 %}style="font-weight:700;"{% endif %}>{{ t.institution|intcomma }}</td>
+                        <td class="text-end {% if t.financial_investment > 0 %}text-up{% elif t.financial_investment < 0 %}text-down{% endif %}">{{ t.financial_investment|intcomma }}</td>
+                        <td class="text-end {% if t.insurance > 0 %}text-up{% elif t.insurance < 0 %}text-down{% endif %}">{{ t.insurance|intcomma }}</td>
+                        <td class="text-end {% if t.trust > 0 %}text-up{% elif t.trust < 0 %}text-down{% endif %}">{{ t.trust|intcomma }}</td>
+                        <td class="text-end {% if t.bank > 0 %}text-up{% elif t.bank < 0 %}text-down{% endif %}">{{ t.bank|intcomma }}</td>
+                        <td class="text-end {% if t.other_financial > 0 %}text-up{% elif t.other_financial < 0 %}text-down{% endif %}">{{ t.other_financial|intcomma }}</td>
+                        <td class="text-end {% if t.pension_fund > 0 %}text-up{% elif t.pension_fund < 0 %}text-down{% endif %}">{{ t.pension_fund|intcomma }}</td>
+                        <td class="text-end {% if t.other_corporation > 0 %}text-up{% elif t.other_corporation < 0 %}text-down{% endif %}" style="padding-right:20px;">{{ t.other_corporation|intcomma }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:24px;">데이터가 없습니다.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
+
+<!-- 유튜브 요약 타임라인 -->
+<h5 class="section-heading" style="margin-top: 32px;">유튜브</h5>
+<div id="section-youtube-timeline">
+    <div class="brief-card">
+        <!-- 추가 폼 -->
+        <div id="ytAddForm" class="d-none" style="margin-bottom: 20px; padding: 16px; background: #f9fafb; border-radius: 8px;">
+            <div style="margin-bottom:10px;">
+                <input type="text" id="ytLinkInput" class="form-control form-control-sm" placeholder="유튜브 링크 붙여넣기...">
+            </div>
+            <div style="margin-bottom:10px;">
+                <input type="text" id="ytNoteInput" class="form-control form-control-sm" placeholder="한줄 메모 (선택)">
+            </div>
+            <div style="margin-bottom: 10px;">
+                <textarea id="ytSummaryInput" class="form-control form-control-sm" rows="3" placeholder="요약 내용 입력..."></textarea>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnYtCancel" class="btn btn-sm" style="color:var(--text-secondary);border:1px solid var(--border-color);border-radius:6px;padding:4px 14px;">취소</button>
+                <button type="button" id="btnYtSave" class="btn btn-sm" style="background:var(--text-primary);color:#fff;border-radius:6px;padding:4px 14px;">저장</button>
+            </div>
+        </div>
+        <!-- 추가 버튼 -->
+        <div class="d-flex justify-content-end" style="margin-bottom: 16px;">
+            <button type="button" id="btnYtAdd" class="btn-refresh" style="padding: 6px 16px;">추가</button>
+        </div>
+        <!-- 타임라인 -->
+        <div id="ytTimeline" class="timeline"></div>
+        <div id="ytEmpty" style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px 0;">저장된 영상이 없습니다.</div>
+        <div id="ytMoreWrap" class="d-none" style="text-align:center;padding:12px 0;">
+            <button type="button" id="btnYtMore" class="btn-refresh" style="padding:6px 24px;">더보기</button>
+        </div>
+    </div>
+</div>
+
+<!-- 장전시황 -->
+<h5 class="section-heading" style="margin-top: 32px;">장전시황</h5>
+<div id="section-morning-market">
+    <!-- 하보노 -->
+    <div class="brief-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span style="font-size:0.82rem;color:var(--text-muted);">하보노 · 개장 전 체크포인트</span>
+            <button type="button" id="btnFetchHabono" class="btn-refresh" style="padding: 6px 16px;">불러오기</button>
+        </div>
+        <div id="habonoLoading" class="text-center py-4 d-none">
+            <div class="spinner-border spinner-border-sm" role="status" style="color: var(--text-muted);"></div>
+            <span style="margin-left:8px;font-size:0.85rem;color:var(--text-muted);">불러오는 중...</span>
+        </div>
+        <div id="habonoResult" class="d-none" style="font-size:0.85rem;line-height:2;"></div>
+        <div id="habonoEmpty" style="color:var(--text-muted);font-size:0.85rem;">버튼을 클릭하면 최신 게시물을 불러옵니다.</div>
+    </div>
+
+    <!-- 텔레그램 -->
+    <div class="brief-card" style="margin-top: 12px;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span style="font-size:0.82rem;color:var(--text-muted);">텔레그램</span>
+            <button type="button" id="btnFetchMorning" class="btn-refresh" style="padding: 6px 16px;">불러오기</button>
+        </div>
+        <div id="morningLoading" class="text-center py-4 d-none">
+            <div class="spinner-border spinner-border-sm" role="status" style="color: var(--text-muted);"></div>
+            <span style="margin-left:8px;font-size:0.85rem;color:var(--text-muted);">불러오는 중...</span>
+        </div>
+        <div id="morningResult" class="d-none"></div>
+        <div id="morningEmpty" style="color:var(--text-muted);font-size:0.85rem;">버튼을 클릭하면 오늘의 장전시황을 불러옵니다.</div>
+    </div>
+</div>
+
+<!-- 마감시황 -->
+<h5 class="section-heading" style="margin-top: 32px;">마감시황</h5>
+<div id="section-closing-market">
+    <!-- 하보노 마감체크포인트 -->
+    <div class="brief-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span style="font-size:0.82rem;color:var(--text-muted);">하보노 · 마감체크포인트</span>
+            <button type="button" id="btnFetchHabonoClose" class="btn-refresh" style="padding: 6px 16px;">불러오기</button>
+        </div>
+        <div id="habonoCloseLoading" class="text-center py-4 d-none">
+            <div class="spinner-border spinner-border-sm" role="status" style="color: var(--text-muted);"></div>
+            <span style="margin-left:8px;font-size:0.85rem;color:var(--text-muted);">불러오는 중...</span>
+        </div>
+        <div id="habonoCloseResult" class="d-none" style="font-size:0.85rem;line-height:2;"></div>
+        <div id="habonoCloseEmpty" style="color:var(--text-muted);font-size:0.85rem;">버튼을 클릭하면 최신 게시물을 불러옵니다.</div>
+    </div>
+
+    <!-- 하보노 마감시황자료 -->
+    <div class="brief-card" style="margin-top: 12px;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span style="font-size:0.82rem;color:var(--text-muted);">하보노 · 마감시황자료</span>
+            <button type="button" id="btnFetchHabonoData" class="btn-refresh" style="padding: 6px 16px;">불러오기</button>
+        </div>
+        <div id="habonoDataLoading" class="text-center py-4 d-none">
+            <div class="spinner-border spinner-border-sm" role="status" style="color: var(--text-muted);"></div>
+            <span style="margin-left:8px;font-size:0.85rem;color:var(--text-muted);">불러오는 중...</span>
+        </div>
+        <div id="habonoDataResult" class="d-none" style="font-size:0.85rem;line-height:2;"></div>
+        <div id="habonoDataEmpty" style="color:var(--text-muted);font-size:0.85rem;">버튼을 클릭하면 최신 게시물을 불러옵니다.</div>
+    </div>
+</div>
+
+<!-- 기타 -->
+<h5 class="section-heading" style="margin-top: 32px;">기타</h5>
+<div id="section-etc">
+    <div class="brief-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span style="font-size:0.82rem;color:var(--text-muted);">노다지 · 모닝브리프 / 마감브리프</span>
+            <button type="button" id="btnFetchBrief" class="btn-refresh" style="padding: 6px 16px;">불러오기</button>
+        </div>
+        <div id="briefLoading" class="text-center py-4 d-none">
+            <div class="spinner-border spinner-border-sm" role="status" style="color: var(--text-muted);"></div>
+            <span style="margin-left:8px;font-size:0.85rem;color:var(--text-muted);">불러오는 중... (5~10초 소요)</span>
+        </div>
+        <div id="briefResult" class="d-none"></div>
+        <div id="briefEmpty" style="color:var(--text-muted);font-size:0.85rem;">버튼을 클릭하면 최신 브리프를 불러옵니다.</div>
+    </div>
+
+    <!-- 하보노 시황 -->
+    <div class="brief-card" style="margin-top: 12px;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span style="font-size:0.82rem;color:var(--text-muted);">하보노 · 시황</span>
+            <button type="button" id="btnFetchHabonoEtc" class="btn-refresh" style="padding: 6px 16px;">불러오기</button>
+        </div>
+        <div id="habonoEtcLoading" class="text-center py-4 d-none">
+            <div class="spinner-border spinner-border-sm" role="status" style="color: var(--text-muted);"></div>
+            <span style="margin-left:8px;font-size:0.85rem;color:var(--text-muted);">불러오는 중...</span>
+        </div>
+        <div id="habonoEtcResult" class="d-none" style="font-size:0.85rem;line-height:2;"></div>
+        <div id="habonoEtcEmpty" style="color:var(--text-muted);font-size:0.85rem;">버튼을 클릭하면 최신 게시물을 불러옵니다.</div>
+    </div>
+
+    <!-- 삼프로 영상 -->
+    <div class="brief-card" style="margin-top: 12px;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span style="font-size:0.82rem;color:var(--text-muted);">삼프로TV · 최신 영상</span>
+            <div class="d-flex gap-2">
+                <a href="https://www.youtube.com/@3protv" target="_blank" class="btn-refresh" style="padding: 6px 16px;text-decoration:none;">라이브</a>
+                <a href="https://apps.3protv.com/original/pds" target="_blank" class="btn-refresh" style="padding: 6px 16px;text-decoration:none;">자료실</a>
+                <button type="button" id="btnFetch3pro" class="btn-refresh" style="padding: 6px 16px;">불러오기</button>
+            </div>
+        </div>
+        <div id="threeproLoading" class="text-center py-4 d-none">
+            <div class="spinner-border spinner-border-sm" role="status" style="color: var(--text-muted);"></div>
+            <span style="margin-left:8px;font-size:0.85rem;color:var(--text-muted);">불러오는 중...</span>
+        </div>
+        <div id="threeproResult" class="d-none"></div>
+        <div id="threeproEmpty" style="color:var(--text-muted);font-size:0.85rem;">버튼을 클릭하면 최신 영상을 불러옵니다.</div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
-<style>
-.ma-toggle { opacity: 1; transition: opacity 0.2s; }
-.ma-toggle:not(.active) { opacity: 0.3; }
-</style>
 <script>
-// 차트 데이터
+// ===== Data =====
 const kospiCandleData = {{ kospi_candle_data|safe }};
 const kospiVolumeData = {{ kospi_volume_data|safe }};
 const kosdaqCandleData = {{ kosdaq_candle_data|safe }};
 const kosdaqVolumeData = {{ kosdaq_volume_data|safe }};
+const kospiRawTrends = {{ kospi_raw_trends|safe }};
+const kosdaqRawTrends = {{ kosdaq_raw_trends|safe }};
+const futuresRawTrends = {{ futures_raw_trends|safe }};
 
-// 누적 순매수 데이터
-const kospiCumulativeData = {{ kospi_cumulative|safe }};
-const kosdaqCumulativeData = {{ kosdaq_cumulative|safe }};
-const futuresCumulativeData = {{ futures_cumulative|safe }};
+// Raw 데이터에서 누적 계산
+function buildCumulative(rawData, days) {
+    const sliced = rawData.slice(-days);
+    let cumInd = 0, cumFor = 0, cumInst = 0;
+    return sliced.map(d => {
+        cumInd += d.individual;
+        cumFor += d.foreign;
+        cumInst += d.institution;
+        return { date: d.date, individual: cumInd, foreign: cumFor, institution: cumInst };
+    });
+}
 
-// 차트 공통 옵션
+// ===== Chart Options =====
 const chartOptions = {
-    layout: {
-        background: { color: '#ffffff' },
-        textColor: '#333',
-    },
-    grid: {
-        vertLines: { color: '#f0f0f0' },
-        horzLines: { color: '#f0f0f0' },
-    },
-    timeScale: {
-        timeVisible: false,
-        borderColor: '#ddd',
-        fixLeftEdge: true,
-        fixRightEdge: true,
-    },
-    rightPriceScale: {
-        borderColor: '#ddd',
-    },
-    handleScale: {
-        axisPressedMouseMove: { price: false },
-    },
+    layout: { background: { color: '#ffffff' }, textColor: '#6b7280', fontSize: 11 },
+    grid: { vertLines: { color: '#f3f4f6' }, horzLines: { color: '#f3f4f6' } },
+    timeScale: { timeVisible: false, borderColor: '#e5e7eb', fixLeftEdge: true, fixRightEdge: true },
+    rightPriceScale: { borderColor: '#e5e7eb' },
+    handleScale: { axisPressedMouseMove: { price: false } },
+    crosshair: { mode: 0 },
 };
 
-// 이동평균 계산 함수
+const candleColors = {
+    upColor: '#ef5350', downColor: '#26a69a',
+    borderUpColor: '#ef5350', borderDownColor: '#26a69a',
+    wickUpColor: '#ef5350', wickDownColor: '#26a69a',
+};
+
+// ===== MA =====
+const maConfig = { 10: '#ff9800', 20: '#2196f3', 60: '#4caf50', 120: '#9c27b0' };
+const maSeries = { kospi: {}, kosdaq: {} };
+
 function calculateMA(data, period) {
     const result = [];
-    for (let i = 0; i < data.length; i++) {
-        if (i < period - 1) continue;
+    for (let i = period - 1; i < data.length; i++) {
         let sum = 0;
-        for (let j = 0; j < period; j++) {
-            sum += data[i - j].close;
-        }
-        result.push({
-            time: data[i].time,
-            value: sum / period,
-        });
+        for (let j = 0; j < period; j++) sum += data[i - j].close;
+        result.push({ time: data[i].time, value: sum / period });
     }
     return result;
 }
 
-// 이평선 설정
-const maConfig = {
-    10: '#ff9800',
-    20: '#2196f3',
-    60: '#4caf50',
-    120: '#9c27b0'
-};
+// ===== Init Charts =====
+function initCandleChart(containerId, candleData, volumeData, chartKey) {
+    const container = document.getElementById(containerId);
+    if (!container || candleData.length === 0) return;
 
-// 이평선 시리즈 저장
-const maSeries = { kospi: {}, kosdaq: {} };
+    const chart = LightweightCharts.createChart(container, { ...chartOptions, height: 340 });
 
-// KOSPI 차트
-function initKospiChart() {
-    const container = document.getElementById('kospiChart');
-    if (!container || kospiCandleData.length === 0) return;
+    const candleSeries = chart.addCandlestickSeries(candleColors);
+    candleSeries.setData(candleData);
 
-    const chart = LightweightCharts.createChart(container, {
-        ...chartOptions,
-        height: 300,
-    });
-
-    const candleSeries = chart.addCandlestickSeries({
-        upColor: '#ef5350',
-        downColor: '#26a69a',
-        borderUpColor: '#ef5350',
-        borderDownColor: '#26a69a',
-        wickUpColor: '#ef5350',
-        wickDownColor: '#26a69a',
-    });
-    candleSeries.setData(kospiCandleData);
-
-    // 이동평균선 (10, 20, 60, 120)
     for (const [period, color] of Object.entries(maConfig)) {
-        const series = chart.addLineSeries({
-            color: color,
-            lineWidth: 1,
-            priceLineVisible: false,
-            lastValueVisible: false,
-        });
-        series.setData(calculateMA(kospiCandleData, parseInt(period)));
-        maSeries.kospi[period] = series;
+        const series = chart.addLineSeries({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+        series.setData(calculateMA(candleData, parseInt(period)));
+        maSeries[chartKey][period] = series;
     }
 
     const volumeSeries = chart.addHistogramSeries({
-        priceFormat: { type: 'volume' },
-        priceScaleId: '',
+        priceFormat: { type: 'volume' }, priceScaleId: '',
         scaleMargins: { top: 0.85, bottom: 0 },
     });
-    volumeSeries.setData(kospiVolumeData);
+    volumeSeries.setData(volumeData);
 
     chart.timeScale().fitContent();
-
-    if (kospiCandleData.length > 0) {
-        chart.timeScale().setVisibleRange({
-            from: kospiCandleData[0].time,
-            to: kospiCandleData[kospiCandleData.length - 1].time,
-        });
+    if (candleData.length > 0) {
+        chart.timeScale().setVisibleRange({ from: candleData[0].time, to: candleData[candleData.length - 1].time });
     }
+    return chart;
 }
 
-// KOSDAQ 차트
-function initKosdaqChart() {
-    const container = document.getElementById('kosdaqChart');
-    if (!container || kosdaqCandleData.length === 0) return;
-
-    const chart = LightweightCharts.createChart(container, {
-        ...chartOptions,
-        height: 300,
-    });
-
-    const candleSeries = chart.addCandlestickSeries({
-        upColor: '#ef5350',
-        downColor: '#26a69a',
-        borderUpColor: '#ef5350',
-        borderDownColor: '#26a69a',
-        wickUpColor: '#ef5350',
-        wickDownColor: '#26a69a',
-    });
-    candleSeries.setData(kosdaqCandleData);
-
-    // 이동평균선 (10, 20, 60, 120)
-    for (const [period, color] of Object.entries(maConfig)) {
-        const series = chart.addLineSeries({
-            color: color,
-            lineWidth: 1,
-            priceLineVisible: false,
-            lastValueVisible: false,
-        });
-        series.setData(calculateMA(kosdaqCandleData, parseInt(period)));
-        maSeries.kosdaq[period] = series;
-    }
-
-    const volumeSeries = chart.addHistogramSeries({
-        priceFormat: { type: 'volume' },
-        priceScaleId: '',
-        scaleMargins: { top: 0.85, bottom: 0 },
-    });
-    volumeSeries.setData(kosdaqVolumeData);
-
-    chart.timeScale().fitContent();
-
-    if (kosdaqCandleData.length > 0) {
-        chart.timeScale().setVisibleRange({
-            from: kosdaqCandleData[0].time,
-            to: kosdaqCandleData[kosdaqCandleData.length - 1].time,
-        });
-    }
-}
-
-// 누적 순매수 차트 (공통 함수)
 function initCumulativeChart(containerId, data) {
     const container = document.getElementById(containerId);
     if (!container || data.length === 0) return null;
 
-    const chart = LightweightCharts.createChart(container, {
-        layout: {
-            background: { color: '#ffffff' },
-            textColor: '#333',
-        },
-        grid: {
-            vertLines: { color: '#f0f0f0' },
-            horzLines: { color: '#f0f0f0' },
-        },
-        timeScale: {
-            timeVisible: false,
-            borderColor: '#ddd',
-            fixLeftEdge: true,
-            fixRightEdge: true,
-        },
-        rightPriceScale: {
-            borderColor: '#ddd',
-        },
-        handleScale: {
-            axisPressedMouseMove: { price: false },
-        },
-        height: 250,
-    });
+    const chart = LightweightCharts.createChart(container, { ...chartOptions, height: 260 });
 
-    // 개인 (노란색)
-    const individualSeries = chart.addLineSeries({
-        color: '#ffc107',
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-    });
-    individualSeries.setData(data.map(d => ({
-        time: d.date,
-        value: d.individual,
-    })));
-
-    // 외국인 (녹색)
-    const foreignSeries = chart.addLineSeries({
-        color: '#198754',
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-    });
-    foreignSeries.setData(data.map(d => ({
-        time: d.date,
-        value: d.foreign,
-    })));
-
-    // 기관 (빨간색)
-    const institutionSeries = chart.addLineSeries({
-        color: '#dc3545',
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-    });
-    institutionSeries.setData(data.map(d => ({
-        time: d.date,
-        value: d.institution,
-    })));
-
+    const colors = { individual: '#ffc107', foreign: '#198754', institution: '#dc3545' };
+    for (const [key, color] of Object.entries(colors)) {
+        const series = chart.addLineSeries({ color, lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+        series.setData(data.map(d => ({ time: d.date, value: d[key] })));
+    }
     chart.timeScale().fitContent();
     return chart;
 }
 
-// 초기화
-initKospiChart();
-initKosdaqChart();
-initCumulativeChart('kospiCumulativeChart', kospiCumulativeData);
+// ===== Chart instances & full data =====
+const chartInstances = {};
+const fullData = {
+    kospi: { candle: kospiCandleData, volume: kospiVolumeData },
+    kosdaq: { candle: kosdaqCandleData, volume: kosdaqVolumeData },
+};
 
-// 이평선 토글 이벤트
+// Init (120일 기본)
+chartInstances.kospi = initCandleChart('kospiChart', kospiCandleData.slice(-120), kospiVolumeData.slice(-120), 'kospi');
+chartInstances.kosdaq = initCandleChart('kosdaqChart', kosdaqCandleData.slice(-120), kosdaqVolumeData.slice(-120), 'kosdaq');
+initCumulativeChart('kospiCumulativeChart', buildCumulative(kospiRawTrends, 120));
+
+// ===== Range Buttons =====
+document.querySelectorAll('.range-btns').forEach(group => {
+    group.querySelectorAll('.range-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            group.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+
+            const chartKey = group.dataset.chart;
+            const days = parseInt(this.dataset.days);
+            const candle = fullData[chartKey].candle;
+            const volume = fullData[chartKey].volume;
+
+            const slicedCandle = candle.slice(-days);
+            const slicedVolume = volume.slice(-days);
+
+            // Destroy and recreate chart
+            const containerId = chartKey + 'Chart';
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            maSeries[chartKey] = {};
+            chartInstances[chartKey] = initCandleChart(containerId, slicedCandle, slicedVolume, chartKey);
+
+            // Re-apply MA toggle states
+            document.querySelectorAll(`.ma-toggle[data-chart="${chartKey}"]`).forEach(badge => {
+                const period = badge.dataset.ma;
+                const series = maSeries[chartKey][period];
+                if (series) {
+                    series.applyOptions({ visible: badge.classList.contains('active') });
+                }
+            });
+        });
+    });
+});
+
+// ===== MA Toggle =====
 document.querySelectorAll('.ma-toggle').forEach(badge => {
     badge.addEventListener('click', function() {
-        const period = this.dataset.ma;
-        const chartName = this.dataset.chart;
-        const series = maSeries[chartName][period];
+        const series = maSeries[this.dataset.chart][this.dataset.ma];
         if (!series) return;
-
         const isActive = this.classList.toggle('active');
         series.applyOptions({ visible: isActive });
     });
 });
 
-// 탭 전환 시 차트 초기화 (숨겨진 탭의 차트는 처음에 렌더링되지 않음)
-let kosdaqCumulativeChartInit = false;
-let futuresCumulativeChartInit = false;
+// ===== Market Tab Switching =====
+const cumulativeChartInits = { kospi: true, kosdaq: false, futures: false };
+const rawTrendData = { kospi: kospiRawTrends, kosdaq: kosdaqRawTrends, futures: futuresRawTrends };
+let currentCumulativeDays = 120;
+let currentCumulativeMarket = 'kospi';
 
-document.getElementById('kosdaq-trend-tab').addEventListener('shown.bs.tab', () => {
-    if (!kosdaqCumulativeChartInit) {
-        initCumulativeChart('kosdaqCumulativeChart', kosdaqCumulativeData);
-        kosdaqCumulativeChartInit = true;
-    }
-});
+document.querySelectorAll('.market-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.market-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
 
-document.getElementById('futures-trend-tab').addEventListener('shown.bs.tab', () => {
-    if (!futuresCumulativeChartInit) {
-        initCumulativeChart('futuresCumulativeChart', futuresCumulativeData);
-        futuresCumulativeChartInit = true;
-    }
-});
+        const market = this.dataset.market;
 
-// 노다지 브리프
-const btnFetchBrief = document.getElementById('btnFetchBrief');
-const briefLoading = document.getElementById('briefLoading');
-const briefResult = document.getElementById('briefResult');
-const briefEmpty = document.getElementById('briefEmpty');
+        // Show/hide tables
+        ['kospi', 'kosdaq', 'futures'].forEach(m => {
+            document.getElementById(m + 'TrendTable').style.display = m === market ? '' : 'none';
+            document.getElementById(m + 'CumulativeChart').style.display = m === market ? '' : 'none';
+        });
 
-btnFetchBrief.addEventListener('click', async () => {
-    btnFetchBrief.disabled = true;
-    briefLoading.classList.remove('d-none');
-    briefResult.classList.add('d-none');
-    briefEmpty.classList.add('d-none');
+        // Update refresh button market
+        document.querySelector('.btn-refresh-trend').dataset.market = market.toUpperCase();
 
-    try {
-        const response = await fetch('/api/nodaji/brief/');
-        const data = await response.json();
+        currentCumulativeMarket = market;
 
-        if (data.error) {
-            briefResult.innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
-        } else if (data.results.length === 0) {
-            briefResult.innerHTML = '<div class="text-muted">브리프가 없습니다.</div>';
-        } else {
-            let html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0">';
-            html += '<thead class="table-light"><tr><th class="ps-3" style="width:100px;">날짜</th><th style="width:100px;">카테고리</th><th>제목</th></tr></thead><tbody>';
-            data.results.forEach(item => {
-                const categoryClass = item.category === '모닝브리프' ? 'text-primary' : 'text-danger';
-                html += `<tr>`;
-                html += `<td class="text-muted small ps-3">${item.date}</td>`;
-                html += `<td class="small ${categoryClass}">${item.category}</td>`;
-                html += `<td><a href="${item.link}" target="_blank" class="text-decoration-none">${item.title}</a></td>`;
-                html += `</tr>`;
-            });
-            html += '</tbody></table></div>';
-            briefResult.innerHTML = html;
+        // Init chart if needed
+        if (!cumulativeChartInits[market]) {
+            const containerId = market + 'CumulativeChart';
+            initCumulativeChart(containerId, buildCumulative(rawTrendData[market], currentCumulativeDays));
+            cumulativeChartInits[market] = true;
         }
-        briefResult.classList.remove('d-none');
 
-    } catch (err) {
-        briefResult.innerHTML = `<div class="alert alert-danger mb-0">오류: ${err.message}</div>`;
-        briefResult.classList.remove('d-none');
-    } finally {
-        btnFetchBrief.disabled = false;
-        briefLoading.classList.add('d-none');
-    }
+    });
 });
 
-// 차트 인스턴스 저장
-const cumulativeCharts = {};
+// ===== Cumulative Range Buttons =====
+document.querySelectorAll('.cumulative-range-btns .range-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.cumulative-range-btns .range-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
 
-// 시장 투자동향 새로고침
+        currentCumulativeDays = parseInt(this.dataset.days);
+        const containerId = currentCumulativeMarket + 'CumulativeChart';
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        initCumulativeChart(containerId, buildCumulative(rawTrendData[currentCumulativeMarket], currentCumulativeDays));
+    });
+});
+
+// ===== Refresh Trend =====
 document.querySelectorAll('.btn-refresh-trend').forEach(btn => {
     btn.addEventListener('click', async function() {
         const market = this.dataset.market;
-
-        // 버튼 비활성화 및 회전 애니메이션
         this.disabled = true;
         this.classList.add('spin');
 
         try {
             const response = await fetch(`/api/market/trend/${market}/refresh/`, {
                 method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                }
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
             });
             const data = await response.json();
 
             if (data.success) {
-                // 테이블 업데이트
                 updateTrendTable(market, data.table_data);
-                // 차트 업데이트
                 updateCumulativeChart(market, data.chart_data);
             } else {
                 alert(data.error || '업데이트 실패');
@@ -686,126 +1032,779 @@ document.querySelectorAll('.btn-refresh-trend').forEach(btn => {
     });
 });
 
-// 테이블 업데이트 함수
 function updateTrendTable(market, tableData) {
-    const tableId = `${market.toLowerCase()}TrendTable`;
-    const table = document.getElementById(tableId);
+    const table = document.getElementById(`${market.toLowerCase()}TrendTable`);
     if (!table) return;
 
     const tbody = table.querySelector('tbody');
-    if (!tbody) return;
+    const fmt = n => new Intl.NumberFormat('ko-KR').format(n);
+    const cls = v => v > 0 ? 'text-up' : v < 0 ? 'text-down' : '';
+    const bold = v => v > 10000 || v < -10000 ? 'font-weight:700;' : '';
 
-    // 숫자 포맷팅 함수
-    function formatNumber(num) {
-        return new Intl.NumberFormat('ko-KR').format(num);
-    }
-
-    // 색상 클래스 함수
-    function getColorClass(value) {
-        if (value > 0) return 'text-up';
-        if (value < 0) return 'text-down';
-        return '';
-    }
-
-    // tbody 내용 교체
     tbody.innerHTML = tableData.map(t => `
-        <tr class="small">
-            <td class="ps-3 text-muted">${t.date}</td>
-            <td class="text-end ${getColorClass(t.individual)}">${formatNumber(t.individual)}</td>
-            <td class="text-end ${getColorClass(t.foreign)}">${formatNumber(t.foreign)}</td>
-            <td class="text-end ${getColorClass(t.institution)}">${formatNumber(t.institution)}</td>
-            <td class="text-end ${getColorClass(t.financial_investment)}">${formatNumber(t.financial_investment)}</td>
-            <td class="text-end ${getColorClass(t.insurance)}">${formatNumber(t.insurance)}</td>
-            <td class="text-end ${getColorClass(t.trust)}">${formatNumber(t.trust)}</td>
-            <td class="text-end ${getColorClass(t.bank)}">${formatNumber(t.bank)}</td>
-            <td class="text-end ${getColorClass(t.other_financial)}">${formatNumber(t.other_financial)}</td>
-            <td class="text-end ${getColorClass(t.pension_fund)}">${formatNumber(t.pension_fund)}</td>
-            <td class="text-end pe-3 ${getColorClass(t.other_corporation)}">${formatNumber(t.other_corporation)}</td>
+        <tr>
+            <td style="padding-left:20px;color:var(--text-muted);">${t.date}</td>
+            <td class="text-end ${cls(t.individual)}" style="${bold(t.individual)}">${fmt(t.individual)}</td>
+            <td class="text-end ${cls(t.foreign)}" style="${bold(t.foreign)}">${fmt(t.foreign)}</td>
+            <td class="text-end ${cls(t.institution)}" style="${bold(t.institution)}">${fmt(t.institution)}</td>
+            <td class="text-end ${cls(t.financial_investment)}">${fmt(t.financial_investment)}</td>
+            <td class="text-end ${cls(t.insurance)}">${fmt(t.insurance)}</td>
+            <td class="text-end ${cls(t.trust)}">${fmt(t.trust)}</td>
+            <td class="text-end ${cls(t.bank)}">${fmt(t.bank)}</td>
+            <td class="text-end ${cls(t.other_financial)}">${fmt(t.other_financial)}</td>
+            <td class="text-end ${cls(t.pension_fund)}">${fmt(t.pension_fund)}</td>
+            <td class="text-end" style="padding-right:20px;${cls(t.other_corporation) ? 'color:' + (t.other_corporation > 0 ? 'var(--up-color)' : 'var(--down-color)') : ''}">${fmt(t.other_corporation)}</td>
         </tr>
     `).join('');
 }
 
-// 누적 차트 업데이트 함수
 function updateCumulativeChart(market, chartData) {
-    const containerId = `${market.toLowerCase()}CumulativeChart`;
+    const key = market.toLowerCase();
+    // chartData from refresh is raw daily data - update stored raw data
+    rawTrendData[key] = chartData;
+    const containerId = `${key}CumulativeChart`;
     const container = document.getElementById(containerId);
     if (!container || chartData.length === 0) return;
-
-    // 기존 차트 제거
     container.innerHTML = '';
-
-    // 새 차트 생성
-    const chart = LightweightCharts.createChart(container, {
-        layout: {
-            background: { color: '#ffffff' },
-            textColor: '#333',
-        },
-        grid: {
-            vertLines: { color: '#f0f0f0' },
-            horzLines: { color: '#f0f0f0' },
-        },
-        timeScale: {
-            timeVisible: false,
-            borderColor: '#ddd',
-            fixLeftEdge: true,
-            fixRightEdge: true,
-        },
-        rightPriceScale: {
-            borderColor: '#ddd',
-        },
-        handleScale: {
-            axisPressedMouseMove: { price: false },
-        },
-        height: 250,
-    });
-
-    // 개인 (노란색)
-    const individualSeries = chart.addLineSeries({
-        color: '#ffc107',
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-    });
-    individualSeries.setData(chartData.map(d => ({
-        time: d.date,
-        value: d.individual,
-    })));
-
-    // 외국인 (녹색)
-    const foreignSeries = chart.addLineSeries({
-        color: '#198754',
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-    });
-    foreignSeries.setData(chartData.map(d => ({
-        time: d.date,
-        value: d.foreign,
-    })));
-
-    // 기관 (빨간색)
-    const institutionSeries = chart.addLineSeries({
-        color: '#dc3545',
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-    });
-    institutionSeries.setData(chartData.map(d => ({
-        time: d.date,
-        value: d.institution,
-    })));
-
-    chart.timeScale().fitContent();
-    cumulativeCharts[market] = chart;
+    initCumulativeChart(containerId, buildCumulative(chartData, currentCumulativeDays));
+    cumulativeChartInits[key] = true;
 }
+
+// ===== YouTube Timeline =====
+const ytTimeline = document.getElementById('ytTimeline');
+const ytEmpty = document.getElementById('ytEmpty');
+const btnYtAdd = document.getElementById('btnYtAdd');
+const ytAddForm = document.getElementById('ytAddForm');
+const ytLinkInput = document.getElementById('ytLinkInput');
+const ytSummaryInput = document.getElementById('ytSummaryInput');
+const btnYtSave = document.getElementById('btnYtSave');
+const btnYtCancel = document.getElementById('btnYtCancel');
+
+btnYtAdd.addEventListener('click', () => {
+    ytAddForm.classList.remove('d-none');
+    btnYtAdd.classList.add('d-none');
+    ytLinkInput.focus();
+});
+btnYtCancel.addEventListener('click', () => {
+    ytAddForm.classList.add('d-none');
+    btnYtAdd.classList.remove('d-none');
+    ytLinkInput.value = '';
+    document.getElementById('ytNoteInput').value = '';
+    ytSummaryInput.value = '';
+});
+
+function formatDateLabel(dateStr) {
+    const today = new Date();
+    const d = new Date(dateStr + 'T00:00:00');
+    const diffDays = Math.floor((today - d) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return '오늘';
+    if (diffDays === 1) return '어제';
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    return `${m}월 ${day}일`;
+}
+
+function renderYtTimeline(videos) {
+    if (!videos || videos.length === 0) {
+        ytTimeline.innerHTML = '';
+        ytEmpty.style.display = '';
+        return;
+    }
+    ytEmpty.style.display = 'none';
+
+    // 날짜별 그룹핑
+    const groups = {};
+    videos.forEach(v => {
+        if (!groups[v.date]) groups[v.date] = [];
+        groups[v.date].push(v);
+    });
+
+    let html = '';
+    Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(date => {
+        html += `<div class="timeline-group">`;
+        html += `<div class="timeline-date">${formatDateLabel(date)}</div>`;
+        groups[date].forEach(v => {
+            const summaryHtml = v.summary ? parseMd(v.summary) : '<span style="color:var(--text-muted);">요약 없음</span>';
+            const thumb = `https://i.ytimg.com/vi/${v.video_id}/mqdefault.jpg`;
+            const escapedSummary = (v.summary || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            html += `<div class="timeline-item" data-id="${v.id}">
+                <div class="timeline-card">
+                    <a href="${v.url}" target="_blank"><img class="yt-thumb" src="${thumb}" alt=""></a>
+                    <div class="yt-card-body">
+                        <div class="timeline-card-title">
+                            <a href="${v.url}" target="_blank">${v.title}</a>
+                        </div>
+                        ${v.note ? `<div style="font-size:0.8rem;color:var(--text-primary);margin-bottom:6px;font-weight:500;">${v.note}</div>` : ''}
+                        <div class="timeline-card-summary yt-summary-view" data-id="${v.id}">${summaryHtml}</div>
+                        <span class="btn-yt-toggle" data-id="${v.id}">더보기</span>
+                        <div class="yt-summary-edit d-none" data-id="${v.id}">
+                            <div style="margin-bottom:6px;">
+                                <label style="font-size:0.72rem;color:var(--text-muted);">게시일</label>
+                                <input type="date" class="form-control form-control-sm yt-edit-date" data-id="${v.id}" value="${v.date}" style="width:160px;font-size:0.82rem;">
+                            </div>
+                            <div style="margin-bottom:6px;">
+                                <input type="text" class="form-control form-control-sm yt-edit-note" data-id="${v.id}" value="${v.note || ''}" placeholder="한줄 메모 (선택)" style="font-size:0.82rem;">
+                            </div>
+                            <textarea class="form-control form-control-sm" rows="3" style="font-size:0.82rem;">${v.summary || ''}</textarea>
+                            <div class="d-flex justify-content-end gap-2" style="margin-top:6px;">
+                                <button type="button" class="btn btn-sm btn-yt-edit-cancel" data-id="${v.id}" style="color:var(--text-secondary);border:1px solid var(--border-color);border-radius:6px;padding:2px 10px;font-size:0.75rem;">취소</button>
+                                <button type="button" class="btn btn-sm btn-yt-edit-save" data-id="${v.id}" style="background:var(--text-primary);color:#fff;border-radius:6px;padding:2px 10px;font-size:0.75rem;">저장</button>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+                            <span class="yt-channel">${v.channel || ''}</span>
+                            <div style="display:flex;gap:10px;">
+                                <span class="btn-yt-edit" data-id="${v.id}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
+                                <span class="btn-yt-delete" data-id="${v.id}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">삭제</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        });
+        html += `</div>`;
+    });
+    ytTimeline.innerHTML = html;
+
+    // 삭제 이벤트
+    ytTimeline.querySelectorAll('.btn-yt-delete').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!confirm('삭제하시겠습니까?')) return;
+            const id = btn.dataset.id;
+            try {
+                const resp = await fetch(`/api/market/youtube/${id}/delete/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+                });
+                const data = await resp.json();
+                if (data.success) loadYtTimeline(true);
+            } catch (err) {
+                alert('삭제 오류: ' + err.message);
+            }
+        });
+    });
+
+    // 수정 버튼 → 편집 모드
+    ytTimeline.querySelectorAll('.btn-yt-edit').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            ytTimeline.querySelector(`.yt-summary-view[data-id="${id}"]`).classList.add('d-none');
+            ytTimeline.querySelector(`.yt-summary-edit[data-id="${id}"]`).classList.remove('d-none');
+        });
+    });
+
+    // 수정 취소
+    ytTimeline.querySelectorAll('.btn-yt-edit-cancel').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            ytTimeline.querySelector(`.yt-summary-view[data-id="${id}"]`).classList.remove('d-none');
+            ytTimeline.querySelector(`.yt-summary-edit[data-id="${id}"]`).classList.add('d-none');
+        });
+    });
+
+    // 수정 저장
+    ytTimeline.querySelectorAll('.btn-yt-edit-save').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            const textarea = ytTimeline.querySelector(`.yt-summary-edit[data-id="${id}"] textarea`);
+            const dateInput = ytTimeline.querySelector(`.yt-edit-date[data-id="${id}"]`);
+            btn.disabled = true;
+            btn.textContent = '저장 중...';
+            try {
+                const formData = new FormData();
+                const noteInput = ytTimeline.querySelector(`.yt-edit-note[data-id="${id}"]`);
+                formData.append('note', noteInput.value);
+                formData.append('summary', textarea.value);
+                if (dateInput.value) formData.append('date', dateInput.value);
+                const resp = await fetch(`/api/market/youtube/${id}/update/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: formData
+                });
+                const data = await resp.json();
+                if (data.success) loadYtTimeline(true);
+                else alert(data.error || '수정 실패');
+            } catch (err) {
+                alert('수정 오류: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '저장';
+            }
+        });
+    });
+
+    // 더보기/접기
+    ytTimeline.querySelectorAll('.btn-yt-toggle').forEach(btn => {
+        const id = btn.dataset.id;
+        const summary = ytTimeline.querySelector(`.yt-summary-view[data-id="${id}"]`);
+        // 내용이 짧으면 버튼 숨김
+        if (summary.scrollHeight <= summary.offsetHeight + 2) {
+            btn.style.display = 'none';
+        }
+        btn.addEventListener('click', () => {
+            if (summary.classList.contains('expanded')) {
+                summary.classList.remove('expanded');
+                btn.textContent = '더보기';
+            } else {
+                summary.classList.add('expanded');
+                btn.textContent = '접기';
+            }
+        });
+    });
+}
+
+const YT_PAGE_SIZE = 30;
+let ytAllVideos = [];
+const ytMoreWrap = document.getElementById('ytMoreWrap');
+const btnYtMore = document.getElementById('btnYtMore');
+
+async function loadYtTimeline(reset) {
+    if (reset) ytAllVideos = [];
+    const offset = ytAllVideos.length;
+    try {
+        const resp = await fetch(`/api/market/youtube/?limit=${YT_PAGE_SIZE}&offset=${offset}`);
+        const data = await resp.json();
+        if (data.success) {
+            ytAllVideos = ytAllVideos.concat(data.results);
+            renderYtTimeline(ytAllVideos);
+            if (data.has_more) {
+                ytMoreWrap.classList.remove('d-none');
+            } else {
+                ytMoreWrap.classList.add('d-none');
+            }
+        }
+    } catch (err) {
+        console.error('유튜브 목록 로드 오류:', err);
+    }
+}
+
+btnYtMore.addEventListener('click', () => loadYtTimeline(false));
+
+btnYtSave.addEventListener('click', async () => {
+    const link = ytLinkInput.value.trim();
+    const summary = ytSummaryInput.value.trim();
+    if (!link) { alert('유튜브 링크를 입력하세요.'); return; }
+
+    btnYtSave.disabled = true;
+    btnYtSave.textContent = '저장 중...';
+    try {
+        const formData = new FormData();
+        formData.append('link', link);
+        formData.append('note', document.getElementById('ytNoteInput').value.trim());
+        formData.append('summary', summary);
+        const resp = await fetch('/api/market/youtube/save/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: formData
+        });
+        const data = await resp.json();
+        if (data.error) {
+            alert(data.error);
+        } else {
+            ytLinkInput.value = '';
+            ytSummaryInput.value = '';
+            ytAddForm.classList.add('d-none');
+            btnYtAdd.classList.remove('d-none');
+            loadYtTimeline(true);
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+    } finally {
+        btnYtSave.disabled = false;
+        btnYtSave.textContent = '저장';
+    }
+});
+
+// 페이지 로드 시 첫 30개 가져오기
+loadYtTimeline(true);
+
+// ===== Habono (공통) =====
+const HABONO_CACHE_TTL = 24 * 60 * 60 * 1000;
+
+function initHabono({ btnId, loadingId, resultId, emptyId, cacheKey, category, limit }) {
+    const btn = document.getElementById(btnId);
+    const loading = document.getElementById(loadingId);
+    const result = document.getElementById(resultId);
+    const empty = document.getElementById(emptyId);
+
+    function render(results) {
+        result.innerHTML = results.map(item =>
+            `<a href="${item.url}" target="_blank" style="display:block;color:var(--text-body);text-decoration:none;">${item.title}<span style="margin-left:8px;font-size:0.75rem;color:var(--text-muted);">${item.date}</span></a>`
+        ).join('');
+        result.classList.remove('d-none');
+        empty.classList.add('d-none');
+    }
+
+    // 캐시 로드
+    try {
+        const cached = JSON.parse(localStorage.getItem(cacheKey));
+        if (cached && Date.now() - cached.ts < HABONO_CACHE_TTL && cached.results.length > 0) {
+            render(cached.results);
+        }
+    } catch(e) {}
+
+    btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        loading.classList.remove('d-none');
+        result.classList.add('d-none');
+        empty.classList.add('d-none');
+
+        try {
+            const response = await fetch(`/api/habono/?category=${category}${limit ? '&limit=' + limit : ''}`);
+            const data = await response.json();
+
+            if (data.error) {
+                result.innerHTML = `<div style="color:var(--up-color);padding:12px;background:#fef2f2;border-radius:8px;">${data.error}</div>`;
+                result.classList.remove('d-none');
+            } else if (data.results.length === 0) {
+                result.innerHTML = '<div style="color:var(--text-muted);">게시물이 없습니다.</div>';
+                result.classList.remove('d-none');
+            } else {
+                localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), results: data.results }));
+                render(data.results);
+            }
+        } catch (err) {
+            result.innerHTML = `<div style="color:var(--up-color);padding:12px;background:#fef2f2;border-radius:8px;">오류: ${err.message}</div>`;
+            result.classList.remove('d-none');
+        } finally {
+            btn.disabled = false;
+            loading.classList.add('d-none');
+        }
+    });
+}
+
+// 장전시황 - 하보노 개장 전 체크포인트
+initHabono({ btnId: 'btnFetchHabono', loadingId: 'habonoLoading', resultId: 'habonoResult', emptyId: 'habonoEmpty', cacheKey: 'habono_open', category: '18f2bc7d3da000aui' });
+// 마감시황 - 하보노 마감체크포인트
+initHabono({ btnId: 'btnFetchHabonoClose', loadingId: 'habonoCloseLoading', resultId: 'habonoCloseResult', emptyId: 'habonoCloseEmpty', cacheKey: 'habono_close', category: '19be0a983e5000mk8' });
+// 마감시황 - 하보노 마감시황자료
+initHabono({ btnId: 'btnFetchHabonoData', loadingId: 'habonoDataLoading', resultId: 'habonoDataResult', emptyId: 'habonoDataEmpty', cacheKey: 'habono_data', category: '19be41e615d0004p8' });
+// 기타 - 하보노 시황
+initHabono({ btnId: 'btnFetchHabonoEtc', loadingId: 'habonoEtcLoading', resultId: 'habonoEtcResult', emptyId: 'habonoEtcEmpty', cacheKey: 'habono_etc', category: '19959997b68000aur', limit: 8 });
+
+// ===== 삼프로TV =====
+const btnFetch3pro = document.getElementById('btnFetch3pro');
+const threeproLoading = document.getElementById('threeproLoading');
+const threeproResult = document.getElementById('threeproResult');
+const threeproEmpty = document.getElementById('threeproEmpty');
+
+const THREEPRO_CACHE_KEY = 'threeproCacheV2';
+const THREEPRO_CACHE_TTL = 24 * 60 * 60 * 1000;
+
+function render3proResults(results) {
+    threeproResult.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">` +
+        results.map(item =>
+            `<a href="${item.url}" target="_blank" style="text-decoration:none;color:var(--text-body);">
+                <img src="${item.thumbnail}" style="width:100%;border-radius:6px;aspect-ratio:16/9;object-fit:cover;">
+                <div style="font-size:0.8rem;line-height:1.4;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${item.title}</div>
+                ${item.published ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">${item.published}</div>` : ''}
+            </a>`
+        ).join('') + `</div>`;
+    threeproResult.classList.remove('d-none');
+    threeproEmpty.classList.add('d-none');
+}
+
+(function load3proCache() {
+    try {
+        const cached = JSON.parse(localStorage.getItem(THREEPRO_CACHE_KEY));
+        if (cached && Date.now() - cached.ts < THREEPRO_CACHE_TTL && cached.results.length > 0) {
+            render3proResults(cached.results);
+        }
+    } catch(e) {}
+})();
+
+btnFetch3pro.addEventListener('click', async () => {
+    btnFetch3pro.disabled = true;
+    threeproLoading.classList.remove('d-none');
+    threeproResult.classList.add('d-none');
+    threeproEmpty.classList.add('d-none');
+
+    try {
+        const response = await fetch('/api/youtube-channel/?channel=@3protv&limit=15');
+        const data = await response.json();
+
+        if (data.error) {
+            threeproResult.innerHTML = `<div style="color:var(--up-color);padding:12px;background:#fef2f2;border-radius:8px;">${data.error}</div>`;
+            threeproResult.classList.remove('d-none');
+        } else if (data.results.length === 0) {
+            threeproResult.innerHTML = '<div style="color:var(--text-muted);">영상이 없습니다.</div>';
+            threeproResult.classList.remove('d-none');
+        } else {
+            localStorage.setItem(THREEPRO_CACHE_KEY, JSON.stringify({ ts: Date.now(), results: data.results }));
+            render3proResults(data.results);
+        }
+    } catch (err) {
+        threeproResult.innerHTML = `<div style="color:var(--up-color);padding:12px;background:#fef2f2;border-radius:8px;">오류: ${err.message}</div>`;
+        threeproResult.classList.remove('d-none');
+    } finally {
+        btnFetch3pro.disabled = false;
+        threeproLoading.classList.add('d-none');
+    }
+});
+
+// ===== Morning Market =====
+const btnFetchMorning = document.getElementById('btnFetchMorning');
+const morningLoading = document.getElementById('morningLoading');
+const morningResult = document.getElementById('morningResult');
+const morningEmpty = document.getElementById('morningEmpty');
+
+const MORNING_CACHE_KEY = 'morningMarketCache';
+const MORNING_CACHE_TTL = 24 * 60 * 60 * 1000; // 24시간
+
+function renderMorningResults(results) {
+    morningResult.innerHTML = results.map(item =>
+        `<div style="background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:12px;">
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;">${item.date} ${item.time}</div>
+            <div class="morning-md" style="font-size:0.85rem;line-height:1.7;">${parseMd(item.text)}</div>
+        </div>`
+    ).join('');
+    morningResult.classList.remove('d-none');
+    morningEmpty.classList.add('d-none');
+}
+
+// 페이지 로드 시 캐시 확인
+(function loadMorningCache() {
+    try {
+        const cached = JSON.parse(localStorage.getItem(MORNING_CACHE_KEY));
+        if (cached && Date.now() - cached.ts < MORNING_CACHE_TTL && cached.results.length > 0) {
+            renderMorningResults(cached.results);
+        }
+    } catch(e) {}
+})();
+
+function parseMd(text) {
+    // escape HTML
+    let html = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    // bold: **text** or __text__
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    // italic: *text* or _text_ (not inside bold)
+    html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+    // strikethrough: ~~text~~
+    html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
+    // inline code: `text`
+    html = html.replace(/`(.+?)`/g, '<code style="background:#e5e7eb;padding:1px 4px;border-radius:3px;font-size:0.82rem;">$1</code>');
+    // links: [text](url)
+    html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" style="color:#2962ff;">$1</a>');
+    // bare URLs
+    html = html.replace(/(?<!")(?<!')(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" style="color:#2962ff;">$1</a>');
+    // newlines to <br>
+    html = html.replace(/\n/g, '<br>');
+    return html;
+}
+
+btnFetchMorning.addEventListener('click', async () => {
+    btnFetchMorning.disabled = true;
+    morningLoading.classList.remove('d-none');
+    morningResult.classList.add('d-none');
+    morningEmpty.classList.add('d-none');
+
+    try {
+        const response = await fetch('/api/morning-market/');
+        const data = await response.json();
+
+        if (data.error) {
+            morningResult.innerHTML = `<div style="color:var(--up-color);padding:12px;background:#fef2f2;border-radius:8px;">${data.error}</div>`;
+            morningResult.classList.remove('d-none');
+        } else if (data.results.length === 0) {
+            morningResult.innerHTML = '<div style="color:var(--text-muted);">오늘의 모닝시황이 없습니다.</div>';
+            morningResult.classList.remove('d-none');
+        } else {
+            localStorage.setItem(MORNING_CACHE_KEY, JSON.stringify({ ts: Date.now(), results: data.results }));
+            renderMorningResults(data.results);
+        }
+    } catch (err) {
+        morningResult.innerHTML = `<div style="color:var(--up-color);padding:12px;background:#fef2f2;border-radius:8px;">오류: ${err.message}</div>`;
+        morningResult.classList.remove('d-none');
+    } finally {
+        btnFetchMorning.disabled = false;
+        morningLoading.classList.add('d-none');
+    }
+});
+
+// ===== Nodaji Brief =====
+const btnFetchBrief = document.getElementById('btnFetchBrief');
+const briefLoading = document.getElementById('briefLoading');
+const briefResult = document.getElementById('briefResult');
+const briefEmpty = document.getElementById('briefEmpty');
+
+const BRIEF_CACHE_KEY = 'nodajiBriefCache';
+const BRIEF_CACHE_TTL = 24 * 60 * 60 * 1000; // 24시간
+
+function renderBriefResults(results) {
+    let html = '<table class="modern-table"><thead><tr>';
+    html += '<th style="padding-left:20px;width:100px;">날짜</th>';
+    html += '<th style="width:100px;">카테고리</th><th>제목</th></tr></thead><tbody>';
+    results.forEach(item => {
+        const catStyle = item.category === '모닝브리프' ? 'color:#2962ff;' : 'color:#dc3545;';
+        html += `<tr>`;
+        html += `<td style="padding-left:20px;color:var(--text-muted);">${item.date}</td>`;
+        html += `<td style="${catStyle}font-weight:500;">${item.category}</td>`;
+        html += `<td><a href="${item.link}" target="_blank" style="color:var(--text-primary);text-decoration:none;">${item.title}</a></td>`;
+        html += `</tr>`;
+    });
+    html += '</tbody></table>';
+    briefResult.innerHTML = html;
+    briefResult.classList.remove('d-none');
+    briefEmpty.classList.add('d-none');
+}
+
+// 페이지 로드 시 캐시 확인
+(function loadBriefCache() {
+    try {
+        const cached = JSON.parse(localStorage.getItem(BRIEF_CACHE_KEY));
+        if (cached && Date.now() - cached.ts < BRIEF_CACHE_TTL && cached.results.length > 0) {
+            renderBriefResults(cached.results);
+        }
+    } catch(e) {}
+})();
+
+btnFetchBrief.addEventListener('click', async () => {
+    btnFetchBrief.disabled = true;
+    briefLoading.classList.remove('d-none');
+    briefResult.classList.add('d-none');
+    briefEmpty.classList.add('d-none');
+
+    try {
+        const response = await fetch('/api/nodaji/brief/');
+        const data = await response.json();
+
+        if (data.error) {
+            briefResult.innerHTML = `<div style="color:var(--up-color);padding:12px;background:#fef2f2;border-radius:8px;">${data.error}</div>`;
+            briefResult.classList.remove('d-none');
+        } else if (data.results.length === 0) {
+            briefResult.innerHTML = '<div style="color:var(--text-muted);">브리프가 없습니다.</div>';
+            briefResult.classList.remove('d-none');
+        } else {
+            localStorage.setItem(BRIEF_CACHE_KEY, JSON.stringify({ ts: Date.now(), results: data.results }));
+            renderBriefResults(data.results);
+        }
+    } catch (err) {
+        briefResult.innerHTML = `<div style="color:var(--up-color);padding:12px;background:#fef2f2;border-radius:8px;">오류: ${err.message}</div>`;
+        briefResult.classList.remove('d-none');
+    } finally {
+        btnFetchBrief.disabled = false;
+        briefLoading.classList.add('d-none');
+    }
+});
+
+// ===== 투자일기 =====
+const diaryTimeline = document.getElementById('diaryTimeline');
+const diaryEmpty = document.getElementById('diaryEmpty');
+const diaryMore = document.getElementById('diaryMore');
+const btnDiaryMore = document.getElementById('btnDiaryMore');
+const btnDiaryNew = document.getElementById('btnDiaryNew');
+const diaryForm = document.getElementById('diaryForm');
+const diaryDate = document.getElementById('diaryDate');
+const diaryContent = document.getElementById('diaryContent');
+const btnDiarySave = document.getElementById('btnDiarySave');
+const btnDiaryCancel = document.getElementById('btnDiaryCancel');
+
+let diaryOffset = 0;
+const diaryLimit = 20;
+let diaryEditId = null; // 수정 모드일 때 ID
+
+diaryDate.value = new Date().toISOString().split('T')[0];
+
+function kospiChangeHtml(price, change) {
+    if (price == null) return '';
+    let changeStr = '';
+    if (change != null) {
+        const color = change > 0 ? 'var(--up-color)' : change < 0 ? 'var(--down-color)' : 'var(--text-muted)';
+        const sign = change > 0 ? '+' : '';
+        changeStr = `<span style="color:${color};margin-left:4px;">${sign}${change}%</span>`;
+    }
+    return `<span style="font-size:0.78rem;color:var(--text-muted);">KOSPI ${price.toLocaleString()}${changeStr}</span>`;
+}
+
+function renderDiaryItem(item) {
+    const expanded = false;
+    const previewLen = 100;
+    const needFold = item.content.length > previewLen;
+    const preview = needFold ? item.content.substring(0, previewLen) + '...' : item.content;
+
+    return `<div class="diary-item" data-id="${item.id}" style="border-bottom:1px solid #f0f0f0;padding:14px 0;">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <div style="font-size:0.82rem;font-weight:600;color:var(--text-body);">
+                    ${item.date}
+                    ${kospiChangeHtml(item.kospi_price, item.kospi_change)}
+                </div>
+                <div class="diary-content-preview morning-md" style="font-size:0.85rem;line-height:1.7;margin-top:6px;color:var(--text-body);">${parseMd(preview)}</div>
+                ${needFold ? `<div class="diary-content-full morning-md d-none" style="font-size:0.85rem;line-height:1.7;margin-top:6px;color:var(--text-body);">${parseMd(item.content)}</div>` : ''}
+            </div>
+            <div class="d-flex gap-1" style="flex-shrink:0;margin-left:12px;">
+                ${needFold ? `<button class="btn-diary-toggle btn-refresh" style="padding:3px 10px;font-size:0.75rem;">펼치기</button>` : ''}
+                <button class="btn-diary-edit btn-refresh" style="padding:3px 10px;font-size:0.75rem;">수정</button>
+                <button class="btn-diary-delete btn-refresh" style="padding:3px 10px;font-size:0.75rem;">삭제</button>
+            </div>
+        </div>
+    </div>`;
+}
+
+async function loadDiary(reset) {
+    if (reset) {
+        diaryOffset = 0;
+        diaryTimeline.innerHTML = '';
+    }
+
+    try {
+        const res = await fetch(`/api/diary/?limit=${diaryLimit}&offset=${diaryOffset}`);
+        const data = await res.json();
+
+        if (data.results.length > 0) {
+            diaryTimeline.innerHTML += data.results.map(renderDiaryItem).join('');
+            diaryEmpty.classList.add('d-none');
+        } else if (diaryOffset === 0) {
+            diaryEmpty.classList.remove('d-none');
+        }
+
+        diaryOffset += data.results.length;
+        if (data.has_more) {
+            diaryMore.classList.remove('d-none');
+        } else {
+            diaryMore.classList.add('d-none');
+        }
+    } catch(e) {
+        console.error('diary load error', e);
+    }
+}
+
+// 초기 로드
+loadDiary(true);
+
+// 더보기
+btnDiaryMore.addEventListener('click', () => loadDiary(false));
+
+// 새 글 작성
+btnDiaryNew.addEventListener('click', () => {
+    diaryEditId = null;
+    diaryDate.value = new Date().toISOString().split('T')[0];
+    diaryDate.disabled = false;
+    diaryContent.value = '';
+    diaryForm.classList.remove('d-none');
+    btnDiaryNew.classList.add('d-none');
+    diaryContent.focus();
+});
+
+// 취소
+btnDiaryCancel.addEventListener('click', () => {
+    diaryForm.classList.add('d-none');
+    btnDiaryNew.classList.remove('d-none');
+    diaryEditId = null;
+});
+
+// 저장
+btnDiarySave.addEventListener('click', async () => {
+    const content = diaryContent.value.trim();
+    if (!content) return alert('내용을 입력하세요.');
+
+    btnDiarySave.disabled = true;
+    btnDiarySave.textContent = '저장 중...';
+
+    try {
+        const fd = new FormData();
+        fd.append('content', content);
+
+        let url, method = 'POST';
+        if (diaryEditId) {
+            fd.append('date', diaryDate.value);
+            url = `/api/diary/${diaryEditId}/update/`;
+        } else {
+            fd.append('date', diaryDate.value);
+            url = '/api/diary/save/';
+        }
+
+        const res = await fetch(url, {
+            method,
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: fd
+        });
+        const data = await res.json();
+        if (data.error) {
+            alert(data.error);
+        } else {
+            diaryForm.classList.add('d-none');
+            btnDiaryNew.classList.remove('d-none');
+            diaryEditId = null;
+            loadDiary(true);
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+    } finally {
+        btnDiarySave.disabled = false;
+        btnDiarySave.textContent = '저장';
+    }
+});
+
+// 이벤트 위임: 펼치기/접기, 수정, 삭제
+diaryTimeline.addEventListener('click', async (e) => {
+    const item = e.target.closest('.diary-item');
+    if (!item) return;
+    const id = item.dataset.id;
+
+    // 펼치기/접기
+    if (e.target.classList.contains('btn-diary-toggle')) {
+        const preview = item.querySelector('.diary-content-preview');
+        const full = item.querySelector('.diary-content-full');
+        if (full.classList.contains('d-none')) {
+            full.classList.remove('d-none');
+            preview.classList.add('d-none');
+            e.target.textContent = '접기';
+        } else {
+            full.classList.add('d-none');
+            preview.classList.remove('d-none');
+            e.target.textContent = '펼치기';
+        }
+        return;
+    }
+
+    // 수정
+    if (e.target.classList.contains('btn-diary-edit')) {
+        const fullEl = item.querySelector('.diary-content-full');
+        const previewEl = item.querySelector('.diary-content-preview');
+        // 원본 텍스트는 full이 있으면 full의 원본, 없으면 preview
+        // API에서 다시 가져오는 게 안전
+        const res = await fetch(`/api/diary/?limit=1&offset=0`);
+        // 간단하게: item의 날짜에서 텍스트 추출
+        const dateText = item.querySelector('div[style*="font-weight:600"]').textContent.trim().split('\n')[0].trim();
+
+        // 전체 목록에서 해당 id의 content를 가져오기
+        try {
+            const allRes = await fetch(`/api/diary/?limit=100&offset=0`);
+            const allData = await allRes.json();
+            const entry = allData.results.find(r => r.id == id);
+            if (entry) {
+                diaryEditId = id;
+                diaryDate.value = entry.date;
+                diaryDate.disabled = false;
+                diaryContent.value = entry.content;
+                diaryForm.classList.remove('d-none');
+                btnDiaryNew.classList.add('d-none');
+                diaryContent.focus();
+            }
+        } catch(err) {}
+        return;
+    }
+
+    // 삭제
+    if (e.target.classList.contains('btn-diary-delete')) {
+        if (!confirm('이 일기를 삭제하시겠습니까?')) return;
+        try {
+            const res = await fetch(`/api/diary/${id}/delete/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            });
+            const data = await res.json();
+            if (data.success) {
+                loadDiary(true);
+            } else {
+                alert(data.error || '삭제 실패');
+            }
+        } catch(err) {
+            alert('오류: ' + err.message);
+        }
+    }
+});
 </script>
-<style>
-.btn-refresh-trend.spin {
-    animation: spin 1s linear infinite;
-}
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-</style>
 {% endblock %}
