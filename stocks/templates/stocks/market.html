@@ -475,6 +475,10 @@
 <h5 class="section-heading" style="margin-top: 32px;">투자일기</h5>
 <div id="section-diary">
     <div class="brief-card">
+        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+            <span style="font-size:0.82rem;color:var(--text-muted);">일별 투자 기록</span>
+            <button type="button" id="btnDiaryNew" class="btn-refresh" style="padding: 6px 16px;">새 글 작성</button>
+        </div>
         <!-- 작성 폼 -->
         <div id="diaryForm" class="d-none" style="margin-bottom:16px;padding:16px;background:#f9fafb;border-radius:8px;">
             <div class="d-flex gap-2 mb-2">
@@ -486,11 +490,8 @@
                 <button type="button" id="btnDiarySave" class="btn-refresh" style="padding: 6px 16px;">저장</button>
             </div>
         </div>
-        <div class="d-flex justify-content-end mb-3">
-            <button type="button" id="btnDiaryNew" class="btn-refresh" style="padding: 6px 16px;">새 글 작성</button>
-        </div>
         <!-- 타임라인 -->
-        <div id="diaryTimeline"></div>
+        <div id="diaryTimeline" class="timeline"></div>
         <div id="diaryEmpty" style="color:var(--text-muted);font-size:0.85rem;">아직 작성한 일기가 없습니다.</div>
         <div id="diaryMore" class="text-center d-none" style="margin-top:12px;">
             <button type="button" id="btnDiaryMore" class="btn-refresh" style="padding: 6px 20px;">더보기</button>
@@ -658,6 +659,10 @@
 <h5 class="section-heading" style="margin-top: 32px;">유튜브</h5>
 <div id="section-youtube-timeline">
     <div class="brief-card">
+        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+            <span style="font-size:0.82rem;color:var(--text-muted);">시황 유튜브 요약</span>
+            <button type="button" id="btnYtAdd" class="btn-refresh" style="padding: 6px 16px;">추가</button>
+        </div>
         <!-- 추가 폼 -->
         <div id="ytAddForm" class="d-none" style="margin-bottom: 20px; padding: 16px; background: #f9fafb; border-radius: 8px;">
             <div style="margin-bottom:10px;">
@@ -670,13 +675,9 @@
                 <textarea id="ytSummaryInput" class="form-control form-control-sm" rows="3" placeholder="요약 내용 입력..."></textarea>
             </div>
             <div class="d-flex justify-content-end gap-2">
-                <button type="button" id="btnYtCancel" class="btn btn-sm" style="color:var(--text-secondary);border:1px solid var(--border-color);border-radius:6px;padding:4px 14px;">취소</button>
-                <button type="button" id="btnYtSave" class="btn btn-sm" style="background:var(--text-primary);color:#fff;border-radius:6px;padding:4px 14px;">저장</button>
+                <button type="button" id="btnYtCancel" class="btn-refresh" style="padding: 6px 16px;">취소</button>
+                <button type="button" id="btnYtSave" class="btn-refresh" style="padding: 6px 16px;">저장</button>
             </div>
-        </div>
-        <!-- 추가 버튼 -->
-        <div class="d-flex justify-content-end" style="margin-bottom: 16px;">
-            <button type="button" id="btnYtAdd" class="btn-refresh" style="padding: 6px 16px;">추가</button>
         </div>
         <!-- 타임라인 -->
         <div id="ytTimeline" class="timeline"></div>
@@ -1617,34 +1618,101 @@ function kospiChangeHtml(price, change) {
     return `<span style="font-size:0.78rem;color:var(--text-muted);">KOSPI ${price.toLocaleString()}${changeStr}</span>`;
 }
 
-function renderDiaryItem(item) {
-    const expanded = false;
-    const previewLen = 100;
-    const needFold = item.content.length > previewLen;
-    const preview = needFold ? item.content.substring(0, previewLen) + '...' : item.content;
+function renderDiaryTimeline(results) {
+    if (!results || results.length === 0) {
+        diaryTimeline.innerHTML = '';
+        diaryEmpty.style.display = '';
+        return;
+    }
+    diaryEmpty.style.display = 'none';
 
-    return `<div class="diary-item" data-id="${item.id}" style="border-bottom:1px solid #f0f0f0;padding:14px 0;">
-        <div class="d-flex justify-content-between align-items-start">
-            <div>
-                <div style="font-size:0.82rem;font-weight:600;color:var(--text-body);">
-                    ${item.date}
-                    ${kospiChangeHtml(item.kospi_price, item.kospi_change)}
+    // 날짜별 그룹핑
+    const groups = {};
+    results.forEach(item => {
+        if (!groups[item.date]) groups[item.date] = [];
+        groups[item.date].push(item);
+    });
+
+    let html = '';
+    Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(date => {
+        const items = groups[date];
+        const firstItem = items[0];
+        const kospiInfo = kospiChangeHtml(firstItem.kospi_price, firstItem.kospi_change);
+        html += `<div class="timeline-group">`;
+        html += `<div class="timeline-date">${formatDateLabel(date)} ${kospiInfo}</div>`;
+        items.forEach(item => {
+            html += `<div class="timeline-item diary-item" data-id="${item.id}" style="margin-bottom:4px;">
+                <div class="diary-text-content morning-md" style="font-size:0.82rem;color:var(--text-secondary);line-height:1.7;max-height:3.2em;overflow:hidden;transition:max-height 0.3s ease;" data-id="${item.id}">${parseMd(item.content)}</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;">
+                    <span class="btn-diary-content-toggle" data-id="${item.id}" style="font-size:0.72rem;color:#4f46e5;cursor:pointer;">더보기</span>
+                    <div style="display:flex;gap:10px;">
+                        <span class="btn-diary-edit" data-id="${item.id}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
+                        <span class="btn-diary-delete" data-id="${item.id}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">삭제</span>
+                    </div>
                 </div>
-                <div class="diary-content-preview morning-md" style="font-size:0.85rem;line-height:1.7;margin-top:6px;color:var(--text-body);">${parseMd(preview)}</div>
-                ${needFold ? `<div class="diary-content-full morning-md d-none" style="font-size:0.85rem;line-height:1.7;margin-top:6px;color:var(--text-body);">${parseMd(item.content)}</div>` : ''}
-            </div>
-            <div class="d-flex gap-1" style="flex-shrink:0;margin-left:12px;">
-                ${needFold ? `<button class="btn-diary-toggle btn-refresh" style="padding:3px 10px;font-size:0.75rem;">펼치기</button>` : ''}
-                <button class="btn-diary-edit btn-refresh" style="padding:3px 10px;font-size:0.75rem;">수정</button>
-                <button class="btn-diary-delete btn-refresh" style="padding:3px 10px;font-size:0.75rem;">삭제</button>
-            </div>
-        </div>
-    </div>`;
+            </div>`;
+        });
+        html += `</div>`;
+    });
+    diaryTimeline.innerHTML = html;
+
+    // 더보기/접기
+    diaryTimeline.querySelectorAll('.btn-diary-content-toggle').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const el = diaryTimeline.querySelector(`.diary-text-content[data-id="${this.dataset.id}"]`);
+            if (el.style.maxHeight === 'none') {
+                el.style.maxHeight = '3.2em';
+                this.textContent = '더보기';
+            } else {
+                el.style.maxHeight = 'none';
+                this.textContent = '접기';
+            }
+        });
+    });
+
+    // 삭제
+    diaryTimeline.querySelectorAll('.btn-diary-delete').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            if (!confirm('이 일기를 삭제하시겠습니까?')) return;
+            try {
+                const res = await fetch(`/api/diary/${this.dataset.id}/delete/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+                });
+                const data = await res.json();
+                if (data.success) loadDiary(true);
+                else alert(data.error || '삭제 실패');
+            } catch(err) { alert('오류: ' + err.message); }
+        });
+    });
+
+    // 수정
+    diaryTimeline.querySelectorAll('.btn-diary-edit').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const id = this.dataset.id;
+            try {
+                const res = await fetch(`/api/diary/?limit=100&offset=0`);
+                const data = await res.json();
+                const entry = data.results.find(r => r.id == id);
+                if (entry) {
+                    diaryEditId = id;
+                    diaryDate.value = entry.date;
+                    diaryContent.value = entry.content;
+                    diaryForm.classList.remove('d-none');
+                    btnDiaryNew.classList.add('d-none');
+                    diaryContent.focus();
+                }
+            } catch(err) {}
+        });
+    });
 }
+
+let allDiaryResults = [];
 
 async function loadDiary(reset) {
     if (reset) {
         diaryOffset = 0;
+        allDiaryResults = [];
         diaryTimeline.innerHTML = '';
     }
 
@@ -1653,10 +1721,10 @@ async function loadDiary(reset) {
         const data = await res.json();
 
         if (data.results.length > 0) {
-            diaryTimeline.innerHTML += data.results.map(renderDiaryItem).join('');
-            diaryEmpty.classList.add('d-none');
+            allDiaryResults = allDiaryResults.concat(data.results);
+            renderDiaryTimeline(allDiaryResults);
         } else if (diaryOffset === 0) {
-            diaryEmpty.classList.remove('d-none');
+            diaryEmpty.style.display = '';
         }
 
         diaryOffset += data.results.length;
@@ -1737,74 +1805,5 @@ btnDiarySave.addEventListener('click', async () => {
     }
 });
 
-// 이벤트 위임: 펼치기/접기, 수정, 삭제
-diaryTimeline.addEventListener('click', async (e) => {
-    const item = e.target.closest('.diary-item');
-    if (!item) return;
-    const id = item.dataset.id;
-
-    // 펼치기/접기
-    if (e.target.classList.contains('btn-diary-toggle')) {
-        const preview = item.querySelector('.diary-content-preview');
-        const full = item.querySelector('.diary-content-full');
-        if (full.classList.contains('d-none')) {
-            full.classList.remove('d-none');
-            preview.classList.add('d-none');
-            e.target.textContent = '접기';
-        } else {
-            full.classList.add('d-none');
-            preview.classList.remove('d-none');
-            e.target.textContent = '펼치기';
-        }
-        return;
-    }
-
-    // 수정
-    if (e.target.classList.contains('btn-diary-edit')) {
-        const fullEl = item.querySelector('.diary-content-full');
-        const previewEl = item.querySelector('.diary-content-preview');
-        // 원본 텍스트는 full이 있으면 full의 원본, 없으면 preview
-        // API에서 다시 가져오는 게 안전
-        const res = await fetch(`/api/diary/?limit=1&offset=0`);
-        // 간단하게: item의 날짜에서 텍스트 추출
-        const dateText = item.querySelector('div[style*="font-weight:600"]').textContent.trim().split('\n')[0].trim();
-
-        // 전체 목록에서 해당 id의 content를 가져오기
-        try {
-            const allRes = await fetch(`/api/diary/?limit=100&offset=0`);
-            const allData = await allRes.json();
-            const entry = allData.results.find(r => r.id == id);
-            if (entry) {
-                diaryEditId = id;
-                diaryDate.value = entry.date;
-                diaryDate.disabled = false;
-                diaryContent.value = entry.content;
-                diaryForm.classList.remove('d-none');
-                btnDiaryNew.classList.add('d-none');
-                diaryContent.focus();
-            }
-        } catch(err) {}
-        return;
-    }
-
-    // 삭제
-    if (e.target.classList.contains('btn-diary-delete')) {
-        if (!confirm('이 일기를 삭제하시겠습니까?')) return;
-        try {
-            const res = await fetch(`/api/diary/${id}/delete/`, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-            });
-            const data = await res.json();
-            if (data.success) {
-                loadDiary(true);
-            } else {
-                alert(data.error || '삭제 실패');
-            }
-        } catch(err) {
-            alert('오류: ' + err.message);
-        }
-    }
-});
 </script>
 {% endblock %}

@@ -46,6 +46,11 @@ urlpatterns = [
     path('api/diary/save/', views.diary_save, name='diary_save'),
     path('api/diary/<int:diary_id>/update/', views.diary_update, name='diary_update'),
     path('api/diary/<int:diary_id>/delete/', views.diary_delete, name='diary_delete'),
+    # 종목별 투자일지
+    path('api/stock/<str:code>/diary/', views.stock_diary_list, name='stock_diary_list'),
+    path('api/stock/<str:code>/diary/save/', views.stock_diary_save, name='stock_diary_save'),
+    path('api/stock/<str:code>/diary/<int:diary_id>/update/', views.stock_diary_update, name='stock_diary_update'),
+    path('api/stock/<str:code>/diary/<int:diary_id>/delete/', views.stock_diary_delete, name='stock_diary_delete'),
     # 시황 유튜브
     path('api/market/youtube/', views.market_youtube_list, name='market_youtube_list'),
     path('api/market/youtube/save/', views.market_youtube_save, name='market_youtube_save'),

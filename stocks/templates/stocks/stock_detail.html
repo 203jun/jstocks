@@ -128,6 +128,14 @@
 .chart-card-header {
     display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
 }
+/* Timeline */
+.timeline { position: relative; padding-left: 24px; }
+.timeline::before { content:''; position:absolute; left:5px; top:0; bottom:0; width:2px; background:var(--border-color); }
+.timeline-group { margin-bottom: 24px; }
+.timeline-date { position:relative; display:inline-block; font-size:0.82rem; font-weight:700; color:var(--text-primary); background:var(--bg-page); padding:3px 10px; border-radius:6px; margin-bottom:12px; margin-left:-8px; }
+.timeline-item { position:relative; margin-bottom:4px; }
+.timeline-item::before { content:''; position:absolute; left:-23px; top:8px; width:8px; height:8px; border-radius:50%; background:#4f46e5; border:2px solid #fff; box-shadow:0 0 0 2px #4f46e5; }
+
 .legend-dot {
     display: inline-block;
     width: 10px;
@@ -219,8 +227,7 @@
 @media (max-width: 768px) { .perf-charts { grid-template-columns: 1fr; } }
 
 /* Price + Memo layout */
-.price-memo-grid { display: grid; grid-template-columns: 2fr 3fr; gap: 12px; margin-bottom: 12px; }
-@media (max-width: 768px) { .price-memo-grid { grid-template-columns: 1fr; } }
+.price-memo-grid { margin-bottom: 12px; }
 {% endblock %}
 
 {% block content %}
@@ -269,25 +276,58 @@
 
 <!-- ========== 기본정보 탭 ========== -->
 <div id="info-content" class="tab-panel">
-    <!-- 테마 / 업종 정보 -->
-    {% if stock.themes.all or sectors or stock.custom_sectors.all %}
+    <!-- 투자일지 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">투자일지</h5>
+    <div class="brief-card">
+        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+            <span style="font-size:0.82rem;color:var(--text-muted);">종목 투자 기록</span>
+            <button type="button" id="btnStockDiaryNew" class="btn-refresh" style="padding:6px 16px;">새 글 작성</button>
+        </div>
+        <!-- 작성 폼 -->
+        <div id="stockDiaryForm" class="d-none" style="margin-bottom:16px;padding:16px;background:#f9fafb;border-radius:8px;">
+            <div class="d-flex gap-2 mb-2">
+                <input type="date" id="stockDiaryDate" style="border:1px solid #ddd;border-radius:6px;padding:4px 10px;font-size:0.82rem;color:var(--text-body);">
+            </div>
+            <textarea id="stockDiaryContent" rows="5" placeholder="투자 기록을 남겨보세요..." style="width:100%;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:0.85rem;line-height:1.7;resize:vertical;font-family:inherit;"></textarea>
+            <div class="d-flex justify-content-end gap-2 mt-2">
+                <button type="button" id="btnStockDiaryCancel" class="btn-refresh" style="padding:6px 16px;">취소</button>
+                <button type="button" id="btnStockDiarySave" class="btn-refresh" style="padding:6px 16px;">저장</button>
+            </div>
+        </div>
+        <!-- 타임라인 -->
+        <div id="stockDiaryTimeline" class="timeline"></div>
+        <div id="stockDiaryEmpty" style="color:var(--text-muted);font-size:0.85rem;">아직 작성한 일지가 없습니다.</div>
+        <div id="stockDiaryMore" class="text-center d-none" style="margin-top:12px;">
+            <button type="button" id="btnStockDiaryMore" class="btn-refresh" style="padding:6px 20px;">더보기</button>
+        </div>
+    </div>
+
+    <!-- 메모 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">메모{% if stock.memo_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">update: {{ stock.memo_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
+    <div class="brief-card">
+        <div style="max-height:400px;overflow-y:auto;">
+            <div class="content markdown-content" style="font-size:0.85rem;" id="memoMarkdown"></div>
+            <script type="text/plain" id="memoRaw">{{ stock.memo|default:"-"|safe }}</script>
+        </div>
+    </div>
+
+    <!-- 기본 정보 -->
+    <h5 class="section-heading">기본 정보</h5>
     <div class="brief-card">
         {% if stock.themes.all %}
-        <div style="margin-bottom:10px;">
+        <div style="margin-bottom:8px;">
             <span style="font-size:0.78rem;color:var(--text-muted);margin-right:8px;">테마</span>
             {% regroup stock.themes.all by category as theme_groups %}
             {% for group in theme_groups %}
-            <div class="d-flex align-items-center flex-wrap gap-1" style="margin-bottom:4px;">
-                <span class="tag-badge theme-cat">{{ group.grouper.name }}</span>
-                {% for theme in group.list %}
-                <span class="tag-badge theme">{{ theme.name }}</span>
-                {% endfor %}
-            </div>
+            <span class="tag-badge theme-cat">{{ group.grouper.name }}</span>
+            {% for theme in group.list %}
+            <span class="tag-badge theme">{{ theme.name }}</span>
+            {% endfor %}
             {% endfor %}
         </div>
         {% endif %}
         {% if sectors %}
-        <div style="margin-bottom:10px;">
+        <div style="margin-bottom:8px;">
             <span style="font-size:0.78rem;color:var(--text-muted);margin-right:8px;">업종</span>
             {% for s in sectors %}
             <span class="tag-badge" style="background:#f3f4f6;color:var(--text-secondary);">{{ s.name }}</span>
@@ -295,100 +335,50 @@
         </div>
         {% endif %}
         {% if stock.custom_sectors.all %}
-        <div>
+        <div style="margin-bottom:8px;">
             <span style="font-size:0.78rem;color:var(--text-muted);margin-right:8px;">섹터</span>
             {% for sector in stock.custom_sectors.all %}
             <a href="{% url 'stocks:sector_detail' sector.id %}" class="tag-badge sector" style="text-decoration:none;">{{ sector.name }}</a>
             {% endfor %}
         </div>
         {% endif %}
-    </div>
-    {% endif %}
-
-    <!-- 가격 정보 + 메모 -->
-    <div class="price-memo-grid">
-        <!-- 가격 정보 카드 -->
-        <div class="brief-card" style="margin-bottom:0;">
-            <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
+        <div style="border-top:1px solid var(--border-color);padding-top:10px;margin-top:4px;">
+            <div class="d-flex justify-content-between align-items-center" style="margin-bottom:8px;">
                 <div>
-                    <div class="stat-item-label">현재가</div>
                     <span class="stat-item-value" id="currentPrice">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</span>
                     <a href="https://finance.naver.com/item/board.naver?code={{ stock.code }}" target="_blank" class="tag-badge" style="background:#ecfdf5;color:#059669;font-size:0.6rem;vertical-align:middle;text-decoration:none;margin-left:4px;">종토방</a>
                     <a href="https://comp.fnguide.com/SVO2/ASP/SVD_Main.asp?pGB=1&gicode=A{{ stock.code }}&cID=&MenuYn=Y&ReportGB=&NewMenuID=101&stkGb=701" target="_blank" class="tag-badge" style="background:#fffbeb;color:#d97706;font-size:0.6rem;vertical-align:middle;text-decoration:none;margin-left:2px;">fNG</a>
+                    <a href="https://stockeasy.intellio.kr/stock-analysis?tab=stock_info&code={{ stock.code }}&stockTab=info" target="_blank" class="tag-badge" style="background:#eff6ff;color:#2962ff;font-size:0.6rem;vertical-align:middle;text-decoration:none;margin-left:2px;">StockEasy</a>
                 </div>
-                <div style="text-align:right;">
-                    <div class="stat-item-label">등락율</div>
-                    <span style="font-size:1.1rem;font-weight:700;" class="{% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}" id="changeRate">{% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}</span>
-                </div>
+                <span style="font-size:1.1rem;font-weight:700;" class="{% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}" id="changeRate">{% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}</span>
             </div>
-            <div style="border-top:1px solid var(--border-color);padding-top:8px;margin-bottom:8px;">
-                <span style="font-size:0.78rem;color:var(--text-muted);">거래량</span>
-                <span style="margin-left:8px;font-size:0.85rem;" id="volume">{% if stock.volume %}{{ stock.volume|intcomma }}{% else %}-{% endif %}</span>
-                {% if volume_change_rate is not None %}
-                <span style="margin-left:4px;font-size:0.78rem;" class="{% if volume_change_rate > 0 %}text-up{% elif volume_change_rate < 0 %}text-down{% endif %}" id="volumeChange">({% if volume_change_rate > 0 %}+{% endif %}{{ volume_change_rate }}%)</span>
-                {% endif %}
+            <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;line-height:2;">
+                <span><span style="color:var(--text-muted);">거래량</span> <span id="volume">{% if stock.volume %}{{ stock.volume|intcomma }}{% else %}-{% endif %}</span>{% if volume_change_rate is not None %} <span class="{% if volume_change_rate > 0 %}text-up{% elif volume_change_rate < 0 %}text-down{% endif %}" id="volumeChange">({% if volume_change_rate > 0 %}+{% endif %}{{ volume_change_rate }}%)</span>{% endif %}</span>
+                <span><span style="color:var(--text-muted);">5거래일</span> {% if has_recent_report %}<span class="status-badge info">리포트</span>{% endif %}{% if has_recent_nodaji %}<span class="status-badge" style="background:#fffbeb;color:#d97706;">노다지</span>{% endif %}{% if has_recent_gongsi %}<span class="status-badge" style="background:#eff6ff;color:#0891b2;">공시</span>{% endif %}{% if not has_recent_report and not has_recent_nodaji and not has_recent_gongsi %}<span style="color:var(--text-muted);">없음</span>{% endif %}</span>
+                <span><span style="color:var(--text-muted);">수급</span> {% if latest_investor %}<span class="{% if latest_investor.foreign > 0 %}text-up{% elif latest_investor.foreign < 0 %}text-down{% endif %}">외{% if latest_investor.foreign > 0 %}+{% endif %}{{ latest_investor.foreign|intcomma }}</span> <span class="{% if latest_investor.institution > 0 %}text-up{% elif latest_investor.institution < 0 %}text-down{% endif %}">기{% if latest_investor.institution > 0 %}+{% endif %}{{ latest_investor.institution|intcomma }}</span>{% else %}<span style="color:var(--text-muted);">-</span>{% endif %}</span>
+                <span><span style="color:var(--text-muted);">공매도</span> {% if latest_short %}{{ latest_short.weight }}%{% else %}<span style="color:var(--text-muted);">-</span>{% endif %}</span>
+                <span><span style="color:var(--text-muted);">괴리율</span> {% if latest_report_gap is not None %}<span class="{% if latest_report_gap > 0 %}text-up{% elif latest_report_gap < 0 %}text-down{% endif %}">{% if latest_report_gap > 0 %}+{% endif %}{{ latest_report_gap }}%</span> <span style="color:var(--text-muted);font-size:0.72rem;">{{ latest_report_gap_date|date:"y.m.d" }}</span>{% else %}<span style="color:var(--text-muted);">-</span>{% endif %}</span>
             </div>
-            <!-- 최근 5거래일 -->
-            <div style="border-top:1px solid var(--border-color);padding-top:8px;margin-bottom:8px;">
-                <div class="d-flex flex-wrap align-items-center gap-1" style="font-size:0.82rem;">
-                    <span style="color:var(--text-muted);">5거래일</span>
-                    {% if has_recent_report %}<span class="status-badge info">리포트</span>{% endif %}
-                    {% if has_recent_nodaji %}<span class="status-badge" style="background:#fffbeb;color:#d97706;">노다지</span>{% endif %}
-                    {% if has_recent_gongsi %}<span class="status-badge" style="background:#eff6ff;color:#0891b2;">공시</span>{% endif %}
-                    {% if not has_recent_report and not has_recent_nodaji and not has_recent_gongsi %}<span style="color:var(--text-muted);">없음</span>{% endif %}
-                </div>
-            </div>
-            <!-- 수급/공매도 -->
-            <div style="border-top:1px solid var(--border-color);padding-top:8px;margin-bottom:8px;">
-                <div class="d-flex gap-4" style="font-size:0.82rem;">
-                    <div>
-                        <span style="color:var(--text-muted);">수급</span>
-                        {% if latest_investor %}
-                        <div class="d-flex gap-2">
-                            <span class="{% if latest_investor.foreign > 0 %}text-up{% elif latest_investor.foreign < 0 %}text-down{% endif %}">외{% if latest_investor.foreign > 0 %}+{% endif %}{{ latest_investor.foreign|intcomma }}</span>
-                            <span class="{% if latest_investor.institution > 0 %}text-up{% elif latest_investor.institution < 0 %}text-down{% endif %}">기{% if latest_investor.institution > 0 %}+{% endif %}{{ latest_investor.institution|intcomma }}</span>
-                        </div>
-                        {% else %}<div style="color:var(--text-muted);">-</div>{% endif %}
-                    </div>
-                    <div>
-                        <span style="color:var(--text-muted);">공매도</span>
-                        {% if latest_short %}
-                        <div>{{ latest_short.weight }}%</div>
-                        {% else %}<div style="color:var(--text-muted);">-</div>{% endif %}
-                    </div>
-                </div>
-            </div>
-            <!-- 괴리율 -->
-            <div style="border-top:1px solid var(--border-color);padding-top:8px;">
-                <span style="font-size:0.82rem;color:var(--text-muted);">괴리율</span>
-                {% if latest_report_gap is not None %}
-                <span style="margin-left:8px;font-size:0.85rem;" class="{% if latest_report_gap > 0 %}text-up{% elif latest_report_gap < 0 %}text-down{% endif %}">{% if latest_report_gap > 0 %}+{% endif %}{{ latest_report_gap }}%</span>
-                <span style="color:var(--text-muted);font-size:0.72rem;margin-left:4px;">{{ latest_report_gap_date|date:"y.m.d" }}</span>
-                {% else %}<span style="margin-left:8px;color:var(--text-muted);">-</span>{% endif %}
-            </div>
-        </div>
-        <!-- 메모 카드 -->
-        <div class="brief-card" style="margin-bottom:0;display:flex;flex-direction:column;">
-            <div class="d-flex justify-content-between align-items-center" style="margin-bottom:8px;">
-                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">메모</span>
-                {% if stock.memo_updated_at %}<span style="font-size:0.72rem;color:var(--text-muted);">{{ stock.memo_updated_at|date:"m.d" }}</span>{% endif %}
-            </div>
-            <div style="flex-grow:1;overflow-y:auto;">
-                <div class="content markdown-content" style="font-size:0.85rem;" id="memoMarkdown"></div>
-                <script type="text/plain" id="memoRaw">{{ stock.memo|default:"-"|safe }}</script>
+            <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;line-height:2;margin-top:2px;">
+                <span><span style="color:var(--text-muted);">PER</span> {% if stock.per %}{{ stock.per }}배{% else %}-{% endif %}</span>
+                <span><span style="color:var(--text-muted);">PBR</span> {% if stock.pbr %}{{ stock.pbr }}배{% else %}-{% endif %}</span>
+                <span><span style="color:var(--text-muted);">ROE</span> {% if stock.roe %}{{ stock.roe }}%{% else %}-{% endif %}</span>
+                <span><span style="color:var(--text-muted);">EPS</span> {% if stock.eps %}{{ stock.eps|intcomma }}원{% else %}-{% endif %}</span>
+                <span><span style="color:var(--text-muted);">BPS</span> {% if stock.bps %}{{ stock.bps|intcomma }}원{% else %}-{% endif %}</span>
+                <span><span style="color:var(--text-muted);">EV</span> {% if stock.ev %}{{ stock.ev }}{% else %}-{% endif %}</span>
+                <span><span style="color:var(--text-muted);">시가총액</span> {% if stock.market_cap %}{{ stock.market_cap|intcomma }}억{% else %}-{% endif %}</span>
+                <span><span style="color:var(--text-muted);">유통비율</span> {% if stock.listed_ratio %}{{ stock.listed_ratio }}%{% else %}-{% endif %}</span>
+                <span><span style="color:var(--text-muted);">신용비율</span> {% if stock.credit_ratio %}{{ stock.credit_ratio }}%{% else %}-{% endif %}</span>
+                <span><span style="color:var(--text-muted);">외인소진률</span> {% if stock.foreign_exhaustion %}{{ stock.foreign_exhaustion }}%{% else %}-{% endif %}</span>
             </div>
         </div>
     </div>
-    <!-- 숨김 요소들 (새로고침 시 필요) -->
     <span id="priceChange" style="display:none;">{% if stock.price_change %}{{ stock.price_change }}{% endif %}</span>
 
     <!-- 핵심 브리핑 -->
     {% if stock.key_briefing %}
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">핵심 브리핑{% if stock.key_briefing_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">update: {{ stock.key_briefing_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
     <div class="brief-card">
-        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
-            <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">핵심 브리핑</span>
-            {% if stock.key_briefing_updated_at %}<span style="font-size:0.72rem;color:var(--text-muted);">update: {{ stock.key_briefing_updated_at|date:"Y-m-d" }}</span>{% endif %}
-        </div>
         <div style="max-height:400px;overflow-y:auto;">
             <div class="markdown-content" id="keyBriefingMarkdown"></div>
             <script type="text/plain" id="keyBriefingRaw">{{ stock.key_briefing|default:""|safe }}</script>
@@ -398,11 +388,8 @@
 
     <!-- 가치평가 -->
     {% if stock.valuation %}
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">가치평가{% if stock.valuation_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">update: {{ stock.valuation_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
     <div class="brief-card">
-        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
-            <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">가치평가</span>
-            {% if stock.valuation_updated_at %}<span style="font-size:0.72rem;color:var(--text-muted);">update: {{ stock.valuation_updated_at|date:"Y-m-d" }}</span>{% endif %}
-        </div>
         <div style="max-height:400px;overflow-y:auto;">
             <div class="markdown-content" id="valuationMarkdown"></div>
             <script type="text/plain" id="valuationRaw">{{ stock.valuation|default:""|safe }}</script>
@@ -412,8 +399,8 @@
 
     <!-- 리서치 -->
     {% if question_reports %}
+    <h5 class="section-heading">리서치 <span class="tab-count">{{ question_reports|length }}</span></h5>
     <div class="brief-card">
-        <div style="font-size:0.88rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">리서치 <span class="tab-count">{{ question_reports|length }}</span></div>
         {% for qr in question_reports %}
         <div class="list-item">
             <div class="flex-grow-1" style="min-width:0;">
@@ -430,39 +417,12 @@
     {% endfor %}
     {% endif %}
 
-    <!-- 투자 지표 + 시가총액 -->
-    <div class="two-col">
-        <div class="brief-card" style="margin-bottom:0;">
-            <div style="font-size:0.88rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">투자 지표</div>
-            <table class="modern-table">
-                <tbody>
-                    <tr><td style="color:var(--text-muted);">PER</td><td style="text-align:right;">{% if stock.per %}{{ stock.per }}배{% else %}-{% endif %}</td></tr>
-                    <tr><td style="color:var(--text-muted);">PBR</td><td style="text-align:right;">{% if stock.pbr %}{{ stock.pbr }}배{% else %}-{% endif %}</td></tr>
-                    <tr><td style="color:var(--text-muted);">ROE</td><td style="text-align:right;">{% if stock.roe %}{{ stock.roe }}%{% else %}-{% endif %}</td></tr>
-                    <tr><td style="color:var(--text-muted);">EPS</td><td style="text-align:right;">{% if stock.eps %}{{ stock.eps|intcomma }}원{% else %}-{% endif %}</td></tr>
-                    <tr><td style="color:var(--text-muted);">BPS</td><td style="text-align:right;">{% if stock.bps %}{{ stock.bps|intcomma }}원{% else %}-{% endif %}</td></tr>
-                    <tr><td style="color:var(--text-muted);">EV</td><td style="text-align:right;">{% if stock.ev %}{{ stock.ev }}{% else %}-{% endif %}</td></tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="brief-card" style="margin-bottom:0;">
-            <div style="font-size:0.88rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;">시가총액</div>
-            <table class="modern-table">
-                <tbody>
-                    <tr><td style="color:var(--text-muted);">시가총액</td><td style="text-align:right;">{% if stock.market_cap %}{{ stock.market_cap|intcomma }}억{% else %}-{% endif %}</td></tr>
-                    <tr><td style="color:var(--text-muted);">유통비율</td><td style="text-align:right;">{% if stock.listed_ratio %}{{ stock.listed_ratio }}%{% else %}-{% endif %}</td></tr>
-                    <tr><td style="color:var(--text-muted);">신용비율</td><td style="text-align:right;">{% if stock.credit_ratio %}{{ stock.credit_ratio }}%{% else %}-{% endif %}</td></tr>
-                    <tr><td style="color:var(--text-muted);">외인소진률</td><td style="text-align:right;">{% if stock.foreign_exhaustion %}{{ stock.foreign_exhaustion }}%{% else %}-{% endif %}</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- 실적 차트 -->
-    <div class="perf-charts" style="margin-top:12px;">
+    <!-- 실적 -->
+    <h5 class="section-heading">실적</h5>
+    <div class="perf-charts">
         <div class="chart-card" style="margin-bottom:0;">
             <div class="chart-card-header">
-                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">연간 실적</span>
+                <span style="font-size:0.82rem;color:var(--text-secondary);">연간</span>
             </div>
             <div style="height:400px;">
                 <canvas id="annualChart"></canvas>
@@ -470,7 +430,7 @@
         </div>
         <div class="chart-card" style="margin-bottom:0;">
             <div class="chart-card-header">
-                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">분기 실적</span>
+                <span style="font-size:0.82rem;color:var(--text-secondary);">분기</span>
             </div>
             <div style="height:400px;">
                 <canvas id="quarterlyChart"></canvas>
@@ -478,10 +438,11 @@
         </div>
     </div>
 
-    <!-- 일봉 차트 -->
-    <div class="chart-card" style="margin-top:12px;">
+    <!-- 차트 -->
+    <h5 class="section-heading">차트</h5>
+    <div class="chart-card">
         <div class="chart-card-header">
-            <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">일봉</span>
+            <span style="font-size:0.82rem;color:var(--text-secondary);">일봉</span>
             <div class="d-flex align-items-center gap-2">
                 <div class="d-flex gap-1" id="dailyRangeBtns">
                     <button class="range-btn" data-days="20">20일</button>
@@ -505,8 +466,13 @@
     <div class="chart-card">
         <div class="chart-card-header">
             <div>
-                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">주봉</span>
-                <span style="font-size:0.78rem;color:var(--text-muted);margin-left:8px;">최근 2년</span>
+                <span style="font-size:0.82rem;color:var(--text-secondary);">주봉</span>
+                <span style="font-size:0.72rem;color:var(--text-muted);margin-left:6px;">최근 2년</span>
+            </div>
+            <div class="d-flex gap-1">
+                <span class="ma-badge weekly-ma-toggle active" data-ma="5" style="background-color:#ff9800;">5</span>
+                <span class="ma-badge weekly-ma-toggle active" data-ma="10" style="background-color:#2196f3;">10</span>
+                <span class="ma-badge weekly-ma-toggle active" data-ma="20" style="background-color:#4caf50;">20</span>
             </div>
         </div>
         <div id="weeklyChart" style="height:400px;"></div>
@@ -516,8 +482,13 @@
     <div class="chart-card">
         <div class="chart-card-header">
             <div>
-                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">월봉</span>
-                <span style="font-size:0.78rem;color:var(--text-muted);margin-left:8px;">최근 6년</span>
+                <span style="font-size:0.82rem;color:var(--text-secondary);">월봉</span>
+                <span style="font-size:0.72rem;color:var(--text-muted);margin-left:6px;">최근 6년</span>
+            </div>
+            <div class="d-flex gap-1">
+                <span class="ma-badge monthly-ma-toggle active" data-ma="5" style="background-color:#ff9800;">5</span>
+                <span class="ma-badge monthly-ma-toggle active" data-ma="10" style="background-color:#2196f3;">10</span>
+                <span class="ma-badge monthly-ma-toggle active" data-ma="20" style="background-color:#4caf50;">20</span>
             </div>
         </div>
         <div id="monthlyChart" style="height:400px;"></div>
@@ -525,16 +496,8 @@
 
     <!-- 기업분석 -->
     {% if analysis_html_exists %}
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">기업분석<span style="display:flex;align-items:center;gap:8px;">{% if stock.analysis_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">update: {{ stock.analysis_updated_at|date:"Y-m-d" }}</span>{% endif %}{% if stock.analysis_type != 'markdown' %}<button type="button" class="btn-refresh btn-open-analysis-window" style="font-size:0.72rem;">새창보기</button>{% endif %}</span></h5>
     <div class="brief-card">
-        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
-            <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">기업분석</span>
-            <div class="d-flex align-items-center gap-2">
-                {% if stock.analysis_updated_at %}<span style="font-size:0.72rem;color:var(--text-muted);">update: {{ stock.analysis_updated_at|date:"Y-m-d" }}</span>{% endif %}
-                {% if stock.analysis_type != 'markdown' %}
-                <button type="button" class="btn-refresh btn-open-analysis-window">새창보기</button>
-                {% endif %}
-            </div>
-        </div>
         {% if stock.analysis_type == 'markdown' %}
         <div style="max-height:600px;overflow-y:auto;">
             <div class="markdown-content" id="analysisMarkdown"></div>
@@ -548,11 +511,8 @@
 
     <!-- 재무분석 -->
     {% if stock.financial_analysis %}
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">재무분석{% if stock.financial_analysis_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">update: {{ stock.financial_analysis_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
     <div class="brief-card">
-        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
-            <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">재무분석</span>
-            {% if stock.financial_analysis_updated_at %}<span style="font-size:0.72rem;color:var(--text-muted);">update: {{ stock.financial_analysis_updated_at|date:"Y-m-d" }}</span>{% endif %}
-        </div>
         <div style="max-height:600px;overflow-y:auto;">
             <div class="markdown-content" id="financialAnalysisMarkdown"></div>
             <script type="text/plain" id="financialAnalysisRaw">{{ stock.financial_analysis|default:""|safe }}</script>
@@ -562,11 +522,8 @@
 
     <!-- 투자지표 -->
     {% if stock.investment_indicator %}
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">투자지표 분석{% if stock.investment_indicator_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">update: {{ stock.investment_indicator_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
     <div class="brief-card">
-        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
-            <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">투자지표</span>
-            {% if stock.investment_indicator_updated_at %}<span style="font-size:0.72rem;color:var(--text-muted);">update: {{ stock.investment_indicator_updated_at|date:"Y-m-d" }}</span>{% endif %}
-        </div>
         <div style="max-height:600px;overflow-y:auto;">
             <div class="markdown-content" id="investmentIndicatorMarkdown"></div>
             <script type="text/plain" id="investmentIndicatorRaw">{{ stock.investment_indicator|default:""|safe }}</script>
@@ -1411,8 +1368,83 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
     new ResizeObserver(entries => { if (entries.length) chart.applyOptions({ width: entries[0].contentRect.width }); }).observe(container);
 }
 
-createCandleChart('weeklyChart', {{ weekly_candle_data|safe }}, {{ weekly_volume_data|safe }}, '주봉 데이터가 없습니다.');
-createCandleChart('monthlyChart', {{ monthly_candle_data|safe }}, {{ monthly_volume_data|safe }}, '월봉 데이터가 없습니다.');
+// Weekly chart with MA 5/10/20
+(function() {
+    const candleData = {{ weekly_candle_data|safe }};
+    const volumeData = {{ weekly_volume_data|safe }};
+    const container = document.getElementById('weeklyChart');
+    if (!candleData.length) { container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">주봉 데이터가 없습니다.</div>'; return; }
+
+    const chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth, height: 400,
+        layout: { backgroundColor:'#fff', textColor:'#333' },
+        grid: { vertLines:{color:'#f0f0f0'}, horzLines:{color:'#f0f0f0'} },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        rightPriceScale: { borderColor:'#ddd' },
+        timeScale: { borderColor:'#ddd', timeVisible:true, fixLeftEdge:true, fixRightEdge:true },
+        handleScale: { axisPressedMouseMove:{price:false} },
+    });
+    const candleSeries = chart.addCandlestickSeries({ upColor:'#ef5350', downColor:'#26a69a', borderUpColor:'#ef5350', borderDownColor:'#26a69a', wickUpColor:'#ef5350', wickDownColor:'#26a69a' });
+    candleSeries.setData(candleData);
+
+    const weeklyMaConfig = { 5:'#ff9800', 10:'#2196f3', 20:'#4caf50' };
+    const weeklyMaSeries = {};
+    for (const [p, color] of Object.entries(weeklyMaConfig)) {
+        const s = chart.addLineSeries({ color, lineWidth:1, priceLineVisible:false, lastValueVisible:false });
+        s.setData(calculateMA(candleData, parseInt(p)));
+        weeklyMaSeries[p] = s;
+    }
+
+    chart.addHistogramSeries({ color:'#26a69a', priceFormat:{type:'volume'}, priceScaleId:'', scaleMargins:{top:0.8,bottom:0} }).setData(volumeData);
+    chart.timeScale().fitContent();
+    new ResizeObserver(entries => { if(entries.length) chart.applyOptions({width:entries[0].contentRect.width}); }).observe(container);
+
+    document.querySelectorAll('.weekly-ma-toggle').forEach(badge => {
+        badge.addEventListener('click', function() {
+            const s = weeklyMaSeries[this.dataset.ma];
+            if (s) s.applyOptions({ visible: this.classList.toggle('active') });
+        });
+    });
+})();
+
+// Monthly chart with MA 5/10/20
+(function() {
+    const candleData = {{ monthly_candle_data|safe }};
+    const volumeData = {{ monthly_volume_data|safe }};
+    const container = document.getElementById('monthlyChart');
+    if (!candleData.length) { container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">월봉 데이터가 없습니다.</div>'; return; }
+
+    const chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth, height: 400,
+        layout: { backgroundColor:'#fff', textColor:'#333' },
+        grid: { vertLines:{color:'#f0f0f0'}, horzLines:{color:'#f0f0f0'} },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        rightPriceScale: { borderColor:'#ddd' },
+        timeScale: { borderColor:'#ddd', timeVisible:true, fixLeftEdge:true, fixRightEdge:true },
+        handleScale: { axisPressedMouseMove:{price:false} },
+    });
+    const candleSeries = chart.addCandlestickSeries({ upColor:'#ef5350', downColor:'#26a69a', borderUpColor:'#ef5350', borderDownColor:'#26a69a', wickUpColor:'#ef5350', wickDownColor:'#26a69a' });
+    candleSeries.setData(candleData);
+
+    const monthlyMaConfig = { 5:'#ff9800', 10:'#2196f3', 20:'#4caf50' };
+    const monthlyMaSeries = {};
+    for (const [p, color] of Object.entries(monthlyMaConfig)) {
+        const s = chart.addLineSeries({ color, lineWidth:1, priceLineVisible:false, lastValueVisible:false });
+        s.setData(calculateMA(candleData, parseInt(p)));
+        monthlyMaSeries[p] = s;
+    }
+
+    chart.addHistogramSeries({ color:'#26a69a', priceFormat:{type:'volume'}, priceScaleId:'', scaleMargins:{top:0.8,bottom:0} }).setData(volumeData);
+    chart.timeScale().fitContent();
+    new ResizeObserver(entries => { if(entries.length) chart.applyOptions({width:entries[0].contentRect.width}); }).observe(container);
+
+    document.querySelectorAll('.monthly-ma-toggle').forEach(badge => {
+        badge.addEventListener('click', function() {
+            const s = monthlyMaSeries[this.dataset.ma];
+            if (s) s.applyOptions({ visible: this.classList.toggle('active') });
+        });
+    });
+})();
 
 // ===== Empty content check =====
 document.querySelectorAll('.content').forEach(el => {
@@ -1885,6 +1917,164 @@ document.querySelector('.btn-open-analysis-window')?.addEventListener('click', f
     if (iframe) {
         window.open(iframe.src, '_blank');
     }
+});
+
+// ===== 종목 투자일지 =====
+const sdTimeline = document.getElementById('stockDiaryTimeline');
+const sdEmpty = document.getElementById('stockDiaryEmpty');
+const sdMore = document.getElementById('stockDiaryMore');
+const sdForm = document.getElementById('stockDiaryForm');
+const sdDate = document.getElementById('stockDiaryDate');
+const sdContent = document.getElementById('stockDiaryContent');
+const btnSdNew = document.getElementById('btnStockDiaryNew');
+const btnSdSave = document.getElementById('btnStockDiarySave');
+const btnSdCancel = document.getElementById('btnStockDiaryCancel');
+const btnSdMore = document.getElementById('btnStockDiaryMore');
+
+let sdOffset = 0;
+const sdLimit = 20;
+let sdEditId = null;
+let allSdResults = [];
+
+sdDate.value = new Date().toISOString().split('T')[0];
+
+function formatSdDate(dateStr) {
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    if (dateStr === today) return '오늘';
+    if (dateStr === yesterday) return '어제';
+    return dateStr;
+}
+
+function sdParseMd(text) {
+    let html = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    html = html.replace(/\n/g, '<br>');
+    return html;
+}
+
+function renderSdTimeline(results) {
+    if (!results || results.length === 0) {
+        sdTimeline.innerHTML = '';
+        sdEmpty.style.display = '';
+        return;
+    }
+    sdEmpty.style.display = 'none';
+
+    const groups = {};
+    results.forEach(item => {
+        if (!groups[item.date]) groups[item.date] = [];
+        groups[item.date].push(item);
+    });
+
+    let html = '';
+    Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(date => {
+        html += `<div class="timeline-group">`;
+        html += `<div class="timeline-date">${formatSdDate(date)}</div>`;
+        groups[date].forEach(item => {
+            html += `<div class="timeline-item" data-id="${item.id}" style="margin-bottom:4px;">
+                <div class="sd-text morning-md" style="font-size:0.82rem;color:var(--text-secondary);line-height:1.7;max-height:3.2em;overflow:hidden;transition:max-height 0.3s ease;" data-id="${item.id}">${sdParseMd(item.content)}</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;">
+                    <span class="sd-toggle" data-id="${item.id}" style="font-size:0.72rem;color:#4f46e5;cursor:pointer;">더보기</span>
+                    <div style="display:flex;gap:10px;">
+                        <span class="sd-edit" data-id="${item.id}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
+                        <span class="sd-delete" data-id="${item.id}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">삭제</span>
+                    </div>
+                </div>
+            </div>`;
+        });
+        html += `</div>`;
+    });
+    sdTimeline.innerHTML = html;
+
+    sdTimeline.querySelectorAll('.sd-toggle').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const el = sdTimeline.querySelector(`.sd-text[data-id="${this.dataset.id}"]`);
+            if (el.style.maxHeight === 'none') { el.style.maxHeight = '3.2em'; this.textContent = '더보기'; }
+            else { el.style.maxHeight = 'none'; this.textContent = '접기'; }
+        });
+    });
+
+    sdTimeline.querySelectorAll('.sd-delete').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            if (!confirm('삭제하시겠습니까?')) return;
+            try {
+                const res = await fetch(`/api/stock/${stockCode}/diary/${this.dataset.id}/delete/`, { method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'} });
+                const data = await res.json();
+                if (data.success) loadSd(true);
+                else alert(data.error || '삭제 실패');
+            } catch(e) { alert('오류: ' + e.message); }
+        });
+    });
+
+    sdTimeline.querySelectorAll('.sd-edit').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const id = this.dataset.id;
+            try {
+                const res = await fetch(`/api/stock/${stockCode}/diary/?limit=100&offset=0`);
+                const data = await res.json();
+                const entry = data.results.find(r => r.id == id);
+                if (entry) {
+                    sdEditId = id;
+                    sdDate.value = entry.date;
+                    sdContent.value = entry.content;
+                    sdForm.classList.remove('d-none');
+                    btnSdNew.classList.add('d-none');
+                    sdContent.focus();
+                }
+            } catch(e) {}
+        });
+    });
+}
+
+async function loadSd(reset) {
+    if (reset) { sdOffset = 0; allSdResults = []; sdTimeline.innerHTML = ''; }
+    try {
+        const res = await fetch(`/api/stock/${stockCode}/diary/?limit=${sdLimit}&offset=${sdOffset}`);
+        const data = await res.json();
+        if (data.results.length > 0) {
+            allSdResults = allSdResults.concat(data.results);
+            renderSdTimeline(allSdResults);
+        } else if (sdOffset === 0) { sdEmpty.style.display = ''; }
+        sdOffset += data.results.length;
+        sdMore.classList.toggle('d-none', !data.has_more);
+    } catch(e) { console.error('stock diary load error', e); }
+}
+
+try { loadSd(true); } catch(e) { console.error('stock diary init error', e); }
+btnSdMore.addEventListener('click', () => loadSd(false));
+
+btnSdNew.addEventListener('click', () => {
+    sdEditId = null;
+    sdDate.value = new Date().toISOString().split('T')[0];
+    sdContent.value = '';
+    sdForm.classList.remove('d-none');
+    btnSdNew.classList.add('d-none');
+    sdContent.focus();
+});
+
+btnSdCancel.addEventListener('click', () => {
+    sdForm.classList.add('d-none');
+    btnSdNew.classList.remove('d-none');
+    sdEditId = null;
+});
+
+btnSdSave.addEventListener('click', async () => {
+    const content = sdContent.value.trim();
+    if (!content) return alert('내용을 입력하세요.');
+    btnSdSave.disabled = true; btnSdSave.textContent = '저장 중...';
+    try {
+        const fd = new FormData();
+        fd.append('date', sdDate.value);
+        fd.append('content', content);
+        const url = sdEditId ? `/api/stock/${stockCode}/diary/${sdEditId}/update/` : `/api/stock/${stockCode}/diary/save/`;
+        const res = await fetch(url, { method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}, body:fd });
+        const data = await res.json();
+        if (data.error) alert(data.error);
+        else { sdForm.classList.add('d-none'); btnSdNew.classList.remove('d-none'); sdEditId = null; loadSd(true); }
+    } catch(e) { alert('오류: ' + e.message); }
+    finally { btnSdSave.disabled = false; btnSdSave.textContent = '저장'; }
 });
 </script>
 {% endblock %}

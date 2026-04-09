@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET
 from decouple import config
 from telethon import TelegramClient
 from django.views.decorators.http import require_POST
-from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, IndexChart, MarketTrend, InvestorTrend, ShortSelling, MarketDiary
+from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, IndexChart, MarketTrend, InvestorTrend, ShortSelling, MarketDiary, StockDiary
 
 
 def index(request):
@@ -2133,6 +2133,86 @@ def diary_update(request, diary_id):
 def diary_delete(request, diary_id):
     """투자일기 삭제 API"""
     entry = get_object_or_404(MarketDiary, id=diary_id)
+    entry.delete()
+    return JsonResponse({'success': True})
+
+
+@require_GET
+def stock_diary_list(request, code):
+    """종목별 투자일지 목록 API"""
+    limit = int(request.GET.get('limit', 20))
+    offset = int(request.GET.get('offset', 0))
+    total = StockDiary.objects.filter(stock_id=code).count()
+    entries = StockDiary.objects.filter(stock_id=code)[offset:offset + limit]
+
+    results = []
+    for entry in entries:
+        results.append({
+            'id': entry.id,
+            'date': entry.date.strftime('%Y-%m-%d'),
+            'content': entry.content,
+            'updated_at': entry.updated_at.strftime('%Y-%m-%d %H:%M'),
+        })
+
+    return JsonResponse({
+        'success': True,
+        'results': results,
+        'total': total,
+        'has_more': offset + limit < total,
+    })
+
+
+@require_POST
+def stock_diary_save(request, code):
+    """종목별 투자일지 저장 API"""
+    date_str = request.POST.get('date', '').strip()
+    content = request.POST.get('content', '').strip()
+
+    if not date_str or not content:
+        return JsonResponse({'error': '날짜와 내용을 입력하세요.'}, status=400)
+
+    try:
+        date_val = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'error': '올바른 날짜 형식이 아닙니다.'}, status=400)
+
+    stock = get_object_or_404(Info, code=code)
+
+    if StockDiary.objects.filter(stock=stock, date=date_val).exists():
+        return JsonResponse({'error': '해당 날짜에 이미 일지가 있습니다.'}, status=400)
+
+    entry = StockDiary.objects.create(stock=stock, date=date_val, content=content)
+    return JsonResponse({'success': True, 'id': entry.id})
+
+
+@require_POST
+def stock_diary_update(request, code, diary_id):
+    """종목별 투자일지 수정 API"""
+    entry = get_object_or_404(StockDiary, id=diary_id, stock_id=code)
+    content = request.POST.get('content', '').strip()
+    date_str = request.POST.get('date', '').strip()
+
+    if not content:
+        return JsonResponse({'error': '내용을 입력하세요.'}, status=400)
+
+    if date_str:
+        try:
+            new_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            if new_date != entry.date and StockDiary.objects.filter(stock_id=code, date=new_date).exists():
+                return JsonResponse({'error': '해당 날짜에 이미 일지가 있습니다.'}, status=400)
+            entry.date = new_date
+        except ValueError:
+            pass
+
+    entry.content = content
+    entry.save()
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def stock_diary_delete(request, code, diary_id):
+    """종목별 투자일지 삭제 API"""
+    entry = get_object_or_404(StockDiary, id=diary_id, stock_id=code)
     entry.delete()
     return JsonResponse({'success': True})
 

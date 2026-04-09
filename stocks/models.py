@@ -2266,6 +2266,41 @@ class MarketDiary(models.Model):
         return f"투자일기 {self.date}"
 
 
+class StockDiary(models.Model):
+    """종목별 투자일지"""
+
+    stock = models.ForeignKey(
+        'Info',
+        on_delete=models.CASCADE,
+        related_name='diaries',
+        verbose_name='종목'
+    )
+    date = models.DateField(
+        verbose_name='날짜'
+    )
+    content = models.TextField(
+        verbose_name='내용'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='생성일시'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='수정일시'
+    )
+
+    class Meta:
+        db_table = 'stock_diary'
+        verbose_name = '종목 투자일지'
+        verbose_name_plural = '종목 투자일지'
+        ordering = ['-date']
+        unique_together = [('stock', 'date')]
+
+    def __str__(self):
+        return f"{self.stock.name} {self.date}"
+
+
 class News(models.Model):
     """
     저장된 뉴스 기사
