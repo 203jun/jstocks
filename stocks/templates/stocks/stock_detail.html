@@ -86,6 +86,8 @@
 .status-badge {
     display: inline-block; padding: 2px 8px; border-radius: 4px;
     font-size: 0.72rem; font-weight: 500;
+    line-height: 1.4; border: none; background: none;
+    vertical-align: middle; box-sizing: border-box;
 }
 .status-badge.done { background: #ecfdf5; color: #059669; }
 .status-badge.pending { background: #f3f4f6; color: var(--text-muted); }
@@ -539,6 +541,7 @@
 
 <!-- ========== 수급 탭 ========== -->
 <div id="supply-content" class="tab-panel" style="display:none;">
+    <h5 class="section-heading">수급</h5>
     <!-- 다음/키움 서브탭 -->
     <div class="sub-tabs">
         <button class="sub-tab active" data-sub-target="supply-daum">다음</button>
@@ -550,7 +553,7 @@
         {% if investor_trends_daum %}
         <div class="chart-card">
             <div class="chart-card-header">
-                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">누적 순매수</span>
+                <span style="font-size:0.82rem;color:var(--text-secondary);">누적 순매수</span>
                 <div class="d-flex gap-3">
                     <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:#198754;"></span>외국인</span>
                     <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:#dc3545;"></span>기관</span>
@@ -565,8 +568,8 @@
 
         <div class="brief-card">
             <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
-                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">투자자별 매매동향</span>
-                <span style="font-size:0.78rem;color:var(--text-muted);">최근 60일</span>
+                <span style="font-size:0.82rem;color:var(--text-secondary);">투자자별 매매동향</span>
+                <span style="font-size:0.72rem;color:var(--text-muted);">최근 60일</span>
             </div>
             {% if investor_trends_daum %}
             <div style="max-height:500px;overflow-y:auto;">
@@ -607,7 +610,7 @@
         {% if investor_trends %}
         <div class="chart-card">
             <div class="chart-card-header">
-                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">누적 순매수</span>
+                <span style="font-size:0.82rem;color:var(--text-secondary);">누적 순매수</span>
                 <div class="d-flex gap-3">
                     <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:#ffc107;"></span>개인</span>
                     <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:#198754;"></span>외국인</span>
@@ -622,8 +625,8 @@
 
         <div class="brief-card">
             <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
-                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">투자자별 매매동향</span>
-                <span style="font-size:0.78rem;color:var(--text-muted);">최근 60일</span>
+                <span style="font-size:0.82rem;color:var(--text-secondary);">투자자별 매매동향</span>
+                <span style="font-size:0.72rem;color:var(--text-muted);">최근 60일</span>
             </div>
             {% if investor_trends %}
             <div style="max-height:500px;overflow-y:auto;overflow-x:auto;">
@@ -674,11 +677,8 @@
 
 <!-- ========== 공매도 탭 ========== -->
 <div id="shortsell-content" class="tab-panel" style="display:none;">
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">공매도 현황<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">최근 60일</span></h5>
     <div class="brief-card">
-        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
-            <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">공매도 현황</span>
-            <span style="font-size:0.78rem;color:var(--text-muted);">최근 60일</span>
-        </div>
         {% if short_sellings %}
         <div style="max-height:500px;overflow-y:auto;">
             <table class="modern-table">
@@ -717,11 +717,8 @@
 
 <!-- ========== 공시 탭 ========== -->
 <div id="disclosure-content" class="tab-panel" style="display:none;">
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">DART 공시<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">전자공시시스템</span></h5>
     <div class="brief-card">
-        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
-            <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">DART 공시</span>
-            <span style="font-size:0.78rem;color:var(--text-muted);">전자공시시스템</span>
-        </div>
         {% if gongsi_list %}
         <table class="modern-table">
             <thead>
@@ -750,21 +747,16 @@
 <!-- ========== 리포트 탭 ========== -->
 <div id="report-content" class="tab-panel" style="display:none;">
     {% if reports %}
+    <h5 class="section-heading">주가 vs 목표가</h5>
     <div class="chart-card">
-        <div class="chart-card-header">
-            <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">주가 vs 목표가</span>
-        </div>
         <div style="position:relative;height:300px;">
             <canvas id="priceTargetChart"></canvas>
         </div>
     </div>
     {% endif %}
 
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">애널리스트 리포트<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">{{ reports|length }}개{% if total_reports > 20 %} / {{ total_reports }}개{% endif %}</span></h5>
     <div class="brief-card">
-        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
-            <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">애널리스트 리포트</span>
-            <span style="font-size:0.78rem;color:var(--text-muted);">{{ reports|length }}개{% if total_reports > 20 %} / {{ total_reports }}개{% endif %}</span>
-        </div>
         {% if reports %}
         <div style="overflow-x:auto;">
             <table class="modern-table" id="reportTable">
@@ -845,30 +837,43 @@
     </div>
 
     <!-- 파일 리포트 -->
-    {% if uploaded_reports %}
-    <div class="brief-card" style="margin-top:12px;">
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">파일 리포트<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="uploadedReportCount">{{ uploaded_reports|length }}개</span></h5>
+    <div class="brief-card">
         <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
-            <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">파일 리포트</span>
-            <span style="font-size:0.78rem;color:var(--text-muted);">{{ uploaded_reports|length }}개</span>
+            <span style="font-size:0.82rem;color:var(--text-muted);">PDF, 이미지 파일 업로드</span>
+            <button type="button" id="btnUploadReportToggle" class="btn-refresh" style="padding:6px 16px;">업로드</button>
         </div>
-        {% for report in uploaded_reports %}
-        <div class="list-item">
-            <div class="flex-grow-1" style="min-width:0;">
-                <span class="list-item-title" style="cursor:default;">{{ report.display_title }}</span>
-                <div class="list-item-meta">{{ report.created_at|date:"y/m/d" }}</div>
+        <!-- 업로드 폼 -->
+        <div id="uploadReportForm" class="d-none" style="margin-bottom:16px;padding:16px;background:#f9fafb;border-radius:8px;">
+            <div style="margin-bottom:8px;">
+                <input type="file" id="uploadReportFile" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" style="font-size:0.82rem;">
             </div>
-            <div class="d-flex gap-1">
-                <a href="{{ report.file.url }}" target="_blank" class="status-badge info" style="text-decoration:none;">파일</a>
-                <a href="{% url 'stocks:uploaded_report_summary_page' report.id %}" style="text-decoration:none;">
-                    {% if report.summary %}<span class="status-badge done">요약</span>
-                    {% elif report.has_attachment %}<span class="status-badge info">요약</span>
-                    {% else %}<span class="status-badge pending">요약</span>{% endif %}
-                </a>
+            <div style="margin-bottom:8px;">
+                <input type="text" id="uploadReportTitle" placeholder="제목 (선택, 미입력시 파일명)" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:6px 12px;font-size:0.82rem;">
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnUploadReportCancel" class="btn-refresh" style="padding:6px 16px;">취소</button>
+                <button type="button" id="btnUploadReportSave" class="btn-refresh" style="padding:6px 16px;">저장</button>
+            </div>
+        </div>
+        <!-- 리스트 -->
+        <div id="uploadedReportList">
+        {% for report in uploaded_reports %}
+        <div class="list-item" data-report-id="{{ report.id }}" style="align-items:center;">
+            <div class="flex-grow-1" style="min-width:0;">
+                <div style="font-size:0.85rem;font-weight:500;color:var(--text-primary);">{{ report.display_title }}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">{{ report.created_at|date:"y/m/d" }}</div>
+            </div>
+            <div class="d-flex gap-2" style="flex-shrink:0;">
+                <a href="{% url 'stocks:uploaded_report_summary_page' report.id %}" style="text-decoration:none;">{% if report.summary %}<span class="status-badge done">요약</span>{% else %}<span class="status-badge pending">요약</span>{% endif %}</a>
+                <a href="{{ report.file.url }}" target="_blank" style="text-decoration:none;"><span class="status-badge pending">파일</span></a>
+                <a href="#" class="btn-uploaded-report-delete" data-id="{{ report.id }}" style="text-decoration:none;"><span class="status-badge pending">삭제</span></a>
             </div>
         </div>
         {% endfor %}
+        </div>
+        {% if not uploaded_reports %}<div id="uploadedReportEmpty" style="color:var(--text-muted);font-size:0.85rem;">업로드된 파일이 없습니다.</div>{% endif %}
     </div>
-    {% endif %}
 </div>
 
 <!-- ========== 텔레그램 탭 ========== -->
@@ -1917,6 +1922,75 @@ document.querySelector('.btn-open-analysis-window')?.addEventListener('click', f
     if (iframe) {
         window.open(iframe.src, '_blank');
     }
+});
+
+// ===== 파일 리포트 업로드/삭제 =====
+const btnUploadToggle = document.getElementById('btnUploadReportToggle');
+const uploadForm = document.getElementById('uploadReportForm');
+const btnUploadCancel = document.getElementById('btnUploadReportCancel');
+const btnUploadSave = document.getElementById('btnUploadReportSave');
+
+btnUploadToggle.addEventListener('click', () => {
+    uploadForm.classList.toggle('d-none');
+});
+btnUploadCancel.addEventListener('click', () => {
+    uploadForm.classList.add('d-none');
+});
+
+btnUploadSave.addEventListener('click', async () => {
+    const fileInput = document.getElementById('uploadReportFile');
+    const titleInput = document.getElementById('uploadReportTitle');
+    if (!fileInput.files.length) return alert('파일을 선택하세요.');
+
+    btnUploadSave.disabled = true;
+    btnUploadSave.textContent = '업로드 중...';
+
+    try {
+        const fd = new FormData();
+        fd.append('file', fileInput.files[0]);
+        fd.append('stock_code', stockCode);
+        if (titleInput.value.trim()) fd.append('title', titleInput.value.trim());
+
+        const res = await fetch('/api/stock/uploaded-report/upload/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: fd
+        });
+        const data = await res.json();
+        if (data.error) {
+            alert(data.error);
+        } else {
+            location.reload();
+        }
+    } catch (e) {
+        alert('오류: ' + e.message);
+    } finally {
+        btnUploadSave.disabled = false;
+        btnUploadSave.textContent = '저장';
+    }
+});
+
+document.querySelectorAll('.btn-uploaded-report-delete').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        if (!confirm('이 파일 리포트를 삭제하시겠습니까?')) return;
+        try {
+            const res = await fetch(`/api/stock/uploaded-report/${this.dataset.id}/delete/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            });
+            const data = await res.json();
+            if (data.success) {
+                this.closest('.list-item').remove();
+                const remaining = document.querySelectorAll('#uploadedReportList .list-item').length;
+                document.getElementById('uploadedReportCount').textContent = remaining + '개';
+                if (remaining === 0) {
+                    document.getElementById('uploadedReportList').innerHTML = '<div id="uploadedReportEmpty" style="color:var(--text-muted);font-size:0.85rem;">업로드된 파일이 없습니다.</div>';
+                }
+            } else {
+                alert(data.error || '삭제 실패');
+            }
+        } catch (e) { alert('오류: ' + e.message); }
+    });
 });
 
 // ===== 종목 투자일지 =====

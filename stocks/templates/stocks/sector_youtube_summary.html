@@ -110,6 +110,8 @@ function cleanupMarkdown(text) {
     return result.trim();
 }
 
+marked.setOptions({ breaks: true });
+
 function updatePreview() {
     preview.innerHTML = marked.parse(cleanupMarkdown(textarea.value) || '');
 }
