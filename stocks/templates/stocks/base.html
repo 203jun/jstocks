@@ -22,6 +22,7 @@
         }
 
         * { box-sizing: border-box; }
+        html { overflow-y: scroll; }
 
         body {
             background-color: var(--bg-page);
@@ -63,7 +64,7 @@
             list-style: none;
             margin: 0;
             padding: 0;
-            gap: 4px;
+            gap: 0;
         }
         .nav-links a {
             display: block;
@@ -74,13 +75,15 @@
             font-weight: 500;
             border-bottom: 2px solid transparent;
             transition: color 0.15s, border-color 0.15s;
+            min-width: 56px;
+            text-align: center;
         }
         .nav-links a:hover {
             color: var(--text-primary);
         }
         .nav-links a.active {
             color: var(--text-primary);
-            font-weight: 600;
+            font-weight: 500;
             border-bottom-color: var(--text-primary);
         }
         .nav-right {
@@ -100,6 +103,15 @@
         .nav-right a:hover {
             color: var(--text-primary);
             background: var(--bg-page);
+        }
+        .nav-logout-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
         }
 
         /* Content wrapper */
@@ -151,7 +163,7 @@
             .nav-links { gap: 0; }
             .nav-links a { padding: 10px 8px; font-size: 0.75rem; white-space: nowrap; }
             .nav-right { gap: 2px; }
-            .nav-right a, .nav-right button { font-size: 0.75rem; padding: 6px 8px; }
+            .nav-right a, .nav-right button, .nav-logout-btn { font-size: 0.68rem; padding: 4px 6px; }
         }
 
         {% block extra_style %}{% endblock %}
@@ -172,7 +184,7 @@
                 <a href="{% url 'stocks:settings' %}">설정</a>
                 <form method="post" action="{% url 'logout' %}" style="display:inline;">
                     {% csrf_token %}
-                    <button type="submit" style="background:none;border:none;color:var(--text-muted);font-size:0.85rem;padding:8px 12px;border-radius:var(--radius-sm);cursor:pointer;">로그아웃</button>
+                    <button type="submit" class="nav-logout-btn">로그아웃</button>
                 </form>
             </div>
         </div>
