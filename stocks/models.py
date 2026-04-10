@@ -138,7 +138,6 @@ class Info(models.Model):
         choices=[
             ('super', '초관심'),
             ('normal', '관심'),
-            ('incubator', '인큐베이터'),
         ],
         null=True,
         blank=True,
@@ -288,6 +287,14 @@ class Info(models.Model):
         verbose_name='메모 업데이트일',
         help_text='메모 마지막 수정일'
     )
+
+    # === 매매근거 ===
+    buy_reason = models.TextField(blank=True, default='', verbose_name='매수근거')
+    sell_reason = models.TextField(blank=True, default='', verbose_name='매도근거')
+    buy_price = models.IntegerField(null=True, blank=True, verbose_name='매수가')
+    sell_price = models.IntegerField(null=True, blank=True, verbose_name='매도가')
+    buy_price_range = models.IntegerField(default=5, verbose_name='매수가 범위(%)')
+    trade_updated_at = models.DateField(null=True, blank=True, verbose_name='매매근거 업데이트일')
 
     @property
     def has_insight_and_analysis(self):

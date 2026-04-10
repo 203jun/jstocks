@@ -84,7 +84,6 @@
 .tag-badge.holding { background: #ecfdf5; color: #059669; }
 .tag-badge.interest-super { background: #fef2f2; color: #dc2626; }
 .tag-badge.interest-normal { background: #fffbeb; color: #d97706; }
-.tag-badge.interest-incubator { background: #eff6ff; color: #0891b2; }
 
 /* Status badge */
 .status-badge {
@@ -283,8 +282,6 @@
             <span class="tag-badge interest-super">초관심</span>
             {% elif stock.interest_level == 'normal' %}
             <span class="tag-badge interest-normal">관심</span>
-            {% elif stock.interest_level == 'incubator' %}
-            <span class="tag-badge interest-incubator">인큐베이터</span>
             {% endif %}
         </div>
     </div>
@@ -305,6 +302,66 @@
 
 <!-- ========== 기본정보 탭 ========== -->
 <div id="info-content" class="tab-panel">
+    <!-- 기본 정보 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;margin-top:0;">기본 정보<a href="{% url 'stocks:stock_edit' stock.code %}" class="btn-refresh" style="font-weight:400;font-size:0.78rem;">정보수정</a></h5>
+    <div class="brief-card">
+        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:10px;">
+            <div>
+                <span class="stat-item-value" id="currentPrice">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</span>
+                <span style="font-size:1.1rem;font-weight:700;margin-left:8px;" class="{% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}" id="changeRate">{% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}</span>
+            </div>
+            <div>
+                <a href="https://finance.naver.com/item/board.naver?code={{ stock.code }}" target="_blank" class="tag-badge" style="background:#ecfdf5;color:#059669;font-size:0.6rem;vertical-align:middle;text-decoration:none;">종토방</a>
+                <a href="https://comp.fnguide.com/SVO2/ASP/SVD_Main.asp?pGB=1&gicode=A{{ stock.code }}&cID=&MenuYn=Y&ReportGB=&NewMenuID=101&stkGb=701" target="_blank" class="tag-badge" style="background:#fffbeb;color:#d97706;font-size:0.6rem;vertical-align:middle;text-decoration:none;margin-left:2px;">fNG</a>
+                <a href="https://stockeasy.intellio.kr/stock-analysis?tab=stock_info&code={{ stock.code }}&stockTab=info" target="_blank" class="tag-badge" style="background:#eff6ff;color:#2962ff;font-size:0.6rem;vertical-align:middle;text-decoration:none;margin-left:2px;">StockEasy</a>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;line-height:2;">
+            <span><span style="color:var(--text-muted);">거래량</span> <span id="volume">{% if stock.volume %}{{ stock.volume|intcomma }}{% else %}-{% endif %}</span>{% if volume_change_rate is not None %} <span class="{% if volume_change_rate > 0 %}text-up{% elif volume_change_rate < 0 %}text-down{% endif %}" id="volumeChange">({% if volume_change_rate > 0 %}+{% endif %}{{ volume_change_rate }}%)</span>{% endif %}</span>
+            <span><span style="color:var(--text-muted);">시가총액</span> {% if stock.market_cap %}{{ stock.market_cap|intcomma }}억{% else %}-{% endif %}</span>
+            <span><span style="color:var(--text-muted);">괴리율</span> {% if latest_report_gap is not None %}<span class="{% if latest_report_gap > 0 %}text-up{% elif latest_report_gap < 0 %}text-down{% endif %}">{% if latest_report_gap > 0 %}+{% endif %}{{ latest_report_gap }}%</span> <span style="color:var(--text-muted);font-size:0.72rem;">{{ latest_report_gap_date|date:"y.m.d" }}</span>{% else %}<span style="color:var(--text-muted);">-</span>{% endif %}</span>
+        </div>
+        <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;line-height:2;">
+            <span><span style="color:var(--text-muted);">수급</span> {% if latest_investor %}<span class="{% if latest_investor.foreign > 0 %}text-up{% elif latest_investor.foreign < 0 %}text-down{% endif %}">외{% if latest_investor.foreign > 0 %}+{% endif %}{{ latest_investor.foreign|intcomma }}</span> <span class="{% if latest_investor.institution > 0 %}text-up{% elif latest_investor.institution < 0 %}text-down{% endif %}">기{% if latest_investor.institution > 0 %}+{% endif %}{{ latest_investor.institution|intcomma }}</span>{% else %}<span style="color:var(--text-muted);">-</span>{% endif %}</span>
+            <span><span style="color:var(--text-muted);">공매도</span> {% if latest_short %}{{ latest_short.weight }}%{% else %}<span style="color:var(--text-muted);">-</span>{% endif %}</span>
+            <span><span style="color:var(--text-muted);">5거래일</span> {% if has_recent_report %}<span class="status-badge info">리포트</span>{% endif %}{% if has_recent_nodaji %}<span class="status-badge" style="background:#fffbeb;color:#d97706;">노다지</span>{% endif %}{% if has_recent_gongsi %}<span class="status-badge" style="background:#eff6ff;color:#0891b2;">공시</span>{% endif %}{% if not has_recent_report and not has_recent_nodaji and not has_recent_gongsi %}<span style="color:var(--text-muted);">없음</span>{% endif %}</span>
+        </div>
+        <div style="border-top:1px solid var(--border-color);padding-top:8px;margin-top:8px;">
+            <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;line-height:2;">
+                <span><span style="color:var(--text-muted);">PER</span> {% if stock.per %}{{ stock.per }}배{% else %}-{% endif %}</span>
+                <span><span style="color:var(--text-muted);">PBR</span> {% if stock.pbr %}{{ stock.pbr }}배{% else %}-{% endif %}</span>
+                <span><span style="color:var(--text-muted);">ROE</span> {% if stock.roe %}{{ stock.roe }}%{% else %}-{% endif %}</span>
+                <span><span style="color:var(--text-muted);">유통비율</span> {% if stock.listed_ratio %}{{ stock.listed_ratio }}%{% else %}-{% endif %}</span>
+                <span><span style="color:var(--text-muted);">신용비율</span> {% if stock.credit_ratio %}{{ stock.credit_ratio }}%{% else %}-{% endif %}</span>
+                <span><span style="color:var(--text-muted);">외인소진률</span> {% if stock.foreign_exhaustion %}{{ stock.foreign_exhaustion }}%{% else %}-{% endif %}</span>
+            </div>
+        </div>
+        {% if stock.themes.all or sectors or stock.custom_sectors.all %}
+        <div style="border-top:1px solid var(--border-color);padding-top:8px;margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+            {% if stock.themes.all %}
+            {% regroup stock.themes.all by category as theme_groups %}
+            {% for group in theme_groups %}
+            <span class="tag-badge theme-cat">{{ group.grouper.name }}</span>
+            {% for theme in group.list %}
+            <span class="tag-badge theme">{{ theme.name }}</span>
+            {% endfor %}
+            {% endfor %}
+            {% endif %}
+            {% if sectors %}
+            {% for s in sectors %}
+            <span class="tag-badge" style="background:#f3f4f6;color:var(--text-secondary);">{{ s.name }}</span>
+            {% endfor %}
+            {% endif %}
+            {% if stock.custom_sectors.all %}
+            {% for sector in stock.custom_sectors.all %}
+            <a href="{% url 'stocks:sector_detail' sector.id %}" class="tag-badge sector" style="text-decoration:none;">{{ sector.name }}</a>
+            {% endfor %}
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    <span id="priceChange" style="display:none;">{% if stock.price_change %}{{ stock.price_change }}{% endif %}</span>
+
     <!-- 투자일지 -->
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">투자일지</h5>
     <div class="brief-card">
@@ -354,74 +411,71 @@
         </div>
     </div>
 
-    <!-- 기본 정보 -->
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">기본 정보<a href="{% url 'stocks:stock_edit' stock.code %}" class="btn-refresh" style="font-weight:400;font-size:0.78rem;">정보수정</a></h5>
+    <!-- 매매근거 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">매매근거{% if stock.trade_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="tradeUpdatedAt">update: {{ stock.trade_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
     <div class="brief-card">
-        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:10px;">
-            <div>
-                <span class="stat-item-value" id="currentPrice">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</span>
-                <span style="font-size:1.1rem;font-weight:700;margin-left:8px;" class="{% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}" id="changeRate">{% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}</span>
+        <!-- 보기 모드 -->
+        <div id="tradeViewMode">
+            <!-- 매수/매도가 -->
+            <div class="d-flex flex-wrap gap-3" style="font-size:0.88rem;margin-bottom:12px;">
+                <span><span style="color:var(--text-muted);font-size:0.82rem;">매수가</span> <strong class="text-up">{% if stock.buy_price %}{{ stock.buy_price|intcomma }}{% else %}-{% endif %}</strong></span>
+                <span><span style="color:var(--text-muted);font-size:0.82rem;">매도가</span> <strong class="text-down">{% if stock.sell_price %}{{ stock.sell_price|intcomma }}{% else %}-{% endif %}</strong></span>
             </div>
-            <div>
-                <a href="https://finance.naver.com/item/board.naver?code={{ stock.code }}" target="_blank" class="tag-badge" style="background:#ecfdf5;color:#059669;font-size:0.6rem;vertical-align:middle;text-decoration:none;">종토방</a>
-                <a href="https://comp.fnguide.com/SVO2/ASP/SVD_Main.asp?pGB=1&gicode=A{{ stock.code }}&cID=&MenuYn=Y&ReportGB=&NewMenuID=101&stkGb=701" target="_blank" class="tag-badge" style="background:#fffbeb;color:#d97706;font-size:0.6rem;vertical-align:middle;text-decoration:none;margin-left:2px;">fNG</a>
-                <a href="https://stockeasy.intellio.kr/stock-analysis?tab=stock_info&code={{ stock.code }}&stockTab=info" target="_blank" class="tag-badge" style="background:#eff6ff;color:#2962ff;font-size:0.6rem;vertical-align:middle;text-decoration:none;margin-left:2px;">StockEasy</a>
-            </div>
-        </div>
-        <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;line-height:2;">
-            <span><span style="color:var(--text-muted);">거래량</span> <span id="volume">{% if stock.volume %}{{ stock.volume|intcomma }}{% else %}-{% endif %}</span>{% if volume_change_rate is not None %} <span class="{% if volume_change_rate > 0 %}text-up{% elif volume_change_rate < 0 %}text-down{% endif %}" id="volumeChange">({% if volume_change_rate > 0 %}+{% endif %}{{ volume_change_rate }}%)</span>{% endif %}</span>
-            <span><span style="color:var(--text-muted);">시가총액</span> {% if stock.market_cap %}{{ stock.market_cap|intcomma }}억{% else %}-{% endif %}</span>
-            <span><span style="color:var(--text-muted);">괴리율</span> {% if latest_report_gap is not None %}<span class="{% if latest_report_gap > 0 %}text-up{% elif latest_report_gap < 0 %}text-down{% endif %}">{% if latest_report_gap > 0 %}+{% endif %}{{ latest_report_gap }}%</span> <span style="color:var(--text-muted);font-size:0.72rem;">{{ latest_report_gap_date|date:"y.m.d" }}</span>{% else %}<span style="color:var(--text-muted);">-</span>{% endif %}</span>
-        </div>
-        <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;line-height:2;">
-            <span><span style="color:var(--text-muted);">수급</span> {% if latest_investor %}<span class="{% if latest_investor.foreign > 0 %}text-up{% elif latest_investor.foreign < 0 %}text-down{% endif %}">외{% if latest_investor.foreign > 0 %}+{% endif %}{{ latest_investor.foreign|intcomma }}</span> <span class="{% if latest_investor.institution > 0 %}text-up{% elif latest_investor.institution < 0 %}text-down{% endif %}">기{% if latest_investor.institution > 0 %}+{% endif %}{{ latest_investor.institution|intcomma }}</span>{% else %}<span style="color:var(--text-muted);">-</span>{% endif %}</span>
-            <span><span style="color:var(--text-muted);">공매도</span> {% if latest_short %}{{ latest_short.weight }}%{% else %}<span style="color:var(--text-muted);">-</span>{% endif %}</span>
-            <span><span style="color:var(--text-muted);">5거래일</span> {% if has_recent_report %}<span class="status-badge info">리포트</span>{% endif %}{% if has_recent_nodaji %}<span class="status-badge" style="background:#fffbeb;color:#d97706;">노다지</span>{% endif %}{% if has_recent_gongsi %}<span class="status-badge" style="background:#eff6ff;color:#0891b2;">공시</span>{% endif %}{% if not has_recent_report and not has_recent_nodaji and not has_recent_gongsi %}<span style="color:var(--text-muted);">없음</span>{% endif %}</span>
-        </div>
-        <div style="border-top:1px solid var(--border-color);padding-top:8px;margin-top:8px;">
-            <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;line-height:2;">
-                <span><span style="color:var(--text-muted);">PER</span> {% if stock.per %}{{ stock.per }}배{% else %}-{% endif %}</span>
-                <span><span style="color:var(--text-muted);">PBR</span> {% if stock.pbr %}{{ stock.pbr }}배{% else %}-{% endif %}</span>
-                <span><span style="color:var(--text-muted);">ROE</span> {% if stock.roe %}{{ stock.roe }}%{% else %}-{% endif %}</span>
-                <span><span style="color:var(--text-muted);">유통비율</span> {% if stock.listed_ratio %}{{ stock.listed_ratio }}%{% else %}-{% endif %}</span>
-                <span><span style="color:var(--text-muted);">신용비율</span> {% if stock.credit_ratio %}{{ stock.credit_ratio }}%{% else %}-{% endif %}</span>
-                <span><span style="color:var(--text-muted);">외인소진률</span> {% if stock.foreign_exhaustion %}{{ stock.foreign_exhaustion }}%{% else %}-{% endif %}</span>
-            </div>
-        </div>
-        {% if stock.themes.all or sectors or stock.custom_sectors.all %}
-        <div style="border-top:1px solid var(--border-color);padding-top:8px;margin-top:8px;">
-            {% if stock.themes.all %}
-            <div style="margin-bottom:6px;">
-                <span style="font-size:0.78rem;color:var(--text-muted);margin-right:8px;">테마</span>
-                {% regroup stock.themes.all by category as theme_groups %}
-                {% for group in theme_groups %}
-                <span class="tag-badge theme-cat">{{ group.grouper.name }}</span>
-                {% for theme in group.list %}
-                <span class="tag-badge theme">{{ theme.name }}</span>
-                {% endfor %}
-                {% endfor %}
+            <!-- 매수근거 -->
+            {% if stock.buy_reason %}
+            <div style="margin-bottom:12px;">
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">매수근거</div>
+                <div class="markdown-content" style="font-size:0.85rem;" id="buyReasonMarkdown"></div>
+                <script type="text/plain" id="buyReasonRaw">{{ stock.buy_reason|safe }}</script>
             </div>
             {% endif %}
-            {% if sectors %}
-            <div style="margin-bottom:6px;">
-                <span style="font-size:0.78rem;color:var(--text-muted);margin-right:8px;">업종</span>
-                {% for s in sectors %}
-                <span class="tag-badge" style="background:#f3f4f6;color:var(--text-secondary);">{{ s.name }}</span>
-                {% endfor %}
+            <!-- 매도근거 -->
+            {% if stock.sell_reason %}
+            <div style="margin-bottom:8px;">
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">매도근거</div>
+                <div class="markdown-content" style="font-size:0.85rem;" id="sellReasonMarkdown"></div>
+                <script type="text/plain" id="sellReasonRaw">{{ stock.sell_reason|safe }}</script>
             </div>
             {% endif %}
-            {% if stock.custom_sectors.all %}
-            <div>
-                <span style="font-size:0.78rem;color:var(--text-muted);margin-right:8px;">섹터</span>
-                {% for sector in stock.custom_sectors.all %}
-                <a href="{% url 'stocks:sector_detail' sector.id %}" class="tag-badge sector" style="text-decoration:none;">{{ sector.name }}</a>
-                {% endfor %}
+            <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+                <span id="btnTradeEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
-            {% endif %}
         </div>
-        {% endif %}
+        <!-- 편집 모드 -->
+        <div id="tradeEditMode" class="d-none">
+            <div class="d-flex flex-wrap gap-3" style="margin-bottom:12px;align-items:flex-end;">
+                <div>
+                    <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">매수가</label>
+                    <div style="display:flex;gap:4px;align-items:center;">
+                        <input type="number" id="buyPriceInput" class="form-control" value="{{ stock.buy_price|default:'' }}" placeholder="매수가" style="width:120px;font-size:0.85rem;padding:4px 8px;">
+                        <button type="button" class="btn-refresh btn-ma" data-target="buyPriceInput" data-value="{{ ma10_value|default:'' }}" style="padding:2px 6px;font-size:0.7rem;">10일</button>
+                        <button type="button" class="btn-refresh btn-ma" data-target="buyPriceInput" data-value="{{ ma20_value|default:'' }}" style="padding:2px 6px;font-size:0.7rem;">20일</button>
+                        <button type="button" class="btn-refresh btn-ma" data-target="buyPriceInput" data-value="{{ ma60_value|default:'' }}" style="padding:2px 6px;font-size:0.7rem;">60일</button>
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">범위(%)</label>
+                    <input type="number" id="buyRangeInput" class="form-control" value="{{ stock.buy_price_range|default:5 }}" min="1" max="30" style="width:70px;font-size:0.85rem;padding:4px 8px;">
+                </div>
+                <div>
+                    <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">매도가</label>
+                    <input type="number" id="sellPriceInput" class="form-control" value="{{ stock.sell_price|default:'' }}" placeholder="매도가" style="width:120px;font-size:0.85rem;padding:4px 8px;">
+                </div>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">매수근거 (마크다운)</label>
+                <textarea class="form-control" id="buyReasonTextarea" rows="4" style="font-family:monospace;font-size:0.85rem;" placeholder="매수근거를 입력하세요...">{{ stock.buy_reason }}</textarea>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">매도근거 (마크다운)</label>
+                <textarea class="form-control" id="sellReasonTextarea" rows="4" style="font-family:monospace;font-size:0.85rem;" placeholder="매도근거를 입력하세요...">{{ stock.sell_reason }}</textarea>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnTradeCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnTradeSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
     </div>
-    <span id="priceChange" style="display:none;">{% if stock.price_change %}{{ stock.price_change }}{% endif %}</span>
 
     <!-- 핵심 브리핑 -->
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">핵심 브리핑{% if stock.key_briefing_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="briefingUpdatedAt">update: {{ stock.key_briefing_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
@@ -1177,6 +1231,9 @@
 <script>
 const stockName = "{{ stock.name }}";
 const stockCode = "{{ stock.code }}";
+const tradeBuyPrice = {{ stock.buy_price|default:"null" }};
+const tradeSellPrice = {{ stock.sell_price|default:"null" }};
+const tradeBuyRange = {{ stock.buy_price_range|default:"5" }};
 
 // ===== Tab switching =====
 document.querySelectorAll('.market-tab').forEach(tab => {
@@ -1304,6 +1361,8 @@ function renderContent(rawId, markdownId) {
 }
 
 renderContent('memoRaw', 'memoMarkdown');
+if (document.getElementById('buyReasonRaw')) renderContent('buyReasonRaw', 'buyReasonMarkdown');
+if (document.getElementById('sellReasonRaw')) renderContent('sellReasonRaw', 'sellReasonMarkdown');
 renderContent('keyBriefingRaw', 'keyBriefingMarkdown');
 renderContent('valuationRaw', 'valuationMarkdown');
 renderContent('analysisRaw', 'analysisMarkdown');
@@ -1352,6 +1411,56 @@ document.getElementById('btnMemoSave').addEventListener('click', async () => {
             }
             document.getElementById('memoEditMode').classList.add('d-none');
             document.getElementById('memoViewMode').classList.remove('d-none');
+        } else {
+            alert('저장 실패');
+        }
+    } catch (err) {
+        alert('오류: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '저장';
+    }
+});
+
+// ===== 매매근거 인라인 편집 =====
+document.getElementById('btnTradeEdit').addEventListener('click', () => {
+    document.getElementById('tradeViewMode').classList.add('d-none');
+    document.getElementById('tradeEditMode').classList.remove('d-none');
+});
+document.getElementById('btnTradeCancel').addEventListener('click', () => {
+    document.getElementById('tradeEditMode').classList.add('d-none');
+    document.getElementById('tradeViewMode').classList.remove('d-none');
+});
+
+// 이평선 버튼
+document.querySelectorAll('.btn-ma').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const target = document.getElementById(btn.dataset.target);
+        const value = btn.dataset.value;
+        if (value) target.value = value;
+    });
+});
+
+// 저장
+document.getElementById('btnTradeSave').addEventListener('click', async () => {
+    const btn = document.getElementById('btnTradeSave');
+    btn.disabled = true;
+    btn.textContent = '저장 중...';
+    try {
+        const formData = new FormData();
+        formData.append('buy_reason', document.getElementById('buyReasonTextarea').value);
+        formData.append('sell_reason', document.getElementById('sellReasonTextarea').value);
+        formData.append('buy_price', document.getElementById('buyPriceInput').value);
+        formData.append('sell_price', document.getElementById('sellPriceInput').value);
+        formData.append('buy_price_range', document.getElementById('buyRangeInput').value);
+        const resp = await fetch(`/api/stock/${stockCode}/trade/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: formData
+        });
+        const data = await resp.json();
+        if (data.success) {
+            location.reload();
         } else {
             alert('저장 실패');
         }
@@ -2573,6 +2682,27 @@ btnYtSave.addEventListener('click', async () => {
 loadYtTimeline(true);
 
 // ===== MA calculation =====
+function addTradePriceBand(chart, candleData) {
+    if (!tradeBuyPrice || !candleData.length) return;
+    const pct = tradeBuyRange / 100;
+    const upper = Math.round(tradeBuyPrice * (1 + pct / 2));
+    const lower = Math.round(tradeBuyPrice * (1 - pct / 2));
+    const bandData = candleData.map(d => ({ time: d.time, value: upper }));
+    const cutData = candleData.map(d => ({ time: d.time, value: lower }));
+    // 상단 면: upper부터 아래로 채움
+    chart.addAreaSeries({
+        topColor: 'rgba(239,83,80,0.1)', bottomColor: 'rgba(239,83,80,0.1)',
+        lineColor: 'transparent', lineWidth: 0,
+        priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+    }).setData(bandData);
+    // 하단 면: lower부터 아래로 흰색으로 덮어서 잘라냄
+    chart.addAreaSeries({
+        topColor: '#ffffff', bottomColor: '#ffffff',
+        lineColor: 'transparent', lineWidth: 0,
+        priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+    }).setData(cutData);
+}
+
 function calculateMA(data, period) {
     const result = [];
     for (let i = period - 1; i < data.length; i++) {
@@ -2616,6 +2746,7 @@ function initDailyChart(candleData, volumeData) {
         wickUpColor: '#ef5350', wickDownColor: '#26a69a',
     });
     candleSeries.setData(candleData);
+    addTradePriceBand(chart, candleData);
 
     for (const [period, color] of Object.entries(maConfig)) {
         const s = chart.addLineSeries({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
@@ -2714,6 +2845,7 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
     });
     const candleSeries = chart.addCandlestickSeries({ upColor:'#ef5350', downColor:'#26a69a', borderUpColor:'#ef5350', borderDownColor:'#26a69a', wickUpColor:'#ef5350', wickDownColor:'#26a69a' });
     candleSeries.setData(candleData);
+    addTradePriceBand(chart, candleData);
 
     const weeklyMaConfig = { 5:'#ff9800', 10:'#2196f3', 20:'#4caf50' };
     const weeklyMaSeries = {};
@@ -2753,6 +2885,7 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
     });
     const candleSeries = chart.addCandlestickSeries({ upColor:'#ef5350', downColor:'#26a69a', borderUpColor:'#ef5350', borderDownColor:'#26a69a', wickUpColor:'#ef5350', wickDownColor:'#26a69a' });
     candleSeries.setData(candleData);
+    addTradePriceBand(chart, candleData);
 
     const monthlyMaConfig = { 5:'#ff9800', 10:'#2196f3', 20:'#4caf50' };
     const monthlyMaSeries = {};

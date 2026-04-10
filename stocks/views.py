@@ -37,11 +37,9 @@ def index(request):
 
     super_stocks = sort_by_theme(base_qs.filter(interest_level='super'))
     normal_stocks = sort_by_theme(base_qs.filter(interest_level='normal'))
-    incubator_stocks = sort_by_theme(base_qs.filter(interest_level='incubator'))
 
     # ============ 대시보드 카드 ============
-    # 관심종목만 대상 (super, normal, incubator)
-    target_stocks = list(base_qs.filter(interest_level__in=['super', 'normal', 'incubator']))
+    target_stocks = list(base_qs.filter(interest_level__in=['super', 'normal']))
 
     # 카드 A: 장기 신호 (60일 신고거래량)
     card_a_stocks = []  # 급등 (양봉, MA20 위)
@@ -465,10 +463,122 @@ def index(request):
     # 등락율 순 정렬
     card_nodaji_stocks.sort(key=lambda x: x['change_rate'], reverse=True)
 
+    # ============ 현황 테이블 ============
+    card_d_codes = {item['stock'].code for item in card_d_stocks}
+    status_stocks = []
+    for stock in target_stocks:
+        daily_data = list(DailyChart.objects.filter(stock=stock).order_by('-date')[:65])
+        if not daily_data:
+            status_stocks.append({'stock': stock, 'level': stock.interest_level, 'vol_high_20': False, 'vol_high_60': False, 'ma_align': '', 'pullback': None, 'has_report': False, 'has_nodaji': False})
+            continue
+
+        today = daily_data[0]
+        today_vol = today.trading_volume or 0
+
+        max_vol_20 = max((d.trading_volume or 0) for d in daily_data[:20]) if len(daily_data) >= 2 else 0
+        max_vol_60 = max((d.trading_volume or 0) for d in daily_data[:60]) if len(daily_data) >= 2 else 0
+
+        # 배열 판단
+        ma_align = ''
+        if len(daily_data) >= 60:
+            ma10 = sum(d.closing_price for d in daily_data[:10]) / 10
+            ma20 = sum(d.closing_price for d in daily_data[:20]) / 20
+            ma60 = sum(d.closing_price for d in daily_data[:60]) / 60
+            if ma10 > ma20 > ma60:
+                ma_align = 'bull'
+            elif ma10 < ma20 < ma60:
+                ma_align = 'bear'
+            else:
+                ma_align = 'mixed'
+
+        # 눌림목 판단
+        pullback = None
+        if stock.code in card_d_codes:
+            # card_d에서 gap_from_ma60 가져오기
+            for item in card_d_stocks:
+                if item['stock'].code == stock.code:
+                    pullback = item['gap_from_ma60']
+                    break
+        elif len(daily_data) >= 65:
+            # card_d에 없어도 직접 체크 (card_a/b에 있어서 제외된 경우)
+            ma20 = sum(d.closing_price for d in daily_data[:20]) / 20
+            ma60 = sum(d.closing_price for d in daily_data[:60]) / 60
+            ma60_5d = sum(d.closing_price for d in daily_data[5:65]) / 60
+            if (ma20 > ma60 and ma60 > ma60_5d
+                    and today.closing_price < ma20
+                    and today.closing_price >= ma60 * 0.90):
+                pullback = round((today.closing_price / ma60 - 1) * 100, 1)
+
+        # 10일 스파크라인
+        sparkline = [d.closing_price for d in daily_data[:10]]
+        sparkline.reverse()
+
+        # 신호추적 (최근 5거래일 내 신고거래량+양봉+MA20위)
+        signal_info = None
+        # card_c에서 먼저 찾기
+        for item in card_c_stocks:
+            if item['stock'].code == stock.code:
+                signal_info = item
+                break
+        # 없으면 직접 계산 (card_a/b/d에 있어서 card_c에서 제외된 종목)
+        if not signal_info and len(daily_data) >= 65:
+            for day_idx in range(5):
+                check_day = daily_data[day_idx]
+                if check_day.closing_price < check_day.opening_price:
+                    continue
+                ma20_data = daily_data[day_idx:day_idx + 20]
+                if len(ma20_data) < 20:
+                    continue
+                ma20_val = sum(d.closing_price for d in ma20_data) / 20
+                if check_day.closing_price <= ma20_val:
+                    continue
+                vol_60_data = daily_data[day_idx:day_idx + 60]
+                vol_20_data = daily_data[day_idx:day_idx + 20]
+                is_60 = len(vol_60_data) >= 60 and check_day.trading_volume == max(d.trading_volume for d in vol_60_data) and check_day.trading_volume > 0
+                is_20 = not is_60 and len(vol_20_data) >= 20 and check_day.trading_volume == max(d.trading_volume for d in vol_20_data) and check_day.trading_volume > 0
+                if is_60 or is_20:
+                    sig_change = round((today.closing_price / check_day.closing_price - 1) * 100, 1) if check_day.closing_price > 0 else 0
+                    signal_info = {
+                        'signal_days_ago': day_idx,
+                        'signal_price_change': sig_change,
+                        'signal_date': check_day.date.strftime('%Y-%m-%d'),
+                        'signal_open': check_day.opening_price,
+                        'signal_close': check_day.closing_price,
+                        'current_price': stock.current_price,
+                        'stock': stock,
+                    }
+                    break
+
+        # 리포트(3거래일)/노다지(5거래일) 최근 자료 확인
+        from datetime import timedelta
+        today_date = today.date
+        has_report = Report.objects.filter(stock=stock, date__gte=today_date - timedelta(days=5)).exists()
+        has_nodaji = Nodaji.objects.filter(stock=stock, date__gte=today_date - timedelta(days=9)).exists()
+
+        # 괴리율 (최신 리포트 목표가 vs 현재가)
+        report_gap = None
+        latest_report = Report.objects.filter(stock=stock, target_price__isnull=False).order_by('-date').first()
+        if latest_report and latest_report.target_price and stock.current_price:
+            report_gap = round((latest_report.target_price / stock.current_price - 1) * 100, 1)
+
+        status_stocks.append({
+            'stock': stock,
+            'level': stock.interest_level,
+            'vol_high_20': today_vol > 0 and today_vol >= max_vol_20,
+            'vol_high_60': today_vol > 0 and today_vol >= max_vol_60,
+            'is_bullish': today.closing_price >= today.opening_price if today.opening_price else True,
+            'ma_align': ma_align,
+            'pullback': pullback,
+            'has_report': has_report,
+            'has_nodaji': has_nodaji,
+            'report_gap': report_gap,
+            'signal_info': signal_info,
+            'sparkline': sparkline,
+        })
+
     context = {
         'super_stocks': super_stocks,
         'normal_stocks': normal_stocks,
-        'incubator_stocks': incubator_stocks,
         'card_a_stocks': card_a_stocks,
         'card_a_down_stocks': card_a_down_stocks,
         'card_b_stocks': card_b_stocks,
@@ -477,6 +587,7 @@ def index(request):
         'card_c_stocks': card_c_stocks,
         'card_report_stocks': card_report_stocks,
         'card_nodaji_stocks': card_nodaji_stocks,
+        'status_stocks': status_stocks,
     }
     return render(request, 'stocks/index.html', context)
 
@@ -556,8 +667,14 @@ def stock_detail(request, code):
                 result.append(round(avg))
         return result
 
+    ma10 = calc_ma(daily_charts, 10)
     ma20 = calc_ma(daily_charts, 20)
     ma60 = calc_ma(daily_charts, 60)
+
+    # 이평선 최신값 (매매근거에서 사용)
+    ma10_value = next((v for v in reversed(ma10) if v is not None), None)
+    ma20_value = next((v for v in reversed(ma20) if v is not None), None)
+    ma60_value = next((v for v in reversed(ma60) if v is not None), None)
 
     # 최근 240일만 사용
     daily_charts = daily_charts[-240:]
@@ -892,6 +1009,9 @@ def stock_detail(request, code):
         'target_chart_data': json.dumps(target_chart_data),
         'gap_chart_data': json.dumps(gap_chart_data),
         'saved_prompts': {s.key: s.value for s in SystemSetting.objects.filter(key__startswith='prompt_')},
+        'ma10_value': ma10_value,
+        'ma20_value': ma20_value,
+        'ma60_value': ma60_value,
     }
     return render(request, 'stocks/stock_detail.html', context)
 
@@ -5436,6 +5556,48 @@ def stock_key_briefing_save(request, code):
         stock.key_briefing_updated_at = date.today()
         stock.save(update_fields=['key_briefing', 'key_briefing_updated_at'])
     return JsonResponse({'success': True, 'updated_at': stock.key_briefing_updated_at.strftime('%Y-%m-%d') if stock.key_briefing_updated_at else ''})
+
+
+@require_POST
+def stock_trade_save(request, code):
+    """종목 매매근거 저장 API"""
+    from datetime import date
+    stock = get_object_or_404(Info, code=code)
+    changed = False
+
+    buy_reason = request.POST.get('buy_reason')
+    if buy_reason is not None and buy_reason.strip() != (stock.buy_reason or '').strip():
+        stock.buy_reason = buy_reason.strip()
+        changed = True
+
+    sell_reason = request.POST.get('sell_reason')
+    if sell_reason is not None and sell_reason.strip() != (stock.sell_reason or '').strip():
+        stock.sell_reason = sell_reason.strip()
+        changed = True
+
+    buy_price = request.POST.get('buy_price', '').strip()
+    new_buy = int(buy_price) if buy_price else None
+    if new_buy != stock.buy_price:
+        stock.buy_price = new_buy
+        changed = True
+
+    sell_price = request.POST.get('sell_price', '').strip()
+    new_sell = int(sell_price) if sell_price else None
+    if new_sell != stock.sell_price:
+        stock.sell_price = new_sell
+        changed = True
+
+    buy_price_range = request.POST.get('buy_price_range', '').strip()
+    new_range = int(buy_price_range) if buy_price_range else 5
+    if new_range != stock.buy_price_range:
+        stock.buy_price_range = new_range
+        changed = True
+
+    if changed:
+        stock.trade_updated_at = date.today()
+        stock.save(update_fields=['buy_reason', 'sell_reason', 'buy_price', 'sell_price', 'buy_price_range', 'trade_updated_at'])
+
+    return JsonResponse({'success': True, 'updated_at': stock.trade_updated_at.strftime('%Y-%m-%d') if stock.trade_updated_at else ''})
 
 
 @require_POST
