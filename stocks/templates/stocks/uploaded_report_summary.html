@@ -56,7 +56,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center" style="margin-bottom:20px;">
     <h5 style="font-weight:700;margin:0;color:var(--text-primary);">파일 리포트 요약</h5>
-    <a href="{% url 'stocks:stock_detail' report.stock.code %}#report-content" class="btn-refresh">돌아가기</a>
+    <a href="javascript:history.back()" class="btn-refresh">돌아가기</a>
 </div>
 
 <!-- 리포트 정보 -->

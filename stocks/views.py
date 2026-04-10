@@ -746,48 +746,6 @@ def stock_detail(request, code):
     # 공매도 (최근 60일)
     short_sellings = ShortSelling.objects.filter(stock=stock).order_by('-date')[:60]
 
-    # 저장된 유튜브 영상 (업로드일 최신순)
-    from .models import YoutubeVideo
-    import re
-    def parse_youtube_date_detail(video):
-        """유튜브 날짜를 정렬용 타임스탬프로 변환"""
-        try:
-            pub = (video.published or '').strip()
-            if not pub:
-                return video.created_at.timestamp() if video.created_at else 0
-            now = datetime.now()
-            # "3일 전", "2시간 전" 등 상대 날짜 처리
-            match = re.search(r'(\d+)\s*(초|분|시간|일|주|개월|년)\s*전', pub)
-            if match:
-                num = int(match.group(1))
-                unit = match.group(2)
-                if unit == '초':
-                    return (now - timedelta(seconds=num)).timestamp()
-                elif unit == '분':
-                    return (now - timedelta(minutes=num)).timestamp()
-                elif unit == '시간':
-                    return (now - timedelta(hours=num)).timestamp()
-                elif unit == '일':
-                    return (now - timedelta(days=num)).timestamp()
-                elif unit == '주':
-                    return (now - timedelta(weeks=num)).timestamp()
-                elif unit == '개월':
-                    return (now - timedelta(days=num*30)).timestamp()
-                elif unit == '년':
-                    return (now - timedelta(days=num*365)).timestamp()
-            # "2025. 10. 22." 또는 "2025.10.22" 형식 (점 구분)
-            dot_match = re.search(r'(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})', pub)
-            if dot_match:
-                return datetime(int(dot_match.group(1)), int(dot_match.group(2)), int(dot_match.group(3))).timestamp()
-            # "2025-10-22" 형식 (하이픈 구분)
-            dash_match = re.search(r'(\d{4})-(\d{1,2})-(\d{1,2})', pub)
-            if dash_match:
-                return datetime(int(dash_match.group(1)), int(dash_match.group(2)), int(dash_match.group(3))).timestamp()
-            return video.created_at.timestamp() if video.created_at else 0
-        except:
-            return video.created_at.timestamp() if video.created_at else 0
-    youtube_videos = sorted(YoutubeVideo.objects.filter(stock=stock), key=parse_youtube_date_detail, reverse=True)
-
     # 저장된 뉴스 (게시일 최신순)
     from .models import News
     def parse_news_date_detail(news):
@@ -812,7 +770,7 @@ def stock_detail(request, code):
     question_reports = StockQuestionReport.objects.filter(stock=stock).order_by('-created_at')
 
     # 업로드 리포트
-    from .models import StockUploadedReport
+    from .models import StockUploadedReport, SystemSetting
     uploaded_reports = StockUploadedReport.objects.filter(stock=stock).order_by('-created_at')
 
     # 리포트 요약 개수 (애널리스트 리포트 + 파일 리포트)
@@ -924,7 +882,6 @@ def stock_detail(request, code):
         'investor_trends_daum': investor_trends_daum,
         'investor_chart_data_daum': json.dumps(investor_chart_data_daum),
         'short_sellings': short_sellings,
-        'youtube_videos': youtube_videos,
         'news_articles': news_articles,
         'telegram_messages': telegram_messages,
         'question_reports': question_reports,
@@ -934,6 +891,7 @@ def stock_detail(request, code):
         'price_chart_data': json.dumps(price_chart_data),
         'target_chart_data': json.dumps(target_chart_data),
         'gap_chart_data': json.dumps(gap_chart_data),
+        'saved_prompts': {s.key: s.value for s in SystemSetting.objects.filter(key__startswith='prompt_')},
     }
     return render(request, 'stocks/stock_detail.html', context)
 
@@ -1004,95 +962,7 @@ def stock_edit(request, code):
         stock.interest_level = new_interest_level
         stock.is_holding = request.POST.get('is_holding') == 'on'
 
-        # 인사이트 저장 (변경 시 날짜 업데이트)
-        new_insight_summary = request.POST.get('insight_summary_html', '').strip()
-        new_insight_report = request.POST.get('insight_report_html', '').strip()
-        old_insight_summary = (stock.insight_summary_html or '').strip()
-        old_insight_report = (stock.insight_report_html or '').strip()
-        if new_insight_summary != old_insight_summary or new_insight_report != old_insight_report:
-            stock.insight_summary_html = new_insight_summary
-            stock.insight_report_html = new_insight_report
-            from datetime import date
-            stock.insight_updated_at = date.today()
-
-        # 핵심 브리핑 저장 (변경 시 날짜 업데이트)
-        new_key_briefing = request.POST.get('key_briefing', '').strip()
-        old_key_briefing = (stock.key_briefing or '').strip()
-        if new_key_briefing != old_key_briefing:
-            stock.key_briefing = new_key_briefing
-            from datetime import date
-            stock.key_briefing_updated_at = date.today()
-
-        # 가치평가 저장 (변경 시 날짜 업데이트)
-        new_valuation = request.POST.get('valuation', '').strip()
-        old_valuation = (stock.valuation or '').strip()
-        if new_valuation != old_valuation:
-            stock.valuation = new_valuation
-            from datetime import date
-            stock.valuation_updated_at = date.today()
-
-        # 재무분석 저장 (변경 시 날짜 업데이트)
-        new_financial_analysis = request.POST.get('financial_analysis', '').strip()
-        old_financial_analysis = (stock.financial_analysis or '').strip()
-        if new_financial_analysis != old_financial_analysis:
-            stock.financial_analysis = new_financial_analysis
-            from datetime import date
-            stock.financial_analysis_updated_at = date.today()
-
-        # 투자지표 저장 (변경 시 날짜 업데이트)
-        new_investment_indicator = request.POST.get('investment_indicator', '').strip()
-        old_investment_indicator = (stock.investment_indicator or '').strip()
-        if new_investment_indicator != old_investment_indicator:
-            stock.investment_indicator = new_investment_indicator
-            from datetime import date
-            stock.investment_indicator_updated_at = date.today()
-
-        # 메모 저장 (변경 시 날짜 업데이트)
-        new_memo = request.POST.get('memo', '').strip()
-        old_memo = (stock.memo or '').strip()
-        if new_memo != old_memo:
-            stock.memo = new_memo
-            from datetime import date
-            stock.memo_updated_at = date.today()
-
         stock.save()
-
-        # 기업분석 저장 (타입에 따라 파일 또는 DB에 저장)
-        analysis_content = request.POST.get('analysis_html', '').strip()
-        analysis_type = request.POST.get('analysis_type', 'html')
-        analysis_dir = Path(django_settings.MEDIA_ROOT) / 'analysis'
-        analysis_dir.mkdir(parents=True, exist_ok=True)
-        html_path = analysis_dir / f'{code}.html'
-
-        # 기존 내용과 비교
-        if analysis_type == 'html':
-            old_content = (html_path.read_text(encoding='utf-8') if html_path.exists() else '').strip()
-        else:
-            old_content = (stock.analysis_text or '').strip()
-
-        # 줄바꿈 정규화 후 비교 (브라우저가 \r\n으로 전송할 수 있음)
-        normalized_new = analysis_content.replace('\r\n', '\n').replace('\r', '\n')
-        normalized_old = old_content.replace('\r\n', '\n').replace('\r', '\n')
-
-        if normalized_new != normalized_old or stock.analysis_type != analysis_type:
-            from datetime import date
-            stock.analysis_type = analysis_type
-
-            if analysis_type == 'html':
-                # HTML: 파일로 저장, DB 필드 비우기
-                if analysis_content:
-                    html_path.write_text(analysis_content, encoding='utf-8')
-                elif html_path.exists():
-                    html_path.unlink()
-                stock.analysis_text = ''
-            else:
-                # 마크다운: DB에 저장, 파일 삭제
-                stock.analysis_text = analysis_content
-                if html_path.exists():
-                    html_path.unlink()
-
-            stock.analysis_updated_at = date.today()
-            stock.save(update_fields=['analysis_type', 'analysis_text', 'analysis_updated_at'])
 
         # 업종 저장 (ManyToMany)
         from .models import Theme
@@ -1124,75 +994,6 @@ def stock_edit(request, code):
 
     # 관심 단계 선택지
     interest_choices = Info._meta.get_field('interest_level').choices
-
-    # 리포트 (최근 20개, 총 개수 포함)
-    reports_queryset = Report.objects.filter(stock=stock).order_by('-date')
-    total_reports = reports_queryset.count()
-    reports = list(reports_queryset[:20])
-    report_summary_count = sum(1 for r in reports_queryset if r.summary)
-    report_attachment_count = sum(1 for r in reports_queryset if not r.summary and r.has_attachment)
-
-    # 목표가 차트 데이터 (리포트 날짜 범위의 주가 + 목표가)
-    if reports:
-        # 리포트 날짜 범위
-        report_dates = [r.date for r in reports]
-        min_date = min(report_dates)
-
-        # 해당 기간의 일봉 데이터
-        daily_prices = list(DailyChart.objects.filter(
-            stock=stock,
-            date__gte=min_date
-        ).order_by('date').values('date', 'closing_price'))
-
-        # 날짜별 종가 딕셔너리
-        price_by_date = {d['date']: d['closing_price'] for d in daily_prices}
-
-        # 차트 데이터 생성
-        price_chart_data = [
-            {'x': d['date'].strftime('%Y-%m-%d'), 'y': d['closing_price']}
-            for d in daily_prices
-        ]
-
-        # 목표가 데이터 (같은 날 여러 개면 평균)
-        target_by_date = defaultdict(list)
-        for r in reports:
-            if r.target_price:
-                target_by_date[r.date].append(r.target_price)
-
-        target_chart_data = [
-            {'x': date.strftime('%Y-%m-%d'), 'y': round(sum(prices) / len(prices))}
-            for date, prices in sorted(target_by_date.items())
-        ]
-
-        # 리포트별 괴리율 계산 (목표가 / 종가 - 1) * 100
-        for r in reports:
-            if r.target_price and r.date in price_by_date:
-                closing = price_by_date[r.date]
-                r.gap_rate = round((r.target_price / closing - 1) * 100, 1)
-            else:
-                r.gap_rate = None
-
-        # 괴리율 차트 데이터 (날짜별 평균 목표가 기준)
-        gap_chart_data = []
-        for date, prices in sorted(target_by_date.items()):
-            if date in price_by_date:
-                avg_target = round(sum(prices) / len(prices))
-                closing = price_by_date[date]
-                gap = round((avg_target / closing - 1) * 100, 1)
-                gap_chart_data.append({'x': date.strftime('%Y-%m-%d'), 'y': gap})
-    else:
-        price_chart_data = []
-        target_chart_data = []
-        gap_chart_data = []
-
-    # 노다지 기사 (종목명 포함된 것만, 최근 20개)
-    nodaji_queryset = Nodaji.objects.filter(
-        stock=stock,
-        title__contains=stock.name
-    ).order_by('-date')
-    total_nodaji = nodaji_queryset.count()
-    nodaji_list = list(nodaji_queryset[:20])
-    nodaji_summary_count = sum(1 for n in nodaji_list if n.summary)
 
     # 공시 (최근 20개)
     gongsi_list = Gongsi.objects.filter(stock=stock).order_by('-date')[:20]
@@ -1262,99 +1063,12 @@ def stock_edit(request, code):
     short_sellings = ShortSelling.objects.filter(stock=stock).order_by('-date')[:60]
 
     # 업종 (전체 및 현재 종목의 업종)
-    from .models import ThemeCategory, YoutubeVideo, CustomSector
+    from .models import ThemeCategory, CustomSector
     theme_categories = ThemeCategory.objects.prefetch_related('themes').all()
     stock_theme_ids = list(stock.themes.values_list('id', flat=True))
 
     # 관심섹터 (전체)
     custom_sectors = CustomSector.objects.all()
-
-    # 저장된 유튜브 영상 (업로드일 최신순)
-    import re as re_youtube
-    def parse_youtube_date(video):
-        """유튜브 날짜를 정렬용 타임스탬프로 변환"""
-        try:
-            pub = (video.published or '').strip()
-            if not pub:
-                return video.created_at.timestamp() if video.created_at else 0
-            now = datetime.now()
-            # "3일 전", "2시간 전" 등 상대 날짜 처리
-            match = re_youtube.search(r'(\d+)\s*(초|분|시간|일|주|개월|년)\s*전', pub)
-            if match:
-                num = int(match.group(1))
-                unit = match.group(2)
-                if unit == '초':
-                    return (now - timedelta(seconds=num)).timestamp()
-                elif unit == '분':
-                    return (now - timedelta(minutes=num)).timestamp()
-                elif unit == '시간':
-                    return (now - timedelta(hours=num)).timestamp()
-                elif unit == '일':
-                    return (now - timedelta(days=num)).timestamp()
-                elif unit == '주':
-                    return (now - timedelta(weeks=num)).timestamp()
-                elif unit == '개월':
-                    return (now - timedelta(days=num*30)).timestamp()
-                elif unit == '년':
-                    return (now - timedelta(days=num*365)).timestamp()
-            # "2025. 10. 22." 또는 "2025.10.22" 형식 (점 구분)
-            dot_match = re_youtube.search(r'(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})', pub)
-            if dot_match:
-                return datetime(int(dot_match.group(1)), int(dot_match.group(2)), int(dot_match.group(3))).timestamp()
-            # "2025-10-22" 형식 (하이픈 구분)
-            dash_match = re_youtube.search(r'(\d{4})-(\d{1,2})-(\d{1,2})', pub)
-            if dash_match:
-                return datetime(int(dash_match.group(1)), int(dash_match.group(2)), int(dash_match.group(3))).timestamp()
-            return video.created_at.timestamp() if video.created_at else 0
-        except:
-            return video.created_at.timestamp() if video.created_at else 0
-    youtube_videos = sorted(YoutubeVideo.objects.filter(stock=stock), key=parse_youtube_date, reverse=True)
-
-    # 저장된 뉴스 (게시일 최신순)
-    from .models import News
-    def parse_news_date(news):
-        """뉴스 게시일 문자열을 정렬용 키로 변환"""
-        try:
-            pub = (news.published or '').strip()
-            # "2026-01-05" 또는 "2026-01-05 12:30" 형식
-            date_part = pub.split(' ')[0] if pub else ''
-            if date_part:
-                parts = date_part.split('-')
-                if len(parts) == 3:
-                    return (int(parts[0]), int(parts[1]), int(parts[2]))
-            return (0, 0, 0)
-        except:
-            return (0, 0, 0)
-    news_articles = sorted(News.objects.filter(stock=stock), key=parse_news_date, reverse=True)
-
-    # 저장된 텔레그램 메시지 (최신순)
-    from .models import TelegramMessage
-    telegram_messages = TelegramMessage.objects.filter(stock=stock).order_by('-date', '-time')
-
-    # 질문리포트
-    from .models import StockQuestionReport
-    question_reports = StockQuestionReport.objects.filter(stock=stock)
-
-    # 업로드 리포트
-    from .models import StockUploadedReport
-    uploaded_reports = StockUploadedReport.objects.filter(stock=stock)
-    uploaded_summary_count = sum(1 for r in uploaded_reports if r.summary)
-    uploaded_attachment_count = sum(1 for r in uploaded_reports if not r.summary and r.has_attachment)
-
-    # 기업분석 내용 (타입에 따라 파일 또는 DB에서 불러오기)
-    html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
-    if stock.analysis_type == 'markdown':
-        analysis_html_content = stock.analysis_text or ''
-        analysis_html_exists = bool(analysis_html_content)
-    else:
-        analysis_html_exists = html_path.exists()
-        analysis_html_content = html_path.read_text(encoding='utf-8') if analysis_html_exists else ''
-
-    # 저장된 프롬프트 가져오기
-    from .models import SystemSetting
-    saved_prompts = {}
-    for setting in SystemSetting.objects.filter(key__startswith='prompt_'):
-        saved_prompts[setting.key] = setting.value
 
     context = {
         'stock': stock,
@@ -1362,32 +1076,12 @@ def stock_edit(request, code):
         'theme_categories': theme_categories,
         'stock_theme_ids': stock_theme_ids,
         'custom_sectors': custom_sectors,
-        'reports': reports,
-        'total_reports': total_reports,
-        'price_chart_data': json.dumps(price_chart_data),
-        'target_chart_data': json.dumps(target_chart_data),
-        'gap_chart_data': json.dumps(gap_chart_data),
-        'nodaji_list': nodaji_list,
-        'total_nodaji': total_nodaji,
-        'nodaji_summary_count': nodaji_summary_count,
         'gongsi_list': gongsi_list,
         'investor_trends': investor_trends,
         'investor_chart_data': json.dumps(investor_chart_data),
         'investor_trends_daum': investor_trends_daum,
         'investor_chart_data_daum': json.dumps(investor_chart_data_daum),
         'short_sellings': short_sellings,
-        'youtube_videos': youtube_videos,
-        'news_articles': news_articles,
-        'telegram_messages': telegram_messages,
-        'question_reports': question_reports,
-        'uploaded_reports': uploaded_reports,
-        'report_summary_count': report_summary_count,
-        'report_attachment_count': report_attachment_count,
-        'uploaded_summary_count': uploaded_summary_count,
-        'uploaded_attachment_count': uploaded_attachment_count,
-        'analysis_html_exists': analysis_html_exists,
-        'analysis_html_content': analysis_html_content,
-        'saved_prompts': saved_prompts,
     }
     return render(request, 'stocks/stock_edit.html', context)
 
@@ -2511,15 +2205,13 @@ def nodaji_summary(request, nodaji_id):
     nodaji = get_object_or_404(Nodaji, id=nodaji_id)
 
     if request.method == 'POST':
-        summary = request.POST.get('summary', '')
-        nodaji.summary = summary
+        nodaji.summary = request.POST.get('summary', '')
         nodaji.save()
 
         # AJAX 요청이면 JSON 응답
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/x-www-form-urlencoded':
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({'success': True})
 
-        messages.success(request, '요약이 저장되었습니다.')
         return redirect('stocks:nodaji_summary', nodaji_id=nodaji_id)
 
     return render(request, 'stocks/nodaji_summary.html', {
@@ -5574,6 +5266,9 @@ def youtube_video_save_by_link(request):
         if not title:
             return JsonResponse({'error': '영상 정보를 가져올 수 없습니다.'}, status=400)
 
+        note = request.POST.get('note', '').strip()
+        summary = request.POST.get('summary', '').strip()
+
         video = YoutubeVideo.objects.create(
             stock=stock,
             video_id=video_id,
@@ -5582,6 +5277,8 @@ def youtube_video_save_by_link(request):
             thumbnail=thumbnail,
             views=views,
             published=published,
+            note=note,
+            summary=summary,
         )
 
         return JsonResponse({
@@ -5597,6 +5294,161 @@ def youtube_video_save_by_link(request):
 
     except Exception as e:
         return JsonResponse({'error': f'영상 정보를 가져오는 중 오류: {str(e)}'}, status=500)
+
+
+@require_GET
+def youtube_video_list(request, code):
+    """종목 유튜브 목록 API (페이지네이션)"""
+    from .models import YoutubeVideo
+    stock = get_object_or_404(Info, code=code)
+    limit = int(request.GET.get('limit', 30))
+    offset = int(request.GET.get('offset', 0))
+    qs = YoutubeVideo.objects.filter(stock=stock)
+    total = qs.count()
+    videos = qs[offset:offset + limit]
+    results = []
+    for v in videos:
+        results.append({
+            'id': v.id,
+            'video_id': v.video_id,
+            'title': v.title,
+            'channel': v.channel,
+            'note': v.note,
+            'summary': v.summary,
+            'url': v.link,
+            'date': v.created_at.strftime('%Y-%m-%d'),
+        })
+    return JsonResponse({'success': True, 'results': results, 'total': total, 'has_more': offset + limit < total})
+
+
+@require_POST
+def youtube_video_update(request, video_id):
+    """유튜브 영상 수정 API"""
+    from .models import YoutubeVideo
+    video = get_object_or_404(YoutubeVideo, id=video_id)
+    note = request.POST.get('note')
+    if note is not None:
+        video.note = note.strip()
+    summary = request.POST.get('summary')
+    if summary is not None:
+        video.summary = summary.strip()
+    video.save()
+    return JsonResponse({'success': True})
+
+
+def stock_question_report_detail(request, report_id):
+    """리서치 상세/편집 페이지"""
+    from .models import StockQuestionReport
+    qr = get_object_or_404(StockQuestionReport, id=report_id)
+
+    if request.method == 'POST':
+        qr.question = request.POST.get('question', '').strip()
+        qr.report = request.POST.get('report', '')
+        report_type = request.POST.get('report_type', 'html')
+        if report_type in ('html', 'markdown'):
+            qr.report_type = report_type
+        qr.save()
+        return redirect('stocks:stock_question_report_detail', report_id=report_id)
+
+    return render(request, 'stocks/question_report_detail.html', {
+        'qr': qr,
+    })
+
+
+@require_POST
+def stock_financial_analysis_save(request, code):
+    """종목 재무분석 저장 API"""
+    from datetime import date
+    stock = get_object_or_404(Info, code=code)
+    text = request.POST.get('financial_analysis', '').strip()
+    if text != (stock.financial_analysis or '').strip():
+        stock.financial_analysis = text
+        stock.financial_analysis_updated_at = date.today()
+        stock.save(update_fields=['financial_analysis', 'financial_analysis_updated_at'])
+    return JsonResponse({'success': True, 'updated_at': stock.financial_analysis_updated_at.strftime('%Y-%m-%d') if stock.financial_analysis_updated_at else ''})
+
+
+@require_POST
+def stock_investment_indicator_save(request, code):
+    """종목 투자지표 저장 API"""
+    from datetime import date
+    stock = get_object_or_404(Info, code=code)
+    text = request.POST.get('investment_indicator', '').strip()
+    if text != (stock.investment_indicator or '').strip():
+        stock.investment_indicator = text
+        stock.investment_indicator_updated_at = date.today()
+        stock.save(update_fields=['investment_indicator', 'investment_indicator_updated_at'])
+    return JsonResponse({'success': True, 'updated_at': stock.investment_indicator_updated_at.strftime('%Y-%m-%d') if stock.investment_indicator_updated_at else ''})
+
+
+@require_POST
+def stock_analysis_save(request, code):
+    """종목 기업분석 저장 API"""
+    from datetime import date
+    from pathlib import Path
+    stock = get_object_or_404(Info, code=code)
+    analysis_type = request.POST.get('analysis_type', 'markdown')
+    content = request.POST.get('content', '').strip()
+
+    analysis_dir = Path(django_settings.MEDIA_ROOT) / 'analysis'
+    analysis_dir.mkdir(parents=True, exist_ok=True)
+    html_path = analysis_dir / f'{code}.html'
+
+    if analysis_type == 'html':
+        if content:
+            html_path.write_text(content, encoding='utf-8')
+        elif html_path.exists():
+            html_path.unlink()
+        stock.analysis_text = ''
+    else:
+        stock.analysis_text = content
+        if html_path.exists():
+            html_path.unlink()
+
+    stock.analysis_type = analysis_type
+    stock.analysis_updated_at = date.today()
+    stock.save(update_fields=['analysis_type', 'analysis_text', 'analysis_updated_at'])
+
+    return JsonResponse({'success': True, 'updated_at': stock.analysis_updated_at.strftime('%Y-%m-%d')})
+
+
+@require_POST
+def stock_valuation_save(request, code):
+    """종목 가치평가 저장 API"""
+    from datetime import date
+    stock = get_object_or_404(Info, code=code)
+    valuation = request.POST.get('valuation', '').strip()
+    if valuation != (stock.valuation or '').strip():
+        stock.valuation = valuation
+        stock.valuation_updated_at = date.today()
+        stock.save(update_fields=['valuation', 'valuation_updated_at'])
+    return JsonResponse({'success': True, 'updated_at': stock.valuation_updated_at.strftime('%Y-%m-%d') if stock.valuation_updated_at else ''})
+
+
+@require_POST
+def stock_key_briefing_save(request, code):
+    """종목 핵심 브리핑 저장 API"""
+    from datetime import date
+    stock = get_object_or_404(Info, code=code)
+    key_briefing = request.POST.get('key_briefing', '').strip()
+    if key_briefing != (stock.key_briefing or '').strip():
+        stock.key_briefing = key_briefing
+        stock.key_briefing_updated_at = date.today()
+        stock.save(update_fields=['key_briefing', 'key_briefing_updated_at'])
+    return JsonResponse({'success': True, 'updated_at': stock.key_briefing_updated_at.strftime('%Y-%m-%d') if stock.key_briefing_updated_at else ''})
+
+
+@require_POST
+def stock_memo_save(request, code):
+    """종목 메모 저장 API"""
+    from datetime import date
+    stock = get_object_or_404(Info, code=code)
+    memo = request.POST.get('memo', '').strip()
+    if memo != (stock.memo or '').strip():
+        stock.memo = memo
+        stock.memo_updated_at = date.today()
+        stock.save(update_fields=['memo', 'memo_updated_at'])
+    return JsonResponse({'success': True, 'updated_at': stock.memo_updated_at.strftime('%Y-%m-%d') if stock.memo_updated_at else ''})
 
 
 @require_POST

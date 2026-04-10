@@ -161,7 +161,7 @@
             .content-wrapper { padding: 16px 12px; }
             .nav-brand { font-size: 0.95rem; margin-right: 12px; padding: 10px 0; }
             .nav-links { gap: 0; }
-            .nav-links a { padding: 10px 8px; font-size: 0.75rem; white-space: nowrap; }
+            .nav-links a { padding: 10px 6px; font-size: 0.75rem; white-space: nowrap; min-width: auto; }
             .nav-right { gap: 2px; }
             .nav-right a, .nav-right button, .nav-logout-btn { font-size: 0.68rem; padding: 4px 6px; }
         }
@@ -181,10 +181,11 @@
                 <li><a href="{% url 'stocks:etf' %}" class="{% if request.resolver_match.url_name == 'etf' %}active{% endif %}">ETF</a></li>
             </ul>
             <div class="nav-right">
+                <a href="{% url 'stocks:stock_list' %}">목록</a>
                 <a href="{% url 'stocks:settings' %}">설정</a>
                 <form method="post" action="{% url 'logout' %}" style="display:inline;">
                     {% csrf_token %}
-                    <button type="submit" class="nav-logout-btn">로그아웃</button>
+                    <button type="submit" class="nav-logout-btn" title="로그아웃"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align:-2px;"><path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/><path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/></svg></button>
                 </form>
             </div>
         </div>
