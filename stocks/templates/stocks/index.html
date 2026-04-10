@@ -10,7 +10,6 @@
 .market-tab.active { color:var(--text-primary); font-weight:700; border-color:var(--border-color); background:var(--bg-card); box-shadow:var(--shadow-card); }
 .market-tab .tab-badge { display:inline-block; font-size:0.72rem; padding:1px 6px; border-radius:10px; margin-left:4px; }
 .market-tab .tab-badge-total { background:var(--border-color); color:var(--text-secondary); }
-.market-tab .tab-badge-filtered { background:#e5e7eb; color:var(--text-muted); }
 
 /* Section heading */
 .section-heading { font-size:1.05rem; font-weight:700; color:var(--text-primary); margin:28px 0 16px; padding-bottom:10px; border-bottom:1px solid var(--border-color); }
@@ -89,8 +88,8 @@
 
 <!-- 대시보드 탭 -->
 <div class="dash-tabs" id="dashboardTabs">
-    <button class="market-tab active" data-filter="super" type="button">초관심 <span class="tab-badge tab-badge-filtered" id="count-super">0</span></button>
-    <button class="market-tab" data-filter="normal" type="button">관심 <span class="tab-badge tab-badge-filtered" id="count-normal">0</span></button>
+    <button class="market-tab active" data-filter="super" type="button">초관심</button>
+    <button class="market-tab" data-filter="normal" type="button">관심</button>
 </div>
 
 
@@ -225,8 +224,6 @@ function updateTabCounts() {
             seen[level].add(code);
         }
     });
-    document.getElementById('count-super').textContent = seen.super.size;
-    document.getElementById('count-normal').textContent = seen.normal.size;
 }
 
 // 페이지 로드 시 개수 계산

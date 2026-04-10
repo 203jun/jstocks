@@ -314,6 +314,7 @@
                 <a href="https://finance.naver.com/item/board.naver?code={{ stock.code }}" target="_blank" class="tag-badge" style="background:#ecfdf5;color:#059669;font-size:0.6rem;vertical-align:middle;text-decoration:none;">종토방</a>
                 <a href="https://comp.fnguide.com/SVO2/ASP/SVD_Main.asp?pGB=1&gicode=A{{ stock.code }}&cID=&MenuYn=Y&ReportGB=&NewMenuID=101&stkGb=701" target="_blank" class="tag-badge" style="background:#fffbeb;color:#d97706;font-size:0.6rem;vertical-align:middle;text-decoration:none;margin-left:2px;">fNG</a>
                 <a href="https://stockeasy.intellio.kr/stock-analysis?tab=stock_info&code={{ stock.code }}&stockTab=info" target="_blank" class="tag-badge" style="background:#eff6ff;color:#2962ff;font-size:0.6rem;vertical-align:middle;text-decoration:none;margin-left:2px;">StockEasy</a>
+                <a href="https://comp.fnguide.com/SVO2/ASP/SVD_Comparison.asp?pGB=1&gicode=A{{ stock.code }}&cID=&MenuYn=Y&ReportGB=&NewMenuID=106&stkGb=701" target="_blank" class="tag-badge" style="background:#f3f4f6;color:var(--text-secondary);font-size:0.6rem;vertical-align:middle;text-decoration:none;margin-left:2px;">경쟁사</a>
             </div>
         </div>
         <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;line-height:2;">
@@ -338,23 +339,23 @@
         </div>
         {% if stock.themes.all or sectors or stock.custom_sectors.all %}
         <div style="border-top:1px solid var(--border-color);padding-top:8px;margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+            {% if stock.custom_sectors.all %}
+            {% for sector in stock.custom_sectors.all %}
+            <a href="{% url 'stocks:sector_detail' sector.id %}" class="tag-badge sector" style="text-decoration:none;">{{ sector.name }}</a>
+            {% endfor %}
+            {% endif %}
             {% if stock.themes.all %}
             {% regroup stock.themes.all by category as theme_groups %}
             {% for group in theme_groups %}
-            <span class="tag-badge theme-cat">{{ group.grouper.name }}</span>
+            <span class="tag-badge" style="background:#f3f4f6;color:var(--text-muted);">{{ group.grouper.name }}</span>
             {% for theme in group.list %}
-            <span class="tag-badge theme">{{ theme.name }}</span>
+            <span class="tag-badge" style="background:#f3f4f6;color:var(--text-muted);">{{ theme.name }}</span>
             {% endfor %}
             {% endfor %}
             {% endif %}
             {% if sectors %}
             {% for s in sectors %}
-            <span class="tag-badge" style="background:#f3f4f6;color:var(--text-secondary);">{{ s.name }}</span>
-            {% endfor %}
-            {% endif %}
-            {% if stock.custom_sectors.all %}
-            {% for sector in stock.custom_sectors.all %}
-            <a href="{% url 'stocks:sector_detail' sector.id %}" class="tag-badge sector" style="text-decoration:none;">{{ sector.name }}</a>
+            <span class="tag-badge" style="background:#f3f4f6;color:var(--text-muted);">{{ s.name }}</span>
             {% endfor %}
             {% endif %}
         </div>
@@ -919,7 +920,7 @@
     </div>
     {% endif %}
 
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">애널리스트 리포트<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">{{ reports|length }}개{% if total_reports > 20 %} / {{ total_reports }}개{% endif %}</span></h5>
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">애널리스트 리포트<a href="https://stockeasy.intellio.kr/stock-analysis?tab=stock_info&code={{ stock.code }}&stockTab=synthesis&source=report" target="_blank" class="btn-refresh" style="font-weight:400;font-size:0.72rem;">StockEasy</a></h5>
     <div class="brief-card">
         {% if reports %}
         <div style="overflow-x:auto;">
@@ -2682,25 +2683,14 @@ btnYtSave.addEventListener('click', async () => {
 loadYtTimeline(true);
 
 // ===== MA calculation =====
-function addTradePriceBand(chart, candleData) {
+function addTradePriceBand(chart, candleData, candleSeries) {
     if (!tradeBuyPrice || !candleData.length) return;
     const pct = tradeBuyRange / 100;
     const upper = Math.round(tradeBuyPrice * (1 + pct / 2));
     const lower = Math.round(tradeBuyPrice * (1 - pct / 2));
-    const bandData = candleData.map(d => ({ time: d.time, value: upper }));
-    const cutData = candleData.map(d => ({ time: d.time, value: lower }));
-    // 상단 면: upper부터 아래로 채움
-    chart.addAreaSeries({
-        topColor: 'rgba(239,83,80,0.1)', bottomColor: 'rgba(239,83,80,0.1)',
-        lineColor: 'transparent', lineWidth: 0,
-        priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
-    }).setData(bandData);
-    // 하단 면: lower부터 아래로 흰색으로 덮어서 잘라냄
-    chart.addAreaSeries({
-        topColor: '#ffffff', bottomColor: '#ffffff',
-        lineColor: 'transparent', lineWidth: 0,
-        priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
-    }).setData(cutData);
+    const opts = { color: 'rgba(239,83,80,0.5)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: false };
+    candleSeries.createPriceLine({ ...opts, price: upper });
+    candleSeries.createPriceLine({ ...opts, price: lower });
 }
 
 function calculateMA(data, period) {
@@ -2746,7 +2736,7 @@ function initDailyChart(candleData, volumeData) {
         wickUpColor: '#ef5350', wickDownColor: '#26a69a',
     });
     candleSeries.setData(candleData);
-    addTradePriceBand(chart, candleData);
+    addTradePriceBand(chart, candleData, candleSeries);
 
     for (const [period, color] of Object.entries(maConfig)) {
         const s = chart.addLineSeries({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
@@ -2845,7 +2835,7 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
     });
     const candleSeries = chart.addCandlestickSeries({ upColor:'#ef5350', downColor:'#26a69a', borderUpColor:'#ef5350', borderDownColor:'#26a69a', wickUpColor:'#ef5350', wickDownColor:'#26a69a' });
     candleSeries.setData(candleData);
-    addTradePriceBand(chart, candleData);
+    addTradePriceBand(chart, candleData, candleSeries);
 
     const weeklyMaConfig = { 5:'#ff9800', 10:'#2196f3', 20:'#4caf50' };
     const weeklyMaSeries = {};
@@ -2885,7 +2875,7 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
     });
     const candleSeries = chart.addCandlestickSeries({ upColor:'#ef5350', downColor:'#26a69a', borderUpColor:'#ef5350', borderDownColor:'#26a69a', wickUpColor:'#ef5350', wickDownColor:'#26a69a' });
     candleSeries.setData(candleData);
-    addTradePriceBand(chart, candleData);
+    addTradePriceBand(chart, candleData, candleSeries);
 
     const monthlyMaConfig = { 5:'#ff9800', 10:'#2196f3', 20:'#4caf50' };
     const monthlyMaSeries = {};
