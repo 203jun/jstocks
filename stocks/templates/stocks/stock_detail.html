@@ -297,7 +297,7 @@
     <button class="market-tab" data-target="telegram-content">텔레그램{% if telegram_messages %}<span class="tab-count">{{ telegram_messages|length }}</span>{% endif %}</button>
     <button class="market-tab" data-target="news-content">뉴스{% if news_articles %}<span class="tab-count">{{ news_articles|length }}</span>{% endif %}</button>
     <button class="market-tab" data-target="nodaji-content">노다지{% if nodaji_summary_count %}<span class="tab-count">{{ nodaji_summary_count }}</span>{% endif %}</button>
-    <button class="market-tab" data-target="youtube-content">유튜브</button>
+    <button class="market-tab" data-target="youtube-content">유튜브<span class="tab-count d-none" id="ytTabCount"></span></button>
 </div>
 
 <!-- ========== 기본정보 탭 ========== -->
@@ -2665,6 +2665,13 @@ async function loadYtTimeline(reset) {
         if (data.success) {
             ytAllVideos = ytAllVideos.concat(data.results);
             renderYtTimeline(ytAllVideos);
+            const ytTabCount = document.getElementById('ytTabCount');
+            if (data.total > 0) {
+                ytTabCount.textContent = data.total;
+                ytTabCount.classList.remove('d-none');
+            } else {
+                ytTabCount.classList.add('d-none');
+            }
             if (data.has_more) {
                 ytMoreWrap.classList.remove('d-none');
             } else {
