@@ -1141,7 +1141,7 @@
             <div class="edit-list-item" data-id="{{ news.id }}">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                     <div style="flex:1; overflow:hidden;">
-                        <a href="{{ news.link }}" target="_blank" style="font-weight:600; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; color:var(--text-primary);">{{ news.title }}</a>
+                        <a href="{{ news.link }}" target="_blank" style="font-weight:600; font-size:0.85rem; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; color:var(--text-primary);">{{ news.title }}</a>
                         <span style="color:var(--text-muted); font-size:0.75rem;">{{ news.source }}</span>
                         <span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">{{ news.published|slice:":10" }}</span>
                     </div>
@@ -1192,7 +1192,7 @@
         <div class="edit-list-item">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <div style="flex:1; overflow:hidden;">
-                    <a href="{{ article.link }}" target="_blank" style="font-weight:600; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; color:var(--text-primary);">{{ article.title }}</a>
+                    <a href="{{ article.link }}" target="_blank" style="font-weight:600; font-size:0.85rem; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; color:var(--text-primary);">{{ article.title }}</a>
                     <span style="color:var(--text-muted); font-size:0.75rem;">{{ article.date|date:"Y-m-d"|default:"-" }}</span>
                 </div>
                 <div style="display:flex; gap:4px; align-items:center; margin-left:8px;">
@@ -2277,7 +2277,7 @@ function addNewsToList(data) {
     newItem.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div style="flex:1; overflow:hidden;">
-                <a href="${data.link}" target="_blank" style="font-weight:600; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; color:var(--text-primary);">${data.title}</a>
+                <a href="${data.link}" target="_blank" style="font-weight:600; font-size:0.85rem; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; color:var(--text-primary);">${data.title}</a>
                 <span style="color:var(--text-muted); font-size:0.75rem;">${data.source || ''}</span>
                 <span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">${(data.published || '').slice(0, 10)}</span>
             </div>

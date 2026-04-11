@@ -1314,6 +1314,9 @@ class CustomSector(models.Model):
         verbose_name='기초리포트',
         help_text='기초리포트 (HTML 형식)'
     )
+    buy_reason = models.TextField(blank=True, default='', verbose_name='매수근거')
+    sell_reason = models.TextField(blank=True, default='', verbose_name='매도근거')
+    trade_updated_at = models.DateField(null=True, blank=True, verbose_name='매매근거 업데이트일')
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='생성일시'
@@ -1331,6 +1334,58 @@ class CustomSector(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class SectorDiary(models.Model):
+    """관심섹터 투자일지"""
+
+    sector = models.ForeignKey(
+        CustomSector,
+        on_delete=models.CASCADE,
+        related_name='diaries',
+        verbose_name='섹터'
+    )
+    date = models.DateField(verbose_name='날짜')
+    content = models.TextField(verbose_name='내용')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'sector_diary'
+        verbose_name = '섹터 투자일지'
+        verbose_name_plural = '섹터 투자일지'
+        ordering = ['-date']
+        unique_together = [('sector', 'date')]
+
+    def __str__(self):
+        return f"{self.sector.name} {self.date}"
+
+
+class SectorEvent(models.Model):
+    """관심섹터 이벤트 (미래 일정 관리)"""
+
+    sector = models.ForeignKey(
+        CustomSector,
+        on_delete=models.CASCADE,
+        related_name='events',
+        verbose_name='섹터'
+    )
+    date = models.DateField(null=True, blank=True, verbose_name='날짜')
+    date_text = models.CharField(max_length=50, verbose_name='날짜 텍스트')
+    title = models.CharField(max_length=200, verbose_name='제목')
+    content = models.TextField(blank=True, default='', verbose_name='내용')
+    order = models.IntegerField(default=0, verbose_name='정렬순서')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'sector_event'
+        verbose_name = '섹터 이벤트'
+        verbose_name_plural = '섹터 이벤트'
+        ordering = ['order', '-created_at']
+
+    def __str__(self):
+        return f"{self.sector.name} {self.date_text} {self.title}"
 
 
 class SectorQuestionReport(models.Model):

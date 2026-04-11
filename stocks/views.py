@@ -2594,10 +2594,11 @@ def fetch_more_nodaji(request, code):
 
 @require_GET
 def search_stock(request):
-    """종목 검색 API"""
+    """종목/ETF 검색 API"""
     from django.db.models import Q
+    from .models import InfoETF
 
-    query = request.GET.get('q', '').strip()
+    query = request.GET.get('q', request.GET.get('keyword', '')).strip()
     if not query:
         return JsonResponse({'success': False, 'error': '검색어를 입력하세요.'})
 
@@ -2605,8 +2606,14 @@ def search_stock(request):
         Q(name__icontains=query) | Q(code__icontains=query)
     )[:10]
 
-    result = [{'code': s.code, 'name': s.name} for s in stocks]
-    return JsonResponse({'success': True, 'stocks': result})
+    etfs = InfoETF.objects.filter(
+        Q(name__icontains=query) | Q(code__icontains=query)
+    )[:5]
+
+    results = [{'code': s.code, 'name': s.name, 'type': 'stock'} for s in stocks]
+    results += [{'code': e.code, 'name': e.name, 'type': 'etf'} for e in etfs]
+
+    return JsonResponse({'success': True, 'stocks': results, 'results': results})
 
 
 @require_GET
@@ -4703,6 +4710,252 @@ def sector_question_report_update(request, report_id):
         return JsonResponse({'success': False, 'error': '질문리포트를 찾을 수 없습니다.'})
 
 
+# ===== 섹터 투자일지 =====
+
+@require_GET
+def sector_diary_list(request, sector_id):
+    """섹터 투자일지 목록 API"""
+    from .models import SectorDiary
+    limit = int(request.GET.get('limit', 20))
+    offset = int(request.GET.get('offset', 0))
+    total = SectorDiary.objects.filter(sector_id=sector_id).count()
+    entries = SectorDiary.objects.filter(sector_id=sector_id)[offset:offset + limit]
+    results = []
+    for entry in entries:
+        results.append({
+            'id': entry.id,
+            'date': entry.date.strftime('%Y-%m-%d'),
+            'content': entry.content,
+            'updated_at': entry.updated_at.strftime('%Y-%m-%d %H:%M'),
+        })
+    return JsonResponse({'success': True, 'results': results, 'total': total, 'has_more': offset + limit < total})
+
+
+@require_POST
+def sector_diary_save(request, sector_id):
+    """섹터 투자일지 저장 API"""
+    from .models import SectorDiary, CustomSector
+    date_str = request.POST.get('date', '').strip()
+    content = request.POST.get('content', '').strip()
+    if not date_str or not content:
+        return JsonResponse({'error': '날짜와 내용을 입력하세요.'}, status=400)
+    try:
+        date_val = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'error': '올바른 날짜 형식이 아닙니다.'}, status=400)
+    sector = get_object_or_404(CustomSector, id=sector_id)
+    if SectorDiary.objects.filter(sector=sector, date=date_val).exists():
+        return JsonResponse({'error': '해당 날짜에 이미 일지가 있습니다.'}, status=400)
+    entry = SectorDiary.objects.create(sector=sector, date=date_val, content=content)
+    return JsonResponse({'success': True, 'id': entry.id})
+
+
+@require_POST
+def sector_diary_update(request, sector_id, diary_id):
+    """섹터 투자일지 수정 API"""
+    from .models import SectorDiary
+    entry = get_object_or_404(SectorDiary, id=diary_id, sector_id=sector_id)
+    content = request.POST.get('content', '').strip()
+    date_str = request.POST.get('date', '').strip()
+    if not content:
+        return JsonResponse({'error': '내용을 입력하세요.'}, status=400)
+    if date_str:
+        try:
+            new_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            if new_date != entry.date and SectorDiary.objects.filter(sector_id=sector_id, date=new_date).exists():
+                return JsonResponse({'error': '해당 날짜에 이미 일지가 있습니다.'}, status=400)
+            entry.date = new_date
+        except ValueError:
+            pass
+    entry.content = content
+    entry.save()
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def sector_diary_delete(request, sector_id, diary_id):
+    """섹터 투자일지 삭제 API"""
+    from .models import SectorDiary
+    entry = get_object_or_404(SectorDiary, id=diary_id, sector_id=sector_id)
+    entry.delete()
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def sector_related_add(request, sector_id):
+    """섹터에 관련 종목/ETF 추가 API"""
+    from .models import CustomSector, Info, InfoETF
+    sector = get_object_or_404(CustomSector, id=sector_id)
+    code = request.POST.get('code', '').strip()
+    item_type = request.POST.get('type', 'stock')
+    if not code:
+        return JsonResponse({'error': '코드를 입력하세요.'}, status=400)
+    if item_type == 'etf':
+        obj = InfoETF.objects.filter(code=code).first()
+        if not obj:
+            return JsonResponse({'error': 'ETF를 찾을 수 없습니다.'}, status=404)
+        sector.etfs.add(obj)
+        return JsonResponse({'success': True, 'name': obj.name, 'code': obj.code})
+    else:
+        obj = Info.objects.filter(code=code).first()
+        if not obj:
+            return JsonResponse({'error': '종목을 찾을 수 없습니다.'}, status=404)
+        sector.stocks.add(obj)
+        return JsonResponse({'success': True, 'name': obj.name, 'code': obj.code})
+
+
+@require_POST
+def sector_related_remove(request, sector_id):
+    """섹터에서 관련 종목/ETF 제거 API"""
+    from .models import CustomSector, Info, InfoETF
+    sector = get_object_or_404(CustomSector, id=sector_id)
+    code = request.POST.get('code', '').strip()
+    item_type = request.POST.get('type', 'stock')
+    if item_type == 'etf':
+        obj = InfoETF.objects.filter(code=code).first()
+        if obj:
+            sector.etfs.remove(obj)
+    else:
+        obj = Info.objects.filter(code=code).first()
+        if obj:
+            sector.stocks.remove(obj)
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def sector_memo_save(request, sector_id):
+    """섹터 메모 저장 API"""
+    from .models import CustomSector
+    sector = get_object_or_404(CustomSector, id=sector_id)
+    memo = request.POST.get('memo', '').strip()
+    sector.memo = memo
+    sector.save(update_fields=['memo'])
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def sector_trade_save(request, sector_id):
+    """섹터 매매근거 저장 API"""
+    from .models import CustomSector
+    from datetime import date
+    sector = get_object_or_404(CustomSector, id=sector_id)
+    changed = False
+    buy_reason = request.POST.get('buy_reason')
+    if buy_reason is not None and buy_reason.strip() != (sector.buy_reason or '').strip():
+        sector.buy_reason = buy_reason.strip()
+        changed = True
+    sell_reason = request.POST.get('sell_reason')
+    if sell_reason is not None and sell_reason.strip() != (sector.sell_reason or '').strip():
+        sector.sell_reason = sell_reason.strip()
+        changed = True
+    if changed:
+        sector.trade_updated_at = date.today()
+        sector.save(update_fields=['buy_reason', 'sell_reason', 'trade_updated_at'])
+    return JsonResponse({'success': True, 'updated_at': sector.trade_updated_at.strftime('%Y-%m-%d') if sector.trade_updated_at else ''})
+
+
+# ===== 섹터 이벤트 =====
+
+@require_GET
+def sector_event_list(request, sector_id):
+    """섹터 이벤트 목록 API"""
+    from .models import SectorEvent
+    from datetime import date
+    events = SectorEvent.objects.filter(sector_id=sector_id)
+    today = date.today()
+    results = []
+    for ev in events:
+        d_day = None
+        if ev.date:
+            d_day = (ev.date - today).days
+        results.append({
+            'id': ev.id, 'date': ev.date.strftime('%Y-%m-%d') if ev.date else None,
+            'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'd_day': d_day,
+        })
+    return JsonResponse({'success': True, 'results': results})
+
+
+@require_POST
+def sector_event_save(request, sector_id):
+    """섹터 이벤트 저장 API"""
+    from .models import SectorEvent, CustomSector
+    date_str = request.POST.get('date', '').strip()
+    date_text = request.POST.get('date_text', '').strip()
+    title = request.POST.get('title', '').strip()
+    content = request.POST.get('content', '').strip()
+    if not title:
+        return JsonResponse({'error': '제목을 입력하세요.'}, status=400)
+    if not date_text:
+        return JsonResponse({'error': '날짜를 입력하세요.'}, status=400)
+    date_val = None
+    if date_str:
+        try:
+            date_val = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    sector = get_object_or_404(CustomSector, id=sector_id)
+    max_order = SectorEvent.objects.filter(sector=sector).order_by('-order').values_list('order', flat=True).first()
+    ev = SectorEvent.objects.create(
+        sector=sector, date=date_val, date_text=date_text,
+        title=title, content=content, order=(max_order or 0) + 1
+    )
+    return JsonResponse({'success': True, 'id': ev.id})
+
+
+@require_POST
+def sector_event_update(request, sector_id, event_id):
+    """섹터 이벤트 수정 API"""
+    from .models import SectorEvent
+    ev = get_object_or_404(SectorEvent, id=event_id, sector_id=sector_id)
+    date_str = request.POST.get('date', '').strip()
+    date_text = request.POST.get('date_text', '').strip()
+    title = request.POST.get('title', '').strip()
+    content = request.POST.get('content', '').strip()
+    if not title:
+        return JsonResponse({'error': '제목을 입력하세요.'}, status=400)
+    if not date_text:
+        return JsonResponse({'error': '날짜를 입력하세요.'}, status=400)
+    ev.date = None
+    if date_str:
+        try:
+            ev.date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    ev.date_text = date_text
+    ev.title = title
+    ev.content = content
+    ev.save()
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def sector_event_delete(request, sector_id, event_id):
+    """섹터 이벤트 삭제 API"""
+    from .models import SectorEvent
+    ev = get_object_or_404(SectorEvent, id=event_id, sector_id=sector_id)
+    ev.delete()
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def sector_event_move(request, sector_id, event_id):
+    """섹터 이벤트 순서 이동 API"""
+    from .models import SectorEvent
+    direction = request.POST.get('direction', '')
+    events = list(SectorEvent.objects.filter(sector_id=sector_id))
+    idx = next((i for i, e in enumerate(events) if e.id == event_id), None)
+    if idx is None:
+        return JsonResponse({'error': '이벤트를 찾을 수 없습니다.'}, status=404)
+    if direction == 'up' and idx > 0:
+        events[idx], events[idx - 1] = events[idx - 1], events[idx]
+    elif direction == 'down' and idx < len(events) - 1:
+        events[idx], events[idx + 1] = events[idx + 1], events[idx]
+    for i, ev in enumerate(events):
+        if ev.order != i:
+            SectorEvent.objects.filter(id=ev.id).update(order=i)
+    return JsonResponse({'success': True})
+
+
 @require_POST
 def stock_question_report_save(request):
     """종목 질문리포트 저장 API"""
@@ -5633,6 +5886,26 @@ def stock_question_report_detail(request, report_id):
     })
 
 
+def sector_question_report_detail(request, report_id):
+    """섹터 리서치 상세/편집 페이지"""
+    from .models import SectorQuestionReport
+    qr = get_object_or_404(SectorQuestionReport, id=report_id)
+
+    if request.method == 'POST':
+        qr.question = request.POST.get('question', '').strip()
+        qr.report = request.POST.get('report', '')
+        report_type = request.POST.get('report_type', 'html')
+        if report_type in ('html', 'markdown'):
+            qr.report_type = report_type
+        qr.save()
+        return redirect('stocks:sector_question_report_detail', report_id=report_id)
+
+    return render(request, 'stocks/question_report_detail.html', {
+        'qr': qr,
+        'is_sector': True,
+    })
+
+
 @require_POST
 def stock_financial_analysis_save(request, code):
     """종목 재무분석 저장 API"""
@@ -5946,7 +6219,6 @@ def news_summary(request, news_id):
     if request.method == 'POST':
         news.summary = request.POST.get('summary', '')
         news.save()
-        return redirect('stocks:news_summary', news_id=news_id)
 
     return render(request, 'stocks/news_summary.html', {
         'news': news,
@@ -7159,8 +7431,6 @@ def sector_news_summary(request, news_id):
         summary = request.POST.get('summary', '')
         news.summary = summary
         news.save()
-        messages.success(request, '저장되었습니다.')
-        return redirect('stocks:sector_news_summary', news_id=news_id)
 
     return render(request, 'stocks/sector_news_summary.html', {'news': news})
 
@@ -7348,6 +7618,46 @@ def sector_youtube_video_save_by_link(request):
 
     except Exception as e:
         return JsonResponse({'error': f'영상 정보를 가져오는 중 오류: {str(e)}'}, status=500)
+
+
+@require_GET
+def sector_youtube_video_list(request):
+    """섹터 유튜브 목록 API (페이지네이션)"""
+    from .models import SectorYoutubeVideo
+    sector_id = request.GET.get('sector_id')
+    limit = int(request.GET.get('limit', 30))
+    offset = int(request.GET.get('offset', 0))
+    qs = SectorYoutubeVideo.objects.filter(sector_id=sector_id)
+    total = qs.count()
+    videos = qs[offset:offset + limit]
+    results = []
+    for v in videos:
+        results.append({
+            'id': v.id,
+            'video_id': v.video_id,
+            'title': v.title,
+            'channel': v.channel,
+            'note': v.note if hasattr(v, 'note') else '',
+            'summary': v.summary,
+            'url': v.link,
+            'date': v.created_at.strftime('%Y-%m-%d'),
+        })
+    return JsonResponse({'success': True, 'results': results, 'total': total, 'has_more': offset + limit < total})
+
+
+@require_POST
+def sector_youtube_video_update(request, video_id):
+    """섹터 유튜브 영상 수정 API"""
+    from .models import SectorYoutubeVideo
+    video = get_object_or_404(SectorYoutubeVideo, id=video_id)
+    note = request.POST.get('note')
+    summary = request.POST.get('summary')
+    if note is not None and hasattr(video, 'note'):
+        video.note = note
+    if summary is not None:
+        video.summary = summary
+    video.save()
+    return JsonResponse({'success': True})
 
 
 @require_POST

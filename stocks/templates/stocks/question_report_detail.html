@@ -1,6 +1,6 @@
 {% extends 'stocks/base.html' %}
 
-{% block title %}리서치 - {{ qr.stock.name }} - JStocks{% endblock %}
+{% block title %}리서치 - {% if is_sector %}{{ qr.sector.name }}{% else %}{{ qr.stock.name }}{% endif %} - JStocks{% endblock %}
 
 {% block extra_style %}
 .section-heading { font-size:1.05rem; font-weight:700; color:var(--text-primary); margin:28px 0 16px; padding-bottom:10px; border-bottom:1px solid var(--border-color); }
@@ -83,7 +83,7 @@
         {{ qr.question }}
     </div>
     <div style="font-size:0.82rem;color:var(--text-secondary);">
-        {{ qr.stock.name }} · {{ qr.created_at|date:"Y-m-d H:i" }}
+        {% if is_sector %}{{ qr.sector.name }}{% else %}{{ qr.stock.name }}{% endif %} · {{ qr.created_at|date:"Y-m-d H:i" }}
     </div>
 </div>
 
@@ -146,13 +146,15 @@ updatePreview();
 document.getElementById('btnDelete').addEventListener('click', async () => {
     if (!confirm('이 리서치를 삭제하시겠습니까?')) return;
     try {
-        const resp = await fetch('/api/stock/question-report/{{ qr.id }}/delete/', {
+        const deleteUrl = '{% if is_sector %}/api/sector/question-report/{{ qr.id }}/delete/{% else %}/api/stock/question-report/{{ qr.id }}/delete/{% endif %}';
+        const backUrl = '{% if is_sector %}{% url "stocks:sector_detail" qr.sector.id %}{% else %}{% url "stocks:stock_detail" qr.stock.code %}{% endif %}';
+        const resp = await fetch(deleteUrl, {
             method: 'POST',
             headers: { 'X-CSRFToken': '{{ csrf_token }}' }
         });
         const data = await resp.json();
         if (data.success) {
-            location.href = '{% url "stocks:stock_detail" qr.stock.code %}';
+            location.href = backUrl;
         } else {
             alert(data.error || '삭제 실패');
         }
