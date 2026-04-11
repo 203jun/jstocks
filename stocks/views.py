@@ -469,7 +469,7 @@ def index(request):
     for stock in target_stocks:
         daily_data = list(DailyChart.objects.filter(stock=stock).order_by('-date')[:65])
         if not daily_data:
-            status_stocks.append({'stock': stock, 'level': stock.interest_level, 'vol_high_20': False, 'vol_high_60': False, 'ma_align': '', 'pullback': None, 'has_report': False, 'has_nodaji': False})
+            status_stocks.append({'stock': stock, 'level': stock.interest_level, 'vol_high_20': False, 'vol_high_60': False, 'ma_align': '', 'pullback': None, 'has_report': False, 'has_nodaji': False, 'inst_label': '', 'frgn_label': ''})
             continue
 
         today = daily_data[0]
@@ -549,6 +549,38 @@ def index(request):
                     }
                     break
 
+        # 기관/외국인 수급 분석
+        inst_label = ''
+        frgn_label = ''
+        inv_data = list(InvestorTrend.objects.filter(stock=stock).order_by('-date')[:20])
+        if inv_data:
+            # 20일 최대 체크
+            inst_values = [d.institution for d in inv_data]
+            frgn_values = [d.foreign for d in inv_data]
+            if inst_values[0] > 0 and inst_values[0] >= max(inst_values):
+                inst_label = '20일'
+            if frgn_values[0] > 0 and frgn_values[0] >= max(frgn_values):
+                frgn_label = '20일'
+            # 연속 플러스 체크 (20일 최대가 아닌 경우)
+            if not inst_label:
+                inst_consec = 0
+                for d in inv_data:
+                    if d.institution > 0:
+                        inst_consec += 1
+                    else:
+                        break
+                if inst_consec >= 3:
+                    inst_label = str(inst_consec)
+            if not frgn_label:
+                frgn_consec = 0
+                for d in inv_data:
+                    if d.foreign > 0:
+                        frgn_consec += 1
+                    else:
+                        break
+                if frgn_consec >= 3:
+                    frgn_label = str(frgn_consec)
+
         # 리포트(3거래일)/노다지(5거래일) 최근 자료 확인
         from datetime import timedelta
         today_date = today.date
@@ -560,6 +592,14 @@ def index(request):
         latest_report = Report.objects.filter(stock=stock, target_price__isnull=False).order_by('-date').first()
         if latest_report and latest_report.target_price and stock.current_price:
             report_gap = round((latest_report.target_price / stock.current_price - 1) * 100, 1)
+
+        # 매수/매도 범위 판단
+        in_buy_zone = False
+        in_sell_zone = False
+        if stock.current_price and stock.buy_price:
+            in_buy_zone = stock.current_price <= stock.buy_price
+        if stock.current_price and stock.sell_price:
+            in_sell_zone = stock.current_price >= stock.sell_price
 
         status_stocks.append({
             'stock': stock,
@@ -574,6 +614,10 @@ def index(request):
             'report_gap': report_gap,
             'signal_info': signal_info,
             'sparkline': sparkline,
+            'inst_label': inst_label,
+            'frgn_label': frgn_label,
+            'in_buy_zone': in_buy_zone,
+            'in_sell_zone': in_sell_zone,
         })
 
     context = {
@@ -2028,6 +2072,120 @@ def stock_diary_delete(request, code, diary_id):
     """종목별 투자일지 삭제 API"""
     entry = get_object_or_404(StockDiary, id=diary_id, stock_id=code)
     entry.delete()
+    return JsonResponse({'success': True})
+
+
+# ===== 종목별 이벤트 =====
+
+@require_GET
+def stock_event_list(request, code):
+    """종목별 이벤트 목록 API"""
+    from .models import StockEvent
+    events = StockEvent.objects.filter(stock_id=code)
+    results = []
+    from datetime import date
+    today = date.today()
+    for ev in events:
+        d_day = None
+        if ev.date:
+            delta = (ev.date - today).days
+            d_day = delta
+        results.append({
+            'id': ev.id,
+            'date': ev.date.strftime('%Y-%m-%d') if ev.date else None,
+            'date_text': ev.date_text,
+            'title': ev.title,
+            'content': ev.content,
+            'd_day': d_day,
+        })
+    return JsonResponse({'success': True, 'results': results})
+
+
+@require_POST
+def stock_event_save(request, code):
+    """종목별 이벤트 저장 API"""
+    from .models import StockEvent
+    date_str = request.POST.get('date', '').strip()
+    date_text = request.POST.get('date_text', '').strip()
+    title = request.POST.get('title', '').strip()
+    content = request.POST.get('content', '').strip()
+
+    if not title:
+        return JsonResponse({'error': '제목을 입력하세요.'}, status=400)
+    if not date_text:
+        return JsonResponse({'error': '날짜를 입력하세요.'}, status=400)
+
+    date_val = None
+    if date_str:
+        try:
+            date_val = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+
+    stock = get_object_or_404(Info, code=code)
+    max_order = StockEvent.objects.filter(stock=stock).order_by('-order').values_list('order', flat=True).first()
+    next_order = (max_order or 0) + 1
+    ev = StockEvent.objects.create(
+        stock=stock, date=date_val, date_text=date_text,
+        title=title, content=content, order=next_order
+    )
+    return JsonResponse({'success': True, 'id': ev.id})
+
+
+@require_POST
+def stock_event_update(request, code, event_id):
+    """종목별 이벤트 수정 API"""
+    from .models import StockEvent
+    ev = get_object_or_404(StockEvent, id=event_id, stock_id=code)
+    date_str = request.POST.get('date', '').strip()
+    date_text = request.POST.get('date_text', '').strip()
+    title = request.POST.get('title', '').strip()
+    content = request.POST.get('content', '').strip()
+
+    if not title:
+        return JsonResponse({'error': '제목을 입력하세요.'}, status=400)
+    if not date_text:
+        return JsonResponse({'error': '날짜를 입력하세요.'}, status=400)
+
+    ev.date = None
+    if date_str:
+        try:
+            ev.date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+
+    ev.date_text = date_text
+    ev.title = title
+    ev.content = content
+    ev.save()
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def stock_event_delete(request, code, event_id):
+    """종목별 이벤트 삭제 API"""
+    from .models import StockEvent
+    ev = get_object_or_404(StockEvent, id=event_id, stock_id=code)
+    ev.delete()
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def stock_event_move(request, code, event_id):
+    """종목별 이벤트 순서 이동 API"""
+    from .models import StockEvent
+    direction = request.POST.get('direction', '')
+    events = list(StockEvent.objects.filter(stock_id=code))
+    idx = next((i for i, e in enumerate(events) if e.id == event_id), None)
+    if idx is None:
+        return JsonResponse({'error': '이벤트를 찾을 수 없습니다.'}, status=404)
+    if direction == 'up' and idx > 0:
+        events[idx], events[idx - 1] = events[idx - 1], events[idx]
+    elif direction == 'down' and idx < len(events) - 1:
+        events[idx], events[idx + 1] = events[idx + 1], events[idx]
+    for i, ev in enumerate(events):
+        if ev.order != i:
+            StockEvent.objects.filter(id=ev.id).update(order=i)
     return JsonResponse({'success': True})
 
 
