@@ -410,6 +410,15 @@ class InfoETF(models.Model):
         help_text='현재 보유 중인 ETF 여부'
     )
 
+    # === 메모/매매근거 ===
+    memo = models.TextField(blank=True, default='', verbose_name='메모')
+    memo_updated_at = models.DateField(null=True, blank=True, verbose_name='메모 수정일')
+    buy_reason = models.TextField(blank=True, default='', verbose_name='매수근거')
+    sell_reason = models.TextField(blank=True, default='', verbose_name='매도근거')
+    buy_price = models.IntegerField(null=True, blank=True, verbose_name='매수가')
+    sell_price = models.IntegerField(null=True, blank=True, verbose_name='매도가')
+    trade_updated_at = models.DateField(null=True, blank=True, verbose_name='매매근거 수정일')
+
     # === 메타 정보 ===
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -428,6 +437,46 @@ class InfoETF(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.code})"
+
+
+class ETFDiary(models.Model):
+    """ETF 투자일지"""
+    etf = models.ForeignKey('InfoETF', on_delete=models.CASCADE, related_name='diaries', verbose_name='ETF')
+    date = models.DateField(verbose_name='날짜')
+    content = models.TextField(verbose_name='내용')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'etf_diary'
+        verbose_name = 'ETF 투자일지'
+        verbose_name_plural = 'ETF 투자일지'
+        ordering = ['-date']
+        unique_together = [('etf', 'date')]
+
+    def __str__(self):
+        return f"{self.etf.name} {self.date}"
+
+
+class ETFEvent(models.Model):
+    """ETF 이벤트"""
+    etf = models.ForeignKey('InfoETF', on_delete=models.CASCADE, related_name='events', verbose_name='ETF')
+    date = models.DateField(null=True, blank=True, verbose_name='날짜')
+    date_text = models.CharField(max_length=50, verbose_name='날짜 텍스트')
+    title = models.CharField(max_length=200, verbose_name='제목')
+    content = models.TextField(blank=True, default='', verbose_name='내용')
+    order = models.IntegerField(default=0, verbose_name='정렬순서')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'etf_event'
+        verbose_name = 'ETF 이벤트'
+        verbose_name_plural = 'ETF 이벤트'
+        ordering = ['order', '-created_at']
+
+    def __str__(self):
+        return f"{self.etf.name} {self.date_text} {self.title}"
 
 
 class DailyChartETF(models.Model):

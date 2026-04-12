@@ -112,6 +112,8 @@
                     <th style="text-align:center;">10선</th>
                     <th style="text-align:center;">20선</th>
                     <th style="text-align:center;">60선</th>
+                    <th style="text-align:center;">매수</th>
+                    <th style="text-align:center;">매도</th>
                 </tr>
             </thead>
             <tbody>
@@ -143,6 +145,8 @@
                     <td style="text-align:center;">
                         {% if item.above_ma60 != None %}{% if item.ma60_cross == 'up' %}<span style="color:var(--up-color);font-size:0.82rem;font-weight:700;">&#9733;</span>{% elif item.ma60_cross == 'down' %}<span style="color:var(--down-color);font-size:0.82rem;font-weight:700;">&#9733;</span>{% elif item.above_ma60 %}<span style="color:var(--up-color);font-size:0.7rem;">&#9650;</span>{% else %}<span style="color:var(--down-color);font-size:0.7rem;">&#9660;</span>{% endif %}{% endif %}
                     </td>
+                    <td style="text-align:center;">{% if item.in_buy_zone %}<span style="color:var(--up-color);font-weight:600;">&#10003;</span>{% endif %}</td>
+                    <td style="text-align:center;">{% if item.in_sell_zone %}<span style="color:var(--down-color);font-weight:600;">&#10003;</span>{% endif %}</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -3886,6 +3886,10 @@ def etf(request):
             elif today.closing_price < ma60_today and yesterday.closing_price >= ma60_yest:
                 ma60_cross = 'down'
 
+        # 매수/매도 범위 판단
+        in_buy_zone = etf_item.current_price and etf_item.buy_price and etf_item.current_price <= etf_item.buy_price
+        in_sell_zone = etf_item.current_price and etf_item.sell_price and etf_item.current_price >= etf_item.sell_price
+
         status_etfs.append({
             'etf': etf_item,
             'ma_align': ma_align,
@@ -3898,6 +3902,8 @@ def etf(request):
             'ma10_cross': ma10_cross,
             'ma20_cross': ma20_cross,
             'ma60_cross': ma60_cross,
+            'in_buy_zone': in_buy_zone,
+            'in_sell_zone': in_sell_zone,
         })
 
     context = {
@@ -4001,6 +4007,19 @@ def etf_detail(request, code):
     # 관심섹터 전체 목록
     custom_sectors = CustomSector.objects.all()
 
+    # 이평선 값 계산 (매수가 버튼용) - daily_charts는 이미 reverse된 상태(오래된→최신)
+    ma10_value = ''
+    ma20_value = ''
+    ma60_value = ''
+    if daily_charts:
+        recent = list(reversed(daily_charts))  # 최신→오래된 순으로 변환
+        if len(recent) >= 10:
+            ma10_value = round(sum(d.closing_price for d in recent[:10]) / 10)
+        if len(recent) >= 20:
+            ma20_value = round(sum(d.closing_price for d in recent[:20]) / 20)
+        if len(recent) >= 60:
+            ma60_value = round(sum(d.closing_price for d in recent[:60]) / 60)
+
     context = {
         'etf': etf,
         'custom_sectors': custom_sectors,
@@ -4010,8 +4029,218 @@ def etf_detail(request, code):
         'weekly_volume_data': json.dumps(weekly_volume_data),
         'monthly_candle_data': json.dumps(monthly_candle_data),
         'monthly_volume_data': json.dumps(monthly_volume_data),
+        'ma10_value': ma10_value,
+        'ma20_value': ma20_value,
+        'ma60_value': ma60_value,
     }
     return render(request, 'stocks/etf_detail.html', context)
+
+
+# ===== ETF 메모/매매근거/투자일지/이벤트 API =====
+
+@require_POST
+def etf_memo_save(request, code):
+    """ETF 메모 저장 API"""
+    from datetime import date
+    from .models import InfoETF
+    etf = get_object_or_404(InfoETF, code=code)
+    memo = request.POST.get('memo', '').strip()
+    if memo != (etf.memo or '').strip():
+        etf.memo = memo
+        etf.memo_updated_at = date.today()
+        etf.save(update_fields=['memo', 'memo_updated_at'])
+    return JsonResponse({'success': True, 'updated_at': etf.memo_updated_at.strftime('%Y-%m-%d') if etf.memo_updated_at else ''})
+
+
+@require_POST
+def etf_trade_save(request, code):
+    """ETF 매매근거 저장 API"""
+    from datetime import date
+    from .models import InfoETF
+    etf = get_object_or_404(InfoETF, code=code)
+    changed = False
+
+    buy_reason = request.POST.get('buy_reason')
+    if buy_reason is not None and buy_reason.strip() != (etf.buy_reason or '').strip():
+        etf.buy_reason = buy_reason.strip()
+        changed = True
+
+    sell_reason = request.POST.get('sell_reason')
+    if sell_reason is not None and sell_reason.strip() != (etf.sell_reason or '').strip():
+        etf.sell_reason = sell_reason.strip()
+        changed = True
+
+    buy_price = request.POST.get('buy_price', '').strip()
+    new_buy = int(buy_price) if buy_price else None
+    if new_buy != etf.buy_price:
+        etf.buy_price = new_buy
+        changed = True
+
+    sell_price = request.POST.get('sell_price', '').strip()
+    new_sell = int(sell_price) if sell_price else None
+    if new_sell != etf.sell_price:
+        etf.sell_price = new_sell
+        changed = True
+
+    if changed:
+        etf.trade_updated_at = date.today()
+        etf.save(update_fields=['buy_reason', 'sell_reason', 'buy_price', 'sell_price', 'trade_updated_at'])
+
+    return JsonResponse({'success': True, 'updated_at': etf.trade_updated_at.strftime('%Y-%m-%d') if etf.trade_updated_at else ''})
+
+
+@require_GET
+def etf_diary_list(request, code):
+    """ETF 투자일지 목록 API"""
+    from .models import ETFDiary
+    limit = int(request.GET.get('limit', 20))
+    offset = int(request.GET.get('offset', 0))
+    total = ETFDiary.objects.filter(etf_id=code).count()
+    entries = ETFDiary.objects.filter(etf_id=code)[offset:offset + limit]
+    results = [{'id': e.id, 'date': e.date.strftime('%Y-%m-%d'), 'content': e.content, 'updated_at': e.updated_at.strftime('%Y-%m-%d %H:%M')} for e in entries]
+    return JsonResponse({'success': True, 'results': results, 'total': total, 'has_more': offset + limit < total})
+
+
+@require_POST
+def etf_diary_save(request, code):
+    """ETF 투자일지 저장 API"""
+    from .models import InfoETF, ETFDiary
+    date_str = request.POST.get('date', '').strip()
+    content = request.POST.get('content', '').strip()
+    if not date_str or not content:
+        return JsonResponse({'error': '날짜와 내용을 입력하세요.'}, status=400)
+    try:
+        date_val = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'error': '올바른 날짜 형식이 아닙니다.'}, status=400)
+    etf = get_object_or_404(InfoETF, code=code)
+    if ETFDiary.objects.filter(etf=etf, date=date_val).exists():
+        return JsonResponse({'error': '해당 날짜에 이미 일지가 있습니다.'}, status=400)
+    entry = ETFDiary.objects.create(etf=etf, date=date_val, content=content)
+    return JsonResponse({'success': True, 'id': entry.id})
+
+
+@require_POST
+def etf_diary_update(request, code, diary_id):
+    """ETF 투자일지 수정 API"""
+    from .models import ETFDiary
+    entry = get_object_or_404(ETFDiary, id=diary_id, etf_id=code)
+    content = request.POST.get('content', '').strip()
+    date_str = request.POST.get('date', '').strip()
+    if not content:
+        return JsonResponse({'error': '내용을 입력하세요.'}, status=400)
+    if date_str:
+        try:
+            new_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            if new_date != entry.date and ETFDiary.objects.filter(etf_id=code, date=new_date).exists():
+                return JsonResponse({'error': '해당 날짜에 이미 일지가 있습니다.'}, status=400)
+            entry.date = new_date
+        except ValueError:
+            pass
+    entry.content = content
+    entry.save()
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def etf_diary_delete(request, code, diary_id):
+    """ETF 투자일지 삭제 API"""
+    from .models import ETFDiary
+    entry = get_object_or_404(ETFDiary, id=diary_id, etf_id=code)
+    entry.delete()
+    return JsonResponse({'success': True})
+
+
+@require_GET
+def etf_event_list(request, code):
+    """ETF 이벤트 목록 API"""
+    from .models import ETFEvent
+    from datetime import date
+    events = ETFEvent.objects.filter(etf_id=code)
+    today = date.today()
+    results = []
+    for ev in events:
+        d_day = (ev.date - today).days if ev.date else None
+        results.append({'id': ev.id, 'date': ev.date.strftime('%Y-%m-%d') if ev.date else None, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'd_day': d_day})
+    return JsonResponse({'success': True, 'results': results})
+
+
+@require_POST
+def etf_event_save(request, code):
+    """ETF 이벤트 저장 API"""
+    from .models import InfoETF, ETFEvent
+    date_str = request.POST.get('date', '').strip()
+    date_text = request.POST.get('date_text', '').strip()
+    title = request.POST.get('title', '').strip()
+    content = request.POST.get('content', '').strip()
+    if not title:
+        return JsonResponse({'error': '제목을 입력하세요.'}, status=400)
+    if not date_text:
+        return JsonResponse({'error': '날짜를 입력하세요.'}, status=400)
+    date_val = None
+    if date_str:
+        try:
+            date_val = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    etf = get_object_or_404(InfoETF, code=code)
+    max_order = ETFEvent.objects.filter(etf=etf).order_by('-order').values_list('order', flat=True).first()
+    ev = ETFEvent.objects.create(etf=etf, date=date_val, date_text=date_text, title=title, content=content, order=(max_order or 0) + 1)
+    return JsonResponse({'success': True, 'id': ev.id})
+
+
+@require_POST
+def etf_event_update(request, code, event_id):
+    """ETF 이벤트 수정 API"""
+    from .models import ETFEvent
+    ev = get_object_or_404(ETFEvent, id=event_id, etf_id=code)
+    date_str = request.POST.get('date', '').strip()
+    date_text = request.POST.get('date_text', '').strip()
+    title = request.POST.get('title', '').strip()
+    content = request.POST.get('content', '').strip()
+    if not title:
+        return JsonResponse({'error': '제목을 입력하세요.'}, status=400)
+    if not date_text:
+        return JsonResponse({'error': '날짜를 입력하세요.'}, status=400)
+    ev.date = None
+    if date_str:
+        try:
+            ev.date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    ev.date_text = date_text
+    ev.title = title
+    ev.content = content
+    ev.save()
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def etf_event_delete(request, code, event_id):
+    """ETF 이벤트 삭제 API"""
+    from .models import ETFEvent
+    ev = get_object_or_404(ETFEvent, id=event_id, etf_id=code)
+    ev.delete()
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def etf_event_move(request, code, event_id):
+    """ETF 이벤트 순서 이동 API"""
+    from .models import ETFEvent
+    direction = request.POST.get('direction', '')
+    events = list(ETFEvent.objects.filter(etf_id=code))
+    idx = next((i for i, e in enumerate(events) if e.id == event_id), None)
+    if idx is None:
+        return JsonResponse({'error': '이벤트를 찾을 수 없습니다.'}, status=404)
+    if direction == 'up' and idx > 0:
+        events[idx], events[idx - 1] = events[idx - 1], events[idx]
+    elif direction == 'down' and idx < len(events) - 1:
+        events[idx], events[idx + 1] = events[idx + 1], events[idx]
+    for i, ev in enumerate(events):
+        if ev.order != i:
+            ETFEvent.objects.filter(id=ev.id).update(order=i)
+    return JsonResponse({'success': True})
 
 
 @require_POST
