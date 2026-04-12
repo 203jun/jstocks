@@ -151,7 +151,45 @@
 {% endblock %}
 
 {% block content %}
-<h5 class="section-heading" style="margin-top: 0;">섹터</h5>
+<!-- 관심 섹터 -->
+{% if custom_sectors %}
+<h5 class="section-heading" style="margin-top: 0;">관심 섹터</h5>
+<div class="brief-card" style="padding:0;">
+    <table class="modern-table" style="font-size:0.78rem;">
+        <thead>
+            <tr>
+                <th style="padding-left:24px;">섹터명</th>
+                <th class="text-end">일지</th>
+                <th class="text-end">이벤트</th>
+                <th class="text-end">리서치</th>
+                <th class="text-end">리포트</th>
+                <th class="text-end">텔레그램</th>
+                <th class="text-end">뉴스</th>
+                <th class="text-end" style="padding-right:24px;">유튜브</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sector in custom_sectors %}
+            <tr onclick="location.href='{% url 'stocks:sector_detail' sector.id %}'">
+                <td style="padding-left:24px;">
+                    <strong>{{ sector.name }}</strong>
+                    {% if sector.total_stock_count %}<span style="font-size:0.7rem;color:var(--text-muted);margin-left:4px;">{{ sector.total_stock_count }}종목</span>{% endif %}
+                </td>
+                <td class="text-end" style="color:var(--text-muted);">{{ sector.diary_count }}</td>
+                <td class="text-end" style="color:var(--text-muted);">{{ sector.event_count }}</td>
+                <td class="text-end" style="color:var(--text-muted);">{{ sector.research_count }}</td>
+                <td class="text-end" style="color:var(--text-muted);">{{ sector.report_count }}</td>
+                <td class="text-end" style="color:var(--text-muted);">{{ sector.telegram_count }}</td>
+                <td class="text-end" style="color:var(--text-muted);">{{ sector.news_count }}</td>
+                <td class="text-end" style="padding-right:24px;color:var(--text-muted);">{{ sector.youtube_count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<h5 class="section-heading" style="margin-top: 32px;">섹터</h5>
 
 <!-- KOSPI / KOSDAQ 탭 -->
 <div class="market-tabs">
@@ -291,17 +329,6 @@
     </div>
 </div>
 
-<!-- 관심 섹터 -->
-{% if custom_sectors %}
-<h5 class="section-heading" style="margin-top: 32px;">관심 섹터</h5>
-<div class="brief-card">
-    <div class="d-flex flex-wrap gap-2">
-        {% for sector in custom_sectors %}
-        <a href="{% url 'stocks:sector_detail' sector.id %}" class="sector-badge">{{ sector.name }}</a>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
 {% endblock %}
 
 {% block extra_js %}
