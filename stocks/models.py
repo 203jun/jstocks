@@ -2724,6 +2724,12 @@ class SectorYoutubeVideo(models.Model):
         blank=True,
         verbose_name='업로드일'
     )
+    note = models.CharField(
+        max_length=300,
+        blank=True,
+        verbose_name='한줄 메모',
+        help_text='간단한 요약 메모'
+    )
     summary = models.TextField(
         blank=True,
         verbose_name='요약',

@@ -7554,6 +7554,8 @@ def sector_youtube_video_save_by_link(request):
 
     sector_id = request.POST.get('sector_id', '').strip()
     link = request.POST.get('link', '').strip()
+    note = request.POST.get('note', '').strip()
+    summary = request.POST.get('summary', '').strip()
 
     if not sector_id or not link:
         return JsonResponse({'error': '필수 정보가 누락되었습니다.'}, status=400)
@@ -7668,6 +7670,8 @@ def sector_youtube_video_save_by_link(request):
             thumbnail=thumbnail,
             views=views,
             published=published,
+            note=note,
+            summary=summary,
         )
 
         return JsonResponse({
@@ -7702,7 +7706,7 @@ def sector_youtube_video_list(request):
             'video_id': v.video_id,
             'title': v.title,
             'channel': v.channel,
-            'note': v.note if hasattr(v, 'note') else '',
+            'note': v.note,
             'summary': v.summary,
             'url': v.link,
             'date': v.created_at.strftime('%Y-%m-%d'),
@@ -7717,7 +7721,7 @@ def sector_youtube_video_update(request, video_id):
     video = get_object_or_404(SectorYoutubeVideo, id=video_id)
     note = request.POST.get('note')
     summary = request.POST.get('summary')
-    if note is not None and hasattr(video, 'note'):
+    if note is not None:
         video.note = note
     if summary is not None:
         video.summary = summary
