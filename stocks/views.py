@@ -273,8 +273,8 @@ def index(request):
     # 카드 A, B, D에 포함된 종목 코드 (중복 제거용)
     card_abd_codes = card_ab_codes | {item['stock'].code for item in card_d_stocks}
 
-    # 카드 C: 신호 추적 (최근 5거래일 내 조건 충족)
-    # 조건: 최근 5거래일 내 60일 OR 20일 신고거래량 + 양봉 + MA20 위
+    # 카드 C: 신호 추적 (최근 10거래일 내 조건 충족)
+    # 조건: 최근 10거래일 내 60일 OR 20일 신고거래량 + 양봉 + MA20 위
     card_c_stocks = []
 
     for stock in target_stocks:
@@ -294,8 +294,8 @@ def index(request):
         signal_type = None
         signal_days_ago = 0  # 거래일 기준 며칠 전
 
-        # 최근 5거래일 체크 (인덱스 0=오늘, 1=1거래일전, ..., 4=4거래일전)
-        for day_idx in range(5):
+        # 최근 10거래일 체크 (인덱스 0=오늘, 1=1거래일전, ..., 9=9거래일전)
+        for day_idx in range(10):
             check_day = daily_data[day_idx]
 
             # 조건 1: 양봉 (종가 >= 시가)
@@ -513,7 +513,7 @@ def index(request):
         sparkline = [d.closing_price for d in daily_data[:10]]
         sparkline.reverse()
 
-        # 신호추적 (최근 5거래일 내 신고거래량+양봉+MA20위)
+        # 신호추적 (최근 10거래일 내 신고거래량+양봉+MA20위)
         signal_info = None
         # card_c에서 먼저 찾기
         for item in card_c_stocks:
@@ -522,7 +522,7 @@ def index(request):
                 break
         # 없으면 직접 계산 (card_a/b/d에 있어서 card_c에서 제외된 종목)
         if not signal_info and len(daily_data) >= 65:
-            for day_idx in range(5):
+            for day_idx in range(10):
                 check_day = daily_data[day_idx]
                 if check_day.closing_price < check_day.opening_price:
                     continue
