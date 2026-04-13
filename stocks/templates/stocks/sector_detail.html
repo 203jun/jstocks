@@ -1347,14 +1347,17 @@ async function searchNews() {
         if (data.error) { result.innerHTML = `<div class="info-box warn">${data.error}</div>`; }
         else if (data.results.length === 0) { result.innerHTML = '<div style="color:var(--text-muted);">검색 결과가 없습니다.</div>'; }
         else {
-            let html = '<div style="overflow-x:auto;"><table class="modern-table"><thead><tr><th style="width:100px;padding-left:16px;">날짜</th><th>제목</th><th style="width:60px;"></th></tr></thead><tbody>';
+            let html = '<div style="overflow-x:auto;"><table class="modern-table">';
+            html += '<thead><tr><th style="width:100px; padding-left:16px;">날짜</th><th>제목</th><th style="width:100px;" class="d-none d-md-table-cell">출처</th><th style="width:60px;"></th></tr></thead><tbody>';
             data.results.forEach(item => {
                 const isSaved = savedNewsLinks.has(item.link);
-                html += `<tr><td style="color:var(--text-muted);padding-left:16px;font-size:0.75rem;">${(item.date||'').slice(0,10)||'-'}</td>`;
-                html += `<td><a href="${item.link}" target="_blank" style="text-decoration:none;color:var(--text-primary);">${item.title}</a></td>`;
-                html += `<td style="text-align:right;padding-right:16px;">`;
-                if (isSaved) html += `<span class="status-badge done">저장됨</span>`;
-                else html += `<button class="btn-refresh primary btn-save-news" data-link="${item.link}" data-title="${item.title.replace(/"/g,'&quot;')}" data-source="${item.source||''}" data-published="${item.date||''}">저장</button>`;
+                html += `<tr>`;
+                html += `<td style="color:var(--text-muted); padding-left:16px; font-size:0.75rem;">${(item.date||'').slice(0,10)||'-'}</td>`;
+                html += `<td><a href="${item.link}" target="_blank" style="text-decoration:none; color:var(--text-primary);">${item.title}</a></td>`;
+                html += `<td class="d-none d-md-table-cell" style="color:var(--text-muted); font-size:0.75rem;">${item.source || ''}</td>`;
+                html += `<td style="text-align:right; padding-right:16px;">`;
+                if (isSaved) html += `<span class="status-badge done" style="white-space:nowrap;">저장됨</span>`;
+                else html += `<button class="btn-refresh primary btn-save-news" style="white-space:nowrap;" data-link="${item.link}" data-title="${item.title.replace(/"/g,'&quot;')}" data-source="${item.source||''}" data-published="${item.date||''}">저장</button>`;
                 html += `</td></tr>`;
             });
             html += '</tbody></table></div>';
