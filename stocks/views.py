@@ -39,7 +39,7 @@ def index(request):
     normal_stocks = sort_by_theme(base_qs.filter(interest_level='normal'))
 
     # ============ 대시보드 카드 ============
-    target_stocks = list(base_qs.filter(interest_level__in=['super', 'normal']))
+    target_stocks = sort_by_theme(base_qs.filter(interest_level__in=['super', 'normal']))
 
     # 카드 A: 장기 신호 (60일 신고거래량)
     card_a_stocks = []  # 급등 (양봉, MA20 위)
