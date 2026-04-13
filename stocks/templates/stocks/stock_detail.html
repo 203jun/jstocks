@@ -665,6 +665,7 @@
             {% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
                 {% if stock.analysis_type != 'markdown' and analysis_html_exists %}<button type="button" class="btn-refresh btn-open-analysis-window" style="font-size:0.72rem;">새창보기</button>{% endif %}
+                <span class="prompt-badge" role="button" id="btnCopyAnalysisPrompt">프롬프트 복사</span>
                 <span id="btnAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
         </div>
@@ -1699,6 +1700,20 @@ document.getElementById('btnCopyIndicatorPrompt').addEventListener('click', asyn
     const btn = document.getElementById('btnCopyIndicatorPrompt');
     const promptTemplate = `{{ saved_prompts.prompt_investment_indicator|default:""|escapejs }}`;
     if (!promptTemplate) { alert('설정 → 프롬프트 → 투자지표에서 프롬프트를 먼저 등록하세요.'); return; }
+    const prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
+    try {
+        await copyToClipboard(prompt);
+        const original = btn.textContent;
+        btn.textContent = '복사됨!';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+    } catch (err) { alert('복사 실패: ' + err.message); }
+});
+
+// 기업분석 프롬프트 복사
+document.getElementById('btnCopyAnalysisPrompt').addEventListener('click', async () => {
+    const btn = document.getElementById('btnCopyAnalysisPrompt');
+    const promptTemplate = `{{ saved_prompts.prompt_analysis|default:""|escapejs }}`;
+    if (!promptTemplate) { alert('설정 → 프롬프트 → 기업분석에서 프롬프트를 먼저 등록하세요.'); return; }
     const prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
     try {
         await copyToClipboard(prompt);
