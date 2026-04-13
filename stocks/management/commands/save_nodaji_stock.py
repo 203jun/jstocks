@@ -165,8 +165,11 @@ class Command(BaseCommand):
                 if not title or not link:
                     continue
 
-                # [모닝브리프], [마감브리프] 제외
-                if '[모닝브리프]' in title or '[마감브리프]' in title:
+                # 제목 패턴: [카테고리]종목명, ... 형태만 허용
+                # [모닝브리프], [마감브리프] 등 뉴스 모음은 제외
+                # "한국전력"으로 검색 시 "한국전력기술" 기사가 매칭되지 않도록
+                title_match = re.match(r'\[.+?\]\s*(.+?)[\s,]', title)
+                if not title_match or title_match.group(1) != stock.name:
                     continue
 
                 # 링크로 중복 체크

@@ -585,7 +585,7 @@ def index(request):
         from datetime import timedelta
         today_date = today.date
         has_report = Report.objects.filter(stock=stock, date__gte=today_date - timedelta(days=5)).exists()
-        has_nodaji = Nodaji.objects.filter(stock=stock, date__gte=today_date - timedelta(days=9)).exists()
+        has_nodaji = Nodaji.objects.filter(stock=stock, title__contains=stock.name, date__gte=today_date - timedelta(days=9)).exists()
 
         # 괴리율 (최신 리포트 목표가 vs 현재가)
         report_gap = None
