@@ -290,6 +290,7 @@
 <!-- 메인 탭 -->
 <div class="market-tabs">
     <button class="market-tab active" data-target="info-content">기본정보</button>
+    <button class="market-tab" data-target="analysis-content">기업분석</button>
     <button class="market-tab" data-target="supply-content">수급</button>
     <button class="market-tab" data-target="shortsell-content">공매도</button>
     <button class="market-tab" data-target="disclosure-content">공시</button>
@@ -650,42 +651,6 @@
         <div id="monthlyChart" style="height:400px;"></div>
     </div>
 
-    <!-- 기업분석 -->
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">기업분석<span style="display:flex;align-items:center;gap:8px;">{% if stock.analysis_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="analysisUpdatedAt">update: {{ stock.analysis_updated_at|date:"Y-m-d" }}</span>{% endif %}</span></h5>
-    <div class="brief-card">
-        <!-- 보기 모드 -->
-        <div id="analysisViewMode">
-            {% if stock.analysis_type == 'markdown' and analysis_html_exists %}
-            <div style="max-height:600px;overflow-y:auto;">
-                <div class="markdown-content" id="analysisMarkdown"></div>
-                <script type="text/plain" id="analysisRaw">{{ stock.analysis_text|default:""|safe }}</script>
-            </div>
-            {% elif analysis_html_exists %}
-            <iframe id="analysisIframe" src="{% url 'stocks:stock_analysis_html' stock.code %}" style="width:100%;height:600px;border:none;"></iframe>
-            {% endif %}
-            <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
-                {% if stock.analysis_type != 'markdown' and analysis_html_exists %}<button type="button" class="btn-refresh btn-open-analysis-window" style="font-size:0.72rem;">새창보기</button>{% endif %}
-                <span class="prompt-badge" role="button" id="btnCopyAnalysisPrompt">프롬프트 복사</span>
-                <span id="btnAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
-            </div>
-        </div>
-        <!-- 편집 모드 -->
-        <div id="analysisEditMode" class="d-none">
-            <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
-                <label style="font-size:0.82rem;color:var(--text-muted);">타입</label>
-                <div class="d-flex gap-2">
-                    <label style="font-size:0.82rem;cursor:pointer;"><input type="radio" name="analysisTypeEdit" value="markdown" {% if stock.analysis_type == 'markdown' %}checked{% endif %}> 마크다운</label>
-                    <label style="font-size:0.82rem;cursor:pointer;"><input type="radio" name="analysisTypeEdit" value="html" {% if stock.analysis_type != 'markdown' %}checked{% endif %}> HTML</label>
-                </div>
-            </div>
-            <textarea class="form-control" id="analysisTextarea" rows="12" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="기업분석 내용을 입력하세요..."></textarea>
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" id="btnAnalysisCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
-                <button type="button" id="btnAnalysisSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
-            </div>
-        </div>
-    </div>
-
     <!-- 재무분석 -->
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">재무분석{% if stock.financial_analysis_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="financialUpdatedAt">update: {{ stock.financial_analysis_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
     <div class="brief-card">
@@ -736,6 +701,291 @@
     <!-- 업데이트 시간 -->
     <div style="text-align:right;font-size:0.75rem;color:var(--text-muted);margin-top:8px;">
         업데이트: {{ stock.updated_at|date:"Y-m-d H:i" }}
+    </div>
+</div>
+
+<!-- ========== 기업분석 탭 ========== -->
+<div id="analysis-content" class="tab-panel" style="display:none;">
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;margin-top:0;">기업분석<span style="display:flex;align-items:center;gap:8px;">{% if stock.analysis_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="analysisUpdatedAt">update: {{ stock.analysis_updated_at|date:"Y-m-d" }}</span>{% endif %}</span></h5>
+    <div class="brief-card">
+        <!-- 보기 모드 -->
+        <div id="analysisViewMode">
+            {% if stock.analysis_type == 'markdown' and analysis_html_exists %}
+            <div style="max-height:600px;overflow-y:auto;">
+                <div class="markdown-content" id="analysisMarkdown"></div>
+                <script type="text/plain" id="analysisRaw">{{ stock.analysis_text|default:""|safe }}</script>
+            </div>
+            {% elif analysis_html_exists %}
+            <iframe id="analysisIframe" src="{% url 'stocks:stock_analysis_html' stock.code %}" style="width:100%;height:600px;border:none;"></iframe>
+            {% endif %}
+            <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
+                {% if stock.analysis_type != 'markdown' and analysis_html_exists %}<button type="button" class="btn-refresh btn-open-analysis-window" style="font-size:0.72rem;">새창보기</button>{% endif %}
+                <span class="prompt-badge" role="button" id="btnCopyAnalysisPrompt">프롬프트 복사</span>
+                <span id="btnAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
+            </div>
+        </div>
+        <!-- 편집 모드 -->
+        <div id="analysisEditMode" class="d-none">
+            <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
+                <label style="font-size:0.82rem;color:var(--text-muted);">타입</label>
+                <div class="d-flex gap-2">
+                    <label style="font-size:0.82rem;cursor:pointer;"><input type="radio" name="analysisTypeEdit" value="markdown" {% if stock.analysis_type == 'markdown' %}checked{% endif %}> 마크다운</label>
+                    <label style="font-size:0.82rem;cursor:pointer;"><input type="radio" name="analysisTypeEdit" value="html" {% if stock.analysis_type != 'markdown' %}checked{% endif %}> HTML</label>
+                </div>
+            </div>
+            <textarea class="form-control" id="analysisTextarea" rows="12" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="기업분석 내용을 입력하세요..."></textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnAnalysisCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnAnalysisSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 포괄손익계산서 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
+        포괄손익계산서
+        <span style="display:flex;align-items:center;gap:8px;">
+            <span id="btnIncomeInput" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">데이터 입력</span>
+        </span>
+    </h5>
+
+    <!-- 입력 모드 -->
+    <div id="incomeInputMode" class="d-none" style="margin-bottom:16px;">
+        <div class="brief-card">
+            <textarea class="form-control" id="incomeRawTextarea" rows="6" style="font-family:monospace;font-size:0.8rem;margin-bottom:8px;" placeholder="FnGuide 포괄손익계산서 테이블을 복사하여 붙여넣으세요. 연간/분기는 자동 감지됩니다."></textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnIncomeCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnIncomeSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 연간 테이블 -->
+    <div class="brief-card" id="incomeAnnualCard">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">연간</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="incomeAnnualTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody>
+                    <tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 분기 테이블 -->
+    <div class="brief-card" id="incomeQuarterCard" style="margin-top:12px;">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">분기</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="incomeQuarterTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody>
+                    <tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 재무상태표 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
+        재무상태표
+        <span style="display:flex;align-items:center;gap:8px;">
+            <span id="btnBalanceInput" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">데이터 입력</span>
+        </span>
+    </h5>
+
+    <div id="balanceInputMode" class="d-none" style="margin-bottom:16px;">
+        <div class="brief-card">
+            <textarea class="form-control" id="balanceRawTextarea" rows="6" style="font-family:monospace;font-size:0.8rem;margin-bottom:8px;" placeholder="FnGuide 재무상태표 테이블을 복사하여 붙여넣으세요. 연간/분기는 자동 감지됩니다."></textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnBalanceCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnBalanceSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="brief-card" id="balanceAnnualCard">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">연간</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="balanceAnnualTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="brief-card" id="balanceQuarterCard" style="margin-top:12px;">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">분기</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="balanceQuarterTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 현금흐름표 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
+        현금흐름표
+        <span style="display:flex;align-items:center;gap:8px;">
+            <span id="btnCashFlowInput" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">데이터 입력</span>
+        </span>
+    </h5>
+
+    <div id="cashFlowInputMode" class="d-none" style="margin-bottom:16px;">
+        <div class="brief-card">
+            <textarea class="form-control" id="cashFlowRawTextarea" rows="6" style="font-family:monospace;font-size:0.8rem;margin-bottom:8px;" placeholder="FnGuide 현금흐름표 테이블을 복사하여 붙여넣으세요. 연간/분기는 자동 감지됩니다."></textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnCashFlowCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnCashFlowSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="brief-card" id="cashFlowAnnualCard">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">연간</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="cashFlowAnnualTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="brief-card" id="cashFlowQuarterCard" style="margin-top:12px;">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">분기</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="cashFlowQuarterTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 안정성 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
+        안정성
+        <span id="btnProfitInput" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">데이터 입력</span>
+    </h5>
+
+    <div id="profitInputMode" class="d-none" style="margin-bottom:16px;">
+        <div class="brief-card">
+            <textarea class="form-control" id="profitRawTextarea" rows="6" style="font-family:monospace;font-size:0.8rem;margin-bottom:8px;" placeholder="FnGuide 안정성 테이블을 복사하여 붙여넣으세요. 연간/분기는 자동 감지됩니다."></textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnProfitCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnProfitSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="brief-card">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">연간</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="profitAnnualTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="brief-card" style="margin-top:12px;">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">분기</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="profitQuarterTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 수익성 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
+        수익성
+        <span id="btnProfitabilityInput" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">데이터 입력</span>
+    </h5>
+
+    <div id="profitabilityInputMode" class="d-none" style="margin-bottom:16px;">
+        <div class="brief-card">
+            <textarea class="form-control" id="profitabilityRawTextarea" rows="6" style="font-family:monospace;font-size:0.8rem;margin-bottom:8px;" placeholder="FnGuide 수익성 테이블을 복사하여 붙여넣으세요. 연간/분기는 자동 감지됩니다."></textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnProfitabilityCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnProfitabilitySave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="brief-card">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">연간</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="profitabilityAnnualTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="brief-card" style="margin-top:12px;">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">분기</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="profitabilityQuarterTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 성장성 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
+        성장성
+        <span id="btnGrowthInput" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">데이터 입력</span>
+    </h5>
+    <div id="growthInputMode" class="d-none" style="margin-bottom:16px;">
+        <div class="brief-card">
+            <textarea class="form-control" id="growthRawTextarea" rows="6" style="font-family:monospace;font-size:0.8rem;margin-bottom:8px;" placeholder="FnGuide 성장성 테이블을 복사하여 붙여넣으세요. 연간/분기는 자동 감지됩니다."></textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnGrowthCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnGrowthSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+    <div class="brief-card">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">연간</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="growthAnnualTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
+        </div>
+    </div>
+    <div class="brief-card" style="margin-top:12px;">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">분기</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="growthQuarterTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
+        </div>
+    </div>
+
+    <!-- 컨센서스 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
+        컨센서스
+        <span id="btnConsensusInput" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">데이터 입력</span>
+    </h5>
+    <div id="consensusInputMode" class="d-none" style="margin-bottom:16px;">
+        <div class="brief-card">
+            <textarea class="form-control" id="consensusRawTextarea" rows="6" style="font-family:monospace;font-size:0.8rem;margin-bottom:8px;" placeholder="FnGuide 컨센서스 테이블을 복사하여 붙여넣으세요."></textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnConsensusCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnConsensusSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+    <div class="brief-card">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">연간</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="consensusAnnualTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
+        </div>
+    </div>
+    <div class="brief-card" style="margin-top:12px;">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">분기</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="consensusQuarterTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
+        </div>
     </div>
 </div>
 
@@ -3805,6 +4055,496 @@ btnSdSave.addEventListener('click', async () => {
         else { sdForm.classList.add('d-none'); btnSdNew.classList.remove('d-none'); sdEditId = null; loadSd(true); }
     } catch(e) { alert('오류: ' + e.message); }
     finally { btnSdSave.disabled = false; btnSdSave.textContent = '저장'; }
+});
+
+// ===== 재무 테이블 공용 렌더링 =====
+function renderTable(tableId, rows, fields) {
+    const table = document.getElementById(tableId);
+    if (!rows.length) {
+        table.innerHTML = '<thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>';
+        return;
+    }
+    const periods = rows.map(r => r.period + (r.is_estimated ? '(E)' : ''));
+    let html = '<thead><tr><th style="text-align:left;">항목</th>';
+    periods.forEach(p => { html += `<th style="text-align:right;">${p}</th>`; });
+    html += '</tr></thead><tbody>';
+    fields.forEach(f => {
+        const chartId = `${tableId}_${f.key}`;
+        html += `<tr><td style="font-weight:500;white-space:nowrap;"><span class="fin-chart-btn" data-chart-id="${chartId}" data-field="${f.key}" style="cursor:pointer;margin-right:4px;font-size:0.7rem;color:var(--text-muted);">📊</span>${f.label}</td>`;
+        rows.forEach((r, idx) => {
+            const val = r[f.key];
+            let display = '-';
+            let valColor = '';
+            let changeHtml = '';
+            if (val !== null && val !== undefined) {
+                const num = parseFloat(val);
+                display = f.key === 'eps' ? num.toLocaleString() : num.toLocaleString(undefined, {minimumFractionDigits:1, maximumFractionDigits:1});
+                if (num < 0) valColor = 'color:#dc2626;';
+                if (idx > 0) {
+                    const prevVal = rows[idx - 1][f.key];
+                    if (prevVal !== null && prevVal !== undefined) {
+                        const prev = parseFloat(prevVal);
+                        if (prev !== 0) {
+                            const rate = ((num - prev) / Math.abs(prev) * 100).toFixed(1);
+                            const rateColor = rate > 0 ? '#dc2626' : rate < 0 ? '#2962ff' : 'var(--text-muted)';
+                            const sign = rate > 0 ? '+' : '';
+                            changeHtml = `<div style="font-size:0.68rem;color:${rateColor};">${sign}${rate}%</div>`;
+                        }
+                    }
+                }
+            }
+            html += `<td style="text-align:right;${valColor}">${display}${changeHtml}</td>`;
+        });
+        html += '</tr>';
+        html += `<tr class="fin-chart-row d-none" id="row_${chartId}"><td colspan="${periods.length + 1}" style="padding:8px;"><canvas id="canvas_${chartId}" height="180"></canvas></td></tr>`;
+    });
+    html += '</tbody>';
+    table.innerHTML = html;
+
+    // 차트 아이콘 클릭
+    table.querySelectorAll('.fin-chart-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const chartId = btn.dataset.chartId;
+            const fieldKey = btn.dataset.field;
+            const chartRow = document.getElementById(`row_${chartId}`);
+            if (!chartRow.classList.contains('d-none')) { chartRow.classList.add('d-none'); return; }
+            chartRow.classList.remove('d-none');
+            const canvasEl = document.getElementById(`canvas_${chartId}`);
+            const existingChart = Chart.getChart(canvasEl);
+            if (existingChart) existingChart.destroy();
+            const labels = rows.map(r => r.period + (r.is_estimated ? '(E)' : ''));
+            const values = rows.map(r => r[fieldKey] !== null && r[fieldKey] !== undefined ? parseFloat(r[fieldKey]) : null);
+            const bgColors = rows.map(r => r.is_estimated ? 'rgba(54, 162, 235, 0.3)' : 'rgba(54, 162, 235, 0.7)');
+            const fieldLabel = fields.find(ff => ff.key === fieldKey)?.label || fieldKey;
+            new Chart(canvasEl, {
+                type: 'bar',
+                data: { labels, datasets: [{ label: fieldLabel, data: values, backgroundColor: bgColors, borderRadius: 4 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { ticks: { callback: v => v.toLocaleString(), font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
+                }
+            });
+        });
+    });
+}
+
+// ===== 포괄손익계산서 =====
+(function() {
+    const inputMode = document.getElementById('incomeInputMode');
+    const btnInput = document.getElementById('btnIncomeInput');
+    const btnCancel = document.getElementById('btnIncomeCancel');
+    const btnSave = document.getElementById('btnIncomeSave');
+    const textarea = document.getElementById('incomeRawTextarea');
+
+    // 입력 토글
+    btnInput.addEventListener('click', () => {
+        inputMode.classList.toggle('d-none');
+        if (!inputMode.classList.contains('d-none')) textarea.focus();
+    });
+    btnCancel.addEventListener('click', () => {
+        inputMode.classList.add('d-none');
+        textarea.value = '';
+    });
+
+    // 저장
+    btnSave.addEventListener('click', async () => {
+        const raw = textarea.value.trim();
+        if (!raw) { alert('데이터를 붙여넣어 주세요.'); return; }
+        btnSave.disabled = true;
+        btnSave.textContent = '저장 중...';
+        try {
+            const fd = new FormData();
+            fd.append('raw_text', raw);
+            const resp = await fetch(`/api/stock/${stockCode}/income-statement/save/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                body: fd
+            });
+            const data = await resp.json();
+            if (data.success) {
+                console.log('저장 성공:', data);
+                textarea.value = '';
+                inputMode.classList.add('d-none');
+                loadIncomeData();
+            } else {
+                console.log('파싱 디버그:', data.debug);
+                alert(data.error || '저장 실패');
+            }
+        } catch (e) { alert('오류: ' + e.message); }
+        finally { btnSave.disabled = false; btnSave.textContent = '저장'; }
+    });
+
+    const fields = [
+        { key: 'revenue', label: '매출액(수익)' },
+        { key: 'cost_of_revenue', label: '매출원가' },
+        { key: 'gross_profit', label: '매출총이익' },
+        { key: 'sga_expense', label: '판매비와관리비' },
+        { key: 'operating_profit', label: '영업이익' },
+        { key: 'pretax_income', label: '법인세비용차감전계속사업이익' },
+        { key: 'net_income', label: '당기순이익' },
+        { key: 'eps', label: '(지배주주지분)주당순이익' },
+    ];
+
+    async function loadIncomeData() {
+        try {
+            const [annualResp, quarterResp] = await Promise.all([
+                fetch(`/api/stock/${stockCode}/income-statement/?period_type=annual`),
+                fetch(`/api/stock/${stockCode}/income-statement/?period_type=quarter`)
+            ]);
+            const annual = await annualResp.json();
+            const quarter = await quarterResp.json();
+            if (annual.success) renderTable('incomeAnnualTable', annual.data, fields);
+            if (quarter.success) renderTable('incomeQuarterTable', quarter.data, fields);
+        } catch (e) { console.error('포괄손익계산서 로딩 오류:', e); }
+    }
+
+    window._loadIncomeData = loadIncomeData;
+})();
+
+// ===== 재무상태표 =====
+(function() {
+    const fields = [
+        { key: 'total_assets', label: '자산총계' },
+        { key: 'cash', label: '현금및현금성자산' },
+        { key: 'receivables', label: '매출채권및기타채권' },
+        { key: 'tangible_assets', label: '유형자산' },
+        { key: 'total_liabilities', label: '부채총계' },
+        { key: 'short_term_debt', label: '단기차입금' },
+        { key: 'long_term_debt', label: '장기차입금' },
+        { key: 'total_equity', label: '자본총계' },
+        { key: 'retained_earnings', label: '이익잉여금' },
+        { key: 'interest_bearing_debt', label: '이자발생부채' },
+        { key: 'net_debt', label: '순부채' },
+        { key: 'capex', label: 'CAPEX' },
+    ];
+
+    const inputMode = document.getElementById('balanceInputMode');
+    const btnInput = document.getElementById('btnBalanceInput');
+    const btnCancel = document.getElementById('btnBalanceCancel');
+    const btnSave = document.getElementById('btnBalanceSave');
+    const textarea = document.getElementById('balanceRawTextarea');
+
+    btnInput.addEventListener('click', () => {
+        inputMode.classList.toggle('d-none');
+        if (!inputMode.classList.contains('d-none')) textarea.focus();
+    });
+    btnCancel.addEventListener('click', () => {
+        inputMode.classList.add('d-none');
+        textarea.value = '';
+    });
+
+    btnSave.addEventListener('click', async () => {
+        const raw = textarea.value.trim();
+        if (!raw) { alert('데이터를 붙여넣어 주세요.'); return; }
+        btnSave.disabled = true;
+        btnSave.textContent = '저장 중...';
+        try {
+            const fd = new FormData();
+            fd.append('raw_text', raw);
+            const resp = await fetch(`/api/stock/${stockCode}/balance-sheet/save/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                body: fd
+            });
+            const data = await resp.json();
+            if (data.success) {
+                console.log('재무상태표 저장 성공:', data);
+                textarea.value = '';
+                inputMode.classList.add('d-none');
+                loadBalanceData();
+            } else {
+                console.log('파싱 디버그:', data.debug);
+                alert(data.error || '저장 실패');
+            }
+        } catch (e) { alert('오류: ' + e.message); }
+        finally { btnSave.disabled = false; btnSave.textContent = '저장'; }
+    });
+
+    async function loadBalanceData() {
+        try {
+            const [annualResp, quarterResp] = await Promise.all([
+                fetch(`/api/stock/${stockCode}/balance-sheet/?period_type=annual`),
+                fetch(`/api/stock/${stockCode}/balance-sheet/?period_type=quarter`)
+            ]);
+            const annual = await annualResp.json();
+            const quarter = await quarterResp.json();
+            if (annual.success) renderTable('balanceAnnualTable', annual.data, fields);
+            if (quarter.success) renderTable('balanceQuarterTable', quarter.data, fields);
+        } catch (e) { console.error('재무상태표 로딩 오류:', e); }
+    }
+
+    window._loadBalanceData = loadBalanceData;
+})();
+
+// ===== 현금흐름표 =====
+(function() {
+    const fields = [
+        { key: 'operating_cash_flow', label: '영업활동으로인한현금흐름' },
+        { key: 'net_income', label: '당기순이익' },
+        { key: 'working_capital_change', label: '영업활동으로인한자산부채변동(운전자본변동)' },
+        { key: 'interest_paid', label: '이자지급(-)' },
+        { key: 'tax_paid', label: '법인세납부(-)' },
+        { key: 'investing_cash_flow', label: '투자활동으로인한현금흐름' },
+        { key: 'financing_cash_flow', label: '재무활동으로인한현금흐름' },
+        { key: 'dividends_paid', label: '배당금지급(-)' },
+        { key: 'cash_change', label: '현금및현금성자산의증가' },
+        { key: 'ending_cash', label: '기말현금및현금성자산' },
+    ];
+
+    const inputMode = document.getElementById('cashFlowInputMode');
+    const btnInput = document.getElementById('btnCashFlowInput');
+    const btnCancel = document.getElementById('btnCashFlowCancel');
+    const btnSave = document.getElementById('btnCashFlowSave');
+    const textarea = document.getElementById('cashFlowRawTextarea');
+
+    btnInput.addEventListener('click', () => {
+        inputMode.classList.toggle('d-none');
+        if (!inputMode.classList.contains('d-none')) textarea.focus();
+    });
+    btnCancel.addEventListener('click', () => {
+        inputMode.classList.add('d-none');
+        textarea.value = '';
+    });
+
+    btnSave.addEventListener('click', async () => {
+        const raw = textarea.value.trim();
+        if (!raw) { alert('데이터를 붙여넣어 주세요.'); return; }
+        btnSave.disabled = true;
+        btnSave.textContent = '저장 중...';
+        try {
+            const fd = new FormData();
+            fd.append('raw_text', raw);
+            const resp = await fetch(`/api/stock/${stockCode}/cash-flow/save/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                body: fd
+            });
+            const data = await resp.json();
+            if (data.success) {
+                console.log('현금흐름표 저장 성공:', data);
+                textarea.value = '';
+                inputMode.classList.add('d-none');
+                loadCashFlowData();
+            } else {
+                console.log('파싱 디버그:', data.debug);
+                alert(data.error || '저장 실패');
+            }
+        } catch (e) { alert('오류: ' + e.message); }
+        finally { btnSave.disabled = false; btnSave.textContent = '저장'; }
+    });
+
+    async function loadCashFlowData() {
+        try {
+            const [annualResp, quarterResp] = await Promise.all([
+                fetch(`/api/stock/${stockCode}/cash-flow/?period_type=annual`),
+                fetch(`/api/stock/${stockCode}/cash-flow/?period_type=quarter`)
+            ]);
+            const annual = await annualResp.json();
+            const quarter = await quarterResp.json();
+            if (annual.success) renderTable('cashFlowAnnualTable', annual.data, fields);
+            if (quarter.success) renderTable('cashFlowQuarterTable', quarter.data, fields);
+        } catch (e) { console.error('현금흐름표 로딩 오류:', e); }
+    }
+
+    window._loadCashFlowData = loadCashFlowData;
+})();
+
+// ===== 안정성 =====
+(function() {
+    const fields = [
+        { key: 'debt_ratio', label: '부채비율' },
+        { key: 'net_debt_ratio', label: '순부채비율' },
+        { key: 'current_ratio', label: '유동비율' },
+        { key: 'interest_coverage', label: '이자보상배율' },
+    ];
+
+    const inputMode = document.getElementById('profitInputMode');
+    const btnInput = document.getElementById('btnProfitInput');
+    const btnCancel = document.getElementById('btnProfitCancel');
+    const btnSave = document.getElementById('btnProfitSave');
+    const textarea = document.getElementById('profitRawTextarea');
+
+    btnInput.addEventListener('click', () => {
+        inputMode.classList.toggle('d-none');
+        if (!inputMode.classList.contains('d-none')) textarea.focus();
+    });
+    btnCancel.addEventListener('click', () => { inputMode.classList.add('d-none'); textarea.value = ''; });
+
+    btnSave.addEventListener('click', async () => {
+        const raw = textarea.value.trim();
+        if (!raw) { alert('데이터를 붙여넣어 주세요.'); return; }
+        btnSave.disabled = true; btnSave.textContent = '저장 중...';
+        try {
+            const fd = new FormData(); fd.append('raw_text', raw);
+            const resp = await fetch(`/api/stock/${stockCode}/stability/save/`, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' }, body: fd });
+            const data = await resp.json();
+            if (data.success) { console.log('안정성 저장 성공:', data); textarea.value = ''; inputMode.classList.add('d-none'); loadProfitData(); }
+            else { console.log('파싱 디버그:', data.debug); alert(data.error || '저장 실패'); }
+        } catch (e) { alert('오류: ' + e.message); }
+        finally { btnSave.disabled = false; btnSave.textContent = '저장'; }
+    });
+
+    async function loadProfitData() {
+        try {
+            const [a, q] = await Promise.all([
+                fetch(`/api/stock/${stockCode}/stability/?period_type=annual`),
+                fetch(`/api/stock/${stockCode}/stability/?period_type=quarter`)
+            ]);
+            const annual = await a.json(); const quarter = await q.json();
+            if (annual.success) renderTable('profitAnnualTable', annual.data, fields);
+            if (quarter.success) renderTable('profitQuarterTable', quarter.data, fields);
+        } catch (e) { console.error('안정성 로딩 오류:', e); }
+    }
+    window._loadProfitData = loadProfitData;
+})();
+
+// ===== 수익성 =====
+(function() {
+    const fields = [
+        { key: 'operating_margin', label: '영업이익률' },
+        { key: 'net_margin', label: '순이익률' },
+        { key: 'ebitda_margin', label: 'EBITDA마진율' },
+        { key: 'roe', label: 'ROE' },
+        { key: 'roic', label: 'ROIC' },
+    ];
+
+    const inputMode = document.getElementById('profitabilityInputMode');
+    const btnInput = document.getElementById('btnProfitabilityInput');
+    const btnCancel = document.getElementById('btnProfitabilityCancel');
+    const btnSave = document.getElementById('btnProfitabilitySave');
+    const textarea = document.getElementById('profitabilityRawTextarea');
+
+    btnInput.addEventListener('click', () => {
+        inputMode.classList.toggle('d-none');
+        if (!inputMode.classList.contains('d-none')) textarea.focus();
+    });
+    btnCancel.addEventListener('click', () => { inputMode.classList.add('d-none'); textarea.value = ''; });
+
+    btnSave.addEventListener('click', async () => {
+        const raw = textarea.value.trim();
+        if (!raw) { alert('데이터를 붙여넣어 주세요.'); return; }
+        btnSave.disabled = true; btnSave.textContent = '저장 중...';
+        try {
+            const fd = new FormData(); fd.append('raw_text', raw);
+            const resp = await fetch(`/api/stock/${stockCode}/profitability/save/`, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' }, body: fd });
+            const data = await resp.json();
+            if (data.success) { console.log('수익성 저장 성공:', data); textarea.value = ''; inputMode.classList.add('d-none'); loadProfitabilityData(); }
+            else { console.log('파싱 디버그:', data.debug); alert(data.error || '저장 실패'); }
+        } catch (e) { alert('오류: ' + e.message); }
+        finally { btnSave.disabled = false; btnSave.textContent = '저장'; }
+    });
+
+    async function loadProfitabilityData() {
+        try {
+            const [a, q] = await Promise.all([
+                fetch(`/api/stock/${stockCode}/profitability/?period_type=annual`),
+                fetch(`/api/stock/${stockCode}/profitability/?period_type=quarter`)
+            ]);
+            const annual = await a.json(); const quarter = await q.json();
+            if (annual.success) renderTable('profitabilityAnnualTable', annual.data, fields);
+            if (quarter.success) renderTable('profitabilityQuarterTable', quarter.data, fields);
+        } catch (e) { console.error('수익성 로딩 오류:', e); }
+    }
+    window._loadProfitabilityData = loadProfitabilityData;
+})();
+
+// ===== 성장성 =====
+(function() {
+    const fields = [
+        { key: 'revenue_growth', label: '매출액증가율' },
+        { key: 'operating_profit_growth', label: '영업이익증가율' },
+        { key: 'net_income_growth', label: '순이익증가율' },
+        { key: 'equity_growth', label: '자기자본증가율' },
+    ];
+    const inputMode = document.getElementById('growthInputMode');
+    const btnInput = document.getElementById('btnGrowthInput');
+    const btnCancel = document.getElementById('btnGrowthCancel');
+    const btnSave = document.getElementById('btnGrowthSave');
+    const textarea = document.getElementById('growthRawTextarea');
+    btnInput.addEventListener('click', () => { inputMode.classList.toggle('d-none'); if (!inputMode.classList.contains('d-none')) textarea.focus(); });
+    btnCancel.addEventListener('click', () => { inputMode.classList.add('d-none'); textarea.value = ''; });
+    btnSave.addEventListener('click', async () => {
+        const raw = textarea.value.trim();
+        if (!raw) { alert('데이터를 붙여넣어 주세요.'); return; }
+        btnSave.disabled = true; btnSave.textContent = '저장 중...';
+        try {
+            const fd = new FormData(); fd.append('raw_text', raw);
+            const resp = await fetch(`/api/stock/${stockCode}/growth/save/`, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' }, body: fd });
+            const data = await resp.json();
+            if (data.success) { textarea.value = ''; inputMode.classList.add('d-none'); loadGrowthData(); }
+            else { console.log('파싱 디버그:', data.debug); alert(data.error || '저장 실패'); }
+        } catch (e) { alert('오류: ' + e.message); }
+        finally { btnSave.disabled = false; btnSave.textContent = '저장'; }
+    });
+    async function loadGrowthData() {
+        try {
+            const [a, q] = await Promise.all([fetch(`/api/stock/${stockCode}/growth/?period_type=annual`), fetch(`/api/stock/${stockCode}/growth/?period_type=quarter`)]);
+            const annual = await a.json(); const quarter = await q.json();
+            if (annual.success) renderTable('growthAnnualTable', annual.data, fields);
+            if (quarter.success) renderTable('growthQuarterTable', quarter.data, fields);
+        } catch (e) { console.error('성장성 로딩 오류:', e); }
+    }
+    window._loadGrowthData = loadGrowthData;
+})();
+
+// ===== 컨센서스 =====
+(function() {
+    const fields = [
+        { key: 'revenue', label: '매출액(억원)' },
+        { key: 'yoy', label: 'YoY(%)' },
+        { key: 'operating_profit', label: '영업이익(억원)' },
+        { key: 'net_income', label: '당기순이익(억원)' },
+        { key: 'eps', label: 'EPS(원)' },
+        { key: 'bps', label: 'BPS(원)' },
+        { key: 'per', label: 'PER(배)' },
+        { key: 'pbr', label: 'PBR(배)' },
+        { key: 'roe', label: 'ROE(%)' },
+        { key: 'ev_ebitda', label: 'EV/EBITDA(배)' },
+    ];
+    const inputMode = document.getElementById('consensusInputMode');
+    const btnInput = document.getElementById('btnConsensusInput');
+    const btnCancel = document.getElementById('btnConsensusCancel');
+    const btnSave = document.getElementById('btnConsensusSave');
+    const textarea = document.getElementById('consensusRawTextarea');
+    btnInput.addEventListener('click', () => { inputMode.classList.toggle('d-none'); if (!inputMode.classList.contains('d-none')) textarea.focus(); });
+    btnCancel.addEventListener('click', () => { inputMode.classList.add('d-none'); textarea.value = ''; });
+    btnSave.addEventListener('click', async () => {
+        const raw = textarea.value.trim();
+        if (!raw) { alert('데이터를 붙여넣어 주세요.'); return; }
+        btnSave.disabled = true; btnSave.textContent = '저장 중...';
+        try {
+            const fd = new FormData(); fd.append('raw_text', raw);
+            const resp = await fetch(`/api/stock/${stockCode}/consensus/save/`, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' }, body: fd });
+            const data = await resp.json();
+            if (data.success) { textarea.value = ''; inputMode.classList.add('d-none'); loadConsensusData(); }
+            else { alert(data.error || '저장 실패'); }
+        } catch (e) { alert('오류: ' + e.message); }
+        finally { btnSave.disabled = false; btnSave.textContent = '저장'; }
+    });
+    async function loadConsensusData() {
+        try {
+            const [a, q] = await Promise.all([
+                fetch(`/api/stock/${stockCode}/consensus/?period_type=annual`),
+                fetch(`/api/stock/${stockCode}/consensus/?period_type=quarter`)
+            ]);
+            const annual = await a.json(); const quarter = await q.json();
+            if (annual.success) renderTable('consensusAnnualTable', annual.data, fields);
+            if (quarter.success) renderTable('consensusQuarterTable', quarter.data, fields);
+        } catch (e) { console.error('컨센서스 로딩 오류:', e); }
+    }
+    window._loadConsensusData = loadConsensusData;
+})();
+
+// 기업분석 탭 클릭 시 모든 데이터 로드
+document.querySelector('[data-target="analysis-content"]').addEventListener('click', () => {
+    window._loadIncomeData();
+    window._loadBalanceData();
+    window._loadCashFlowData();
+    window._loadProfitData();
+    window._loadProfitabilityData();
+    window._loadGrowthData();
+    window._loadConsensusData();
 });
 </script>
 {% endblock %}

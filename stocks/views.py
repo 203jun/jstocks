@@ -6028,6 +6028,711 @@ def stock_analysis_save(request, code):
     return JsonResponse({'success': True, 'updated_at': stock.analysis_updated_at.strftime('%Y-%m-%d')})
 
 
+def _parse_financial_table(raw_text, field_map, first_labels=None, int_fields=None, debug=False):
+    """
+    FnGuide 재무 테이블 붙여넣기 텍스트 범용 파서
+
+    - field_map: {'항목명': 'field_name', ...}
+    - first_labels: 데이터 시작 감지용 라벨 목록 (기본: field_map 키 사용)
+    - int_fields: 정수로 변환할 필드명 집합
+    """
+    import re
+    from decimal import Decimal, InvalidOperation
+
+    debug_info = {}
+    if int_fields is None:
+        int_fields = set()
+    raw_text = raw_text.replace('\r\n', '\n').replace('\r', '\n')
+    lines = raw_text.strip().split('\n')
+    if not lines:
+        return ([], debug_info) if debug else []
+
+    debug_info['total_lines'] = len(lines)
+    debug_info['first_5_lines'] = [repr(l) for l in lines[:5]]
+
+    # Step 1: 데이터 시작 지점 찾기
+    if first_labels is None:
+        first_labels = list(field_map.keys())[:3]
+    data_start = 0
+    for i, line in enumerate(lines):
+        clean = re.sub(r'^(펼치기\s*|\s+)', '', line.strip())
+        if any(clean.startswith(label) for label in first_labels):
+            data_start = i
+            break
+
+    debug_info['data_start'] = data_start
+    if data_start == 0:
+        debug_info['error'] = 'data_start=0, 항목 라벨을 찾지 못함'
+        return ([], debug_info) if debug else []
+
+    # Step 2: 헤더 줄들을 합쳐서 컬럼 복원
+    header_text = ''.join(lines[:data_start])
+    header_cols = header_text.split('\t')
+
+    debug_info['header_col_count'] = len(header_cols)
+    debug_info['header_cols'] = [repr(c[:50]) for c in header_cols]
+
+    # Step 3: 각 컬럼이 기간인지 판별
+    period_pattern = re.compile(r'(\d{4})/(\d{2})(\(E\))?')
+    month_to_quarter = {3: '1Q', 6: '2Q', 9: '3Q', 12: '4Q'}
+
+    columns = []
+    for col in header_cols[1:]:
+        m = period_pattern.search(col)
+        if m:
+            year = int(m.group(1))
+            month = int(m.group(2))
+            is_estimated = bool(m.group(3))
+            quarter = month_to_quarter.get(month)
+            columns.append({'year': year, 'month': month, 'quarter': quarter, 'is_estimated': is_estimated})
+        else:
+            columns.append(None)
+
+    # 첫 번째 연속 기간 컬럼 그룹만 사용
+    for i, col in enumerate(columns):
+        if col is None:
+            columns[i:] = [None] * (len(columns) - i)
+            break
+
+    debug_info['columns'] = [str(c) for c in columns if c is not None]
+
+    if not any(c for c in columns):
+        debug_info['error'] = '유효한 기간 컬럼 없음'
+        return ([], debug_info) if debug else []
+
+    # Step 4: 데이터 행 파싱
+    def parse_number(s):
+        s = s.strip().replace(',', '')
+        if not s:
+            return None
+        try:
+            return Decimal(s)
+        except InvalidOperation:
+            return None
+
+    data_by_period = {}
+    matched_labels = []
+    i = data_start
+    while i < len(lines):
+        line = lines[i]
+        label = re.sub(r'^(펼치기\s*)', '', line.strip()).strip()
+
+        field_name = field_map.get(label)
+        if field_name is not None and i + 1 < len(lines):
+            values_line = lines[i + 1]
+            values = values_line.split('\t')
+            matched_labels.append({'label': label, 'field': field_name, 'values_count': len(values)})
+
+            for j, val_str in enumerate(values):
+                if j >= len(columns) or columns[j] is None:
+                    continue
+                p = columns[j]
+                key = (p['year'], p['quarter'])
+                if key not in data_by_period:
+                    data_by_period[key] = {'year': p['year'], 'month': p['month'], 'quarter': p['quarter'], 'is_estimated': p['is_estimated']}
+                val = parse_number(val_str)
+                if val is not None:
+                    data_by_period[key][field_name] = int(val) if field_name in int_fields else val
+            i += 2
+        else:
+            i += 1
+
+    debug_info['matched_labels'] = matched_labels
+    debug_info['result_periods'] = list(data_by_period.keys())
+
+    result = list(data_by_period.values())
+    return (result, debug_info) if debug else result
+
+
+# 테이블별 필드 매핑
+INCOME_STATEMENT_FIELDS = {
+    '매출액(수익)': 'revenue',
+    '매출액': 'revenue',
+    '매출원가': 'cost_of_revenue',
+    '매출총이익': 'gross_profit',
+    '판매비와관리비': 'sga_expense',
+    '영업이익': 'operating_profit',
+    '법인세비용차감전계속사업이익': 'pretax_income',
+    '당기순이익': 'net_income',
+    '*(지배주주지분)주당순이익': 'eps',
+}
+
+BALANCE_SHEET_FIELDS = {
+    '자산총계': 'total_assets',
+    '현금및현금성자산': 'cash',
+    '매출채권및기타채권': 'receivables',
+    '유형자산': 'tangible_assets',
+    '부채총계': 'total_liabilities',
+    '단기차입금': 'short_term_debt',
+    '장기차입금': 'long_term_debt',
+    '자본총계': 'total_equity',
+    '이익잉여금': 'retained_earnings',
+    '*이자발생부채': 'interest_bearing_debt',
+    '*순부채': 'net_debt',
+    '*CAPEX': 'capex',
+}
+
+CONSENSUS_COL_MAP = {
+    '매출액': ('revenue', 'decimal'),
+    'YoY': ('yoy', 'decimal'),
+    '영업이익': ('operating_profit', 'decimal'),
+    '당기순이익': ('net_income', 'decimal'),
+    'EPS': ('eps', 'int'),
+    'BPS': ('bps', 'int'),
+    'PER': ('per', 'decimal'),
+    'PBR': ('pbr', 'decimal'),
+    'ROE': ('roe', 'decimal'),
+    'EV/EBITDA': ('ev_ebitda', 'decimal'),
+}
+
+GROWTH_FIELDS = {
+    '매출액증가율': 'revenue_growth',
+    '영업이익증가율': 'operating_profit_growth',
+    '순이익증가율': 'net_income_growth',
+    '자기자본증가율': 'equity_growth',
+}
+
+PROFITABILITY_FIELDS = {
+    '영업이익률': 'operating_margin',
+    '순이익률': 'net_margin',
+    'EBITDA마진율': 'ebitda_margin',
+    'ROE': 'roe',
+    'ROIC': 'roic',
+}
+
+STABILITY_FIELDS = {
+    '부채비율': 'debt_ratio',
+    '순부채비율': 'net_debt_ratio',
+    '유동비율': 'current_ratio',
+    '이자보상배율': 'interest_coverage',
+}
+
+CASH_FLOW_FIELDS = {
+    '영업활동으로인한현금흐름': 'operating_cash_flow',
+    '당기순이익': 'net_income',
+    '영업활동으로인한자산부채변동(운전자본변동)': 'working_capital_change',
+    '이자지급(-)': 'interest_paid',
+    '법인세납부(-)': 'tax_paid',
+    '투자활동으로인한현금흐름': 'investing_cash_flow',
+    '재무활동으로인한현금흐름': 'financing_cash_flow',
+    '배당금지급(-)': 'dividends_paid',
+    '현금및현금성자산의증가': 'cash_change',
+    '기말현금및현금성자산': 'ending_cash',
+}
+
+
+@require_POST
+def income_statement_save(request, code):
+    """포괄손익계산서 붙여넣기 파싱 후 저장"""
+    from .models import IncomeStatement
+    stock = get_object_or_404(Info, code=code)
+    raw_text = request.POST.get('raw_text', '').strip()
+
+    if not raw_text:
+        return JsonResponse({'success': False, 'error': '데이터가 비어있습니다.'})
+
+    parsed, debug = _parse_financial_table(raw_text, INCOME_STATEMENT_FIELDS,
+                                             first_labels=['매출액', '매출원가', '*내수', '*수출'],
+                                             int_fields={'eps'}, debug=True)
+    if not parsed:
+        return JsonResponse({'success': False, 'error': '파싱된 데이터가 없습니다.', 'debug': debug})
+
+    # 연간/분기 자동 감지: 모든 기간이 12월이면 연간, 아니면 분기
+    months = set(row.get('month') for row in parsed if row.get('month'))
+    is_annual = months == {12}
+
+    saved_count = 0
+    for row in parsed:
+        if is_annual:
+            row['quarter'] = None
+        obj, created = IncomeStatement.objects.update_or_create(
+            stock=stock,
+            year=row['year'],
+            quarter=row.get('quarter'),
+            defaults={
+                'is_estimated': row.get('is_estimated', False),
+                'revenue': row.get('revenue'),
+                'cost_of_revenue': row.get('cost_of_revenue'),
+                'gross_profit': row.get('gross_profit'),
+                'sga_expense': row.get('sga_expense'),
+                'operating_profit': row.get('operating_profit'),
+                'pretax_income': row.get('pretax_income'),
+                'net_income': row.get('net_income'),
+                'eps': row.get('eps'),
+            }
+        )
+        saved_count += 1
+
+    period_type = '연간' if is_annual else '분기'
+    return JsonResponse({'success': True, 'saved_count': saved_count, 'period_type': period_type, 'debug': debug})
+
+
+@require_GET
+def income_statement_list(request, code):
+    """포괄손익계산서 조회"""
+    from .models import IncomeStatement
+    stock = get_object_or_404(Info, code=code)
+    period_type = request.GET.get('period_type', 'annual')
+
+    if period_type == 'annual':
+        qs = IncomeStatement.objects.filter(stock=stock, quarter__isnull=True).order_by('year')
+    else:
+        qs = IncomeStatement.objects.filter(stock=stock, quarter__isnull=False).order_by('year', 'quarter')
+
+    data = []
+    for obj in qs:
+        period = f"{obj.year}" if not obj.quarter else f"{obj.year}/{obj.quarter}"
+        data.append({
+            'period': period,
+            'year': obj.year,
+            'quarter': obj.quarter,
+            'is_estimated': obj.is_estimated,
+            'revenue': str(obj.revenue) if obj.revenue is not None else None,
+            'cost_of_revenue': str(obj.cost_of_revenue) if obj.cost_of_revenue is not None else None,
+            'gross_profit': str(obj.gross_profit) if obj.gross_profit is not None else None,
+            'sga_expense': str(obj.sga_expense) if obj.sga_expense is not None else None,
+            'operating_profit': str(obj.operating_profit) if obj.operating_profit is not None else None,
+            'pretax_income': str(obj.pretax_income) if obj.pretax_income is not None else None,
+            'net_income': str(obj.net_income) if obj.net_income is not None else None,
+            'eps': obj.eps,
+        })
+
+    return JsonResponse({'success': True, 'data': data})
+
+
+@require_POST
+def balance_sheet_save(request, code):
+    """재무상태표 붙여넣기 파싱 후 저장"""
+    from .models import BalanceSheet
+    stock = get_object_or_404(Info, code=code)
+    raw_text = request.POST.get('raw_text', '').strip()
+
+    if not raw_text:
+        return JsonResponse({'success': False, 'error': '데이터가 비어있습니다.'})
+
+    parsed, debug = _parse_financial_table(raw_text, BALANCE_SHEET_FIELDS,
+                                           first_labels=['자산총계', '유동자산', '비유동자산'],
+                                           debug=True)
+    if not parsed:
+        return JsonResponse({'success': False, 'error': '파싱된 데이터가 없습니다.', 'debug': debug})
+
+    months = set(row.get('month') for row in parsed if row.get('month'))
+    is_annual = months == {12}
+
+    saved_count = 0
+    for row in parsed:
+        if is_annual:
+            row['quarter'] = None
+        BalanceSheet.objects.update_or_create(
+            stock=stock,
+            year=row['year'],
+            quarter=row.get('quarter'),
+            defaults={
+                'is_estimated': row.get('is_estimated', False),
+                'total_assets': row.get('total_assets'),
+                'cash': row.get('cash'),
+                'receivables': row.get('receivables'),
+                'tangible_assets': row.get('tangible_assets'),
+                'total_liabilities': row.get('total_liabilities'),
+                'short_term_debt': row.get('short_term_debt'),
+                'long_term_debt': row.get('long_term_debt'),
+                'total_equity': row.get('total_equity'),
+                'retained_earnings': row.get('retained_earnings'),
+                'interest_bearing_debt': row.get('interest_bearing_debt'),
+                'net_debt': row.get('net_debt'),
+                'capex': row.get('capex'),
+            }
+        )
+        saved_count += 1
+
+    period_type = '연간' if is_annual else '분기'
+    return JsonResponse({'success': True, 'saved_count': saved_count, 'period_type': period_type, 'debug': debug})
+
+
+@require_GET
+def balance_sheet_list(request, code):
+    """재무상태표 조회"""
+    from .models import BalanceSheet
+    stock = get_object_or_404(Info, code=code)
+    period_type = request.GET.get('period_type', 'annual')
+
+    if period_type == 'annual':
+        qs = BalanceSheet.objects.filter(stock=stock, quarter__isnull=True).order_by('year')
+    else:
+        qs = BalanceSheet.objects.filter(stock=stock, quarter__isnull=False).order_by('year', 'quarter')
+
+    fields = ['total_assets', 'cash', 'receivables', 'tangible_assets', 'total_liabilities',
+              'short_term_debt', 'long_term_debt', 'total_equity', 'retained_earnings',
+              'interest_bearing_debt', 'net_debt', 'capex']
+    data = []
+    for obj in qs:
+        period = f"{obj.year}" if not obj.quarter else f"{obj.year}/{obj.quarter}"
+        row = {'period': period, 'year': obj.year, 'quarter': obj.quarter, 'is_estimated': obj.is_estimated}
+        for f in fields:
+            val = getattr(obj, f)
+            row[f] = str(val) if val is not None else None
+        data.append(row)
+
+    return JsonResponse({'success': True, 'data': data})
+
+
+def _parse_consensus(raw_text):
+    """컨센서스 테이블 파싱 (행=연도, 열=항목 구조)"""
+    import re
+    from decimal import Decimal, InvalidOperation
+
+    raw_text = raw_text.replace('\r\n', '\n').replace('\r', '\n')
+    lines = raw_text.strip().split('\n')
+    if not lines:
+        return []
+
+    # 헤더 찾기: '재무년월'로 시작하는 줄까지가 헤더
+    header_end = 0
+    for i, line in enumerate(lines):
+        if re.search(r'\d{4}\.\d{2}\([AE]\)', line):
+            header_end = i
+            break
+
+    # 헤더 복원
+    header_text = ''.join(lines[:header_end])
+    header_cols = header_text.split('\t')
+
+    # 컬럼 매핑
+    col_indices = {}
+    for idx, col in enumerate(header_cols):
+        # 줄바꿈 제거 후 키워드 매칭
+        col_clean = re.sub(r'\(.*?\)', '', col).strip()
+        for key, (field, _) in CONSENSUS_COL_MAP.items():
+            if col_clean == key:
+                col_indices[idx] = (field, CONSENSUS_COL_MAP[key][1])
+                break
+
+    def parse_num(s, num_type):
+        s = s.strip().replace(',', '')
+        if not s:
+            return None
+        try:
+            if num_type == 'int':
+                return int(Decimal(s))
+            return Decimal(s)
+        except (InvalidOperation, ValueError):
+            return None
+
+    # 데이터 행 파싱
+    results = []
+    for line in lines[header_end:]:
+        cols = line.split('\t')
+        if not cols:
+            continue
+        # 기간 파싱: 2022.12(A), 2026.12(E), 2025.03(A) 등
+        m = re.match(r'(\d{4})\.(\d{2})\(([AE])\)', cols[0].strip())
+        if not m:
+            continue
+        year = int(m.group(1))
+        month = int(m.group(2))
+        is_estimated = m.group(3) == 'E'
+        month_to_quarter = {3: '1Q', 6: '2Q', 9: '3Q', 12: '4Q'}
+        quarter = month_to_quarter.get(month)
+
+        row = {'year': year, 'month': month, 'quarter': quarter, 'is_estimated': is_estimated}
+        for idx, (field, num_type) in col_indices.items():
+            if idx < len(cols):
+                val = parse_num(cols[idx], num_type)
+                if val is not None:
+                    row[field] = val
+        results.append(row)
+
+    return results
+
+
+@require_POST
+def consensus_save(request, code):
+    """컨센서스 붙여넣기 파싱 후 저장"""
+    from .models import Consensus
+    stock = get_object_or_404(Info, code=code)
+    raw_text = request.POST.get('raw_text', '').strip()
+    if not raw_text:
+        return JsonResponse({'success': False, 'error': '데이터가 비어있습니다.'})
+
+    parsed = _parse_consensus(raw_text)
+    if not parsed:
+        return JsonResponse({'success': False, 'error': '파싱된 데이터가 없습니다.'})
+
+    months = set(row.get('month') for row in parsed if row.get('month'))
+    is_annual = months == {12}
+
+    c_fields = ['revenue', 'yoy', 'operating_profit', 'net_income', 'eps', 'bps', 'per', 'pbr', 'roe', 'ev_ebitda']
+    saved_count = 0
+    for row in parsed:
+        if is_annual:
+            row['quarter'] = None
+        defaults = {'is_estimated': row.get('is_estimated', False)}
+        for f in c_fields:
+            defaults[f] = row.get(f)
+        Consensus.objects.update_or_create(stock=stock, year=row['year'], quarter=row.get('quarter'), defaults=defaults)
+        saved_count += 1
+
+    period_type = '연간' if is_annual else '분기'
+    return JsonResponse({'success': True, 'saved_count': saved_count, 'period_type': period_type})
+
+
+@require_GET
+def consensus_list(request, code):
+    """컨센서스 조회"""
+    from .models import Consensus
+    stock = get_object_or_404(Info, code=code)
+    period_type = request.GET.get('period_type', 'annual')
+
+    if period_type == 'annual':
+        qs = Consensus.objects.filter(stock=stock, quarter__isnull=True).order_by('year')
+    else:
+        qs = Consensus.objects.filter(stock=stock, quarter__isnull=False).order_by('year', 'quarter')
+
+    c_fields = ['revenue', 'yoy', 'operating_profit', 'net_income', 'eps', 'bps', 'per', 'pbr', 'roe', 'ev_ebitda']
+    data = []
+    for obj in qs:
+        period = f"{obj.year}" if not obj.quarter else f"{obj.year}/{obj.quarter}"
+        row = {'period': period, 'year': obj.year, 'quarter': obj.quarter, 'is_estimated': obj.is_estimated}
+        for f in c_fields:
+            val = getattr(obj, f)
+            if f in ('eps', 'bps'):
+                row[f] = val
+            else:
+                row[f] = str(val) if val is not None else None
+        data.append(row)
+
+    return JsonResponse({'success': True, 'data': data})
+
+
+@require_POST
+def growth_save(request, code):
+    """성장성 붙여넣기 파싱 후 저장"""
+    from .models import GrowthRatio
+    stock = get_object_or_404(Info, code=code)
+    raw_text = request.POST.get('raw_text', '').strip()
+    if not raw_text:
+        return JsonResponse({'success': False, 'error': '데이터가 비어있습니다.'})
+    parsed, debug = _parse_financial_table(raw_text, GROWTH_FIELDS, first_labels=['매출액증가율', '영업이익증가율'], debug=True)
+    if not parsed:
+        return JsonResponse({'success': False, 'error': '파싱된 데이터가 없습니다.', 'debug': debug})
+    months = set(row.get('month') for row in parsed if row.get('month'))
+    is_annual = months == {12}
+    gr_fields = ['revenue_growth', 'operating_profit_growth', 'net_income_growth', 'equity_growth']
+    saved_count = 0
+    for row in parsed:
+        if is_annual:
+            row['quarter'] = None
+        defaults = {'is_estimated': row.get('is_estimated', False)}
+        for f in gr_fields:
+            defaults[f] = row.get(f)
+        GrowthRatio.objects.update_or_create(stock=stock, year=row['year'], quarter=row.get('quarter'), defaults=defaults)
+        saved_count += 1
+    return JsonResponse({'success': True, 'saved_count': saved_count, 'period_type': '연간' if is_annual else '분기'})
+
+
+@require_GET
+def growth_list(request, code):
+    """성장성 조회"""
+    from .models import GrowthRatio
+    stock = get_object_or_404(Info, code=code)
+    period_type = request.GET.get('period_type', 'annual')
+    if period_type == 'annual':
+        qs = GrowthRatio.objects.filter(stock=stock, quarter__isnull=True).order_by('year')
+    else:
+        qs = GrowthRatio.objects.filter(stock=stock, quarter__isnull=False).order_by('year', 'quarter')
+    fields = ['revenue_growth', 'operating_profit_growth', 'net_income_growth', 'equity_growth']
+    data = []
+    for obj in qs:
+        period = f"{obj.year}" if not obj.quarter else f"{obj.year}/{obj.quarter}"
+        row = {'period': period, 'year': obj.year, 'quarter': obj.quarter, 'is_estimated': obj.is_estimated}
+        for f in fields:
+            val = getattr(obj, f)
+            row[f] = str(val) if val is not None else None
+        data.append(row)
+    return JsonResponse({'success': True, 'data': data})
+
+
+@require_POST
+def profitability_save(request, code):
+    """수익성 붙여넣기 파싱 후 저장"""
+    from .models import ProfitabilityRatio
+    stock = get_object_or_404(Info, code=code)
+    raw_text = request.POST.get('raw_text', '').strip()
+    if not raw_text:
+        return JsonResponse({'success': False, 'error': '데이터가 비어있습니다.'})
+
+    parsed, debug = _parse_financial_table(raw_text, PROFITABILITY_FIELDS,
+                                           first_labels=['매출총이익률', '영업이익률'],
+                                           debug=True)
+    if not parsed:
+        return JsonResponse({'success': False, 'error': '파싱된 데이터가 없습니다.', 'debug': debug})
+
+    months = set(row.get('month') for row in parsed if row.get('month'))
+    is_annual = months == {12}
+    pf_fields = ['operating_margin', 'net_margin', 'ebitda_margin', 'roe', 'roic']
+    saved_count = 0
+    for row in parsed:
+        if is_annual:
+            row['quarter'] = None
+        defaults = {'is_estimated': row.get('is_estimated', False)}
+        for f in pf_fields:
+            defaults[f] = row.get(f)
+        ProfitabilityRatio.objects.update_or_create(
+            stock=stock, year=row['year'], quarter=row.get('quarter'), defaults=defaults)
+        saved_count += 1
+    return JsonResponse({'success': True, 'saved_count': saved_count, 'period_type': '연간' if is_annual else '분기'})
+
+
+@require_GET
+def profitability_list(request, code):
+    """수익성 조회"""
+    from .models import ProfitabilityRatio
+    stock = get_object_or_404(Info, code=code)
+    period_type = request.GET.get('period_type', 'annual')
+    if period_type == 'annual':
+        qs = ProfitabilityRatio.objects.filter(stock=stock, quarter__isnull=True).order_by('year')
+    else:
+        qs = ProfitabilityRatio.objects.filter(stock=stock, quarter__isnull=False).order_by('year', 'quarter')
+    fields = ['operating_margin', 'net_margin', 'ebitda_margin', 'roe', 'roic']
+    data = []
+    for obj in qs:
+        period = f"{obj.year}" if not obj.quarter else f"{obj.year}/{obj.quarter}"
+        row = {'period': period, 'year': obj.year, 'quarter': obj.quarter, 'is_estimated': obj.is_estimated}
+        for f in fields:
+            val = getattr(obj, f)
+            row[f] = str(val) if val is not None else None
+        data.append(row)
+    return JsonResponse({'success': True, 'data': data})
+
+
+@require_POST
+def stability_save(request, code):
+    """안정성 붙여넣기 파싱 후 저장"""
+    from .models import StabilityRatio
+    stock = get_object_or_404(Info, code=code)
+    raw_text = request.POST.get('raw_text', '').strip()
+
+    if not raw_text:
+        return JsonResponse({'success': False, 'error': '데이터가 비어있습니다.'})
+
+    parsed, debug = _parse_financial_table(raw_text, STABILITY_FIELDS,
+                                           first_labels=['부채비율', '유동부채비율'],
+                                           debug=True)
+    if not parsed:
+        return JsonResponse({'success': False, 'error': '파싱된 데이터가 없습니다.', 'debug': debug})
+
+    months = set(row.get('month') for row in parsed if row.get('month'))
+    is_annual = months == {12}
+
+    pf_fields = ['debt_ratio', 'net_debt_ratio', 'current_ratio', 'interest_coverage']
+    saved_count = 0
+    for row in parsed:
+        if is_annual:
+            row['quarter'] = None
+        defaults = {'is_estimated': row.get('is_estimated', False)}
+        for f in pf_fields:
+            defaults[f] = row.get(f)
+        StabilityRatio.objects.update_or_create(
+            stock=stock, year=row['year'], quarter=row.get('quarter'),
+            defaults=defaults
+        )
+        saved_count += 1
+
+    period_type = '연간' if is_annual else '분기'
+    return JsonResponse({'success': True, 'saved_count': saved_count, 'period_type': period_type})
+
+
+@require_GET
+def stability_list(request, code):
+    """안정성 조회"""
+    from .models import StabilityRatio
+    stock = get_object_or_404(Info, code=code)
+    period_type = request.GET.get('period_type', 'annual')
+
+    if period_type == 'annual':
+        qs = StabilityRatio.objects.filter(stock=stock, quarter__isnull=True).order_by('year')
+    else:
+        qs = StabilityRatio.objects.filter(stock=stock, quarter__isnull=False).order_by('year', 'quarter')
+
+    fields = ['debt_ratio', 'net_debt_ratio', 'current_ratio', 'interest_coverage']
+    data = []
+    for obj in qs:
+        period = f"{obj.year}" if not obj.quarter else f"{obj.year}/{obj.quarter}"
+        row = {'period': period, 'year': obj.year, 'quarter': obj.quarter, 'is_estimated': obj.is_estimated}
+        for f in fields:
+            val = getattr(obj, f)
+            row[f] = str(val) if val is not None else None
+        data.append(row)
+
+    return JsonResponse({'success': True, 'data': data})
+
+
+@require_POST
+def cash_flow_save(request, code):
+    """현금흐름표 붙여넣기 파싱 후 저장"""
+    from .models import CashFlow
+    stock = get_object_or_404(Info, code=code)
+    raw_text = request.POST.get('raw_text', '').strip()
+
+    if not raw_text:
+        return JsonResponse({'success': False, 'error': '데이터가 비어있습니다.'})
+
+    parsed, debug = _parse_financial_table(raw_text, CASH_FLOW_FIELDS,
+                                           first_labels=['영업활동으로인한현금흐름', '당기순이익'],
+                                           debug=True)
+    if not parsed:
+        return JsonResponse({'success': False, 'error': '파싱된 데이터가 없습니다.', 'debug': debug})
+
+    months = set(row.get('month') for row in parsed if row.get('month'))
+    is_annual = months == {12}
+
+    cf_fields = ['operating_cash_flow', 'net_income', 'working_capital_change', 'interest_paid',
+                 'tax_paid', 'investing_cash_flow', 'financing_cash_flow', 'dividends_paid',
+                 'cash_change', 'ending_cash']
+    saved_count = 0
+    for row in parsed:
+        if is_annual:
+            row['quarter'] = None
+        defaults = {'is_estimated': row.get('is_estimated', False)}
+        for f in cf_fields:
+            defaults[f] = row.get(f)
+        CashFlow.objects.update_or_create(
+            stock=stock, year=row['year'], quarter=row.get('quarter'),
+            defaults=defaults
+        )
+        saved_count += 1
+
+    period_type = '연간' if is_annual else '분기'
+    return JsonResponse({'success': True, 'saved_count': saved_count, 'period_type': period_type})
+
+
+@require_GET
+def cash_flow_list(request, code):
+    """현금흐름표 조회"""
+    from .models import CashFlow
+    stock = get_object_or_404(Info, code=code)
+    period_type = request.GET.get('period_type', 'annual')
+
+    if period_type == 'annual':
+        qs = CashFlow.objects.filter(stock=stock, quarter__isnull=True).order_by('year')
+    else:
+        qs = CashFlow.objects.filter(stock=stock, quarter__isnull=False).order_by('year', 'quarter')
+
+    fields = ['operating_cash_flow', 'net_income', 'working_capital_change', 'interest_paid',
+              'tax_paid', 'investing_cash_flow', 'financing_cash_flow', 'dividends_paid',
+              'cash_change', 'ending_cash']
+    data = []
+    for obj in qs:
+        period = f"{obj.year}" if not obj.quarter else f"{obj.year}/{obj.quarter}"
+        row = {'period': period, 'year': obj.year, 'quarter': obj.quarter, 'is_estimated': obj.is_estimated}
+        for f in fields:
+            val = getattr(obj, f)
+            row[f] = str(val) if val is not None else None
+        data.append(row)
+
+    return JsonResponse({'success': True, 'data': data})
+
+
 @require_POST
 def stock_valuation_save(request, code):
     """종목 가치평가 저장 API"""

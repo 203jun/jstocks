@@ -2818,3 +2818,247 @@ class ResearchPrompt(models.Model):
 
     def __str__(self):
         return self.question
+
+
+class IncomeStatement(models.Model):
+    """
+    포괄손익계산서 (연간/분기)
+
+    FnGuide 포괄손익계산서 데이터 저장
+    연간: quarter = None, 분기: quarter = '1Q'~'4Q'
+    """
+    stock = models.ForeignKey(
+        'Info', on_delete=models.CASCADE, verbose_name='종목', db_index=True
+    )
+    year = models.IntegerField(verbose_name='연도', db_index=True)
+    quarter = models.CharField(
+        max_length=2, null=True, blank=True, verbose_name='분기',
+        help_text='1Q, 2Q, 3Q, 4Q - null이면 연간', db_index=True
+    )
+    is_estimated = models.BooleanField(default=False, verbose_name='추정치여부')
+
+    revenue = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='매출액')
+    cost_of_revenue = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='매출원가')
+    gross_profit = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='매출총이익')
+    sga_expense = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='판매비와관리비')
+    operating_profit = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='영업이익')
+    pretax_income = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='법인세비용차감전계속사업이익')
+    net_income = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='당기순이익')
+    eps = models.IntegerField(null=True, blank=True, verbose_name='주당순이익', help_text='(지배주주지분)주당순이익')
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'income_statement'
+        verbose_name = '포괄손익계산서'
+        verbose_name_plural = '포괄손익계산서'
+        ordering = ['-year', '-quarter']
+        unique_together = [('stock', 'year', 'quarter')]
+
+    def __str__(self):
+        period = f"{self.year} {self.quarter}" if self.quarter else f"{self.year}"
+        return f"{self.stock.name} - {period}"
+
+
+class BalanceSheet(models.Model):
+    """
+    재무상태표 (연간/분기)
+
+    FnGuide 재무상태표 데이터 저장
+    연간: quarter = None, 분기: quarter = '1Q'~'4Q'
+    """
+    stock = models.ForeignKey(
+        'Info', on_delete=models.CASCADE, verbose_name='종목', db_index=True
+    )
+    year = models.IntegerField(verbose_name='연도', db_index=True)
+    quarter = models.CharField(
+        max_length=2, null=True, blank=True, verbose_name='분기',
+        help_text='1Q, 2Q, 3Q, 4Q - null이면 연간', db_index=True
+    )
+    is_estimated = models.BooleanField(default=False, verbose_name='추정치여부')
+
+    total_assets = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='자산총계')
+    cash = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='현금및현금성자산')
+    receivables = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='매출채권및기타채권')
+    tangible_assets = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='유형자산')
+    total_liabilities = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='부채총계')
+    short_term_debt = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='단기차입금')
+    long_term_debt = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='장기차입금')
+    total_equity = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='자본총계')
+    retained_earnings = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='이익잉여금')
+    interest_bearing_debt = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='이자발생부채')
+    net_debt = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='순부채')
+    capex = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='CAPEX')
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'balance_sheet'
+        verbose_name = '재무상태표'
+        verbose_name_plural = '재무상태표'
+        ordering = ['-year', '-quarter']
+        unique_together = [('stock', 'year', 'quarter')]
+
+    def __str__(self):
+        period = f"{self.year} {self.quarter}" if self.quarter else f"{self.year}"
+        return f"{self.stock.name} - {period}"
+
+
+class CashFlow(models.Model):
+    """
+    현금흐름표 (연간/분기)
+
+    FnGuide 현금흐름표 데이터 저장
+    연간: quarter = None, 분기: quarter = '1Q'~'4Q'
+    """
+    stock = models.ForeignKey(
+        'Info', on_delete=models.CASCADE, verbose_name='종목', db_index=True
+    )
+    year = models.IntegerField(verbose_name='연도', db_index=True)
+    quarter = models.CharField(
+        max_length=2, null=True, blank=True, verbose_name='분기',
+        help_text='1Q, 2Q, 3Q, 4Q - null이면 연간', db_index=True
+    )
+    is_estimated = models.BooleanField(default=False, verbose_name='추정치여부')
+
+    operating_cash_flow = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='영업활동으로인한현금흐름')
+    net_income = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='당기순이익')
+    working_capital_change = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='영업활동으로인한자산부채변동(운전자본변동)')
+    interest_paid = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='이자지급(-)')
+    tax_paid = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='법인세납부(-)')
+    investing_cash_flow = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='투자활동으로인한현금흐름')
+    financing_cash_flow = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='재무활동으로인한현금흐름')
+    dividends_paid = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='배당금지급(-)')
+    cash_change = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='현금및현금성자산의증가')
+    ending_cash = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='기말현금및현금성자산')
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'cash_flow'
+        verbose_name = '현금흐름표'
+        verbose_name_plural = '현금흐름표'
+        ordering = ['-year', '-quarter']
+        unique_together = [('stock', 'year', 'quarter')]
+
+    def __str__(self):
+        period = f"{self.year} {self.quarter}" if self.quarter else f"{self.year}"
+        return f"{self.stock.name} - {period}"
+
+
+class StabilityRatio(models.Model):
+    """안정성 지표 (연간/분기)"""
+    stock = models.ForeignKey('Info', on_delete=models.CASCADE, verbose_name='종목', db_index=True)
+    year = models.IntegerField(verbose_name='연도', db_index=True)
+    quarter = models.CharField(max_length=2, null=True, blank=True, verbose_name='분기', db_index=True)
+    is_estimated = models.BooleanField(default=False, verbose_name='추정치여부')
+
+    debt_ratio = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='부채비율')
+    net_debt_ratio = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='순부채비율')
+    current_ratio = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='유동비율')
+    interest_coverage = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='이자보상배율')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'stability_ratio'
+        verbose_name = '안정성'
+        verbose_name_plural = '안정성'
+        ordering = ['-year', '-quarter']
+        unique_together = [('stock', 'year', 'quarter')]
+
+    def __str__(self):
+        period = f"{self.year} {self.quarter}" if self.quarter else f"{self.year}"
+        return f"{self.stock.name} - {period}"
+
+
+class ProfitabilityRatio(models.Model):
+    """수익성 지표 (연간/분기)"""
+    stock = models.ForeignKey('Info', on_delete=models.CASCADE, verbose_name='종목', db_index=True)
+    year = models.IntegerField(verbose_name='연도', db_index=True)
+    quarter = models.CharField(max_length=2, null=True, blank=True, verbose_name='분기', db_index=True)
+    is_estimated = models.BooleanField(default=False, verbose_name='추정치여부')
+
+    operating_margin = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='영업이익률')
+    net_margin = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='순이익률')
+    ebitda_margin = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='EBITDA마진율')
+    roe = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='ROE')
+    roic = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='ROIC')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'profitability_ratio'
+        verbose_name = '수익성'
+        verbose_name_plural = '수익성'
+        ordering = ['-year', '-quarter']
+        unique_together = [('stock', 'year', 'quarter')]
+
+    def __str__(self):
+        period = f"{self.year} {self.quarter}" if self.quarter else f"{self.year}"
+        return f"{self.stock.name} - {period}"
+
+
+class GrowthRatio(models.Model):
+    """성장성 지표 (연간/분기)"""
+    stock = models.ForeignKey('Info', on_delete=models.CASCADE, verbose_name='종목', db_index=True)
+    year = models.IntegerField(verbose_name='연도', db_index=True)
+    quarter = models.CharField(max_length=2, null=True, blank=True, verbose_name='분기', db_index=True)
+    is_estimated = models.BooleanField(default=False, verbose_name='추정치여부')
+
+    revenue_growth = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='매출액증가율')
+    operating_profit_growth = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='영업이익증가율')
+    net_income_growth = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='순이익증가율')
+    equity_growth = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='자기자본증가율')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'growth_ratio'
+        verbose_name = '성장성'
+        verbose_name_plural = '성장성'
+        ordering = ['-year', '-quarter']
+        unique_together = [('stock', 'year', 'quarter')]
+
+    def __str__(self):
+        period = f"{self.year} {self.quarter}" if self.quarter else f"{self.year}"
+        return f"{self.stock.name} - {period}"
+
+
+class Consensus(models.Model):
+    """컨센서스 (연간/분기)"""
+    stock = models.ForeignKey('Info', on_delete=models.CASCADE, verbose_name='종목', db_index=True)
+    year = models.IntegerField(verbose_name='연도', db_index=True)
+    quarter = models.CharField(max_length=2, null=True, blank=True, verbose_name='분기', db_index=True)
+    is_estimated = models.BooleanField(default=False, verbose_name='추정치여부')
+
+    revenue = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='매출액')
+    yoy = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='YoY')
+    operating_profit = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='영업이익')
+    net_income = models.DecimalField(max_digits=20, decimal_places=1, null=True, blank=True, verbose_name='당기순이익')
+    eps = models.IntegerField(null=True, blank=True, verbose_name='EPS')
+    bps = models.IntegerField(null=True, blank=True, verbose_name='BPS')
+    per = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='PER')
+    pbr = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='PBR')
+    roe = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='ROE')
+    ev_ebitda = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='EV/EBITDA')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'consensus'
+        verbose_name = '컨센서스'
+        verbose_name_plural = '컨센서스'
+        ordering = ['-year', '-quarter']
+        unique_together = [('stock', 'year', 'quarter')]
+
+    def __str__(self):
+        period = f"{self.year} {self.quarter}" if self.quarter else f"{self.year}"
+        return f"{self.stock.name} - {period}"
