@@ -11,6 +11,15 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunSQL(
+            sql=[
+                "DROP INDEX IF EXISTS profitability_ratio_stock_id_year_quarter_b264bfa5_uniq;",
+                "DROP INDEX IF EXISTS profitability_ratio_year_ed2f9a7f;",
+                "DROP INDEX IF EXISTS profitability_ratio_quarter_65813103;",
+                "DROP INDEX IF EXISTS profitability_ratio_stock_id_9f50636b;",
+            ],
+            reverse_sql=migrations.RunSQL.noop,
+        ),
         migrations.CreateModel(
             name='ProfitabilityRatio',
             fields=[
