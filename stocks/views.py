@@ -2890,9 +2890,9 @@ def fetch_stock_data_loader_with_summary(request, code):
         saved_types = SystemSetting.objects.get(key='briefing_data_types').value
         data_types = [t for t in saved_types.split(',') if t]  # 빈 문자열 제거
         if not data_types:
-            data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+            data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
     except SystemSetting.DoesNotExist:
-        data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+        data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
 
     def html_to_text(html):
         """HTML을 텍스트로 변환"""
@@ -2949,23 +2949,6 @@ def fetch_stock_data_loader_with_summary(request, code):
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
 
-    # 2-1. 재무분석
-    if 'financial_analysis' in data_types:
-        lines.append("## 재무분석")
-        if stock.financial_analysis:
-            lines.append(stock.financial_analysis)
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
-
-    # 2-2. 투자지표
-    if 'investment_indicator' in data_types:
-        lines.append("## 투자지표")
-        if stock.investment_indicator:
-            lines.append(stock.investment_indicator)
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
 
     # 3. 노다지 (요약 포함, 최대 5개)
     if 'nodaji' in data_types:
@@ -3121,9 +3104,9 @@ def fetch_stock_data_loader_with_summary_valuation(request, code):
         saved_types = SystemSetting.objects.get(key='valuation_data_types').value
         data_types = [t for t in saved_types.split(',') if t]
         if not data_types:
-            data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+            data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
     except SystemSetting.DoesNotExist:
-        data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+        data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
 
     def html_to_text(html):
         """HTML을 텍스트로 변환"""
@@ -3170,22 +3153,6 @@ def fetch_stock_data_loader_with_summary_valuation(request, code):
         lines.append("## 핵심 브리핑")
         if stock.key_briefing:
             lines.append(stock.key_briefing)
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
-
-    if 'financial_analysis' in data_types:
-        lines.append("## 재무분석")
-        if stock.financial_analysis:
-            lines.append(stock.financial_analysis)
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
-
-    if 'investment_indicator' in data_types:
-        lines.append("## 투자지표")
-        if stock.investment_indicator:
-            lines.append(stock.investment_indicator)
         else:
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
@@ -3767,19 +3734,19 @@ def settings(request):
         saved_types = SystemSetting.objects.get(key='briefing_data_types').value
         briefing_data_types = [t for t in saved_types.split(',') if t]  # 빈 문자열 제거
         if not briefing_data_types:
-            briefing_data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+            briefing_data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
     except SystemSetting.DoesNotExist:
         # 기본값: 모든 타입 선택
-        briefing_data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+        briefing_data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
 
     # 가치평가 데이터 타입 불러오기
     try:
         saved_valuation_types = SystemSetting.objects.get(key='valuation_data_types').value
         valuation_data_types = [t for t in saved_valuation_types.split(',') if t]
         if not valuation_data_types:
-            valuation_data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+            valuation_data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
     except SystemSetting.DoesNotExist:
-        valuation_data_types = ['analysis', 'key_briefing', 'financial_analysis', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+        valuation_data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
 
     context = {
         'categories': categories,
@@ -5971,32 +5938,93 @@ def sector_question_report_detail(request, report_id):
     })
 
 
-@require_POST
-def stock_financial_analysis_save(request, code):
-    """종목 재무분석 저장 API"""
-    from datetime import date
-    stock = get_object_or_404(Info, code=code)
-    text = request.POST.get('financial_analysis', '').strip()
-    if text != (stock.financial_analysis or '').strip():
-        stock.financial_analysis = text
-        stock.financial_analysis_updated_at = date.today()
-        stock.save(update_fields=['financial_analysis', 'financial_analysis_updated_at'])
-    return JsonResponse({'success': True, 'updated_at': stock.financial_analysis_updated_at.strftime('%Y-%m-%d') if stock.financial_analysis_updated_at else ''})
+def _get_latest_quarter(stock):
+    """종목의 최신 분기 데이터 감지 (포괄손익계산서 분기 기준)"""
+    from .models import IncomeStatement
+    latest = IncomeStatement.objects.filter(
+        stock=stock, quarter__isnull=False
+    ).order_by('-year', '-quarter').first()
+    if latest:
+        return f"{latest.year}/{latest.quarter}"
+    return ''
 
 
 @require_POST
-def stock_investment_indicator_save(request, code):
-    """종목 투자지표 저장 API"""
+def financial_analysis_v2_save(request, code):
+    """기업분석 탭 재무분석 저장 (현재→과거 자동 보관)"""
     from datetime import date
     stock = get_object_or_404(Info, code=code)
-    text = request.POST.get('investment_indicator', '').strip()
-    if text != (stock.investment_indicator or '').strip():
-        stock.investment_indicator = text
-        stock.investment_indicator_updated_at = date.today()
-        stock.save(update_fields=['investment_indicator', 'investment_indicator_updated_at'])
-    return JsonResponse({'success': True, 'updated_at': stock.investment_indicator_updated_at.strftime('%Y-%m-%d') if stock.investment_indicator_updated_at else ''})
+    text = request.POST.get('content', '').strip()
+    base_quarter = _get_latest_quarter(stock)
+    # 현재값이 있으면 과거로 밀기
+    if stock.financial_analysis_v2:
+        stock.financial_analysis_v2_previous = stock.financial_analysis_v2
+        stock.financial_analysis_v2_previous_updated_at = stock.financial_analysis_v2_updated_at
+        stock.financial_analysis_v2_previous_base_quarter = stock.financial_analysis_v2_base_quarter
+    stock.financial_analysis_v2 = text
+    stock.financial_analysis_v2_updated_at = date.today()
+    stock.financial_analysis_v2_base_quarter = base_quarter
+    stock.save(update_fields=[
+        'financial_analysis_v2', 'financial_analysis_v2_previous',
+        'financial_analysis_v2_previous_updated_at', 'financial_analysis_v2_previous_base_quarter',
+        'financial_analysis_v2_updated_at', 'financial_analysis_v2_base_quarter',
+    ])
+    return JsonResponse({'success': True, 'updated_at': stock.financial_analysis_v2_updated_at.strftime('%Y-%m-%d'), 'base_quarter': base_quarter})
 
 
+@require_POST
+def consensus_analysis_save(request, code):
+    """컨센서스분석 저장 (현재→과거 자동 보관)"""
+    from datetime import date
+    stock = get_object_or_404(Info, code=code)
+    text = request.POST.get('content', '').strip()
+    base_quarter = _get_latest_quarter(stock)
+    # 현재값이 있으면 과거로 밀기
+    if stock.consensus_analysis:
+        stock.consensus_analysis_previous = stock.consensus_analysis
+        stock.consensus_analysis_previous_updated_at = stock.consensus_analysis_updated_at
+        stock.consensus_analysis_previous_base_quarter = stock.consensus_analysis_base_quarter
+    stock.consensus_analysis = text
+    stock.consensus_analysis_updated_at = date.today()
+    stock.consensus_analysis_base_quarter = base_quarter
+    stock.save(update_fields=[
+        'consensus_analysis', 'consensus_analysis_previous',
+        'consensus_analysis_previous_updated_at', 'consensus_analysis_previous_base_quarter',
+        'consensus_analysis_updated_at', 'consensus_analysis_base_quarter',
+    ])
+    return JsonResponse({'success': True, 'updated_at': stock.consensus_analysis_updated_at.strftime('%Y-%m-%d'), 'base_quarter': base_quarter})
+
+
+@require_GET
+def quarter_analysis_data(request, code):
+    """직전분기재무해석 프롬프트용 데이터 조회"""
+    stock = get_object_or_404(Info, code=code)
+    return JsonResponse({
+        'success': True,
+        'financial_previous': stock.financial_analysis_v2_previous or '',
+        'financial_previous_quarter': stock.financial_analysis_v2_previous_base_quarter or '',
+        'financial_current': stock.financial_analysis_v2 or '',
+        'financial_current_quarter': stock.financial_analysis_v2_base_quarter or '',
+        'consensus_previous': stock.consensus_analysis_previous or '',
+        'consensus_previous_quarter': stock.consensus_analysis_previous_base_quarter or '',
+        'consensus_current': stock.consensus_analysis or '',
+        'consensus_current_quarter': stock.consensus_analysis_base_quarter or '',
+    })
+
+
+@require_POST
+def quarter_analysis_save(request, code):
+    """직전분기재무해석 저장"""
+    from datetime import date
+    stock = get_object_or_404(Info, code=code)
+    text = request.POST.get('content', '').strip()
+    stock.quarter_analysis = text
+    stock.quarter_analysis_updated_at = date.today()
+    stock.save(update_fields=['quarter_analysis', 'quarter_analysis_updated_at'])
+    return JsonResponse({'success': True, 'updated_at': stock.quarter_analysis_updated_at.strftime('%Y-%m-%d')})
+
+
+@require_POST
 @require_POST
 def stock_analysis_save(request, code):
     """종목 기업분석 저장 API"""

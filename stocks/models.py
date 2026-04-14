@@ -256,6 +256,61 @@ class Info(models.Model):
         help_text='투자지표 마지막 수정일'
     )
 
+    # === 재무분석 (기업분석 탭) ===
+    financial_analysis_v2 = models.TextField(
+        blank=True, default='', verbose_name='재무분석(v2)',
+        help_text='기업분석 탭 재무분석 (마크다운)'
+    )
+    financial_analysis_v2_previous = models.TextField(
+        blank=True, default='', verbose_name='재무분석(v2) 직전',
+        help_text='직전 재무분석 내용 (자동 보관)'
+    )
+    financial_analysis_v2_previous_updated_at = models.DateField(
+        null=True, blank=True, verbose_name='재무분석(v2) 직전 업데이트일'
+    )
+    financial_analysis_v2_previous_base_quarter = models.CharField(
+        max_length=10, blank=True, default='', verbose_name='재무분석(v2) 직전 기준분기',
+        help_text='예: 2025/3Q'
+    )
+    financial_analysis_v2_updated_at = models.DateField(
+        null=True, blank=True, verbose_name='재무분석(v2) 업데이트일'
+    )
+    financial_analysis_v2_base_quarter = models.CharField(
+        max_length=10, blank=True, default='', verbose_name='재무분석(v2) 기준분기',
+        help_text='예: 2025/4Q'
+    )
+
+    # === 컨센서스분석 ===
+    consensus_analysis = models.TextField(
+        blank=True, default='', verbose_name='컨센서스분석',
+        help_text='컨센서스분석 내용 (마크다운)'
+    )
+    consensus_analysis_previous = models.TextField(
+        blank=True, default='', verbose_name='컨센서스분석 직전',
+        help_text='직전 컨센서스분석 내용 (자동 보관)'
+    )
+    consensus_analysis_previous_updated_at = models.DateField(
+        null=True, blank=True, verbose_name='컨센서스분석 직전 업데이트일'
+    )
+    consensus_analysis_previous_base_quarter = models.CharField(
+        max_length=10, blank=True, default='', verbose_name='컨센서스분석 직전 기준분기'
+    )
+    consensus_analysis_updated_at = models.DateField(
+        null=True, blank=True, verbose_name='컨센서스분석 업데이트일'
+    )
+    consensus_analysis_base_quarter = models.CharField(
+        max_length=10, blank=True, default='', verbose_name='컨센서스분석 기준분기'
+    )
+
+    # === 직전분기재무해석 ===
+    quarter_analysis = models.TextField(
+        blank=True, default='', verbose_name='직전분기재무해석',
+        help_text='직전분기재무해석 내용 (마크다운)'
+    )
+    quarter_analysis_updated_at = models.DateField(
+        null=True, blank=True, verbose_name='직전분기재무해석 업데이트일'
+    )
+
     # === 인사이트 (투자포인트/리스크/일정 통합) ===
     insight_summary_html = models.TextField(
         blank=True,
@@ -307,10 +362,8 @@ class Info(models.Model):
             html_path = Path(settings.MEDIA_ROOT) / 'analysis' / f'{self.code}.html'
             has_analysis = html_path.exists()
         has_key_briefing = bool(self.key_briefing)
-        has_financial_analysis = bool(self.financial_analysis)
-        has_investment_indicator = bool(self.investment_indicator)
         has_valuation = bool(self.valuation)
-        return has_analysis and has_key_briefing and has_financial_analysis and has_investment_indicator and has_valuation
+        return has_analysis and has_key_briefing and has_valuation
 
     class Meta:
         db_table = 'info'

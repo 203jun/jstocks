@@ -373,8 +373,9 @@ small.text-muted {
             <button class="prompt-sub-tab" data-target="valuation-panel" id="valuation-tab">가치평가</button>
             <button class="prompt-sub-tab" data-target="research-prompt-panel" id="research-prompt-tab">리서치</button>
             <button class="prompt-sub-tab" data-target="stock-analysis-panel" id="stock-analysis-tab">기업분석</button>
-            <button class="prompt-sub-tab" data-target="financial-analysis-panel" id="financial-analysis-tab">재무분석</button>
-            <button class="prompt-sub-tab" data-target="investment-indicator-panel" id="investment-indicator-tab">투자지표</button>
+            <button class="prompt-sub-tab" data-target="fin-analysis-prompt-panel" id="fin-analysis-prompt-tab">재무분석</button>
+            <button class="prompt-sub-tab" data-target="consensus-analysis-prompt-panel" id="consensus-analysis-prompt-tab">컨센서스분석</button>
+            <button class="prompt-sub-tab" data-target="quarter-analysis-prompt-panel" id="quarter-analysis-prompt-tab">직전분기재무해석</button>
             <button class="prompt-sub-tab" data-target="report-prompt-panel" id="report-prompt-tab">리포트</button>
             <button class="prompt-sub-tab" data-target="nodaji-panel" id="nodaji-tab">노다지</button>
             <button class="prompt-sub-tab" data-target="youtube-prompt-panel" id="youtube-prompt-tab">유튜브</button>
@@ -428,8 +429,6 @@ small.text-muted {
                         <div class="row">
                             <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkAnalysis" value="analysis" {% if 'analysis' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkAnalysis">기업분석</label></div></div>
                             <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkKeyBriefing" value="key_briefing" {% if 'key_briefing' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkKeyBriefing">핵심브리핑</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkFinancialAnalysis" value="financial_analysis" {% if 'financial_analysis' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkFinancialAnalysis">재무분석</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkInvestmentIndicator" value="investment_indicator" {% if 'investment_indicator' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkInvestmentIndicator">투자지표</label></div></div>
                             <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkNodaji" value="nodaji" {% if 'nodaji' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkNodaji">노다지 (5개)</label></div></div>
                             <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkReport" value="report" {% if 'report' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkReport">리포트 (10개)</label></div></div>
                             <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkYoutube" value="youtube" {% if 'youtube' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkYoutube">유튜브 (10개)</label></div></div>
@@ -457,8 +456,6 @@ small.text-muted {
                         <div class="row">
                             <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationAnalysis" value="analysis" {% if 'analysis' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationAnalysis">기업분석</label></div></div>
                             <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationKeyBriefing" value="key_briefing" {% if 'key_briefing' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationKeyBriefing">핵심브리핑</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationFinancialAnalysis" value="financial_analysis" {% if 'financial_analysis' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationFinancialAnalysis">재무분석</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationInvestmentIndicator" value="investment_indicator" {% if 'investment_indicator' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationInvestmentIndicator">투자지표</label></div></div>
                             <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationNodaji" value="nodaji" {% if 'nodaji' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationNodaji">노다지 (5개)</label></div></div>
                             <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationReport" value="report" {% if 'report' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationReport">리포트 (10개)</label></div></div>
                             <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationYoutube" value="youtube" {% if 'youtube' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationYoutube">유튜브 (10개)</label></div></div>
@@ -507,26 +504,37 @@ small.text-muted {
                     </div>
                 </div>
             </div>
-            <!-- 재무분석 -->
-            <div class="prompt-panel" id="financial-analysis-panel" style="display:none;">
+            <!-- 재무분석 프롬프트 -->
+            <div class="prompt-panel" id="fin-analysis-prompt-panel" style="display:none;">
                 <div class="brief-card">
                     <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
                         <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">재무분석 프롬프트</span>
-                        <button type="button" class="btn-refresh" id="btnSaveFinancialAnalysisPrompt">저장</button>
+                        <button type="button" class="btn-refresh" id="btnSaveFinAnalysisPrompt">저장</button>
                     </div>
-                    <div class="info-box"><small><strong>도구:</strong> Gemini + 사고모드<br><strong>저장:</strong> 종목 편집 → 재무분석<br><strong>컨센서스:</strong> 첫번째 실적&amp;컨센서스 추이 테이블만 복사<br><strong>재무제표:</strong> 차트 감추기 클릭 → 테이블 3개 모두 복사하기</small></div>
-                    <textarea class="form-control" id="promptFinancialAnalysis" rows="10" placeholder="재무분석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_financial_analysis }}</textarea>
+                    <div class="info-box"><small><strong>사용:</strong> 기업분석 탭 → 재무분석 → 프롬프트 복사<br><strong>기능:</strong> 재무 데이터(포괄손익계산서, 재무상태표, 현금흐름표 등)를 기반으로 재무분석 작성</small></div>
+                    <textarea class="form-control" id="promptFinAnalysis" rows="10" placeholder="재무분석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_fin_analysis }}</textarea>
                 </div>
             </div>
-            <!-- 투자지표 -->
-            <div class="prompt-panel" id="investment-indicator-panel" style="display:none;">
+            <!-- 컨센서스분석 프롬프트 -->
+            <div class="prompt-panel" id="consensus-analysis-prompt-panel" style="display:none;">
                 <div class="brief-card">
                     <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
-                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">투자지표 프롬프트</span>
-                        <button type="button" class="btn-refresh" id="btnSaveInvestmentIndicatorPrompt">저장</button>
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">컨센서스분석 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="btnSaveConsensusAnalysisPrompt">저장</button>
                     </div>
-                    <div class="info-box"><small><strong>도구:</strong> Gemini + 사고모드<br><strong>저장:</strong> 종목 편집 → 투자지표<br><strong>투자지표:</strong> 재무비율 테이블에서 수익성, 성장성 탭하여 복사 (연간, 분기)<br><span style="color:var(--up-color);">표에서 +버튼 눌러서 최신 자료 펼쳐서 복사</span></small></div>
-                    <textarea class="form-control" id="promptInvestmentIndicator" rows="10" placeholder="투자지표용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_investment_indicator }}</textarea>
+                    <div class="info-box"><small><strong>사용:</strong> 기업분석 탭 → 컨센서스분석 → 프롬프트 복사<br><strong>기능:</strong> 컨센서스 데이터를 기반으로 컨센서스분석 작성</small></div>
+                    <textarea class="form-control" id="promptConsensusAnalysis" rows="10" placeholder="컨센서스분석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_consensus_analysis }}</textarea>
+                </div>
+            </div>
+            <!-- 직전분기재무해석 프롬프트 -->
+            <div class="prompt-panel" id="quarter-analysis-prompt-panel" style="display:none;">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">직전분기재무해석 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="btnSaveQuarterAnalysisPrompt">저장</button>
+                    </div>
+                    <div class="info-box"><small><strong>사용:</strong> 기업분석 탭 → 직전분기재무해석 → 프롬프트 복사<br><strong>기능:</strong> 과거/현재 재무분석 + 컨센서스분석을 기반으로 직전분기 변화 해석</small></div>
+                    <textarea class="form-control" id="promptQuarterAnalysis" rows="10" placeholder="직전분기재무해석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_quarter_analysis }}</textarea>
                 </div>
             </div>
             <!-- 리포트 -->
@@ -1124,15 +1132,21 @@ document.getElementById('btnSaveYoutubePrompt').addEventListener('click', functi
 });
 
 // 재무분석 프롬프트 저장
-document.getElementById('btnSaveFinancialAnalysisPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptFinancialAnalysis').value;
-    savePrompt('prompt_financial_analysis', value, this);
+document.getElementById('btnSaveFinAnalysisPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptFinAnalysis').value;
+    savePrompt('prompt_fin_analysis', value, this);
 });
 
-// 투자지표 프롬프트 저장
-document.getElementById('btnSaveInvestmentIndicatorPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptInvestmentIndicator').value;
-    savePrompt('prompt_investment_indicator', value, this);
+// 컨센서스분석 프롬프트 저장
+document.getElementById('btnSaveConsensusAnalysisPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptConsensusAnalysis').value;
+    savePrompt('prompt_consensus_analysis', value, this);
+});
+
+// 직전분기재무해석 프롬프트 저장
+document.getElementById('btnSaveQuarterAnalysisPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptQuarterAnalysis').value;
+    savePrompt('prompt_quarter_analysis', value, this);
 });
 
 // 리포트 프롬프트 저장

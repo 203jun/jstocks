@@ -651,53 +651,6 @@
         <div id="monthlyChart" style="height:400px;"></div>
     </div>
 
-    <!-- 재무분석 -->
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">재무분석{% if stock.financial_analysis_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="financialUpdatedAt">update: {{ stock.financial_analysis_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
-    <div class="brief-card">
-        <div id="financialViewMode">
-            <div style="max-height:600px;overflow-y:auto;">
-                <div class="markdown-content" id="financialAnalysisMarkdown"></div>
-                <script type="text/plain" id="financialAnalysisRaw">{{ stock.financial_analysis|default:""|safe }}</script>
-            </div>
-            <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
-                <a class="prompt-badge info" href="https://comp.fnguide.com/SVO2/ASP/SVD_Consensus.asp?pGB=1&gicode=A{{ stock.code }}&cID=&MenuYn=Y&ReportGB=&NewMenuID=108&stkGb=701" target="_blank">컨센서스</a>
-                <a class="prompt-badge info" href="https://comp.fnguide.com/SVO2/ASP/SVD_Finance.asp?pGB=1&gicode=A{{ stock.code }}&cID=&MenuYn=Y&ReportGB=&NewMenuID=103&stkGb=701" target="_blank">재무제표</a>
-                <span class="prompt-badge" role="button" id="btnCopyFinancialPrompt">프롬프트 복사</span>
-                <span id="btnFinancialEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
-            </div>
-        </div>
-        <div id="financialEditMode" class="d-none">
-            <textarea class="form-control" id="financialTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.financial_analysis }}</textarea>
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" id="btnFinancialCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
-                <button type="button" id="btnFinancialSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 투자지표 -->
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">투자지표 분석{% if stock.investment_indicator_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="indicatorUpdatedAt">update: {{ stock.investment_indicator_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
-    <div class="brief-card">
-        <div id="indicatorViewMode">
-            <div style="max-height:600px;overflow-y:auto;">
-                <div class="markdown-content" id="investmentIndicatorMarkdown"></div>
-                <script type="text/plain" id="investmentIndicatorRaw">{{ stock.investment_indicator|default:""|safe }}</script>
-            </div>
-            <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
-                <a class="prompt-badge info" href="https://comp.wisereport.co.kr/company/c1040001.aspx?cn=&cmp_cd={{ stock.code }}" target="_blank">투자지표</a>
-                <span class="prompt-badge" role="button" id="btnCopyIndicatorPrompt">프롬프트 복사</span>
-                <span id="btnIndicatorEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
-            </div>
-        </div>
-        <div id="indicatorEditMode" class="d-none">
-            <textarea class="form-control" id="indicatorTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.investment_indicator }}</textarea>
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" id="btnIndicatorCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
-                <button type="button" id="btnIndicatorSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
-            </div>
-        </div>
-    </div>
-
     <!-- 업데이트 시간 -->
     <div style="text-align:right;font-size:0.75rem;color:var(--text-muted);margin-top:8px;">
         업데이트: {{ stock.updated_at|date:"Y-m-d H:i" }}
@@ -737,6 +690,83 @@
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" id="btnAnalysisCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
                 <button type="button" id="btnAnalysisSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 재무분석 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">재무분석{% if stock.financial_analysis_v2_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="finAnalysisV2UpdatedAt">update: {{ stock.financial_analysis_v2_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
+    <div class="brief-card">
+        <div id="finAnalysisV2ViewMode">
+            <div style="max-height:600px;overflow-y:auto;">
+                <div class="markdown-content" id="finAnalysisV2Markdown"></div>
+                <script type="text/plain" id="finAnalysisV2Raw">{{ stock.financial_analysis_v2|default:""|safe }}</script>
+            </div>
+            <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
+                <span id="btnFinAnalysisV2Edit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
+            </div>
+        </div>
+        <div id="finAnalysisV2EditMode" class="d-none">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+                <span class="prompt-badge" role="button" id="btnCopyFinAnalysisPrompt">프롬프트 복사</span>
+            </div>
+            <textarea class="form-control" id="finAnalysisV2Textarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.financial_analysis_v2 }}</textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnFinAnalysisV2Cancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnFinAnalysisV2Save" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 컨센서스분석 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">컨센서스분석{% if stock.consensus_analysis_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="consensusAnalysisUpdatedAt">update: {{ stock.consensus_analysis_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
+    <div class="brief-card">
+        <div id="consensusAnalysisViewMode">
+            <div style="max-height:600px;overflow-y:auto;">
+                <div class="markdown-content" id="consensusAnalysisMarkdown"></div>
+                <script type="text/plain" id="consensusAnalysisRaw">{{ stock.consensus_analysis|default:""|safe }}</script>
+            </div>
+            <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
+                <span id="btnConsensusAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
+            </div>
+        </div>
+        <div id="consensusAnalysisEditMode" class="d-none">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+                <span class="prompt-badge" role="button" id="btnCopyConsensusAnalysisPrompt">프롬프트 복사</span>
+            </div>
+            <textarea class="form-control" id="consensusAnalysisTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.consensus_analysis }}</textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnConsensusAnalysisCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnConsensusAnalysisSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 직전분기재무해석 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">직전분기재무해석{% if stock.quarter_analysis_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="quarterAnalysisUpdatedAt">update: {{ stock.quarter_analysis_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
+    <div class="brief-card">
+        <div id="quarterAnalysisViewMode">
+            <div style="max-height:600px;overflow-y:auto;">
+                <div class="markdown-content" id="quarterAnalysisMarkdown"></div>
+                <script type="text/plain" id="quarterAnalysisRaw">{{ stock.quarter_analysis|default:""|safe }}</script>
+            </div>
+            <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
+                <span id="btnQuarterAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
+            </div>
+        </div>
+        <div id="quarterAnalysisEditMode" class="d-none">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+                <span class="prompt-badge" role="button" id="btnCopyQuarterAnalysisPrompt">프롬프트 복사</span>
+            </div>
+            <textarea class="form-control" id="quarterAnalysisTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.quarter_analysis }}</textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnQuarterAnalysisCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnQuarterAnalysisSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+            <div style="margin-top:12px;padding:10px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:6px;font-size:0.75rem;color:var(--text-muted);line-height:1.6;">
+                • 재무분석/컨센서스분석 저장 시마다 기존 내용이 "직전"으로 자동 이동<br>
+                • 기준분기는 포괄손익계산서 분기 데이터의 마지막 분기로 자동 감지<br>
+                • 직전과 현재의 기준분기가 같으면 복사 시 확인 알림 표시
             </div>
         </div>
     </div>
@@ -1652,8 +1682,9 @@ if (document.getElementById('sellReasonRaw')) renderContent('sellReasonRaw', 'se
 renderContent('keyBriefingRaw', 'keyBriefingMarkdown');
 renderContent('valuationRaw', 'valuationMarkdown');
 renderContent('analysisRaw', 'analysisMarkdown');
-renderContent('financialAnalysisRaw', 'financialAnalysisMarkdown');
-renderContent('investmentIndicatorRaw', 'investmentIndicatorMarkdown');
+renderContent('finAnalysisV2Raw', 'finAnalysisV2Markdown');
+renderContent('consensusAnalysisRaw', 'consensusAnalysisMarkdown');
+renderContent('quarterAnalysisRaw', 'quarterAnalysisMarkdown');
 
 // ===== 메모 인라인 편집 =====
 document.getElementById('btnMemoEdit').addEventListener('click', () => {
@@ -1841,122 +1872,6 @@ btnCopyBriefingPrompt.addEventListener('click', async () => {
         btnCopyBriefingPrompt.style.background = '#ecfdf5';
         btnCopyBriefingPrompt.style.color = '#059669';
     }
-});
-
-// ===== 재무분석 인라인 편집 =====
-document.getElementById('btnFinancialEdit').addEventListener('click', () => {
-    document.getElementById('financialViewMode').classList.add('d-none');
-    document.getElementById('financialEditMode').classList.remove('d-none');
-    document.getElementById('financialTextarea').focus();
-});
-document.getElementById('btnFinancialCancel').addEventListener('click', () => {
-    document.getElementById('financialEditMode').classList.add('d-none');
-    document.getElementById('financialViewMode').classList.remove('d-none');
-});
-document.getElementById('btnFinancialSave').addEventListener('click', async () => {
-    const btn = document.getElementById('btnFinancialSave');
-    const text = document.getElementById('financialTextarea').value;
-    btn.disabled = true;
-    btn.textContent = '저장 중...';
-    try {
-        const formData = new FormData();
-        formData.append('financial_analysis', text);
-        const resp = await fetch(`/api/stock/${stockCode}/financial-analysis/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-            body: formData
-        });
-        const data = await resp.json();
-        if (data.success) {
-            document.getElementById('financialAnalysisRaw').textContent = text;
-            renderContent('financialAnalysisRaw', 'financialAnalysisMarkdown');
-            const dateEl = document.getElementById('financialUpdatedAt');
-            if (dateEl) { dateEl.textContent = 'update: ' + data.updated_at; }
-            else {
-                const heading = document.getElementById('btnFinancialEdit').closest('.brief-card').previousElementSibling;
-                const span = document.createElement('span');
-                span.id = 'financialUpdatedAt';
-                span.style.cssText = 'font-size:0.68rem;font-weight:400;color:var(--text-muted);';
-                span.textContent = 'update: ' + data.updated_at;
-                heading.appendChild(span);
-            }
-            document.getElementById('financialEditMode').classList.add('d-none');
-            document.getElementById('financialViewMode').classList.remove('d-none');
-        } else { alert('저장 실패'); }
-    } catch (err) { alert('오류: ' + err.message); }
-    finally { btn.disabled = false; btn.textContent = '저장'; }
-});
-
-// 재무분석 프롬프트 복사
-document.getElementById('btnCopyFinancialPrompt').addEventListener('click', async () => {
-    const btn = document.getElementById('btnCopyFinancialPrompt');
-    const promptTemplate = `{{ saved_prompts.prompt_financial_analysis|default:""|escapejs }}`;
-    if (!promptTemplate) { alert('설정 → 프롬프트 → 재무분석에서 프롬프트를 먼저 등록하세요.'); return; }
-    const prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
-    try {
-        await copyToClipboard(prompt);
-        const original = btn.textContent;
-        btn.textContent = '복사됨!';
-        setTimeout(() => { btn.textContent = original; }, 1500);
-    } catch (err) { alert('복사 실패: ' + err.message); }
-});
-
-// ===== 투자지표 인라인 편집 =====
-document.getElementById('btnIndicatorEdit').addEventListener('click', () => {
-    document.getElementById('indicatorViewMode').classList.add('d-none');
-    document.getElementById('indicatorEditMode').classList.remove('d-none');
-    document.getElementById('indicatorTextarea').focus();
-});
-document.getElementById('btnIndicatorCancel').addEventListener('click', () => {
-    document.getElementById('indicatorEditMode').classList.add('d-none');
-    document.getElementById('indicatorViewMode').classList.remove('d-none');
-});
-document.getElementById('btnIndicatorSave').addEventListener('click', async () => {
-    const btn = document.getElementById('btnIndicatorSave');
-    const text = document.getElementById('indicatorTextarea').value;
-    btn.disabled = true;
-    btn.textContent = '저장 중...';
-    try {
-        const formData = new FormData();
-        formData.append('investment_indicator', text);
-        const resp = await fetch(`/api/stock/${stockCode}/investment-indicator/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-            body: formData
-        });
-        const data = await resp.json();
-        if (data.success) {
-            document.getElementById('investmentIndicatorRaw').textContent = text;
-            renderContent('investmentIndicatorRaw', 'investmentIndicatorMarkdown');
-            const dateEl = document.getElementById('indicatorUpdatedAt');
-            if (dateEl) { dateEl.textContent = 'update: ' + data.updated_at; }
-            else {
-                const heading = document.getElementById('btnIndicatorEdit').closest('.brief-card').previousElementSibling;
-                const span = document.createElement('span');
-                span.id = 'indicatorUpdatedAt';
-                span.style.cssText = 'font-size:0.68rem;font-weight:400;color:var(--text-muted);';
-                span.textContent = 'update: ' + data.updated_at;
-                heading.appendChild(span);
-            }
-            document.getElementById('indicatorEditMode').classList.add('d-none');
-            document.getElementById('indicatorViewMode').classList.remove('d-none');
-        } else { alert('저장 실패'); }
-    } catch (err) { alert('오류: ' + err.message); }
-    finally { btn.disabled = false; btn.textContent = '저장'; }
-});
-
-// 투자지표 프롬프트 복사
-document.getElementById('btnCopyIndicatorPrompt').addEventListener('click', async () => {
-    const btn = document.getElementById('btnCopyIndicatorPrompt');
-    const promptTemplate = `{{ saved_prompts.prompt_investment_indicator|default:""|escapejs }}`;
-    if (!promptTemplate) { alert('설정 → 프롬프트 → 투자지표에서 프롬프트를 먼저 등록하세요.'); return; }
-    const prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
-    try {
-        await copyToClipboard(prompt);
-        const original = btn.textContent;
-        btn.textContent = '복사됨!';
-        setTimeout(() => { btn.textContent = original; }, 1500);
-    } catch (err) { alert('복사 실패: ' + err.message); }
 });
 
 // 기업분석 프롬프트 복사
@@ -4055,6 +3970,297 @@ btnSdSave.addEventListener('click', async () => {
         else { sdForm.classList.add('d-none'); btnSdNew.classList.remove('d-none'); sdEditId = null; loadSd(true); }
     } catch(e) { alert('오류: ' + e.message); }
     finally { btnSdSave.disabled = false; btnSdSave.textContent = '저장'; }
+});
+
+// ===== 기업분석 탭 - 재무분석/컨센서스분석/직전분기재무해석 인라인 편집 =====
+function setupAnalysisEditor(prefix, apiPath) {
+    const viewMode = document.getElementById(`${prefix}ViewMode`);
+    const editMode = document.getElementById(`${prefix}EditMode`);
+    const textarea = document.getElementById(`${prefix}Textarea`);
+    const btnEdit = document.getElementById(`btn${prefix.charAt(0).toUpperCase() + prefix.slice(1)}Edit`);
+    const btnCancel = document.getElementById(`btn${prefix.charAt(0).toUpperCase() + prefix.slice(1)}Cancel`);
+    const btnSave = document.getElementById(`btn${prefix.charAt(0).toUpperCase() + prefix.slice(1)}Save`);
+
+    if (!btnEdit) return;
+    btnEdit.addEventListener('click', () => { viewMode.classList.add('d-none'); editMode.classList.remove('d-none'); textarea.focus(); });
+    btnCancel.addEventListener('click', () => { editMode.classList.add('d-none'); viewMode.classList.remove('d-none'); });
+    btnSave.addEventListener('click', async () => {
+        btnSave.disabled = true; btnSave.textContent = '저장 중...';
+        try {
+            const fd = new FormData(); fd.append('content', textarea.value);
+            const resp = await fetch(`/api/stock/${stockCode}/${apiPath}/`, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' }, body: fd });
+            const data = await resp.json();
+            if (data.success) {
+                const rawEl = document.getElementById(`${prefix}Raw`);
+                const mdEl = document.getElementById(`${prefix}Markdown`);
+                if (rawEl) { rawEl.textContent = textarea.value; renderContent(`${prefix}Raw`, `${prefix}Markdown`); }
+                let dateEl = document.getElementById(`${prefix}UpdatedAt`);
+                if (dateEl) {
+                    dateEl.textContent = 'update: ' + data.updated_at;
+                } else {
+                    const heading = viewMode.closest('.brief-card').previousElementSibling;
+                    if (heading) {
+                        const span = document.createElement('span');
+                        span.id = `${prefix}UpdatedAt`;
+                        span.style.cssText = 'font-size:0.68rem;font-weight:400;color:var(--text-muted);';
+                        span.textContent = 'update: ' + data.updated_at;
+                        heading.appendChild(span);
+                    }
+                }
+                editMode.classList.add('d-none'); viewMode.classList.remove('d-none');
+            } else { alert('저장 실패'); }
+        } catch (e) { alert('오류: ' + e.message); }
+        finally { btnSave.disabled = false; btnSave.textContent = '저장'; }
+    });
+}
+setupAnalysisEditor('finAnalysisV2', 'financial-analysis-v2');
+setupAnalysisEditor('consensusAnalysis', 'consensus-analysis');
+setupAnalysisEditor('quarterAnalysis', 'quarter-analysis');
+
+// ===== 직전분기재무해석 프롬프트 복사 =====
+document.getElementById('btnCopyQuarterAnalysisPrompt').addEventListener('click', async () => {
+    const btn = document.getElementById('btnCopyQuarterAnalysisPrompt');
+    const promptTemplate = `{{ saved_prompts.prompt_quarter_analysis|default:""|escapejs }}`;
+    if (!promptTemplate) { alert('설정 → 프롬프트 → 직전분기재무해석에서 프롬프트를 먼저 등록하세요.'); return; }
+
+    btn.textContent = '로딩 중...';
+    try {
+        const resp = await fetch(`/api/stock/${stockCode}/quarter-analysis/data/`);
+        const d = await resp.json();
+        if (!d.success) { alert('데이터 로드 실패'); btn.textContent = '프롬프트 복사'; return; }
+
+        // 직전 데이터가 없으면 경고
+        if (!d.financial_previous && !d.consensus_previous) {
+            alert('직전 데이터가 없습니다. 재무분석/컨센서스분석을 2회 이상 저장해야 직전 데이터가 생성됩니다.');
+            btn.textContent = '프롬프트 복사';
+            return;
+        }
+
+        // 분기 변동 여부 체크
+        const prevQ = d.financial_previous_quarter || d.consensus_previous_quarter || '';
+        const curQ = d.financial_current_quarter || d.consensus_current_quarter || '';
+        if (prevQ && curQ && prevQ === curQ) {
+            if (!confirm(`직전(${prevQ})과 현재(${curQ})의 기준 분기가 동일합니다. 계속 복사하시겠습니까?`)) {
+                btn.textContent = '프롬프트 복사';
+                return;
+            }
+        }
+
+        let prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
+
+        // 직전 분기 데이터
+        const prevFinQ = d.financial_previous_quarter ? ` (${d.financial_previous_quarter} 기준)` : '';
+        const prevConQ = d.consensus_previous_quarter ? ` (${d.consensus_previous_quarter} 기준)` : '';
+        prompt = prompt.replace('{직전 분기 재무분석 데이터}', d.financial_previous ? d.financial_previous + '\n' + prevFinQ : '데이터 없음');
+        prompt = prompt.replace('{직전 분기 컨센서스분석 데이터}', d.consensus_previous ? d.consensus_previous + '\n' + prevConQ : '데이터 없음');
+
+        // 이번 분기 데이터
+        const curFinQ = d.financial_current_quarter ? ` (${d.financial_current_quarter} 기준)` : '';
+        const curConQ = d.consensus_current_quarter ? ` (${d.consensus_current_quarter} 기준)` : '';
+        prompt = prompt.replace('{이번 분기 재무분석 데이터}', d.financial_current ? d.financial_current + '\n' + curFinQ : '데이터 없음');
+        prompt = prompt.replace('{이번 분기 컨센서스분석 데이터}', d.consensus_current ? d.consensus_current + '\n' + curConQ : '데이터 없음');
+
+        await copyToClipboard(prompt);
+        btn.textContent = '복사됨!';
+        setTimeout(() => { btn.textContent = '프롬프트 복사'; }, 1500);
+    } catch (err) {
+        alert('복사 실패: ' + err.message);
+        btn.textContent = '프롬프트 복사';
+    }
+});
+
+// ===== 컨센서스분석 프롬프트 복사 =====
+document.getElementById('btnCopyConsensusAnalysisPrompt').addEventListener('click', async () => {
+    const btn = document.getElementById('btnCopyConsensusAnalysisPrompt');
+    const promptTemplate = `{{ saved_prompts.prompt_consensus_analysis|default:""|escapejs }}`;
+    if (!promptTemplate) { alert('설정 → 프롬프트 → 컨센서스분석에서 프롬프트를 먼저 등록하세요.'); return; }
+
+    btn.textContent = '로딩 중...';
+    try {
+        const [annualResp, quarterResp] = await Promise.all([
+            fetch(`/api/stock/${stockCode}/consensus/?period_type=annual`).then(r => r.json()),
+            fetch(`/api/stock/${stockCode}/consensus/?period_type=quarter`).then(r => r.json()),
+        ]);
+        const consensusFields = [
+            { key: 'revenue', label: '매출액(억원)' },
+            { key: 'yoy', label: 'YoY(%)' },
+            { key: 'operating_profit', label: '영업이익(억원)' },
+            { key: 'net_income', label: '당기순이익(억원)' },
+            { key: 'eps', label: 'EPS(원)', isInt: true },
+            { key: 'bps', label: 'BPS(원)', isInt: true },
+            { key: 'per', label: 'PER(배)' },
+            { key: 'pbr', label: 'PBR(배)' },
+            { key: 'roe', label: 'ROE(%)' },
+            { key: 'ev_ebitda', label: 'EV/EBITDA(배)' },
+        ];
+        let parts = [];
+        if (annualResp.success && annualResp.data.length)
+            parts.push(formatFinDataAsText('컨센서스 연간', annualResp.data, consensusFields));
+        if (quarterResp.success && quarterResp.data.length)
+            parts.push(formatFinDataAsText('컨센서스 분기', quarterResp.data, consensusFields));
+        const dataText = parts.length ? parts.join('\n') : '데이터 없음';
+
+        let prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
+        if (prompt.includes('{컨센서스 데이터}')) {
+            prompt = prompt.replace('{컨센서스 데이터}', dataText.trim());
+        } else {
+            prompt += '\n\n' + dataText;
+        }
+
+        await copyToClipboard(prompt);
+        btn.textContent = '복사됨!';
+        setTimeout(() => { btn.textContent = '프롬프트 복사'; }, 1500);
+    } catch (err) {
+        alert('복사 실패: ' + err.message);
+        btn.textContent = '프롬프트 복사';
+    }
+});
+
+// ===== 재무분석 프롬프트 복사 =====
+function formatFinDataAsText(label, rows, fields) {
+    if (!rows || !rows.length) return `[${label}]\n데이터 없음\n`;
+    const periods = rows.map(r => r.period + (r.is_estimated ? '(E)' : ''));
+    let lines = [`[${label}]`];
+    // 헤더
+    lines.push('항목\t' + periods.join('\t'));
+    // 행
+    fields.forEach(f => {
+        const vals = rows.map(r => {
+            const v = r[f.key];
+            if (v === null || v === undefined) return '-';
+            const num = parseFloat(v);
+            return f.isInt ? num.toLocaleString() : num.toLocaleString(undefined, {minimumFractionDigits:1, maximumFractionDigits:1});
+        });
+        lines.push(f.label + '\t' + vals.join('\t'));
+    });
+    return lines.join('\n') + '\n';
+}
+
+document.getElementById('btnCopyFinAnalysisPrompt').addEventListener('click', async () => {
+    const btn = document.getElementById('btnCopyFinAnalysisPrompt');
+    const promptTemplate = `{{ saved_prompts.prompt_fin_analysis|default:""|escapejs }}`;
+    if (!promptTemplate) { alert('설정 → 프롬프트 → 재무분석에서 프롬프트를 먼저 등록하세요.'); return; }
+
+    btn.textContent = '로딩 중...';
+    try {
+        // 6개 테이블 데이터 병렬 로드 (연간+분기)
+        const apis = ['income-statement', 'balance-sheet', 'cash-flow', 'profitability', 'growth', 'stability'];
+        const responses = await Promise.all(
+            apis.flatMap(api => [
+                fetch(`/api/stock/${stockCode}/${api}/?period_type=annual`).then(r => r.json()),
+                fetch(`/api/stock/${stockCode}/${api}/?period_type=quarter`).then(r => r.json()),
+            ])
+        );
+
+        const fieldDefs = {
+            'income-statement': [
+                { key: 'revenue', label: '매출액(수익)' },
+                { key: 'cost_of_revenue', label: '매출원가' },
+                { key: 'gross_profit', label: '매출총이익' },
+                { key: 'sga_expense', label: '판매비와관리비' },
+                { key: 'operating_profit', label: '영업이익' },
+                { key: 'pretax_income', label: '법인세비용차감전계속사업이익' },
+                { key: 'net_income', label: '당기순이익' },
+                { key: 'eps', label: '(지배주주지분)주당순이익', isInt: true },
+            ],
+            'balance-sheet': [
+                { key: 'total_assets', label: '자산총계' },
+                { key: 'cash', label: '현금및현금성자산' },
+                { key: 'receivables', label: '매출채권및기타채권' },
+                { key: 'tangible_assets', label: '유형자산' },
+                { key: 'total_liabilities', label: '부채총계' },
+                { key: 'short_term_debt', label: '단기차입금' },
+                { key: 'long_term_debt', label: '장기차입금' },
+                { key: 'total_equity', label: '자본총계' },
+                { key: 'retained_earnings', label: '이익잉여금' },
+                { key: 'interest_bearing_debt', label: '이자발생부채' },
+                { key: 'net_debt', label: '순부채' },
+                { key: 'capex', label: 'CAPEX' },
+            ],
+            'cash-flow': [
+                { key: 'operating_cash_flow', label: '영업활동으로인한현금흐름' },
+                { key: 'net_income', label: '당기순이익' },
+                { key: 'working_capital_change', label: '영업활동으로인한자산부채변동(운전자본변동)' },
+                { key: 'interest_paid', label: '이자지급(-)' },
+                { key: 'tax_paid', label: '법인세납부(-)' },
+                { key: 'investing_cash_flow', label: '투자활동으로인한현금흐름' },
+                { key: 'financing_cash_flow', label: '재무활동으로인한현금흐름' },
+                { key: 'dividends_paid', label: '배당금지급(-)' },
+                { key: 'cash_change', label: '현금및현금성자산의증가' },
+                { key: 'ending_cash', label: '기말현금및현금성자산' },
+            ],
+            'profitability': [
+                { key: 'operating_margin', label: '영업이익률' },
+                { key: 'net_margin', label: '순이익률' },
+                { key: 'ebitda_margin', label: 'EBITDA마진율' },
+                { key: 'roe', label: 'ROE' },
+                { key: 'roic', label: 'ROIC' },
+            ],
+            'growth': [
+                { key: 'revenue_growth', label: '매출액증가율' },
+                { key: 'operating_profit_growth', label: '영업이익증가율' },
+                { key: 'net_income_growth', label: '순이익증가율' },
+                { key: 'equity_growth', label: '자기자본증가율' },
+            ],
+            'stability': [
+                { key: 'debt_ratio', label: '부채비율' },
+                { key: 'net_debt_ratio', label: '순부채비율' },
+                { key: 'current_ratio', label: '유동비율' },
+                { key: 'interest_coverage', label: '이자보상배율' },
+            ],
+        };
+
+        const labels = {
+            'income-statement': '포괄손익계산서',
+            'balance-sheet': '재무상태표',
+            'cash-flow': '현금흐름표',
+            'profitability': '수익성',
+            'growth': '성장성',
+            'stability': '안정성',
+        };
+
+        let dataText = '';
+        apis.forEach((api, idx) => {
+            const annualData = responses[idx * 2]?.data || [];
+            const quarterData = responses[idx * 2 + 1]?.data || [];
+            const fields = fieldDefs[api];
+            const label = labels[api];
+            if (annualData.length) dataText += formatFinDataAsText(label + ' 연간', annualData, fields) + '\n';
+            if (quarterData.length) dataText += formatFinDataAsText(label + ' 분기', quarterData, fields) + '\n';
+        });
+
+        let prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
+        // 개별 플레이스홀더 치환
+        const placeholders = {
+            '{포괄손익계산서 데이터}': 0, '{재무상태표 데이터}': 1, '{현금흐름표 데이터}': 2,
+            '{수익성 데이터}': 3, '{성장성 데이터}': 4, '{안정성 데이터}': 5,
+        };
+        let hasPlaceholders = false;
+        for (const [ph, idx] of Object.entries(placeholders)) {
+            if (prompt.includes(ph)) {
+                hasPlaceholders = true;
+                const annualData = responses[idx * 2]?.data || [];
+                const quarterData = responses[idx * 2 + 1]?.data || [];
+                const fields = fieldDefs[apis[idx]];
+                const label = labels[apis[idx]];
+                let text = '';
+                if (annualData.length) text += formatFinDataAsText(label + ' 연간', annualData, fields) + '\n';
+                if (quarterData.length) text += formatFinDataAsText(label + ' 분기', quarterData, fields) + '\n';
+                prompt = prompt.replace(ph, text.trim());
+            }
+        }
+        // 플레이스홀더가 없으면 프롬프트 끝에 전체 데이터 추가
+        if (!hasPlaceholders) {
+            prompt += '\n\n' + dataText;
+        }
+
+        await copyToClipboard(prompt);
+        btn.textContent = '복사됨!';
+        setTimeout(() => { btn.textContent = '프롬프트 복사'; }, 1500);
+    } catch (err) {
+        alert('복사 실패: ' + err.message);
+        btn.textContent = '프롬프트 복사';
+    }
 });
 
 // ===== 재무 테이블 공용 렌더링 =====
