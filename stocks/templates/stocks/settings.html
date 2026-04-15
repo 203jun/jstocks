@@ -370,8 +370,7 @@ small.text-muted {
             <button class="prompt-sub-tab active" data-target="stock-classify-panel" id="stock-classify-tab">종목분류</button>
             <button class="prompt-sub-tab" data-target="html-convert-panel" id="html-convert-tab">HTML변환</button>
             <button class="prompt-sub-tab" data-target="data-loader-panel" id="data-loader-tab">핵심브리핑</button>
-            <button class="prompt-sub-tab" data-target="valuation-panel" id="valuation-tab">가치평가</button>
-            <button class="prompt-sub-tab" data-target="research-prompt-panel" id="research-prompt-tab">리서치</button>
+            <button class="prompt-sub-tab" data-target="research-prompt-panel" id="research-prompt-tab">공통리서치</button>
             <button class="prompt-sub-tab" data-target="stock-analysis-panel" id="stock-analysis-tab">기업분석</button>
             <button class="prompt-sub-tab" data-target="fin-analysis-prompt-panel" id="fin-analysis-prompt-tab">재무분석</button>
             <button class="prompt-sub-tab" data-target="consensus-analysis-prompt-panel" id="consensus-analysis-prompt-tab">컨센서스분석</button>
@@ -443,40 +442,14 @@ small.text-muted {
                     <small class="text-muted">이 프롬프트가 종목 데이터 앞에 추가되어 복사됩니다.</small>
                 </div>
             </div>
-            <!-- 가치평가 -->
-            <div class="prompt-panel" id="valuation-panel" style="display:none;">
-                <div class="brief-card">
-                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
-                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">가치평가 프롬프트</span>
-                        <button type="button" class="btn-refresh" id="btnSaveValuationPrompt">저장</button>
-                    </div>
-                    <div class="info-box"><small><strong>사용:</strong> 종목 편집 → 가치평가 → <code>프롬프트 복사</code> 버튼을 사용하세요.<br>아래 프롬프트가 데이터 앞에 추가됩니다.</small></div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">불러올 데이터 선택</label>
-                        <div class="row">
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationAnalysis" value="analysis" {% if 'analysis' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationAnalysis">기업분석</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationKeyBriefing" value="key_briefing" {% if 'key_briefing' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationKeyBriefing">핵심브리핑</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationNodaji" value="nodaji" {% if 'nodaji' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationNodaji">노다지 (5개)</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationReport" value="report" {% if 'report' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationReport">리포트 (10개)</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationYoutube" value="youtube" {% if 'youtube' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationYoutube">유튜브 (10개)</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationNews" value="news" {% if 'news' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationNews">뉴스 (10개)</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationTelegram" value="telegram" {% if 'telegram' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationTelegram">텔레그램 (10개)</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationMemo" value="memo" {% if 'memo' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationMemo">메모</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input valuation-data-check" type="checkbox" id="chkValuationResearch" value="research" {% if 'research' in valuation_data_types %}checked{% endif %}><label class="form-check-label" for="chkValuationResearch">리서치 (10개)</label></div></div>
-                        </div>
-                    </div>
-                    <label class="form-label small fw-bold">프롬프트</label>
-                    <textarea class="form-control" id="promptValuation" rows="10" placeholder="가치평가 생성 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_valuation }}</textarea>
-                    <small class="text-muted">이 프롬프트가 종목 데이터 앞에 추가되어 복사됩니다.</small>
-                </div>
-            </div>
             <!-- 리서치 -->
             <div class="prompt-panel" id="research-prompt-panel" style="display:none;">
                 <div class="brief-card">
                     <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
-                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">리서치 프롬프트</span>
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">공통리서치 프롬프트</span>
                         <button type="button" class="btn-refresh" id="btnAddResearchPrompt">+ 추가</button>
                     </div>
+                    <div style="font-size:0.75rem;color:var(--up-color);margin-bottom:12px;">* 질문명은 종목 리서치와 연결되므로 변경하지 마세요. 변경 시 기존 리서치와의 연결이 끊어집니다.</div>
                     <div id="researchPromptList"></div>
                     <div id="researchPromptEmpty" class="text-center py-4 d-none" style="color:var(--text-muted);font-size:0.85rem;">등록된 리서치 프롬프트가 없습니다.</div>
                 </div>
@@ -1176,38 +1149,6 @@ document.getElementById('btnSaveBriefingPrompt').addEventListener('click', async
         const checkedTypes = Array.from(document.querySelectorAll('.data-loader-check:checked'))
             .map(cb => cb.value).join(',');
         await savePromptAsync('briefing_data_types', checkedTypes);
-
-        btn.textContent = '저장됨!';
-        btn.classList.remove('btn-primary');
-        btn.classList.add('btn-success');
-        setTimeout(() => {
-            btn.textContent = '저장';
-            btn.classList.remove('btn-success');
-            btn.classList.add('btn-primary');
-        }, 1500);
-    } catch (err) {
-        alert('저장 실패: ' + err.message);
-        btn.textContent = '저장';
-    } finally {
-        btn.disabled = false;
-    }
-});
-
-// 가치평가 프롬프트 저장
-document.getElementById('btnSaveValuationPrompt').addEventListener('click', async function() {
-    const btn = this;
-    btn.disabled = true;
-    btn.textContent = '저장 중...';
-
-    try {
-        // 프롬프트 저장
-        const promptValue = document.getElementById('promptValuation').value;
-        await savePromptAsync('prompt_valuation', promptValue);
-
-        // 체크박스 상태 저장
-        const checkedTypes = Array.from(document.querySelectorAll('.valuation-data-check:checked'))
-            .map(cb => cb.value).join(',');
-        await savePromptAsync('valuation_data_types', checkedTypes);
 
         btn.textContent = '저장됨!';
         btn.classList.remove('btn-primary');

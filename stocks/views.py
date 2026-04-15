@@ -927,8 +927,11 @@ def stock_detail(request, code):
     telegram_messages = TelegramMessage.objects.filter(stock=stock).order_by('-date', '-time')
 
     # 질문리포트
-    from .models import StockQuestionReport
+    from .models import StockQuestionReport, ResearchPrompt
     question_reports = StockQuestionReport.objects.filter(stock=stock).order_by('-created_at')
+
+    # 공통리서치 프롬프트
+    research_prompts = ResearchPrompt.objects.all()
 
     # 업로드 리포트
     from .models import StockUploadedReport, SystemSetting
@@ -1046,6 +1049,7 @@ def stock_detail(request, code):
         'news_articles': news_articles,
         'telegram_messages': telegram_messages,
         'question_reports': question_reports,
+        'research_prompts': research_prompts,
         'uploaded_reports': uploaded_reports,
         'total_summary_count': total_summary_count,
         'total_attachment_count': total_attachment_count,
@@ -3085,9 +3089,8 @@ def fetch_stock_data_loader_with_summary(request, code):
     })
 
 
-@require_GET
-def fetch_stock_data_loader_with_summary_valuation(request, code):
-    """종목 데이터 불러오기 API (가치평가용)
+def _fetch_stock_data_loader_with_summary_valuation_REMOVED():
+    """종목 데이터 불러오기 API (가치평가용) - REMOVED
 
     가치평가 프롬프트 만들기용
     - 설정 페이지에서 선택한 데이터 타입만 불러오기
@@ -3739,15 +3742,6 @@ def settings(request):
         # 기본값: 모든 타입 선택
         briefing_data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
 
-    # 가치평가 데이터 타입 불러오기
-    try:
-        saved_valuation_types = SystemSetting.objects.get(key='valuation_data_types').value
-        valuation_data_types = [t for t in saved_valuation_types.split(',') if t]
-        if not valuation_data_types:
-            valuation_data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
-    except SystemSetting.DoesNotExist:
-        valuation_data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
-
     context = {
         'categories': categories,
         'excluded_channels': excluded_channels,
@@ -3757,7 +3751,6 @@ def settings(request):
         'stock_classify_lines_count': stock_classify_lines_count,
         'saved_prompts': saved_prompts,
         'briefing_data_types': briefing_data_types,
-        'valuation_data_types': valuation_data_types,
     }
     return render(request, 'stocks/settings.html', context)
 
@@ -5901,7 +5894,7 @@ def youtube_video_update(request, video_id):
 
 def stock_question_report_detail(request, report_id):
     """리서치 상세/편집 페이지"""
-    from .models import StockQuestionReport
+    from .models import StockQuestionReport, ResearchPrompt
     qr = get_object_or_404(StockQuestionReport, id=report_id)
 
     if request.method == 'POST':
@@ -5913,8 +5906,29 @@ def stock_question_report_detail(request, report_id):
         qr.save()
         return redirect('stocks:stock_question_report_detail', report_id=report_id)
 
+    research_prompts = ResearchPrompt.objects.all()
+
+    # 공통리서치용 노다지 요약 (6개월 이내, 요약 있는 것만)
+    nodaji_summaries = ''
+    if qr.stock:
+        from .models import Nodaji
+        from datetime import date, timedelta
+        six_months_ago = date.today() - timedelta(days=180)
+        nodaji_list = Nodaji.objects.filter(
+            stock=qr.stock,
+            title__contains=qr.stock.name,
+            date__gte=six_months_ago,
+            summary__gt='',
+        ).order_by('-date')
+        parts = []
+        for n in nodaji_list:
+            parts.append(f"[{n.date.strftime('%Y-%m-%d') if n.date else '-'}] {n.title}\n{n.summary}")
+        nodaji_summaries = '\n\n---\n\n'.join(parts)
+
     return render(request, 'stocks/question_report_detail.html', {
         'qr': qr,
+        'research_prompts': research_prompts,
+        'nodaji_summaries': nodaji_summaries,
     })
 
 
@@ -6759,19 +6773,6 @@ def cash_flow_list(request, code):
         data.append(row)
 
     return JsonResponse({'success': True, 'data': data})
-
-
-@require_POST
-def stock_valuation_save(request, code):
-    """종목 가치평가 저장 API"""
-    from datetime import date
-    stock = get_object_or_404(Info, code=code)
-    valuation = request.POST.get('valuation', '').strip()
-    if valuation != (stock.valuation or '').strip():
-        stock.valuation = valuation
-        stock.valuation_updated_at = date.today()
-        stock.save(update_fields=['valuation', 'valuation_updated_at'])
-    return JsonResponse({'success': True, 'updated_at': stock.valuation_updated_at.strftime('%Y-%m-%d') if stock.valuation_updated_at else ''})
 
 
 @require_POST

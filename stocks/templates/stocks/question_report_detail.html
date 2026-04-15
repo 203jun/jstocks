@@ -101,12 +101,25 @@
             <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">질문</div>
             <textarea name="question" id="questionInput" rows="2" placeholder="질문을 입력하세요...">{{ qr.question }}</textarea>
         </div>
+        {% if research_prompts %}
+        <div style="margin-bottom:16px; padding:12px 14px; background:var(--bg-secondary, #f8f9fa); border-radius:var(--radius-sm); border:1px dashed var(--border-color);">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+                <span style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);">공통리서치</span>
+                <span style="font-size:0.7rem;color:var(--text-muted);">클릭 시 질문 입력 + 프롬프트 복사</span>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                {% for rp in research_prompts %}
+                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);">📎</span>{% endif %}</button>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
         <div style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                 <span style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">리포트</span>
                 <select name="report_type" id="reportType" class="form-control" style="width:auto;padding:2px 8px;font-size:0.78rem;">
-                    <option value="html" {% if qr.report_type == 'html' or not qr.report_type %}selected{% endif %}>HTML</option>
-                    <option value="markdown" {% if qr.report_type == 'markdown' %}selected{% endif %}>마크다운</option>
+                    <option value="markdown" {% if qr.report_type == 'markdown' or not qr.report_type %}selected{% endif %}>마크다운</option>
+                    <option value="html" {% if qr.report_type == 'html' %}selected{% endif %}>HTML</option>
                 </select>
             </div>
             <textarea name="report" id="reportInput" placeholder="리포트 내용을 입력하세요...">{{ qr.report }}</textarea>
@@ -141,6 +154,37 @@ function updatePreview() {
 reportInput.addEventListener('input', updatePreview);
 reportType.addEventListener('change', updatePreview);
 updatePreview();
+
+// 공통리서치 버튼 클릭
+const entityName = '{% if is_sector %}{{ qr.sector.name }}{% else %}{{ qr.stock.name }}{% endif %}';
+const nodajiData = "{{ nodaji_summaries|escapejs }}";
+document.querySelectorAll('.common-research-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const question = btn.dataset.question;
+        let prompt = btn.dataset.prompt.replace(/\{종목명\}/g, entityName);
+        if (nodajiData) {
+            prompt = prompt.replace(/\{노다지 데이터\}/g, nodajiData);
+        } else {
+            // 노다지 데이터 없으면 해당 섹션 제거
+            prompt = prompt.replace(/## 탐방\/주담통화 자료 \(노다지\)[\s\S]*?(?=---\n\n## 출력)/, '');
+        }
+        document.getElementById('questionInput').value = question;
+        try {
+            await navigator.clipboard.writeText(prompt);
+            const orig = btn.textContent;
+            btn.textContent = '복사됨!';
+            btn.style.borderColor = '#28a745';
+            btn.style.color = '#28a745';
+            setTimeout(() => {
+                btn.textContent = orig;
+                btn.style.borderColor = '';
+                btn.style.color = '';
+            }, 1500);
+        } catch (err) {
+            alert('복사 실패: ' + err.message);
+        }
+    });
+});
 
 // 삭제
 document.getElementById('btnDelete').addEventListener('click', async () => {

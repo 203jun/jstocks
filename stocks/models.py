@@ -214,20 +214,6 @@ class Info(models.Model):
         help_text='핵심 브리핑 마지막 수정일'
     )
 
-    # === 가치평가 ===
-    valuation = models.TextField(
-        blank=True,
-        default='',
-        verbose_name='가치평가',
-        help_text='가치평가 내용 (마크다운 형식)'
-    )
-    valuation_updated_at = models.DateField(
-        null=True,
-        blank=True,
-        verbose_name='가치평가 업데이트일',
-        help_text='가치평가 마지막 수정일'
-    )
-
     # === 재무분석 ===
     financial_analysis = models.TextField(
         blank=True,
@@ -353,7 +339,7 @@ class Info(models.Model):
 
     @property
     def has_insight_and_analysis(self):
-        """기업분석, 핵심 브리핑, 재무분석, 투자지표, 가치평가 모두 있는지 확인"""
+        """기업분석, 핵심 브리핑 모두 있는지 확인"""
         # 기업분석: DB 필드 또는 HTML 파일 존재 여부 확인
         has_analysis = bool(self.analysis_text)
         if not has_analysis:
@@ -362,8 +348,7 @@ class Info(models.Model):
             html_path = Path(settings.MEDIA_ROOT) / 'analysis' / f'{self.code}.html'
             has_analysis = html_path.exists()
         has_key_briefing = bool(self.key_briefing)
-        has_valuation = bool(self.valuation)
-        return has_analysis and has_key_briefing and has_valuation
+        return has_analysis and has_key_briefing
 
     class Meta:
         db_table = 'info'

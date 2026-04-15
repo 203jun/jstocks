@@ -537,36 +537,14 @@
         </div>
     </div>
 
-    <!-- 가치평가 -->
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">가치평가{% if stock.valuation_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="valuationUpdatedAt">update: {{ stock.valuation_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
-    <div class="brief-card">
-        <!-- 보기 모드 -->
-        <div id="valuationViewMode">
-            <div style="max-height:400px;overflow-y:auto;">
-                <div class="markdown-content" id="valuationMarkdown"></div>
-                <script type="text/plain" id="valuationRaw">{{ stock.valuation|default:""|safe }}</script>
-            </div>
-            <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
-                <span class="prompt-badge" role="button" id="btnCopyValuationPrompt">프롬프트 복사</span>
-                <span id="btnValuationEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
-            </div>
-        </div>
-        <!-- 편집 모드 -->
-        <div id="valuationEditMode" class="d-none">
-            <textarea class="form-control" id="valuationTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.valuation }}</textarea>
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" id="btnValuationCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
-                <button type="button" id="btnValuationSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
-            </div>
-        </div>
-    </div>
-
     <!-- 리서치 -->
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;"><span>리서치 <span class="tab-count">{{ question_reports|length }}</span></span><button type="button" class="btn-refresh" id="btnAddQuestionReport" style="padding:4px 12px;font-weight:400;">+ 추가</button></h5>
-    <div class="brief-card" style="padding:0; overflow:hidden;">
+    <div class="brief-card" style="padding:0; overflow:hidden;" id="researchList">
         {% for qr in question_reports %}
-        <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="edit-list-item" style="display:block;text-decoration:none;color:inherit;">
-            <div style="font-weight:600;color:var(--text-primary);margin-bottom:4px;">{{ qr.question|truncatechars:80 }}</div>
+        <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="edit-list-item research-item" data-question="{{ qr.question }}" style="display:block;text-decoration:none;color:inherit;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <span style="font-weight:600;color:var(--text-primary);">{{ qr.question|truncatechars:80 }}</span>
+            </div>
             <span style="color:var(--text-muted);font-size:0.75rem;">{{ qr.created_at|date:"Y-m-d" }}</span>
         </a>
         {% empty %}
@@ -1587,6 +1565,20 @@ document.querySelectorAll('.sub-tab').forEach(tab => {
     });
 });
 
+// ===== 공통리서치 라벨 표시 =====
+{
+    const commonQuestions = new Set([{% for rp in research_prompts %}'{{ rp.question }}',{% endfor %}]);
+    document.querySelectorAll('.research-item').forEach(item => {
+        const q = item.dataset.question;
+        if (commonQuestions.has(q)) {
+            const label = document.createElement('span');
+            label.textContent = '공통';
+            label.style.cssText = 'font-size:0.65rem;padding:1px 6px;border-radius:3px;background:#e8f0fe;color:#1a73e8;font-weight:600;flex-shrink:0;';
+            item.querySelector('div').insertBefore(label, item.querySelector('div').firstChild);
+        }
+    });
+}
+
 // ===== Research click handler =====
 // ===== 리서치 추가 =====
 document.getElementById('btnAddQuestionReport')?.addEventListener('click', async () => {
@@ -1598,7 +1590,7 @@ document.getElementById('btnAddQuestionReport')?.addEventListener('click', async
         formData.append('stock_code', stockCode);
         formData.append('question', '새 질문');
         formData.append('report', '');
-        formData.append('report_type', 'html');
+        formData.append('report_type', 'markdown');
         const response = await fetch('/api/stock/question-report/save/', {
             method: 'POST',
             headers: { 'X-CSRFToken': '{{ csrf_token }}' },
@@ -1687,7 +1679,6 @@ renderContent('memoRaw', 'memoMarkdown');
 if (document.getElementById('buyReasonRaw')) renderContent('buyReasonRaw', 'buyReasonMarkdown');
 if (document.getElementById('sellReasonRaw')) renderContent('sellReasonRaw', 'sellReasonMarkdown');
 renderContent('keyBriefingRaw', 'keyBriefingMarkdown');
-renderContent('valuationRaw', 'valuationMarkdown');
 renderContent('analysisRaw', 'analysisMarkdown');
 renderContent('finAnalysisV2Raw', 'finAnalysisV2Markdown');
 renderContent('consensusAnalysisRaw', 'consensusAnalysisMarkdown');
@@ -1962,91 +1953,6 @@ document.getElementById('btnAnalysisSave').addEventListener('click', async () =>
     } finally {
         btn.disabled = false;
         btn.textContent = '저장';
-    }
-});
-
-// ===== 가치평가 인라인 편집 =====
-document.getElementById('btnValuationEdit').addEventListener('click', () => {
-    document.getElementById('valuationViewMode').classList.add('d-none');
-    document.getElementById('valuationEditMode').classList.remove('d-none');
-    document.getElementById('valuationTextarea').focus();
-});
-document.getElementById('btnValuationCancel').addEventListener('click', () => {
-    document.getElementById('valuationEditMode').classList.add('d-none');
-    document.getElementById('valuationViewMode').classList.remove('d-none');
-});
-document.getElementById('btnValuationSave').addEventListener('click', async () => {
-    const btn = document.getElementById('btnValuationSave');
-    const text = document.getElementById('valuationTextarea').value;
-    btn.disabled = true;
-    btn.textContent = '저장 중...';
-    try {
-        const formData = new FormData();
-        formData.append('valuation', text);
-        const resp = await fetch(`/api/stock/${stockCode}/valuation/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-            body: formData
-        });
-        const data = await resp.json();
-        if (data.success) {
-            document.getElementById('valuationRaw').textContent = text;
-            renderContent('valuationRaw', 'valuationMarkdown');
-            const dateEl = document.getElementById('valuationUpdatedAt');
-            if (dateEl) {
-                dateEl.textContent = 'update: ' + data.updated_at;
-            } else {
-                const heading = document.getElementById('btnValuationEdit').closest('.brief-card').previousElementSibling;
-                const span = document.createElement('span');
-                span.id = 'valuationUpdatedAt';
-                span.style.cssText = 'font-size:0.68rem;font-weight:400;color:var(--text-muted);';
-                span.textContent = 'update: ' + data.updated_at;
-                heading.appendChild(span);
-            }
-            document.getElementById('valuationEditMode').classList.add('d-none');
-            document.getElementById('valuationViewMode').classList.remove('d-none');
-        } else {
-            alert('저장 실패');
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '저장';
-    }
-});
-
-// 가치평가 프롬프트 복사
-const btnCopyValuationPrompt = document.getElementById('btnCopyValuationPrompt');
-btnCopyValuationPrompt.addEventListener('click', async () => {
-    const originalText = btnCopyValuationPrompt.textContent;
-    btnCopyValuationPrompt.textContent = '로딩...';
-    btnCopyValuationPrompt.style.background = '#f3f4f6';
-    btnCopyValuationPrompt.style.color = 'var(--text-secondary)';
-
-    try {
-        const response = await fetch(`/api/stock/${stockCode}/data-loader-valuation/`);
-        const data = await response.json();
-
-        if (data.success) {
-            await copyToClipboard(data.data);
-            btnCopyValuationPrompt.textContent = '복사됨!';
-            setTimeout(() => {
-                btnCopyValuationPrompt.textContent = originalText;
-                btnCopyValuationPrompt.style.background = '#ecfdf5';
-                btnCopyValuationPrompt.style.color = '#059669';
-            }, 1500);
-        } else {
-            alert('데이터 조회 실패');
-            btnCopyValuationPrompt.textContent = originalText;
-            btnCopyValuationPrompt.style.background = '#ecfdf5';
-            btnCopyValuationPrompt.style.color = '#059669';
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-        btnCopyValuationPrompt.textContent = originalText;
-        btnCopyValuationPrompt.style.background = '#ecfdf5';
-        btnCopyValuationPrompt.style.color = '#059669';
     }
 });
 
