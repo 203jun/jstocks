@@ -679,6 +679,7 @@
                 <div class="markdown-content" id="finAnalysisV2Markdown"></div>
                 <script type="text/plain" id="finAnalysisV2Raw">{{ stock.financial_analysis_v2|default:""|safe }}</script>
             </div>
+            {% if stock.financial_analysis_v2_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid #2962ff;"><div style="font-size:0.75rem;font-weight:600;color:#2962ff;margin-bottom:4px;">내생각</div><div style="font-size:0.85rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ stock.financial_analysis_v2_opinion }}</div></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
                 <span id="btnFinAnalysisV2Edit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
@@ -688,6 +689,7 @@
                 <span class="prompt-badge" role="button" id="btnCopyFinAnalysisPrompt">프롬프트 복사</span>
             </div>
             <textarea class="form-control" id="finAnalysisV2Textarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.financial_analysis_v2 }}</textarea>
+            <div style="margin-bottom:8px;"><div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">내생각</div><textarea class="form-control" id="finAnalysisV2Opinion" rows="3" style="font-size:0.85rem;" placeholder="이 분석에 대한 나의 의견...">{{ stock.financial_analysis_v2_opinion }}</textarea></div>
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" id="btnFinAnalysisV2Cancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
                 <button type="button" id="btnFinAnalysisV2Save" class="btn-refresh" style="padding:4px 12px;">저장</button>
@@ -703,6 +705,7 @@
                 <div class="markdown-content" id="consensusAnalysisMarkdown"></div>
                 <script type="text/plain" id="consensusAnalysisRaw">{{ stock.consensus_analysis|default:""|safe }}</script>
             </div>
+            {% if stock.consensus_analysis_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid #2962ff;"><div style="font-size:0.75rem;font-weight:600;color:#2962ff;margin-bottom:4px;">내생각</div><div style="font-size:0.85rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ stock.consensus_analysis_opinion }}</div></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
                 <span id="btnConsensusAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
@@ -712,6 +715,7 @@
                 <span class="prompt-badge" role="button" id="btnCopyConsensusAnalysisPrompt">프롬프트 복사</span>
             </div>
             <textarea class="form-control" id="consensusAnalysisTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.consensus_analysis }}</textarea>
+            <div style="margin-bottom:8px;"><div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">내생각</div><textarea class="form-control" id="consensusAnalysisOpinion" rows="3" style="font-size:0.85rem;" placeholder="이 분석에 대한 나의 의견...">{{ stock.consensus_analysis_opinion }}</textarea></div>
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" id="btnConsensusAnalysisCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
                 <button type="button" id="btnConsensusAnalysisSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
@@ -727,6 +731,7 @@
                 <div class="markdown-content" id="quarterAnalysisMarkdown"></div>
                 <script type="text/plain" id="quarterAnalysisRaw">{{ stock.quarter_analysis|default:""|safe }}</script>
             </div>
+            {% if stock.quarter_analysis_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid #2962ff;"><div style="font-size:0.75rem;font-weight:600;color:#2962ff;margin-bottom:4px;">내생각</div><div style="font-size:0.85rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ stock.quarter_analysis_opinion }}</div></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
                 <span id="btnQuarterAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
@@ -736,6 +741,7 @@
                 <span class="prompt-badge" role="button" id="btnCopyQuarterAnalysisPrompt">프롬프트 복사</span>
             </div>
             <textarea class="form-control" id="quarterAnalysisTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.quarter_analysis }}</textarea>
+            <div style="margin-bottom:8px;"><div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">내생각</div><textarea class="form-control" id="quarterAnalysisOpinion" rows="3" style="font-size:0.85rem;" placeholder="이 분석에 대한 나의 의견...">{{ stock.quarter_analysis_opinion }}</textarea></div>
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" id="btnQuarterAnalysisCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
                 <button type="button" id="btnQuarterAnalysisSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
@@ -1014,6 +1020,7 @@
                 <div class="markdown-content" id="sdAnalysisMarkdown"></div>
                 <script type="text/plain" id="sdAnalysisRaw">{{ stock.supply_demand_analysis|default:""|safe }}</script>
             </div>
+            {% if stock.supply_demand_analysis_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid #2962ff;"><div style="font-size:0.75rem;font-weight:600;color:#2962ff;margin-bottom:4px;">내생각</div><div style="font-size:0.85rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ stock.supply_demand_analysis_opinion }}</div></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
                 <span class="prompt-badge" role="button" id="btnCopySdAnalysisPrompt">프롬프트 복사</span>
                 <span id="btnSdAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
@@ -1022,6 +1029,7 @@
         <!-- 편집 모드 -->
         <div id="sdAnalysisEditMode" class="d-none">
             <textarea class="form-control" id="sdAnalysisTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.supply_demand_analysis }}</textarea>
+            <div style="margin-bottom:8px;"><div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">내생각</div><textarea class="form-control" id="sdAnalysisOpinion" rows="3" style="font-size:0.85rem;" placeholder="이 분석에 대한 나의 의견...">{{ stock.supply_demand_analysis_opinion }}</textarea></div>
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" id="btnSdAnalysisCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
                 <button type="button" id="btnSdAnalysisSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
@@ -1880,6 +1888,8 @@ document.getElementById('btnSdAnalysisSave').addEventListener('click', async () 
     try {
         const formData = new FormData();
         formData.append('supply_demand_analysis', text);
+        const opinionEl = document.getElementById('sdAnalysisOpinion');
+        if (opinionEl) formData.append('my_opinion', opinionEl.value);
         const resp = await fetch(`/api/stock/${stockCode}/supply-demand-analysis/`, {
             method: 'POST',
             headers: { 'X-CSRFToken': '{{ csrf_token }}' },
@@ -4108,6 +4118,8 @@ function setupAnalysisEditor(prefix, apiPath) {
         btnSave.disabled = true; btnSave.textContent = '저장 중...';
         try {
             const fd = new FormData(); fd.append('content', textarea.value);
+            const opinionEl = document.getElementById(`${prefix}Opinion`);
+            if (opinionEl) fd.append('my_opinion', opinionEl.value);
             const resp = await fetch(`/api/stock/${stockCode}/${apiPath}/`, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' }, body: fd });
             const data = await resp.json();
             if (data.success) {

@@ -6097,10 +6097,14 @@ def financial_analysis_v2_save(request, code):
     stock.financial_analysis_v2 = text
     stock.financial_analysis_v2_updated_at = date.today()
     stock.financial_analysis_v2_base_quarter = base_quarter
+    opinion = request.POST.get('my_opinion')
+    if opinion is not None:
+        stock.financial_analysis_v2_opinion = opinion
     stock.save(update_fields=[
         'financial_analysis_v2', 'financial_analysis_v2_previous',
         'financial_analysis_v2_previous_updated_at', 'financial_analysis_v2_previous_base_quarter',
         'financial_analysis_v2_updated_at', 'financial_analysis_v2_base_quarter',
+        'financial_analysis_v2_opinion',
     ])
     return JsonResponse({'success': True, 'updated_at': stock.financial_analysis_v2_updated_at.strftime('%Y-%m-%d'), 'base_quarter': base_quarter})
 
@@ -6120,10 +6124,14 @@ def consensus_analysis_save(request, code):
     stock.consensus_analysis = text
     stock.consensus_analysis_updated_at = date.today()
     stock.consensus_analysis_base_quarter = base_quarter
+    opinion = request.POST.get('my_opinion')
+    if opinion is not None:
+        stock.consensus_analysis_opinion = opinion
     stock.save(update_fields=[
         'consensus_analysis', 'consensus_analysis_previous',
         'consensus_analysis_previous_updated_at', 'consensus_analysis_previous_base_quarter',
         'consensus_analysis_updated_at', 'consensus_analysis_base_quarter',
+        'consensus_analysis_opinion',
     ])
     return JsonResponse({'success': True, 'updated_at': stock.consensus_analysis_updated_at.strftime('%Y-%m-%d'), 'base_quarter': base_quarter})
 
@@ -6153,7 +6161,10 @@ def quarter_analysis_save(request, code):
     text = request.POST.get('content', '').strip()
     stock.quarter_analysis = text
     stock.quarter_analysis_updated_at = date.today()
-    stock.save(update_fields=['quarter_analysis', 'quarter_analysis_updated_at'])
+    opinion = request.POST.get('my_opinion')
+    if opinion is not None:
+        stock.quarter_analysis_opinion = opinion
+    stock.save(update_fields=['quarter_analysis', 'quarter_analysis_updated_at', 'quarter_analysis_opinion'])
     return JsonResponse({'success': True, 'updated_at': stock.quarter_analysis_updated_at.strftime('%Y-%m-%d')})
 
 
@@ -6913,10 +6924,17 @@ def stock_supply_demand_analysis_save(request, code):
     from datetime import date
     stock = get_object_or_404(Info, code=code)
     text = request.POST.get('supply_demand_analysis', '').strip()
+    opinion = request.POST.get('my_opinion')
+    update_fields = []
     if text != (stock.supply_demand_analysis or '').strip():
         stock.supply_demand_analysis = text
         stock.supply_demand_analysis_updated_at = date.today()
-        stock.save(update_fields=['supply_demand_analysis', 'supply_demand_analysis_updated_at'])
+        update_fields += ['supply_demand_analysis', 'supply_demand_analysis_updated_at']
+    if opinion is not None:
+        stock.supply_demand_analysis_opinion = opinion
+        update_fields.append('supply_demand_analysis_opinion')
+    if update_fields:
+        stock.save(update_fields=update_fields)
     return JsonResponse({'success': True, 'updated_at': stock.supply_demand_analysis_updated_at.strftime('%Y-%m-%d') if stock.supply_demand_analysis_updated_at else ''})
 
 

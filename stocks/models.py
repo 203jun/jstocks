@@ -214,6 +214,20 @@ class Info(models.Model):
         help_text='핵심 브리핑 마지막 수정일'
     )
 
+    # === 내생각 (각 분석별) ===
+    financial_analysis_v2_opinion = models.TextField(
+        blank=True, default='', verbose_name='재무분석 내생각'
+    )
+    consensus_analysis_opinion = models.TextField(
+        blank=True, default='', verbose_name='컨센서스분석 내생각'
+    )
+    quarter_analysis_opinion = models.TextField(
+        blank=True, default='', verbose_name='직전분기재무해석 내생각'
+    )
+    supply_demand_analysis_opinion = models.TextField(
+        blank=True, default='', verbose_name='수급분석 내생각'
+    )
+
     # === 수급분석 ===
     supply_demand_analysis = models.TextField(
         blank=True,
