@@ -1424,18 +1424,10 @@ function renderYtTimeline(videos) {
                         ${v.note ? `<div style="margin-top:4px;margin-bottom:6px;padding:8px 10px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.7rem;font-weight:600;color:var(--text-secondary);margin-bottom:2px;">내생각</div><div style="font-size:0.82rem;color:var(--text-primary);white-space:pre-wrap;">${v.note}</div></div>` : ''}
                         <div class="timeline-card-summary yt-summary-view" data-id="${v.id}">${summaryHtml}</div>
                         <span class="btn-yt-toggle" data-id="${v.id}">더보기</span>
-                        <div class="yt-summary-edit d-none" data-id="${v.id}">
-                            <div style="margin-bottom:6px;"><textarea class="form-control form-control-sm yt-edit-note" data-id="${v.id}" rows="3" placeholder="내생각 (선택)" style="font-size:0.82rem;resize:vertical;">${v.note || ''}</textarea></div>
-                            <textarea class="form-control form-control-sm" rows="3" style="font-size:0.82rem;">${v.summary || ''}</textarea>
-                            <div class="d-flex justify-content-end gap-2" style="margin-top:6px;">
-                                <button type="button" class="btn btn-sm btn-yt-edit-cancel" data-id="${v.id}" style="color:var(--text-secondary);border:1px solid var(--border-color);border-radius:6px;padding:2px 10px;font-size:0.75rem;">취소</button>
-                                <button type="button" class="btn btn-sm btn-yt-edit-save" data-id="${v.id}" style="background:var(--text-primary);color:#fff;border-radius:6px;padding:2px 10px;font-size:0.75rem;">저장</button>
-                            </div>
-                        </div>
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
                             <span class="yt-channel">${v.channel || ''}</span>
                             <div style="display:flex;gap:10px;">
-                                <span class="btn-yt-edit" data-id="${v.id}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
+                                <a href="/sector/youtube/${v.id}/summary/" target="_blank" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;text-decoration:none;">수정</a>
                                 <span class="btn-yt-delete" data-id="${v.id}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">삭제</span>
                             </div>
                         </div>
@@ -1458,38 +1450,6 @@ function renderYtTimeline(videos) {
         });
     });
 
-    ytTimeline.querySelectorAll('.btn-yt-edit').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const id = btn.dataset.id;
-            ytTimeline.querySelector(`.yt-summary-view[data-id="${id}"]`).classList.add('d-none');
-            ytTimeline.querySelector(`.yt-summary-edit[data-id="${id}"]`).classList.remove('d-none');
-        });
-    });
-    ytTimeline.querySelectorAll('.btn-yt-edit-cancel').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const id = btn.dataset.id;
-            ytTimeline.querySelector(`.yt-summary-view[data-id="${id}"]`).classList.remove('d-none');
-            ytTimeline.querySelector(`.yt-summary-edit[data-id="${id}"]`).classList.add('d-none');
-        });
-    });
-    ytTimeline.querySelectorAll('.btn-yt-edit-save').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const id = btn.dataset.id;
-            const textarea = ytTimeline.querySelector(`.yt-summary-edit[data-id="${id}"] textarea`);
-            btn.disabled = true; btn.textContent = '저장 중...';
-            try {
-                const fd = new FormData();
-                const noteInput = ytTimeline.querySelector(`.yt-edit-note[data-id="${id}"]`);
-                if (noteInput) fd.append('note', noteInput.value);
-                fd.append('summary', textarea.value);
-                const res = await fetch(`/api/sector/youtube/video/${id}/update/`, { method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}, body:fd });
-                const data = await res.json();
-                if (data.success) loadYtTimeline(true);
-                else alert(data.error || '수정 실패');
-            } catch(e) { alert('수정 오류: ' + e.message); }
-            finally { btn.disabled = false; btn.textContent = '저장'; }
-        });
-    });
     ytTimeline.querySelectorAll('.btn-yt-toggle').forEach(btn => {
         const summary = ytTimeline.querySelector(`.yt-summary-view[data-id="${btn.dataset.id}"]`);
         btn.addEventListener('click', () => {
