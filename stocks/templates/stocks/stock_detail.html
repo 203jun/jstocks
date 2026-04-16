@@ -1548,6 +1548,7 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ briefing_data|json_script:"briefing-data-json" }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
@@ -2002,7 +2003,7 @@ document.getElementById('btnCopySdAnalysisPrompt').addEventListener('click', asy
 
 // 핵심 브리핑 프롬프트 복사
 const btnCopyBriefingPrompt = document.getElementById('btnCopyBriefingPrompt');
-const briefingData = {{ briefing_data|safe }};
+const briefingData = JSON.parse(document.getElementById('briefing-data-json').textContent);
 btnCopyBriefingPrompt.addEventListener('click', async () => {
     const btn = btnCopyBriefingPrompt;
     const promptTemplate = `{{ saved_prompts.prompt_briefing|default:""|escapejs }}`;

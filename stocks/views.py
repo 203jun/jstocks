@@ -1080,7 +1080,6 @@ def stock_detail(request, code):
 
 def _build_briefing_data(stock, question_reports, nodaji_list, reports):
     """핵심브리핑 프롬프트용 데이터 구성"""
-    import json
     try:
         from .models import IncomeStatement
 
@@ -1126,9 +1125,9 @@ def _build_briefing_data(stock, question_reports, nodaji_list, reports):
                 report_parts.append(f"[{date_str}] {r.provider or ''} - {r.title or ''}\n{r.summary}")
         data['report_summary'] = '\n\n---\n\n'.join(report_parts)
 
-        return json.dumps(data, ensure_ascii=False)
+        return data
     except Exception:
-        return json.dumps({}, ensure_ascii=False)
+        return {}
 
 
 def run_fav_commands(stock_code, action):
