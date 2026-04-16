@@ -2852,12 +2852,12 @@ function renderYtTimeline(videos) {
                         <div class="timeline-card-title">
                             <a href="${v.url}" target="_blank">${v.title}</a>
                         </div>
-                        ${v.note ? `<div style="font-size:0.8rem;color:var(--text-primary);margin-bottom:6px;font-weight:500;">${v.note}</div>` : ''}
+                        ${v.note ? `<div style="margin-top:4px;margin-bottom:6px;padding:8px 10px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.7rem;font-weight:600;color:var(--text-secondary);margin-bottom:2px;">내생각</div><div style="font-size:0.82rem;color:var(--text-primary);white-space:pre-wrap;">${v.note}</div></div>` : ''}
                         <div class="timeline-card-summary yt-summary-view" data-id="${v.id}">${summaryHtml}</div>
                         <span class="btn-yt-toggle" data-id="${v.id}">더보기</span>
                         <div class="yt-summary-edit d-none" data-id="${v.id}">
                             <div style="margin-bottom:6px;">
-                                <input type="text" class="form-control form-control-sm yt-edit-note" data-id="${v.id}" value="${v.note || ''}" placeholder="한줄 메모 (선택)" style="font-size:0.82rem;">
+                                <input type="text" class="form-control form-control-sm yt-edit-note" data-id="${v.id}" value="${v.note || ''}" placeholder="내생각 (선택)" style="font-size:0.82rem;">
                             </div>
                             <textarea class="form-control form-control-sm" rows="3" style="font-size:0.82rem;">${v.summary || ''}</textarea>
                             <div class="d-flex justify-content-end gap-2" style="margin-top:6px;">

@@ -80,7 +80,13 @@
     {% csrf_token %}
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">요약 편집<span style="display:flex;gap:6px;font-weight:400;"><button type="button" class="btn-refresh" id="btnCleanup">정리</button><button type="submit" class="btn-refresh">저장</button></span></h5>
     <div class="brief-card">
-        <textarea name="summary" id="summary" placeholder="마크다운으로 요약 내용을 입력하세요...">{{ news.summary }}</textarea>
+        <div style="margin-bottom:16px;">
+            <textarea name="summary" id="summary" placeholder="마크다운으로 요약 내용을 입력하세요...">{{ news.summary }}</textarea>
+        </div>
+        <div>
+            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">내생각</div>
+            <textarea name="my_opinion" rows="3" style="width:100%;font-size:0.85rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;color:var(--text-primary);line-height:1.7;resize:vertical;" placeholder="이 내용에 대한 나의 의견...">{{ news.my_opinion }}</textarea>
+        </div>
     </div>
 </form>
 {% endblock %}

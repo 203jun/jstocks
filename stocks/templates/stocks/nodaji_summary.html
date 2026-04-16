@@ -52,9 +52,13 @@
     {% csrf_token %}
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">요약 편집<span style="display:flex;gap:6px;font-weight:400;"><button type="submit" class="btn-refresh">저장</button></span></h5>
     <div class="brief-card">
-        <div>
+        <div style="margin-bottom:16px;">
             <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">요약 내용 <small style="font-weight:400;color:var(--text-muted);">(HTML 지원)</small></div>
             <textarea name="summary" id="summary" placeholder="HTML 형식으로 입력하세요...">{{ nodaji.summary }}</textarea>
+        </div>
+        <div>
+            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">내생각</div>
+            <textarea name="my_opinion" rows="3" style="width:100%;font-size:0.85rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;color:var(--text-primary);line-height:1.7;resize:vertical;" placeholder="이 내용에 대한 나의 의견...">{{ nodaji.my_opinion }}</textarea>
         </div>
     </div>
 </form>

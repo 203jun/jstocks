@@ -2328,7 +2328,7 @@ def market_youtube_list(request):
             'video_id': v.video_id,
             'title': v.title,
             'channel': v.channel,
-            'note': v.note,
+            'note': v.my_opinion,
             'summary': v.summary,
             'url': v.url,
             'date': v.published_date.strftime('%Y-%m-%d') if v.published_date else v.created_at.strftime('%Y-%m-%d'),
@@ -2554,6 +2554,7 @@ def nodaji_summary(request, nodaji_id):
 
     if request.method == 'POST':
         nodaji.summary = request.POST.get('summary', '')
+        nodaji.my_opinion = request.POST.get('my_opinion', '')
         nodaji.save()
 
         # AJAX 요청이면 JSON 응답
@@ -3361,8 +3362,8 @@ def youtube_summary(request, video_id):
     video = get_object_or_404(YoutubeVideo, id=video_id)
 
     if request.method == 'POST':
-        summary = request.POST.get('summary', '')
-        video.summary = summary
+        video.summary = request.POST.get('summary', '')
+        video.my_opinion = request.POST.get('my_opinion', '')
         video.save()
         messages.success(request, '요약이 저장되었습니다.')
         return redirect('stocks:youtube_summary', video_id=video_id)
@@ -5935,7 +5936,7 @@ def youtube_video_list(request, code):
             'video_id': v.video_id,
             'title': v.title,
             'channel': v.channel,
-            'note': v.note,
+            'note': v.my_opinion,
             'summary': v.summary,
             'url': v.link,
             'date': v.created_at.strftime('%Y-%m-%d'),
@@ -5950,7 +5951,7 @@ def youtube_video_update(request, video_id):
     video = get_object_or_404(YoutubeVideo, id=video_id)
     note = request.POST.get('note')
     if note is not None:
-        video.note = note.strip()
+        video.my_opinion = note.strip()
     summary = request.POST.get('summary')
     if summary is not None:
         video.summary = summary.strip()
@@ -7167,6 +7168,7 @@ def news_summary(request, news_id):
 
     if request.method == 'POST':
         news.summary = request.POST.get('summary', '')
+        news.my_opinion = request.POST.get('my_opinion', '')
         news.save()
 
     return render(request, 'stocks/news_summary.html', {
@@ -8377,8 +8379,8 @@ def sector_news_summary(request, news_id):
     news = get_object_or_404(SectorNews, id=news_id)
 
     if request.method == 'POST':
-        summary = request.POST.get('summary', '')
-        news.summary = summary
+        news.summary = request.POST.get('summary', '')
+        news.my_opinion = request.POST.get('my_opinion', '')
         news.save()
 
     return render(request, 'stocks/sector_news_summary.html', {'news': news})
@@ -8590,7 +8592,7 @@ def sector_youtube_video_list(request):
             'video_id': v.video_id,
             'title': v.title,
             'channel': v.channel,
-            'note': v.note,
+            'note': v.my_opinion,
             'summary': v.summary,
             'url': v.link,
             'date': v.created_at.strftime('%Y-%m-%d'),
@@ -8606,7 +8608,7 @@ def sector_youtube_video_update(request, video_id):
     note = request.POST.get('note')
     summary = request.POST.get('summary')
     if note is not None:
-        video.note = note
+        video.my_opinion = note
     if summary is not None:
         video.summary = summary
     video.save()
@@ -8631,8 +8633,8 @@ def sector_youtube_summary(request, video_id):
     video = get_object_or_404(SectorYoutubeVideo, id=video_id)
 
     if request.method == 'POST':
-        summary = request.POST.get('summary', '')
-        video.summary = summary
+        video.summary = request.POST.get('summary', '')
+        video.my_opinion = request.POST.get('my_opinion', '')
         video.save()
         messages.success(request, '요약이 저장되었습니다.')
         return redirect('stocks:sector_youtube_summary', video_id=video_id)

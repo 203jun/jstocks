@@ -1919,6 +1919,9 @@ class Nodaji(models.Model):
         verbose_name='요약',
         help_text='기사 요약 내용'
     )
+    my_opinion = models.TextField(
+        blank=True, default='', verbose_name='내생각'
+    )
 
     # === 메타 정보 ===
     created_at = models.DateTimeField(
@@ -2342,10 +2345,8 @@ class YoutubeVideo(models.Model):
         blank=True,
         verbose_name='업로드일'
     )
-    note = models.CharField(
-        max_length=200,
-        blank=True,
-        verbose_name='한줄 메모'
+    my_opinion = models.TextField(
+        blank=True, default='', verbose_name='내생각'
     )
     summary = models.TextField(
         blank=True,
@@ -2576,6 +2577,9 @@ class News(models.Model):
         verbose_name='요약',
         help_text='뉴스 요약 내용'
     )
+    my_opinion = models.TextField(
+        blank=True, default='', verbose_name='내생각'
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='저장일시'
@@ -2734,6 +2738,9 @@ class SectorNews(models.Model):
         verbose_name='요약',
         help_text='뉴스 요약 내용'
     )
+    my_opinion = models.TextField(
+        blank=True, default='', verbose_name='내생각'
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='저장일시'
@@ -2796,11 +2803,8 @@ class SectorYoutubeVideo(models.Model):
         blank=True,
         verbose_name='업로드일'
     )
-    note = models.CharField(
-        max_length=300,
-        blank=True,
-        verbose_name='한줄 메모',
-        help_text='간단한 요약 메모'
+    my_opinion = models.TextField(
+        blank=True, default='', verbose_name='내생각'
     )
     summary = models.TextField(
         blank=True,
