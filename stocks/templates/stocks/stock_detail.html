@@ -679,7 +679,7 @@
                 <div class="markdown-content" id="finAnalysisV2Markdown"></div>
                 <script type="text/plain" id="finAnalysisV2Raw">{{ stock.financial_analysis_v2|default:""|safe }}</script>
             </div>
-            {% if stock.financial_analysis_v2_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid #2962ff;"><div style="font-size:0.75rem;font-weight:600;color:#2962ff;margin-bottom:4px;">내생각</div><div style="font-size:0.85rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ stock.financial_analysis_v2_opinion }}</div></div>{% endif %}
+            {% if stock.financial_analysis_v2_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">내생각</div><div style="font-size:0.85rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ stock.financial_analysis_v2_opinion }}</div></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
                 <span id="btnFinAnalysisV2Edit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
@@ -705,7 +705,7 @@
                 <div class="markdown-content" id="consensusAnalysisMarkdown"></div>
                 <script type="text/plain" id="consensusAnalysisRaw">{{ stock.consensus_analysis|default:""|safe }}</script>
             </div>
-            {% if stock.consensus_analysis_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid #2962ff;"><div style="font-size:0.75rem;font-weight:600;color:#2962ff;margin-bottom:4px;">내생각</div><div style="font-size:0.85rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ stock.consensus_analysis_opinion }}</div></div>{% endif %}
+            {% if stock.consensus_analysis_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">내생각</div><div style="font-size:0.85rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ stock.consensus_analysis_opinion }}</div></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
                 <span id="btnConsensusAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
@@ -731,7 +731,7 @@
                 <div class="markdown-content" id="quarterAnalysisMarkdown"></div>
                 <script type="text/plain" id="quarterAnalysisRaw">{{ stock.quarter_analysis|default:""|safe }}</script>
             </div>
-            {% if stock.quarter_analysis_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid #2962ff;"><div style="font-size:0.75rem;font-weight:600;color:#2962ff;margin-bottom:4px;">내생각</div><div style="font-size:0.85rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ stock.quarter_analysis_opinion }}</div></div>{% endif %}
+            {% if stock.quarter_analysis_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">내생각</div><div style="font-size:0.85rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ stock.quarter_analysis_opinion }}</div></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
                 <span id="btnQuarterAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
@@ -1020,7 +1020,7 @@
                 <div class="markdown-content" id="sdAnalysisMarkdown"></div>
                 <script type="text/plain" id="sdAnalysisRaw">{{ stock.supply_demand_analysis|default:""|safe }}</script>
             </div>
-            {% if stock.supply_demand_analysis_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid #2962ff;"><div style="font-size:0.75rem;font-weight:600;color:#2962ff;margin-bottom:4px;">내생각</div><div style="font-size:0.85rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ stock.supply_demand_analysis_opinion }}</div></div>{% endif %}
+            {% if stock.supply_demand_analysis_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">내생각</div><div style="font-size:0.85rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ stock.supply_demand_analysis_opinion }}</div></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
                 <span class="prompt-badge" role="button" id="btnCopySdAnalysisPrompt">프롬프트 복사</span>
                 <span id="btnSdAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
