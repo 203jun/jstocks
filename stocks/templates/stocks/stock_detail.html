@@ -2843,7 +2843,6 @@ function renderYtTimeline(videos) {
         html += `<div class="timeline-group">`;
         html += `<div class="timeline-date">${formatDateLabel(date)}</div>`;
         groups[date].forEach(v => {
-            const summaryHtml = v.summary ? parseMd(v.summary) : '<span style="color:var(--text-muted);">요약 없음</span>';
             const thumb = `https://i.ytimg.com/vi/${v.video_id}/mqdefault.jpg`;
             html += `<div class="timeline-item" data-id="${v.id}">
                 <div class="timeline-card">
@@ -2853,12 +2852,10 @@ function renderYtTimeline(videos) {
                             <a href="${v.url}" target="_blank">${v.title}</a>
                         </div>
                         ${v.note ? `<div style="margin-top:4px;margin-bottom:6px;padding:8px 10px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.7rem;font-weight:600;color:var(--text-secondary);margin-bottom:2px;">내생각</div><div style="font-size:0.82rem;color:var(--text-primary);white-space:pre-wrap;">${v.note}</div></div>` : ''}
-                        <div class="timeline-card-summary yt-summary-view" data-id="${v.id}">${summaryHtml}</div>
-                        <span class="btn-yt-toggle" data-id="${v.id}">더보기</span>
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
                             <span class="yt-channel">${v.channel || ''}</span>
                             <div style="display:flex;gap:10px;">
-                                <a href="/youtube/${v.id}/summary/" target="_blank" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;text-decoration:none;">수정</a>
+                                <a href="/youtube/${v.id}/summary/" style="font-size:0.72rem;color:var(--text-muted);text-decoration:none;">수정</a>
                                 <span class="btn-yt-delete" data-id="${v.id}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">삭제</span>
                             </div>
                         </div>
@@ -2888,20 +2885,6 @@ function renderYtTimeline(videos) {
         });
     });
 
-    // 더보기/접기
-    ytTimeline.querySelectorAll('.btn-yt-toggle').forEach(btn => {
-        const id = btn.dataset.id;
-        const summary = ytTimeline.querySelector(`.yt-summary-view[data-id="${id}"]`);
-        btn.addEventListener('click', () => {
-            if (summary.classList.contains('expanded')) {
-                summary.classList.remove('expanded');
-                btn.textContent = '더보기';
-            } else {
-                summary.classList.add('expanded');
-                btn.textContent = '접기';
-            }
-        });
-    });
 }
 
 const YT_PAGE_SIZE = 30;
