@@ -1556,6 +1556,8 @@
 <script>
 const stockName = "{{ stock.name }}";
 const stockCode = "{{ stock.code }}";
+const themeName = "{{ stock.themes.first.name|default:""|escapejs }}";
+const themeCategoryName = "{{ stock.themes.first.category.name|default:""|escapejs }}";
 const tradeBuyPrice = {{ stock.buy_price|default:"null" }};
 const tradeSellPrice = {{ stock.sell_price|default:"null" }};
 const tradeBuyRange = {{ stock.buy_price_range|default:"5" }};
