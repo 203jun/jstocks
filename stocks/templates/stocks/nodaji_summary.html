@@ -42,6 +42,14 @@
     </div>
 </div>
 
+<!-- 내생각 -->
+{% if nodaji.my_opinion %}
+<h5 class="section-heading">내생각</h5>
+<div class="brief-card">
+    <div style="font-size:0.88rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ nodaji.my_opinion }}</div>
+</div>
+{% endif %}
+
 <!-- 미리보기 -->
 <h5 class="section-heading">미리보기</h5>
 <div class="brief-card" style="padding:0;">

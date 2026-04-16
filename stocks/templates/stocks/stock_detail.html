@@ -2857,7 +2857,7 @@ function renderYtTimeline(videos) {
                         <span class="btn-yt-toggle" data-id="${v.id}">더보기</span>
                         <div class="yt-summary-edit d-none" data-id="${v.id}">
                             <div style="margin-bottom:6px;">
-                                <input type="text" class="form-control form-control-sm yt-edit-note" data-id="${v.id}" value="${v.note || ''}" placeholder="내생각 (선택)" style="font-size:0.82rem;">
+                                <textarea class="form-control form-control-sm yt-edit-note" data-id="${v.id}" rows="3" placeholder="내생각 (선택)" style="font-size:0.82rem;resize:vertical;">${v.note || ''}</textarea>
                             </div>
                             <textarea class="form-control form-control-sm" rows="3" style="font-size:0.82rem;">${v.summary || ''}</textarea>
                             <div class="d-flex justify-content-end gap-2" style="margin-top:6px;">

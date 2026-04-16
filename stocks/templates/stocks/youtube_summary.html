@@ -66,13 +66,20 @@
     </div>
 </div>
 
+<!-- 내생각 -->
+{% if video.my_opinion %}
+<div class="brief-card">
+    <div style="font-size:0.82rem;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">내생각</div>
+    <div style="font-size:0.88rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ video.my_opinion }}</div>
+</div>
+{% endif %}
+
+<!-- 미리보기 -->
 <div class="brief-card">
     <div style="margin-bottom:12px;">
         <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">미리보기</span>
     </div>
-    <div>
-        <div id="preview"></div>
-    </div>
+    <div id="preview"></div>
 </div>
 
 <form method="post">
@@ -90,7 +97,7 @@
         </div>
         <div>
             <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">내생각</div>
-            <textarea name="my_opinion" rows="3" style="width:100%;font-size:0.85rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;color:var(--text-primary);line-height:1.7;resize:vertical;" placeholder="이 내용에 대한 나의 의견...">{{ video.my_opinion }}</textarea>
+            <textarea name="my_opinion" rows="5" style="width:100%;font-size:0.85rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;color:var(--text-primary);line-height:1.7;resize:vertical;" placeholder="이 내용에 대한 나의 의견...">{{ video.my_opinion }}</textarea>
         </div>
     </div>
 </form>
