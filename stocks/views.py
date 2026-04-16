@@ -1080,52 +1080,55 @@ def stock_detail(request, code):
 
 def _build_briefing_data(stock, question_reports, nodaji_list, reports):
     """핵심브리핑 프롬프트용 데이터 구성"""
-    from .models import IncomeStatement
     import json
+    try:
+        from .models import IncomeStatement
 
-    data = {}
+        data = {}
 
-    # 기업분석기준분기: 포괄손익계산서 최신 비추정 분기
-    latest_quarters = IncomeStatement.objects.filter(
-        stock=stock, quarter__isnull=False
-    ).order_by('-year', '-quarter')
-    base_quarter = ''
-    for q in latest_quarters:
-        if not q.is_estimated:
-            base_quarter = f"{q.year}/{q.quarter}"
-            break
-    data['base_quarter'] = base_quarter
+        # 기업분석기준분기: 포괄손익계산서 최신 비추정 분기
+        latest_quarters = IncomeStatement.objects.filter(
+            stock=stock, quarter__isnull=False
+        ).order_by('-year', '-quarter')
+        base_quarter = ''
+        for q in latest_quarters:
+            if not q.is_estimated:
+                base_quarter = f"{q.year}/{q.quarter}"
+                break
+        data['base_quarter'] = base_quarter
 
-    # 재무분석, 컨센서스분석 (모델 필드)
-    data['financial_analysis'] = stock.financial_analysis_v2 or ''
-    data['consensus_analysis'] = stock.consensus_analysis or ''
+        # 재무분석, 컨센서스분석 (모델 필드)
+        data['financial_analysis'] = stock.financial_analysis_v2 or ''
+        data['consensus_analysis'] = stock.consensus_analysis or ''
 
-    # 리서치 기반 분석 (질문명으로 매칭)
-    qr_map = {}
-    for qr in question_reports:
-        qr_map[qr.question] = qr.report or ''
+        # 리서치 기반 분석 (질문명으로 매칭)
+        qr_map = {}
+        for qr in question_reports:
+            qr_map[qr.question] = qr.report or ''
 
-    data['valuation_analysis'] = qr_map.get('밸류에이션', '')
-    data['macro_analysis'] = qr_map.get('업황/매크로', '')
-    data['event_analysis'] = qr_map.get('향후 이벤트', '')
-    data['competitor_analysis'] = qr_map.get('경쟁사', '')
+        data['valuation_analysis'] = qr_map.get('밸류에이션', '')
+        data['macro_analysis'] = qr_map.get('업황/매크로', '')
+        data['event_analysis'] = qr_map.get('향후 이벤트', '')
+        data['competitor_analysis'] = qr_map.get('경쟁사', '')
 
-    # 노다지 요약
-    parts = []
-    for n in nodaji_list[:5]:
-        if n.summary:
-            parts.append(f"[{n.date.strftime('%Y-%m-%d') if n.date else '-'}] {n.title}\n{n.summary}")
-    data['nodaji'] = '\n\n---\n\n'.join(parts)
+        # 노다지 요약
+        parts = []
+        for n in nodaji_list[:5]:
+            if n.summary:
+                parts.append(f"[{n.date.strftime('%Y-%m-%d') if n.date else '-'}] {n.title}\n{n.summary}")
+        data['nodaji'] = '\n\n---\n\n'.join(parts)
 
-    # 리포트 요약
-    report_parts = []
-    for r in reports[:10]:
-        if r.summary:
-            date_str = r.date.strftime('%Y-%m-%d') if r.date else '-'
-            report_parts.append(f"[{date_str}] {r.securities_firm or ''} - {r.title or ''}\n{r.summary}")
-    data['report_summary'] = '\n\n---\n\n'.join(report_parts)
+        # 리포트 요약
+        report_parts = []
+        for r in reports[:10]:
+            if r.summary:
+                date_str = r.date.strftime('%Y-%m-%d') if r.date else '-'
+                report_parts.append(f"[{date_str}] {r.provider or ''} - {r.title or ''}\n{r.summary}")
+        data['report_summary'] = '\n\n---\n\n'.join(report_parts)
 
-    return json.dumps(data, ensure_ascii=False)
+        return json.dumps(data, ensure_ascii=False)
+    except Exception:
+        return json.dumps({}, ensure_ascii=False)
 
 
 def run_fav_commands(stock_code, action):
