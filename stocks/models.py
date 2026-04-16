@@ -1570,6 +1570,12 @@ class StockQuestionReport(models.Model):
         verbose_name='리포트 형식',
         help_text='리포트의 형식 (HTML 또는 마크다운)'
     )
+    my_opinion = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='내생각',
+        help_text='이 리서치에 대한 나의 의견 (텍스트)'
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='생성일시'

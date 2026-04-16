@@ -5966,6 +5966,7 @@ def stock_question_report_detail(request, report_id):
     if request.method == 'POST':
         qr.question = request.POST.get('question', '').strip()
         qr.report = request.POST.get('report', '')
+        qr.my_opinion = request.POST.get('my_opinion', '')
         report_type = request.POST.get('report_type', 'html')
         if report_type in ('html', 'markdown'):
             qr.report_type = report_type

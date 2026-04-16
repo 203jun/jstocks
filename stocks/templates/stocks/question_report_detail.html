@@ -87,6 +87,14 @@
     </div>
 </div>
 
+<!-- 내생각 -->
+{% if qr.my_opinion %}
+<h5 class="section-heading">내생각</h5>
+<div class="brief-card">
+    <div style="font-size:0.88rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ qr.my_opinion }}</div>
+</div>
+{% endif %}
+
 <!-- 미리보기 -->
 <h5 class="section-heading">미리보기</h5>
 <div class="brief-card" style="padding:0;">
@@ -123,6 +131,10 @@
                 </select>
             </div>
             <textarea name="report" id="reportInput" placeholder="리포트 내용을 입력하세요...">{{ qr.report }}</textarea>
+        </div>
+        <div>
+            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">내생각</div>
+            <textarea name="my_opinion" id="myOpinionInput" rows="4" style="width:100%;font-size:0.85rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;color:var(--text-primary);line-height:1.7;resize:vertical;" placeholder="이 리서치에 대한 나의 의견을 적어주세요...">{{ qr.my_opinion }}</textarea>
         </div>
     </div>
 </form>
