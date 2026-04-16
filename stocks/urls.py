@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/stock/<str:code>/memo/', views.stock_memo_save, name='stock_memo_save'),
     path('api/stock/<str:code>/trade/', views.stock_trade_save, name='stock_trade_save'),
     path('api/stock/<str:code>/key-briefing/', views.stock_key_briefing_save, name='stock_key_briefing_save'),
+    path('api/stock/<str:code>/supply-demand-analysis/', views.stock_supply_demand_analysis_save, name='stock_supply_demand_analysis_save'),
     path('api/stock/<str:code>/analysis/', views.stock_analysis_save, name='stock_analysis_save'),
     path('api/stock/<str:code>/financial-analysis-v2/', views.financial_analysis_v2_save, name='financial_analysis_v2_save'),
     path('api/stock/<str:code>/consensus-analysis/', views.consensus_analysis_save, name='consensus_analysis_save'),

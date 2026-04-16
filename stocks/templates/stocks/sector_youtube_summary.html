@@ -113,7 +113,7 @@ function cleanupMarkdown(text) {
 marked.setOptions({ breaks: true });
 
 function updatePreview() {
-    preview.innerHTML = marked.parse(cleanupMarkdown(textarea.value) || '');
+    preview.innerHTML = marked.parse((cleanupMarkdown(textarea.value) || '').replace(/~/g, '&#126;'));
 }
 
 document.getElementById('btnCleanup').addEventListener('click', function() {

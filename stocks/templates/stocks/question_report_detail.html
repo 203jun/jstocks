@@ -138,13 +138,14 @@ const preview = document.getElementById('preview');
 marked.setOptions({ breaks: true });
 
 function updatePreview() {
-    const content = reportInput.value;
+    let content = reportInput.value;
     const type = reportType.value;
     if (!content) {
         preview.innerHTML = '<span style="color:var(--text-muted);">미리보기가 여기에 표시됩니다.</span>';
         return;
     }
     if (type === 'markdown') {
+        content = content.replace(/~/g, '&#126;');
         preview.innerHTML = marked.parse(content);
     } else {
         preview.innerHTML = content;
@@ -158,10 +159,44 @@ updatePreview();
 // 공통리서치 버튼 클릭
 const entityName = '{% if is_sector %}{{ qr.sector.name }}{% else %}{{ qr.stock.name }}{% endif %}';
 const nodajiData = "{{ nodaji_summaries|escapejs }}";
+const themeCategoryName = '{{ theme_category_name|escapejs }}';
+const themeName = '{{ theme_name|escapejs }}';
+const stockCurrentPrice = '{{ stock_current_price|escapejs }}';
+const consensusEps = '{{ consensus_eps|escapejs }}';
+const consensusOp = '{{ consensus_op|escapejs }}';
+const consensusQuarterOp = '{{ consensus_quarter_op|escapejs }}';
 document.querySelectorAll('.common-research-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
         const question = btn.dataset.question;
         let prompt = btn.dataset.prompt.replace(/\{종목명\}/g, entityName);
+        if (themeName) {
+            prompt = prompt.replace(/\{대분류\}/g, themeCategoryName);
+            prompt = prompt.replace(/\{소분류\}/g, themeName);
+        } else {
+            // 소분류 없으면 업종 분류 블록 전체 삭제
+            prompt = prompt.replace(/이 회사의 업종 분류:[\s\S]*?위 업종 특성에 맞는[^\n]*\n*/g, '');
+        }
+        // 밸류에이션 데이터 치환
+        if (stockCurrentPrice) {
+            prompt = prompt.replace(/\{현재주가\}/g, Number(stockCurrentPrice).toLocaleString());
+        } else {
+            prompt = prompt.replace(/.*\{현재주가\}.*\n?/g, '');
+        }
+        if (consensusEps) {
+            prompt = prompt.replace(/\{컨센서스EPS\}/g, Number(consensusEps).toLocaleString());
+        } else {
+            prompt = prompt.replace(/.*\{컨센서스EPS\}.*\n?/g, '');
+        }
+        if (consensusOp) {
+            prompt = prompt.replace(/\{컨센서스영업이익\}/g, Number(consensusOp).toLocaleString());
+        } else {
+            prompt = prompt.replace(/.*\{컨센서스영업이익\}.*\n?/g, '');
+        }
+        if (consensusQuarterOp) {
+            prompt = prompt.replace(/\{분기컨센서스영업이익\}/g, Number(consensusQuarterOp).toLocaleString());
+        } else {
+            prompt = prompt.replace(/.*\{분기컨센서스영업이익\}.*\n?/g, '');
+        }
         if (nodajiData) {
             prompt = prompt.replace(/\{노다지 데이터\}/g, nodajiData);
         } else {

@@ -292,7 +292,6 @@
     <button class="market-tab active" data-target="info-content">기본정보</button>
     <button class="market-tab" data-target="analysis-content">기업분석</button>
     <button class="market-tab" data-target="supply-content">수급</button>
-    <button class="market-tab" data-target="shortsell-content">공매도</button>
     <button class="market-tab" data-target="disclosure-content">공시</button>
     <button class="market-tab" data-target="report-content">리포트{% with total=total_summary_count|add:total_attachment_count %}{% if total %}<span class="tab-count">{{ total }}</span>{% endif %}{% endwith %}</button>
     <button class="market-tab" data-target="telegram-content">텔레그램{% if telegram_messages %}<span class="tab-count">{{ telegram_messages|length }}</span>{% endif %}</button>
@@ -1006,6 +1005,30 @@
 
 <!-- ========== 수급 탭 ========== -->
 <div id="supply-content" class="tab-panel" style="display:none;">
+    <!-- 수급분석 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">수급분석{% if stock.supply_demand_analysis_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="sdAnalysisUpdatedAt">update: {{ stock.supply_demand_analysis_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
+    <div class="brief-card">
+        <!-- 보기 모드 -->
+        <div id="sdAnalysisViewMode">
+            <div style="max-height:400px;overflow-y:auto;">
+                <div class="markdown-content" id="sdAnalysisMarkdown"></div>
+                <script type="text/plain" id="sdAnalysisRaw">{{ stock.supply_demand_analysis|default:""|safe }}</script>
+            </div>
+            <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
+                <span class="prompt-badge" role="button" id="btnCopySdAnalysisPrompt">프롬프트 복사</span>
+                <span id="btnSdAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
+            </div>
+        </div>
+        <!-- 편집 모드 -->
+        <div id="sdAnalysisEditMode" class="d-none">
+            <textarea class="form-control" id="sdAnalysisTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.supply_demand_analysis }}</textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnSdAnalysisCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnSdAnalysisSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
     <h5 class="section-heading">수급</h5>
     <!-- 다음/키움 서브탭 -->
     <div class="sub-tabs">
@@ -1138,10 +1161,8 @@
             {% endif %}
         </div>
     </div>
-</div>
 
-<!-- ========== 공매도 탭 ========== -->
-<div id="shortsell-content" class="tab-panel" style="display:none;">
+    <!-- 공매도 현황 -->
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">공매도 현황<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">최근 60일</span></h5>
     <div class="brief-card">
         {% if short_sellings %}
@@ -1638,7 +1659,7 @@ document.querySelectorAll('.btn-view-uploaded-summary').forEach(el => {
                 <div id="content"></div>
                 <script>
                     const md = ${JSON.stringify(summary || '요약이 없습니다.')};
-                    document.getElementById('content').innerHTML = marked.parse(md);
+                    document.getElementById('content').innerHTML = marked.parse(md.replace(/~/g, '&#126;'));
                 <\/script>
             </body>
             </html>
@@ -1649,7 +1670,6 @@ document.querySelectorAll('.btn-view-uploaded-summary').forEach(el => {
 
 // ===== Marked.js options =====
 marked.setOptions({ breaks: true, gfm: true, headerIds: false, mangle: false });
-
 // ===== Content rendering (HTML/markdown auto-detect, citation cleanup) =====
 function renderContent(rawId, markdownId) {
     const rawEl = document.getElementById(rawId);
@@ -1667,6 +1687,8 @@ function renderContent(rawId, markdownId) {
             if (htmlTagPattern.test(content)) {
                 markdownEl.innerHTML = content;
             } else {
+                // ~취소선 방지: 파싱 전 ~를 이스케이프하고 파싱 후 복원
+                content = content.replace(/~/g, '&#126;');
                 markdownEl.innerHTML = marked.parse(content);
             }
         } else {
@@ -1683,6 +1705,7 @@ renderContent('analysisRaw', 'analysisMarkdown');
 renderContent('finAnalysisV2Raw', 'finAnalysisV2Markdown');
 renderContent('consensusAnalysisRaw', 'consensusAnalysisMarkdown');
 renderContent('quarterAnalysisRaw', 'quarterAnalysisMarkdown');
+renderContent('sdAnalysisRaw', 'sdAnalysisMarkdown');
 
 // ===== 메모 인라인 편집 =====
 document.getElementById('btnMemoEdit').addEventListener('click', () => {
@@ -1838,37 +1861,220 @@ document.getElementById('btnBriefingSave').addEventListener('click', async () =>
     }
 });
 
-// 핵심 브리핑 프롬프트 복사
-const btnCopyBriefingPrompt = document.getElementById('btnCopyBriefingPrompt');
-btnCopyBriefingPrompt.addEventListener('click', async () => {
-    const originalText = btnCopyBriefingPrompt.textContent;
-    btnCopyBriefingPrompt.textContent = '로딩...';
-    btnCopyBriefingPrompt.style.background = '#f3f4f6';
-    btnCopyBriefingPrompt.style.color = 'var(--text-secondary)';
-
+// ===== 수급분석 인라인 편집 =====
+document.getElementById('btnSdAnalysisEdit').addEventListener('click', () => {
+    document.getElementById('sdAnalysisViewMode').classList.add('d-none');
+    document.getElementById('sdAnalysisEditMode').classList.remove('d-none');
+    document.getElementById('sdAnalysisTextarea').focus();
+});
+document.getElementById('btnSdAnalysisCancel').addEventListener('click', () => {
+    document.getElementById('sdAnalysisEditMode').classList.add('d-none');
+    document.getElementById('sdAnalysisViewMode').classList.remove('d-none');
+});
+document.getElementById('btnSdAnalysisSave').addEventListener('click', async () => {
+    const btn = document.getElementById('btnSdAnalysisSave');
+    const text = document.getElementById('sdAnalysisTextarea').value;
+    btn.disabled = true;
+    btn.textContent = '저장 중...';
     try {
-        const response = await fetch(`/api/stock/${stockCode}/data-loader-with-summary/`);
-        const data = await response.json();
-
+        const formData = new FormData();
+        formData.append('supply_demand_analysis', text);
+        const resp = await fetch(`/api/stock/${stockCode}/supply-demand-analysis/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: formData
+        });
+        const data = await resp.json();
         if (data.success) {
-            await copyToClipboard(data.data);
-            btnCopyBriefingPrompt.textContent = '복사됨!';
-            setTimeout(() => {
-                btnCopyBriefingPrompt.textContent = originalText;
-                btnCopyBriefingPrompt.style.background = '#ecfdf5';
-                btnCopyBriefingPrompt.style.color = '#059669';
-            }, 1500);
+            document.getElementById('sdAnalysisRaw').textContent = text;
+            renderContent('sdAnalysisRaw', 'sdAnalysisMarkdown');
+            const dateEl = document.getElementById('sdAnalysisUpdatedAt');
+            if (dateEl) {
+                dateEl.textContent = 'update: ' + data.updated_at;
+            } else {
+                const heading = document.getElementById('btnSdAnalysisEdit').closest('.brief-card').previousElementSibling;
+                const span = document.createElement('span');
+                span.id = 'sdAnalysisUpdatedAt';
+                span.style.cssText = 'font-size:0.68rem;font-weight:400;color:var(--text-muted);';
+                span.textContent = 'update: ' + data.updated_at;
+                heading.appendChild(span);
+            }
+            document.getElementById('sdAnalysisEditMode').classList.add('d-none');
+            document.getElementById('sdAnalysisViewMode').classList.remove('d-none');
         } else {
-            alert('데이터 조회 실패');
-            btnCopyBriefingPrompt.textContent = originalText;
-            btnCopyBriefingPrompt.style.background = '#ecfdf5';
-            btnCopyBriefingPrompt.style.color = '#059669';
+            alert('저장 실패');
         }
     } catch (err) {
         alert('오류: ' + err.message);
-        btnCopyBriefingPrompt.textContent = originalText;
-        btnCopyBriefingPrompt.style.background = '#ecfdf5';
-        btnCopyBriefingPrompt.style.color = '#059669';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '저장';
+    }
+});
+
+// 수급분석 프롬프트 복사
+const sdPromptData = {{ supply_demand_prompt_data|safe }};
+const ssPromptData = {{ short_selling_prompt_data|safe }};
+document.getElementById('btnCopySdAnalysisPrompt').addEventListener('click', async () => {
+    const btn = document.getElementById('btnCopySdAnalysisPrompt');
+    const promptTemplate = `{{ saved_prompts.prompt_supply_demand_analysis|default:""|escapejs }}`;
+    if (!promptTemplate) { alert('설정 → 프롬프트 → 수급분석에서 프롬프트를 먼저 등록하세요.'); return; }
+
+    // === 수급 데이터 ===
+    const data60 = sdPromptData.slice(0, 60);
+    const dataAsc = [...data60].reverse();
+
+    const foreignTotal = data60.reduce((s, d) => s + d.foreign, 0);
+    const institutionTotal = data60.reduce((s, d) => s + d.institution, 0);
+
+    // 주별 합산
+    const weeks = [];
+    for (let i = 0; i < dataAsc.length; i += 7) {
+        const chunk = dataAsc.slice(i, i + 7);
+        const startDate = chunk[0].date;
+        const endDate = chunk[chunk.length - 1].date;
+        const wForeign = chunk.reduce((s, d) => s + d.foreign, 0);
+        const wInstitution = chunk.reduce((s, d) => s + d.institution, 0);
+        weeks.push(`${startDate}~${endDate.slice(5)}, ${wForeign.toLocaleString()}, ${wInstitution.toLocaleString()}`);
+    }
+    const weeklyText = weeks.join('\n');
+
+    const recent5 = data60.slice(0, 5).reverse();
+    const dailyText = recent5.map(d =>
+        `${d.date}, ${d.foreign.toLocaleString()}, ${d.institution.toLocaleString()}, ${d.volume.toLocaleString()}`
+    ).join('\n');
+
+    // === 공매도 데이터 ===
+    const ss60 = ssPromptData.slice(0, 60);
+    const ssAsc = [...ss60].reverse();
+
+    // 요약 통계
+    const avgWeight = ss60.length ? (ss60.reduce((s, d) => s + d.trading_weight, 0) / ss60.length).toFixed(2) : '0';
+    let maxWeight = 0, maxDate = '', minWeight = 999, minDate = '';
+    ss60.forEach(d => {
+        if (d.trading_weight > maxWeight) { maxWeight = d.trading_weight; maxDate = d.date; }
+        if (d.trading_weight < minWeight) { minWeight = d.trading_weight; minDate = d.date; }
+    });
+    const totalShortValue = ss60.reduce((s, d) => s + d.short_trading_value, 0);
+
+    // 주별 합산
+    const ssWeeks = [];
+    for (let i = 0; i < ssAsc.length; i += 7) {
+        const chunk = ssAsc.slice(i, i + 7);
+        const startDate = chunk[0].date;
+        const endDate = chunk[chunk.length - 1].date;
+        const wVolume = chunk.reduce((s, d) => s + d.short_volume, 0);
+        const wAvgWeight = (chunk.reduce((s, d) => s + d.trading_weight, 0) / chunk.length).toFixed(2);
+        ssWeeks.push(`${startDate}~${endDate.slice(5)}, ${wVolume.toLocaleString()}, ${wAvgWeight}%`);
+    }
+    const ssWeeklyText = ssWeeks.join('\n');
+
+    // 최근 5일 일별
+    const ssRecent5 = ss60.slice(0, 5).reverse();
+    const ssDailyText = ssRecent5.map(d =>
+        `${d.date}, ${d.short_volume.toLocaleString()}, ${d.trading_weight}%, ${d.short_trading_value.toLocaleString()}, ${d.short_average_price.toLocaleString()}`
+    ).join('\n');
+
+    // === 치환 ===
+    let prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
+    prompt = prompt.replace(/\{외국인누적\}/g, foreignTotal.toLocaleString());
+    prompt = prompt.replace(/\{기관누적\}/g, institutionTotal.toLocaleString());
+    prompt = prompt.replace(/\{주별수급데이터\}/g, weeklyText);
+    prompt = prompt.replace(/\{일별수급데이터\}/g, dailyText);
+    prompt = prompt.replace(/\{공매도평균비중\}/g, avgWeight);
+    prompt = prompt.replace(/\{공매도최고비중\}/g, String(maxWeight));
+    prompt = prompt.replace(/\{공매도최고일자\}/g, maxDate);
+    prompt = prompt.replace(/\{공매도최저비중\}/g, String(minWeight));
+    prompt = prompt.replace(/\{공매도최저일자\}/g, minDate);
+    prompt = prompt.replace(/\{공매도누적대금\}/g, totalShortValue.toLocaleString());
+    prompt = prompt.replace(/\{주별공매도데이터\}/g, ssWeeklyText);
+    prompt = prompt.replace(/\{일별공매도데이터\}/g, ssDailyText);
+
+    try {
+        await copyToClipboard(prompt);
+        const original = btn.textContent;
+        btn.textContent = '복사됨!';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+    } catch (err) {
+        alert('복사 실패: ' + err.message);
+    }
+});
+
+// 핵심 브리핑 프롬프트 복사
+const btnCopyBriefingPrompt = document.getElementById('btnCopyBriefingPrompt');
+const briefingData = {{ briefing_data|safe }};
+btnCopyBriefingPrompt.addEventListener('click', async () => {
+    const btn = btnCopyBriefingPrompt;
+    const promptTemplate = `{{ saved_prompts.prompt_briefing|default:""|escapejs }}`;
+    if (!promptTemplate) { alert('설정 → 프롬프트 → 핵심브리핑에서 프롬프트를 먼저 등록하세요.'); return; }
+
+    let prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
+
+    // 대분류/소분류
+    if (themeName) {
+        prompt = prompt.replace(/\{대분류\}/g, themeCategoryName);
+        prompt = prompt.replace(/\{소분류\}/g, themeName);
+    } else {
+        prompt = prompt.replace(/이 회사의 업종 분류:[\s\S]*?(?=---)/g, '');
+    }
+
+    // 기업분석기준분기
+    if (briefingData.base_quarter) {
+        prompt = prompt.replace(/\{기업분석기준분기\}/g, briefingData.base_quarter);
+    }
+
+    // 분석 데이터 치환 (없으면 해당 블록 삭제)
+    const analysisMap = {
+        '{재무분석}': briefingData.financial_analysis,
+        '{컨센서스분석}': briefingData.consensus_analysis,
+        '{밸류에이션분석}': briefingData.valuation_analysis,
+        '{업황매크로분석}': briefingData.macro_analysis,
+        '{이벤트분석}': briefingData.event_analysis,
+        '{경쟁사분석}': briefingData.competitor_analysis,
+    };
+    for (const [placeholder, value] of Object.entries(analysisMap)) {
+        if (value) {
+            prompt = prompt.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value);
+        } else {
+            // 해당 블록([제목] ~ ※ 줄) 삭제
+            const label = placeholder.slice(1, -1);
+            prompt = prompt.replace(new RegExp(`\\[${label.replace(/[/]/g, '\\/')}\\]\\n.*\\n※[^\\n]*\\n?`, 'g'), '');
+        }
+    }
+
+    // 참고자료 섹션: 모든 분석이 비어있으면 섹션 전체 삭제
+    if (!briefingData.financial_analysis && !briefingData.consensus_analysis &&
+        !briefingData.valuation_analysis && !briefingData.macro_analysis &&
+        !briefingData.event_analysis && !briefingData.competitor_analysis) {
+        prompt = prompt.replace(/## 참고자료[\s\S]*?(?=---\n\n## 직접|---\n\n## 출력)/g, '');
+    }
+
+    // 노다지
+    if (briefingData.nodaji) {
+        prompt = prompt.replace(/\{노다지\}/g, briefingData.nodaji);
+    } else {
+        prompt = prompt.replace(/\[노다지[^\]]*\]\n.*\n※[^\n]*\n?/g, '');
+    }
+
+    // 리포트 요약
+    if (briefingData.report_summary) {
+        prompt = prompt.replace(/\{리포트요약\}/g, briefingData.report_summary);
+    } else {
+        prompt = prompt.replace(/\[리포트[^\]]*\]\n.*\n※[^\n]*\n?/g, '');
+    }
+
+    // 직접 수집 자료 섹션: 노다지+리포트 모두 비어있으면 삭제
+    if (!briefingData.nodaji && !briefingData.report_summary) {
+        prompt = prompt.replace(/## 직접 수집 자료[\s\S]*?(?=---\n\n## 출력)/g, '');
+    }
+
+    try {
+        await copyToClipboard(prompt);
+        const original = btn.textContent;
+        btn.textContent = '복사됨!';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+    } catch (err) {
+        alert('복사 실패: ' + err.message);
     }
 });
 
@@ -3486,7 +3692,7 @@ document.querySelectorAll('.btn-view-file-report-summary').forEach(btn => {
                 <div id="content"></div>
                 <script>
                     const md = ${JSON.stringify(summary || '요약이 없습니다.')};
-                    document.getElementById('content').innerHTML = marked.parse(md);
+                    document.getElementById('content').innerHTML = marked.parse(md.replace(/~/g, '&#126;'));
                 <\/script>
             </body>
             </html>

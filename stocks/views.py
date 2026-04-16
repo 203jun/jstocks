@@ -1045,6 +1045,19 @@ def stock_detail(request, code):
         'investor_chart_data': json.dumps(investor_chart_data),
         'investor_trends_daum': investor_trends_daum,
         'investor_chart_data_daum': json.dumps(investor_chart_data_daum),
+        'supply_demand_prompt_data': json.dumps([{
+            'date': t.date.strftime('%Y-%m-%d'),
+            'foreign': t.daum_foreign or 0,
+            'institution': t.daum_institution or 0,
+            'volume': t.trading_volume or 0,
+        } for t in investor_trends_daum]),
+        'short_selling_prompt_data': json.dumps([{
+            'date': s.date.strftime('%Y-%m-%d'),
+            'short_volume': s.short_volume,
+            'trading_weight': float(s.trading_weight),
+            'short_trading_value': s.short_trading_value,
+            'short_average_price': s.short_average_price,
+        } for s in short_sellings]),
         'short_sellings': short_sellings,
         'news_articles': news_articles,
         'telegram_messages': telegram_messages,
@@ -1060,8 +1073,59 @@ def stock_detail(request, code):
         'ma10_value': ma10_value,
         'ma20_value': ma20_value,
         'ma60_value': ma60_value,
+        'briefing_data': _build_briefing_data(stock, question_reports, nodaji_list, reports),
     }
     return render(request, 'stocks/stock_detail.html', context)
+
+
+def _build_briefing_data(stock, question_reports, nodaji_list, reports):
+    """핵심브리핑 프롬프트용 데이터 구성"""
+    from .models import IncomeStatement
+    import json
+
+    data = {}
+
+    # 기업분석기준분기: 포괄손익계산서 최신 비추정 분기
+    latest_quarters = IncomeStatement.objects.filter(
+        stock=stock, quarter__isnull=False
+    ).order_by('-year', '-quarter')
+    base_quarter = ''
+    for q in latest_quarters:
+        if not q.is_estimated:
+            base_quarter = f"{q.year}/{q.quarter}"
+            break
+    data['base_quarter'] = base_quarter
+
+    # 재무분석, 컨센서스분석 (모델 필드)
+    data['financial_analysis'] = stock.financial_analysis_v2 or ''
+    data['consensus_analysis'] = stock.consensus_analysis or ''
+
+    # 리서치 기반 분석 (질문명으로 매칭)
+    qr_map = {}
+    for qr in question_reports:
+        qr_map[qr.question] = qr.report or ''
+
+    data['valuation_analysis'] = qr_map.get('밸류에이션', '')
+    data['macro_analysis'] = qr_map.get('업황/매크로', '')
+    data['event_analysis'] = qr_map.get('향후 이벤트', '')
+    data['competitor_analysis'] = qr_map.get('경쟁사', '')
+
+    # 노다지 요약
+    parts = []
+    for n in nodaji_list[:5]:
+        if n.summary:
+            parts.append(f"[{n.date.strftime('%Y-%m-%d') if n.date else '-'}] {n.title}\n{n.summary}")
+    data['nodaji'] = '\n\n---\n\n'.join(parts)
+
+    # 리포트 요약
+    report_parts = []
+    for r in reports[:10]:
+        if r.summary:
+            date_str = r.date.strftime('%Y-%m-%d') if r.date else '-'
+            report_parts.append(f"[{date_str}] {r.securities_firm or ''} - {r.title or ''}\n{r.summary}")
+    data['report_summary'] = '\n\n---\n\n'.join(report_parts)
+
+    return json.dumps(data, ensure_ascii=False)
 
 
 def run_fav_commands(stock_code, action):
@@ -5910,6 +5974,8 @@ def stock_question_report_detail(request, report_id):
 
     # 공통리서치용 노다지 요약 (6개월 이내, 요약 있는 것만)
     nodaji_summaries = ''
+    theme_category_name = ''
+    theme_name = ''
     if qr.stock:
         from .models import Nodaji
         from datetime import date, timedelta
@@ -5925,10 +5991,60 @@ def stock_question_report_detail(request, report_id):
             parts.append(f"[{n.date.strftime('%Y-%m-%d') if n.date else '-'}] {n.title}\n{n.summary}")
         nodaji_summaries = '\n\n---\n\n'.join(parts)
 
+        # 대분류/소분류
+        first_theme = qr.stock.themes.select_related('category').first()
+        if first_theme:
+            theme_category_name = first_theme.category.name
+            theme_name = first_theme.name
+
+    # 밸류에이션용 데이터
+    stock_current_price = ''
+    consensus_eps = ''
+    consensus_op = ''
+    consensus_quarter_op = ''
+    if qr.stock:
+        from .models import Consensus
+        from datetime import date
+        today = date.today()
+        current_year = today.year
+
+        if qr.stock.current_price:
+            stock_current_price = str(qr.stock.current_price)
+
+        # 올해 연간 컨센서스
+        annual = Consensus.objects.filter(
+            stock=qr.stock, year=current_year, quarter__isnull=True
+        ).first()
+        if annual:
+            if annual.eps is not None:
+                consensus_eps = str(annual.eps)
+            if annual.operating_profit is not None:
+                consensus_op = str(int(annual.operating_profit))
+
+        # 다음 분기 컨센서스 (현재 분기 또는 그 다음)
+        current_q = (today.month - 1) // 3 + 1
+        quarter_cons = Consensus.objects.filter(
+            stock=qr.stock, year=current_year,
+            quarter__isnull=False, quarter__gte=str(current_q)
+        ).order_by('quarter').first()
+        if not quarter_cons and current_q < 4:
+            quarter_cons = Consensus.objects.filter(
+                stock=qr.stock, year=current_year,
+                quarter__isnull=False, quarter__gt=str(current_q)
+            ).order_by('quarter').first()
+        if quarter_cons and quarter_cons.operating_profit is not None:
+            consensus_quarter_op = str(int(quarter_cons.operating_profit))
+
     return render(request, 'stocks/question_report_detail.html', {
         'qr': qr,
         'research_prompts': research_prompts,
         'nodaji_summaries': nodaji_summaries,
+        'theme_category_name': theme_category_name,
+        'theme_name': theme_name,
+        'stock_current_price': stock_current_price,
+        'consensus_eps': consensus_eps,
+        'consensus_op': consensus_op,
+        'consensus_quarter_op': consensus_quarter_op,
     })
 
 
@@ -6786,6 +6902,19 @@ def stock_key_briefing_save(request, code):
         stock.key_briefing_updated_at = date.today()
         stock.save(update_fields=['key_briefing', 'key_briefing_updated_at'])
     return JsonResponse({'success': True, 'updated_at': stock.key_briefing_updated_at.strftime('%Y-%m-%d') if stock.key_briefing_updated_at else ''})
+
+
+@require_POST
+def stock_supply_demand_analysis_save(request, code):
+    """종목 수급분석 저장 API"""
+    from datetime import date
+    stock = get_object_or_404(Info, code=code)
+    text = request.POST.get('supply_demand_analysis', '').strip()
+    if text != (stock.supply_demand_analysis or '').strip():
+        stock.supply_demand_analysis = text
+        stock.supply_demand_analysis_updated_at = date.today()
+        stock.save(update_fields=['supply_demand_analysis', 'supply_demand_analysis_updated_at'])
+    return JsonResponse({'success': True, 'updated_at': stock.supply_demand_analysis_updated_at.strftime('%Y-%m-%d') if stock.supply_demand_analysis_updated_at else ''})
 
 
 @require_POST

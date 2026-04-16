@@ -214,6 +214,20 @@ class Info(models.Model):
         help_text='핵심 브리핑 마지막 수정일'
     )
 
+    # === 수급분석 ===
+    supply_demand_analysis = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='수급분석',
+        help_text='수급분석 내용 (마크다운 형식)'
+    )
+    supply_demand_analysis_updated_at = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='수급분석 업데이트일',
+        help_text='수급분석 마지막 수정일'
+    )
+
     # === 재무분석 ===
     financial_analysis = models.TextField(
         blank=True,

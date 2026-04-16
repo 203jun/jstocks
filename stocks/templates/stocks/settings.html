@@ -379,6 +379,7 @@ small.text-muted {
             <button class="prompt-sub-tab" data-target="nodaji-panel" id="nodaji-tab">노다지</button>
             <button class="prompt-sub-tab" data-target="youtube-prompt-panel" id="youtube-prompt-tab">유튜브</button>
             <button class="prompt-sub-tab" data-target="news-prompt-panel" id="news-prompt-tab">뉴스</button>
+            <button class="prompt-sub-tab" data-target="supply-demand-analysis-prompt-panel" id="supply-demand-analysis-prompt-tab">수급분석</button>
         </div>
 
         <div id="promptTabContent">
@@ -422,24 +423,8 @@ small.text-muted {
                         <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">핵심브리핑 프롬프트</span>
                         <button type="button" class="btn-refresh" id="btnSaveBriefingPrompt">저장</button>
                     </div>
-                    <div class="info-box"><small><strong>사용:</strong> 종목 편집 → 핵심 브리핑 → <code>프롬프트 복사</code> 버튼을 사용하세요.<br>아래 프롬프트가 데이터 앞에 추가됩니다.</small></div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">불러올 데이터 선택</label>
-                        <div class="row">
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkAnalysis" value="analysis" {% if 'analysis' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkAnalysis">기업분석</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkKeyBriefing" value="key_briefing" {% if 'key_briefing' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkKeyBriefing">핵심브리핑</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkNodaji" value="nodaji" {% if 'nodaji' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkNodaji">노다지 (5개)</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkReport" value="report" {% if 'report' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkReport">리포트 (10개)</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkYoutube" value="youtube" {% if 'youtube' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkYoutube">유튜브 (10개)</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkNews" value="news" {% if 'news' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkNews">뉴스 (10개)</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkTelegram" value="telegram" {% if 'telegram' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkTelegram">텔레그램 (10개)</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkMemo" value="memo" {% if 'memo' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkMemo">메모</label></div></div>
-                            <div class="col-6 col-md-4"><div class="form-check"><input class="form-check-input data-loader-check" type="checkbox" id="chkResearch" value="research" {% if 'research' in briefing_data_types %}checked{% endif %}><label class="form-check-label" for="chkResearch">리서치 (10개)</label></div></div>
-                        </div>
-                    </div>
-                    <label class="form-label small fw-bold">프롬프트</label>
-                    <textarea class="form-control" id="promptBriefing" rows="10" placeholder="핵심브리핑 생성 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_briefing }}</textarea>
-                    <small class="text-muted">이 프롬프트가 종목 데이터 앞에 추가되어 복사됩니다.</small>
+                    <div class="info-box"><small><strong>사용:</strong> 기본정보 탭 → 핵심 브리핑 → 프롬프트 복사<br><strong>기능:</strong> 종목명과 함께 핵심브리핑용 프롬프트 복사</small></div>
+                    <textarea class="form-control" id="promptBriefing" rows="10" placeholder="핵심브리핑용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_briefing }}</textarea>
                 </div>
             </div>
             <!-- 리서치 -->
@@ -486,6 +471,17 @@ small.text-muted {
                     </div>
                     <div class="info-box"><small><strong>사용:</strong> 기업분석 탭 → 재무분석 → 프롬프트 복사<br><strong>기능:</strong> 재무 데이터(포괄손익계산서, 재무상태표, 현금흐름표 등)를 기반으로 재무분석 작성</small></div>
                     <textarea class="form-control" id="promptFinAnalysis" rows="10" placeholder="재무분석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_fin_analysis }}</textarea>
+                </div>
+            </div>
+            <!-- 수급분석 프롬프트 -->
+            <div class="prompt-panel" id="supply-demand-analysis-prompt-panel" style="display:none;">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">수급분석 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="btnSaveSupplyDemandAnalysisPrompt">저장</button>
+                    </div>
+                    <div class="info-box"><small><strong>사용:</strong> 수급 탭 → 수급분석 → 프롬프트 복사<br><strong>기능:</strong> 종목명과 함께 수급분석용 프롬프트 복사</small></div>
+                    <textarea class="form-control" id="promptSupplyDemandAnalysis" rows="10" placeholder="수급분석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_supply_demand_analysis }}</textarea>
                 </div>
             </div>
             <!-- 컨센서스분석 프롬프트 -->
@@ -1110,6 +1106,12 @@ document.getElementById('btnSaveFinAnalysisPrompt').addEventListener('click', fu
     savePrompt('prompt_fin_analysis', value, this);
 });
 
+// 수급분석 프롬프트 저장
+document.getElementById('btnSaveSupplyDemandAnalysisPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptSupplyDemandAnalysis').value;
+    savePrompt('prompt_supply_demand_analysis', value, this);
+});
+
 // 컨센서스분석 프롬프트 저장
 document.getElementById('btnSaveConsensusAnalysisPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptConsensusAnalysis').value;
@@ -1135,35 +1137,9 @@ document.getElementById('btnSaveNewsPrompt').addEventListener('click', function(
 });
 
 // === 핵심브리핑 탭 ===
-document.getElementById('btnSaveBriefingPrompt').addEventListener('click', async function() {
-    const btn = this;
-    btn.disabled = true;
-    btn.textContent = '저장 중...';
-
-    try {
-        // 프롬프트 저장
-        const promptValue = document.getElementById('promptBriefing').value;
-        await savePromptAsync('prompt_briefing', promptValue);
-
-        // 체크박스 상태 저장
-        const checkedTypes = Array.from(document.querySelectorAll('.data-loader-check:checked'))
-            .map(cb => cb.value).join(',');
-        await savePromptAsync('briefing_data_types', checkedTypes);
-
-        btn.textContent = '저장됨!';
-        btn.classList.remove('btn-primary');
-        btn.classList.add('btn-success');
-        setTimeout(() => {
-            btn.textContent = '저장';
-            btn.classList.remove('btn-success');
-            btn.classList.add('btn-primary');
-        }, 1500);
-    } catch (err) {
-        alert('저장 실패: ' + err.message);
-        btn.textContent = '저장';
-    } finally {
-        btn.disabled = false;
-    }
+document.getElementById('btnSaveBriefingPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptBriefing').value;
+    savePrompt('prompt_briefing', value, this);
 });
 
 // 비동기 프롬프트 저장 함수
