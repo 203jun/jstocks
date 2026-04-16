@@ -137,6 +137,28 @@ const preview = document.getElementById('preview');
 
 marked.setOptions({ breaks: true });
 
+function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+    }
+    return new Promise((resolve, reject) => {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            resolve();
+        } catch (err) {
+            reject(err);
+        } finally {
+            document.body.removeChild(textarea);
+        }
+    });
+}
+
 function updatePreview() {
     let content = reportInput.value;
     const type = reportType.value;
@@ -205,7 +227,7 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
         }
         document.getElementById('questionInput').value = question;
         try {
-            await navigator.clipboard.writeText(prompt);
+            await copyToClipboard(prompt);
             const orig = btn.textContent;
             btn.textContent = '복사됨!';
             btn.style.borderColor = '#28a745';
