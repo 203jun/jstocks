@@ -1516,19 +1516,13 @@
             <button type="button" id="btnYtAdd" class="btn-refresh" style="padding:6px 16px;">추가</button>
         </div>
         <!-- 추가 폼 -->
-        <div id="ytAddForm" class="d-none" style="margin-bottom:20px; padding:16px; background:#f9fafb; border-radius:8px;">
+        <div id="ytAddForm" class="d-none" style="margin-bottom:20px; padding:16px; background:var(--bg-secondary, #f9fafb); border-radius:8px;">
             <div style="margin-bottom:10px;">
                 <input type="text" id="ytLinkInput" class="form-control form-control-sm" placeholder="유튜브 링크 붙여넣기...">
             </div>
-            <div style="margin-bottom:10px;">
-                <input type="text" id="ytNoteInput" class="form-control form-control-sm" placeholder="한줄 메모 (선택)">
-            </div>
-            <div style="margin-bottom:10px;">
-                <textarea id="ytSummaryInput" class="form-control form-control-sm" rows="3" placeholder="요약 내용 입력..."></textarea>
-            </div>
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" id="btnYtCancel" class="btn-refresh" style="padding:6px 16px;">취소</button>
-                <button type="button" id="btnYtSave" class="btn-refresh" style="padding:6px 16px;">저장</button>
+                <button type="button" id="btnYtSave" class="btn-refresh" style="padding:6px 16px;">추가</button>
             </div>
         </div>
         <!-- 타임라인 -->
@@ -2796,7 +2790,6 @@ const ytEmpty = document.getElementById('ytEmpty');
 const btnYtAdd = document.getElementById('btnYtAdd');
 const ytAddForm = document.getElementById('ytAddForm');
 const ytLinkInput = document.getElementById('ytLinkInput');
-const ytSummaryInput = document.getElementById('ytSummaryInput');
 const btnYtSave = document.getElementById('btnYtSave');
 const btnYtCancel = document.getElementById('btnYtCancel');
 
@@ -2809,8 +2802,6 @@ btnYtCancel.addEventListener('click', () => {
     ytAddForm.classList.add('d-none');
     btnYtAdd.classList.remove('d-none');
     ytLinkInput.value = '';
-    document.getElementById('ytNoteInput').value = '';
-    ytSummaryInput.value = '';
 });
 
 function formatDateLabel(dateStr) {
@@ -2923,17 +2914,14 @@ btnYtMore.addEventListener('click', () => loadYtTimeline(false));
 
 btnYtSave.addEventListener('click', async () => {
     const link = ytLinkInput.value.trim();
-    const summary = ytSummaryInput.value.trim();
     if (!link) { alert('유튜브 링크를 입력하세요.'); return; }
 
     btnYtSave.disabled = true;
-    btnYtSave.textContent = '저장 중...';
+    btnYtSave.textContent = '추가 중...';
     try {
         const formData = new FormData();
         formData.append('stock_code', stockCode);
         formData.append('link', link);
-        formData.append('note', document.getElementById('ytNoteInput').value.trim());
-        formData.append('summary', summary);
         const resp = await fetch('/api/youtube/video/save-by-link/', {
             method: 'POST',
             headers: { 'X-CSRFToken': '{{ csrf_token }}' },
@@ -2943,17 +2931,13 @@ btnYtSave.addEventListener('click', async () => {
         if (data.error) {
             alert(data.error);
         } else {
-            ytLinkInput.value = '';
-            ytSummaryInput.value = '';
-            ytAddForm.classList.add('d-none');
-            btnYtAdd.classList.remove('d-none');
-            loadYtTimeline(true);
+            location.href = `/youtube/${data.id}/summary/`;
         }
     } catch (err) {
         alert('오류: ' + err.message);
     } finally {
         btnYtSave.disabled = false;
-        btnYtSave.textContent = '저장';
+        btnYtSave.textContent = '추가';
     }
 });
 

@@ -5889,7 +5889,6 @@ def youtube_video_save_by_link(request):
         if not title:
             return JsonResponse({'error': '영상 정보를 가져올 수 없습니다.'}, status=400)
 
-        note = request.POST.get('note', '').strip()
         summary = request.POST.get('summary', '').strip()
 
         video = YoutubeVideo.objects.create(
@@ -5900,7 +5899,6 @@ def youtube_video_save_by_link(request):
             thumbnail=thumbnail,
             views=views,
             published=published,
-            note=note,
             summary=summary,
         )
 
@@ -8440,7 +8438,6 @@ def sector_youtube_video_save_by_link(request):
 
     sector_id = request.POST.get('sector_id', '').strip()
     link = request.POST.get('link', '').strip()
-    note = request.POST.get('note', '').strip()
     summary = request.POST.get('summary', '').strip()
 
     if not sector_id or not link:
@@ -8556,7 +8553,6 @@ def sector_youtube_video_save_by_link(request):
             thumbnail=thumbnail,
             views=views,
             published=published,
-            note=note,
             summary=summary,
         )
 
