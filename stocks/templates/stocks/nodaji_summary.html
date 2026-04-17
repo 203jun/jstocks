@@ -22,6 +22,8 @@
 #summary:focus { border-color: #2962ff; outline: none; box-shadow: 0 0 0 2px rgba(41,98,255,0.1); }
 .form-control { border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.85rem; color:var(--text-primary); }
 .form-control:focus { border-color:#2962ff; box-shadow:0 0 0 2px rgba(41,98,255,0.1); }
+.prompt-badge { display:inline-block; padding:3px 10px; border-radius:4px; font-size:0.72rem; font-weight:500; cursor:pointer; background:#ecfdf5; color:#059669; transition:all 0.15s; }
+.prompt-badge:hover { background:#d1fae5; }
 {% endblock %}
 
 {% block content %}
@@ -58,11 +60,11 @@
 
 <form method="post">
     {% csrf_token %}
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">요약 편집<span style="display:flex;gap:6px;font-weight:400;"><button type="submit" class="btn-refresh">저장</button></span></h5>
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">요약 편집<span style="display:flex;gap:6px;font-weight:400;align-items:center;"><span class="prompt-badge" role="button" id="btnCopyNodajiPrompt">프롬프트 복사</span><button type="submit" class="btn-refresh">저장</button></span></h5>
     <div class="brief-card">
         <div style="margin-bottom:16px;">
-            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">요약 내용 <small style="font-weight:400;color:var(--text-muted);">(HTML 지원)</small></div>
-            <textarea name="summary" id="summary" placeholder="HTML 형식으로 입력하세요...">{{ nodaji.summary }}</textarea>
+            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">요약 내용 <small style="font-weight:400;color:var(--text-muted);">(마크다운 지원)</small></div>
+            <textarea name="summary" id="summary" placeholder="마크다운 형식으로 입력하세요...">{{ nodaji.summary }}</textarea>
         </div>
         <div>
             <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">내생각</div>
@@ -77,11 +79,44 @@
 const textarea = document.getElementById('summary');
 const preview = document.getElementById('preview');
 
+function parseMd(text) {
+    let html = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+    html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
+    html = html.replace(/`(.+?)`/g, '<code style="background:#e5e7eb;padding:1px 4px;border-radius:3px;font-size:0.82rem;">$1</code>');
+    html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" style="color:#2962ff;">$1</a>');
+    html = html.replace(/(?<!")(?<!')(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" style="color:#2962ff;">$1</a>');
+    html = html.replace(/\n/g, '<br>');
+    return html;
+}
+
 function updatePreview() {
-    preview.innerHTML = textarea.value || '';
+    const text = textarea.value || '';
+    preview.innerHTML = text ? parseMd(text) : '';
 }
 
 textarea.addEventListener('input', updatePreview);
 updatePreview();
+
+// 프롬프트 복사
+const btnCopyPrompt = document.getElementById('btnCopyNodajiPrompt');
+const nodajiPrompt = "{{ nodaji_prompt|escapejs }}";
+
+btnCopyPrompt.addEventListener('click', async () => {
+    if (!nodajiPrompt) {
+        alert('세팅에 노다지 프롬프트가 설정되어 있지 않습니다.');
+        return;
+    }
+    try {
+        await navigator.clipboard.writeText(nodajiPrompt);
+        const orig = btnCopyPrompt.textContent;
+        btnCopyPrompt.textContent = '복사됨!';
+        setTimeout(() => { btnCopyPrompt.textContent = orig; }, 1500);
+    } catch (e) {
+        alert('클립보드 복사 실패: ' + e.message);
+    }
+});
 </script>
 {% endblock %}

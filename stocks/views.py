@@ -2563,8 +2563,12 @@ def nodaji_summary(request, nodaji_id):
 
         return redirect('stocks:nodaji_summary', nodaji_id=nodaji_id)
 
+    from .models import SystemSetting
+    nodaji_prompt = SystemSetting.objects.filter(key='prompt_nodaji').values_list('value', flat=True).first() or ''
+
     return render(request, 'stocks/nodaji_summary.html', {
         'nodaji': nodaji,
+        'nodaji_prompt': nodaji_prompt,
     })
 
 
