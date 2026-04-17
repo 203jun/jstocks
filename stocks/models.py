@@ -1660,6 +1660,12 @@ class StockUploadedReport(models.Model):
         verbose_name='뉴스 링크',
         help_text='관련 뉴스 URL'
     )
+    my_opinion = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='내생각',
+        help_text='리포트에 대한 나의 의견'
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='생성일시'
@@ -1847,6 +1853,14 @@ class Report(models.Model):
         default='',
         verbose_name='뉴스 링크',
         help_text='관련 뉴스 URL'
+    )
+
+    # === 내생각 ===
+    my_opinion = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='내생각',
+        help_text='리포트에 대한 나의 의견'
     )
 
     # === 메타 정보 ===

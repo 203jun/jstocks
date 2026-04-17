@@ -73,6 +73,14 @@
     </div>
 </div>
 
+<!-- 내생각 -->
+{% if report.my_opinion %}
+<h5 class="section-heading">내생각</h5>
+<div class="brief-card">
+    <div style="font-size:0.88rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ report.my_opinion }}</div>
+</div>
+{% endif %}
+
 <!-- 미리보기 -->
 <h5 class="section-heading">미리보기</h5>
 <div class="brief-card" style="padding:0;">
@@ -106,9 +114,14 @@
             {% if report.news_url %}<div style="margin-top:4px;"><a href="{{ report.news_url }}" target="_blank" style="font-size:0.78rem;color:#2962ff;">{{ report.news_url|truncatechars:60 }}</a></div>{% endif %}
         </div>
         <!-- 마크다운 -->
-        <div>
+        <div style="margin-bottom:16px;">
             <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">요약 내용</div>
             <textarea name="summary" id="summary" placeholder="마크다운으로 요약 내용을 입력하세요...">{{ report.summary }}</textarea>
+        </div>
+        <!-- 내생각 -->
+        <div>
+            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">내생각</div>
+            <textarea name="my_opinion" rows="3" style="width:100%;font-size:0.85rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;color:var(--text-primary);line-height:1.7;resize:vertical;" placeholder="이 리포트에 대한 나의 의견...">{{ report.my_opinion }}</textarea>
         </div>
     </div>
 </form>
