@@ -2553,7 +2553,11 @@ def nodaji_summary(request, nodaji_id):
     nodaji = get_object_or_404(Nodaji, id=nodaji_id)
 
     if request.method == 'POST':
-        nodaji.summary = request.POST.get('summary', '')
+        import re
+        summary = request.POST.get('summary', '')
+        summary = re.sub(r'\[cite_start\]', '', summary)
+        summary = re.sub(r'\[cite:\s*[\d,\s]+\]', '', summary)
+        nodaji.summary = summary
         nodaji.my_opinion = request.POST.get('my_opinion', '')
         nodaji.save()
 
