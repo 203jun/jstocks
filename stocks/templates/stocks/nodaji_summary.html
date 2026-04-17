@@ -110,7 +110,18 @@ btnCopyPrompt.addEventListener('click', async () => {
         return;
     }
     try {
-        await navigator.clipboard.writeText(nodajiPrompt);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(nodajiPrompt);
+        } else {
+            const ta = document.createElement('textarea');
+            ta.value = nodajiPrompt;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        }
         const orig = btnCopyPrompt.textContent;
         btnCopyPrompt.textContent = '복사됨!';
         setTimeout(() => { btnCopyPrompt.textContent = orig; }, 1500);
