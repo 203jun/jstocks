@@ -6319,6 +6319,7 @@ def _parse_financial_table(raw_text, field_map, first_labels=None, int_fields=No
 INCOME_STATEMENT_FIELDS = {
     '매출액(수익)': 'revenue',
     '매출액': 'revenue',
+    '순영업이익': 'revenue',
     '매출원가': 'cost_of_revenue',
     '매출총이익': 'gross_profit',
     '판매비와관리비': 'sga_expense',
@@ -6330,13 +6331,19 @@ INCOME_STATEMENT_FIELDS = {
 
 BALANCE_SHEET_FIELDS = {
     '자산총계': 'total_assets',
+    '자산': 'total_assets',
     '현금및현금성자산': 'cash',
+    '현금및예치금': 'cash',
     '매출채권및기타채권': 'receivables',
+    '대출채권': 'receivables',
     '유형자산': 'tangible_assets',
     '부채총계': 'total_liabilities',
+    '부채': 'total_liabilities',
     '단기차입금': 'short_term_debt',
     '장기차입금': 'long_term_debt',
+    '차입부채': 'long_term_debt',
     '자본총계': 'total_equity',
+    '자본': 'total_equity',
     '이익잉여금': 'retained_earnings',
     '*이자발생부채': 'interest_bearing_debt',
     '*순부채': 'net_debt',
@@ -6382,6 +6389,7 @@ CASH_FLOW_FIELDS = {
     '영업활동으로인한현금흐름': 'operating_cash_flow',
     '당기순이익': 'net_income',
     '영업활동으로인한자산부채변동(운전자본변동)': 'working_capital_change',
+    '영업활동으로인한자산부채변동': 'working_capital_change',
     '이자지급(-)': 'interest_paid',
     '법인세납부(-)': 'tax_paid',
     '투자활동으로인한현금흐름': 'investing_cash_flow',
@@ -6403,7 +6411,8 @@ def income_statement_save(request, code):
         return JsonResponse({'success': False, 'error': '데이터가 비어있습니다.'})
 
     parsed, debug = _parse_financial_table(raw_text, INCOME_STATEMENT_FIELDS,
-                                             first_labels=['매출액', '매출원가', '*내수', '*수출'],
+                                             first_labels=['매출액', '매출원가', '*내수', '*수출',
+                                                           '순이자이익', '순수수료이익', '순영업이익'],
                                              int_fields={'eps'}, debug=True)
     if not parsed:
         return JsonResponse({'success': False, 'error': '파싱된 데이터가 없습니다.', 'debug': debug})
@@ -6482,7 +6491,8 @@ def balance_sheet_save(request, code):
         return JsonResponse({'success': False, 'error': '데이터가 비어있습니다.'})
 
     parsed, debug = _parse_financial_table(raw_text, BALANCE_SHEET_FIELDS,
-                                           first_labels=['자산총계', '유동자산', '비유동자산'],
+                                           first_labels=['자산총계', '유동자산', '비유동자산',
+                                                         '자산', '현금및예치금'],
                                            debug=True)
     if not parsed:
         return JsonResponse({'success': False, 'error': '파싱된 데이터가 없습니다.', 'debug': debug})
