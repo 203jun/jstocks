@@ -369,6 +369,10 @@ class Info(models.Model):
     sell_price = models.IntegerField(null=True, blank=True, verbose_name='매도가')
     buy_price_range = models.IntegerField(default=5, verbose_name='매수가 범위(%)')
     trade_updated_at = models.DateField(null=True, blank=True, verbose_name='매매근거 업데이트일')
+    recent_trade_judgment = models.TextField(
+        blank=True, default='', verbose_name='최근매매판별',
+        help_text='AI 매매 판단 결과 저장'
+    )
 
     @property
     def has_insight_and_analysis(self):
@@ -2575,11 +2579,18 @@ class News(models.Model):
     )
     title = models.CharField(
         max_length=500,
+        blank=True,
         verbose_name='제목'
     )
     link = models.URLField(
         max_length=1000,
+        blank=True,
         verbose_name='링크'
+    )
+    content = models.TextField(
+        blank=True,
+        verbose_name='내용',
+        help_text='텔레그램 메시지 등 본문'
     )
     source = models.CharField(
         max_length=100,
@@ -2609,10 +2620,9 @@ class News(models.Model):
         verbose_name = '뉴스'
         verbose_name_plural = '뉴스'
         ordering = ['-created_at']
-        unique_together = [('stock', 'link')]
 
     def __str__(self):
-        return f"{self.stock.name} - {self.title}"
+        return f"{self.stock.name} - {self.title or self.content[:30]}"
 
 
 class TelegramMessage(models.Model):
@@ -2736,11 +2746,18 @@ class SectorNews(models.Model):
     )
     title = models.CharField(
         max_length=500,
+        blank=True,
         verbose_name='제목'
     )
     link = models.URLField(
         max_length=1000,
+        blank=True,
         verbose_name='링크'
+    )
+    content = models.TextField(
+        blank=True,
+        verbose_name='내용',
+        help_text='텔레그램 메시지 등 본문'
     )
     source = models.CharField(
         max_length=100,
@@ -2770,10 +2787,9 @@ class SectorNews(models.Model):
         verbose_name = '섹터 뉴스'
         verbose_name_plural = '섹터 뉴스'
         ordering = ['-created_at']
-        unique_together = [('sector', 'link')]
 
     def __str__(self):
-        return f"{self.sector.name} - {self.title}"
+        return f"{self.sector.name} - {self.title or self.content[:30]}"
 
 
 class SectorYoutubeVideo(models.Model):

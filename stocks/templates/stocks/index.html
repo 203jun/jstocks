@@ -135,6 +135,8 @@
                 <tr class="status-row" data-level="{{ item.level }}" onclick="if(!event.target.closest('.signal-chart-btn'))location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <td style="padding-left:16px;">
                         <strong>{{ item.stock.name }}</strong>
+                        {% if item.stock.is_holding %}<span title="보유중">💰</span>{% endif %}
+                        {% if item.stock.is_tracking %}<span title="추적중">👀</span>{% endif %}
                     </td>
                     <td style="text-align:right;">
                         {% if item.stock.current_price %}{{ item.stock.current_price|intcomma }}{% else %}-{% endif %}

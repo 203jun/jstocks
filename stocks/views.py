@@ -923,8 +923,87 @@ def stock_detail(request, code):
     news_articles = sorted(News.objects.filter(stock=stock), key=parse_news_date_detail, reverse=True)
 
     # 저장된 텔레그램 메시지 (최신순)
-    from .models import TelegramMessage
+    from .models import TelegramMessage, Schedule
     telegram_messages = TelegramMessage.objects.filter(stock=stock).order_by('-date', '-time')
+
+    # 뉴스 프롬프트용 변수 (향후 이벤트 포함)
+    from datetime import date as _date, timedelta as _timedelta
+    from django.db.models import Q as _Q, Max as _Max, Min as _Min
+    _today = _date.today()
+    upcoming_schedules = Schedule.objects.filter(stock=stock).filter(
+        _Q(date_sort__gte=_today) | _Q(date_sort__isnull=True)
+    ).order_by('date_sort')
+    future_events_text = '\n'.join(
+        f"- {s.date_text}: {s.content}" for s in upcoming_schedules
+    )
+    news_prompt_vars = {
+        'stock_name': stock.name,
+        'stock_code': stock.code,
+        'sector_name': '',
+        'key_briefing': stock.key_briefing or '',
+        'financial_analysis': stock.financial_analysis_v2 or '',
+        'consensus_analysis': stock.consensus_analysis or '',
+        'future_events': future_events_text,
+    }
+
+    # 매매근거 프롬프트용 변수
+    _one_year_ago = _today - _timedelta(days=365)
+    _yearly = DailyChart.objects.filter(stock=stock, date__gte=_one_year_ago).aggregate(
+        high52=_Max('high_price'), low52=_Min('low_price')
+    )
+    _high52 = _yearly.get('high52')
+    _low52 = _yearly.get('low52')
+
+    # 최근 20거래일 수급 (날짜 최신 순으로 표시)
+    _supply_trends = investor_trends[:20]
+    if _supply_trends:
+        _supply_lines = ["날짜        | 외국인(주)   | 기관(주)     | 개인(주)"]
+        for t in _supply_trends:
+            _supply_lines.append(
+                f"{t.date.strftime('%Y-%m-%d')}  | {int(t.foreign or 0):>12,} | {int(t.institution or 0):>12,} | {int(t.individual or 0):>12,}"
+            )
+        _supply_text = '\n'.join(_supply_lines)
+    else:
+        _supply_text = ''
+
+    # 최근 20거래일 공매도
+    _shorts = list(short_sellings[:20])
+    if _shorts:
+        _short_lines = ["날짜        | 공매도량(주) | 매매비중(%)  | 평균가(원)"]
+        for s in _shorts:
+            _short_lines.append(
+                f"{s.date.strftime('%Y-%m-%d')}  | {int(s.short_volume or 0):>12,} | {float(s.trading_weight or 0):>11.2f} | {int(s.short_average_price or 0):>10,}"
+            )
+        _short_text = '\n'.join(_short_lines)
+    else:
+        _short_text = ''
+
+    def _fmt_num(v, suffix=''):
+        if v is None or v == '':
+            return ''
+        try:
+            return f"{int(v):,}{suffix}"
+        except (TypeError, ValueError):
+            return str(v)
+
+    trade_prompt_vars = {
+        'stock_name': stock.name,
+        'stock_code': stock.code,
+        'market': stock.market or '',
+        'current_price': _fmt_num(stock.current_price),
+        'change_rate': f"{stock.change_rate:+g}" if stock.change_rate is not None else '',
+        'market_cap': _fmt_num(stock.market_cap),
+        'per': str(stock.per) if stock.per is not None else '',
+        'pbr': str(stock.pbr) if stock.pbr is not None else '',
+        'high_52w': _fmt_num(_high52),
+        'low_52w': _fmt_num(_low52),
+        'supply_20d': _supply_text,
+        'short_20d': _short_text,
+        'key_briefing': stock.key_briefing or '',
+        'buy_reason': stock.buy_reason or '',
+        'sell_reason': stock.sell_reason or '',
+        'future_events': future_events_text,
+    }
 
     # 질문리포트
     from .models import StockQuestionReport, ResearchPrompt
@@ -1070,6 +1149,8 @@ def stock_detail(request, code):
         'target_chart_data': json.dumps(target_chart_data),
         'gap_chart_data': json.dumps(gap_chart_data),
         'saved_prompts': {s.key: s.value for s in SystemSetting.objects.filter(key__startswith='prompt_')},
+        'news_prompt_vars': news_prompt_vars,
+        'trade_prompt_vars': trade_prompt_vars,
         'ma10_value': ma10_value,
         'ma20_value': ma20_value,
         'ma60_value': ma60_value,
@@ -6991,9 +7072,14 @@ def stock_trade_save(request, code):
         stock.buy_price_range = new_range
         changed = True
 
+    recent_trade_judgment = request.POST.get('recent_trade_judgment')
+    if recent_trade_judgment is not None and recent_trade_judgment.strip() != (stock.recent_trade_judgment or '').strip():
+        stock.recent_trade_judgment = recent_trade_judgment.strip()
+        changed = True
+
     if changed:
         stock.trade_updated_at = date.today()
-        stock.save(update_fields=['buy_reason', 'sell_reason', 'buy_price', 'sell_price', 'buy_price_range', 'trade_updated_at'])
+        stock.save(update_fields=['buy_reason', 'sell_reason', 'buy_price', 'sell_price', 'buy_price_range', 'recent_trade_judgment', 'trade_updated_at'])
 
     return JsonResponse({'success': True, 'updated_at': stock.trade_updated_at.strftime('%Y-%m-%d') if stock.trade_updated_at else ''})
 
@@ -7062,108 +7148,115 @@ def news_save(request):
 
 @require_POST
 def news_save_by_link(request):
-    """뉴스 링크로 저장 API"""
+    """뉴스 저장 API (링크 또는 내용)"""
     import requests as http_requests
     from bs4 import BeautifulSoup
     from .models import News, Info
 
     stock_code = request.POST.get('stock_code', '').strip()
     link = request.POST.get('link', '').strip()
+    content = request.POST.get('content', '').strip()
 
-    if not stock_code or not link:
-        return JsonResponse({'error': '필수 정보가 누락되었습니다.'}, status=400)
+    if not stock_code or (not link and not content):
+        return JsonResponse({'error': '링크 또는 내용을 입력해 주세요.'}, status=400)
 
     stock = get_object_or_404(Info, code=stock_code)
 
-    # 이미 저장된 뉴스인지 확인
-    if News.objects.filter(stock=stock, link=link).exists():
-        return JsonResponse({'error': '이미 저장된 뉴스입니다.'}, status=400)
+    if link and News.objects.filter(stock=stock, link=link).exists():
+        return JsonResponse({'error': '이미 저장된 링크입니다.'}, status=400)
 
-    # 뉴스 페이지에서 정보 가져오기
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        }
-        response = http_requests.get(link, headers=headers, timeout=10)
-        response.raise_for_status()
+    title = ''
+    source = ''
+    published = ''
 
-        soup = BeautifulSoup(response.text, 'html.parser')
+    if link:
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            }
+            response = http_requests.get(link, headers=headers, timeout=10)
+            response.raise_for_status()
 
-        # 제목 추출 (og:title > title 태그)
-        title = ''
-        og_title = soup.find('meta', property='og:title')
-        if og_title and og_title.get('content'):
-            title = og_title['content']
-        elif soup.title:
-            title = soup.title.string or ''
-        title = title.strip()
+            soup = BeautifulSoup(response.text, 'html.parser')
 
-        # 출처 추출 (og:site_name)
-        source = ''
-        og_site = soup.find('meta', property='og:site_name')
-        if og_site and og_site.get('content'):
-            source = og_site['content']
+            og_title = soup.find('meta', property='og:title')
+            if og_title and og_title.get('content'):
+                title = og_title['content']
+            elif soup.title:
+                title = soup.title.string or ''
+            title = title.strip()
 
-        # 날짜 추출 (여러 메타 태그 시도)
-        published = ''
-        date_metas = [
-            ('meta', {'property': 'article:published_time'}),
-            ('meta', {'property': 'og:article:published_time'}),
-            ('meta', {'name': 'article:published_time'}),
-            ('meta', {'name': 'publishdate'}),
-            ('meta', {'name': 'date'}),
-            ('meta', {'property': 'og:regDate'}),
-        ]
-        for tag, attrs in date_metas:
-            meta = soup.find(tag, attrs)
-            if meta and meta.get('content'):
-                published = meta['content'][:10]  # YYYY-MM-DD 형식만
-                break
+            og_site = soup.find('meta', property='og:site_name')
+            if og_site and og_site.get('content'):
+                source = og_site['content']
 
-        # JSON-LD에서 datePublished 추출 시도
-        if not published:
-            import json
-            import re
-            for script in soup.find_all('script', type='application/ld+json'):
-                try:
-                    data = json.loads(script.string or '')
-                    if isinstance(data, dict):
-                        date_val = data.get('datePublished') or data.get('dateCreated')
-                        if date_val:
-                            published = str(date_val)[:10]
-                            break
-                    elif isinstance(data, list):
-                        for item in data:
-                            if isinstance(item, dict):
-                                date_val = item.get('datePublished') or item.get('dateCreated')
-                                if date_val:
-                                    published = str(date_val)[:10]
-                                    break
-                except:
-                    pass
+            date_metas = [
+                ('meta', {'property': 'article:published_time'}),
+                ('meta', {'property': 'og:article:published_time'}),
+                ('meta', {'name': 'article:published_time'}),
+                ('meta', {'name': 'publishdate'}),
+                ('meta', {'name': 'date'}),
+                ('meta', {'property': 'og:regDate'}),
+            ]
+            for tag, attrs in date_metas:
+                meta = soup.find(tag, attrs)
+                if meta and meta.get('content'):
+                    published = meta['content'][:10]
+                    break
 
-        if not title:
-            return JsonResponse({'error': '뉴스 정보를 가져올 수 없습니다.'}, status=400)
+            if not published:
+                import json
+                for script in soup.find_all('script', type='application/ld+json'):
+                    try:
+                        data = json.loads(script.string or '')
+                        if isinstance(data, dict):
+                            date_val = data.get('datePublished') or data.get('dateCreated')
+                            if date_val:
+                                published = str(date_val)[:10]
+                                break
+                        elif isinstance(data, list):
+                            for item in data:
+                                if isinstance(item, dict):
+                                    date_val = item.get('datePublished') or item.get('dateCreated')
+                                    if date_val:
+                                        published = str(date_val)[:10]
+                                        break
+                    except:
+                        pass
+        except Exception as e:
+            if not content:
+                return JsonResponse({'error': f'뉴스 정보를 가져오는 중 오류: {str(e)}'}, status=500)
 
+    if link:
         news = News.objects.create(
             stock=stock,
             title=title,
             link=link,
+            content=content,
+            source=source,
+            published=published,
+        )
+    else:
+        news = News.objects.create(
+            stock=stock,
+            title='',
+            link='',
+            content='',
+            summary=content,
             source=source,
             published=published,
         )
 
-        return JsonResponse({
-            'success': True,
-            'id': news.id,
-            'title': news.title,
-            'link': news.link,
-            'source': news.source,
-            'published': news.published,
-        })
-
-    except Exception as e:
-        return JsonResponse({'error': f'뉴스 정보를 가져오는 중 오류: {str(e)}'}, status=500)
+    return JsonResponse({
+        'success': True,
+        'id': news.id,
+        'title': news.title,
+        'link': news.link,
+        'content': news.content,
+        'summary': news.summary,
+        'source': news.source,
+        'published': news.published,
+    })
 
 
 @require_POST
@@ -8290,88 +8383,101 @@ def sector_news_save_by_link(request):
 
     sector_id = request.POST.get('sector_id')
     link = request.POST.get('link', '').strip()
+    content = request.POST.get('content', '').strip()
 
-    if not sector_id or not link:
-        return JsonResponse({'error': '필수 항목이 누락되었습니다.'})
+    if not sector_id or (not link and not content):
+        return JsonResponse({'error': '링크 또는 내용을 입력해 주세요.'})
 
     try:
         sector = CustomSector.objects.get(id=sector_id)
     except CustomSector.DoesNotExist:
         return JsonResponse({'error': '섹터를 찾을 수 없습니다.'})
 
-    # 중복 체크
-    if SectorNews.objects.filter(sector=sector, link=link).exists():
-        return JsonResponse({'error': '이미 저장된 뉴스입니다.'})
+    if link and SectorNews.objects.filter(sector=sector, link=link).exists():
+        return JsonResponse({'error': '이미 저장된 링크입니다.'})
 
-    # 뉴스 페이지에서 정보 추출
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        response = http_requests.get(link, headers=headers, timeout=10)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
+    title = ''
+    source = ''
+    published = ''
 
-        # og:title 또는 title 태그에서 제목 추출
-        og_title = soup.find('meta', property='og:title')
-        title = og_title['content'] if og_title else (soup.title.string if soup.title else link)
+    if link:
+        try:
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+            response = http_requests.get(link, headers=headers, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
 
-        # og:site_name에서 출처 추출
-        og_site = soup.find('meta', property='og:site_name')
-        source = og_site['content'] if og_site else ''
+            og_title = soup.find('meta', property='og:title')
+            title = og_title['content'] if og_title else (soup.title.string if soup.title else link)
 
-        # 날짜 추출 (여러 메타 태그 시도)
-        published = ''
-        date_metas = [
-            ('meta', {'property': 'article:published_time'}),
-            ('meta', {'property': 'og:article:published_time'}),
-            ('meta', {'name': 'article:published_time'}),
-            ('meta', {'name': 'publishdate'}),
-            ('meta', {'name': 'date'}),
-            ('meta', {'property': 'og:regDate'}),
-        ]
-        for tag, attrs in date_metas:
-            meta = soup.find(tag, attrs)
-            if meta and meta.get('content'):
-                published = meta['content'][:10]  # YYYY-MM-DD 형식만
-                break
+            og_site = soup.find('meta', property='og:site_name')
+            source = og_site['content'] if og_site else ''
 
-        # JSON-LD에서 datePublished 추출 시도
-        if not published:
-            import json
-            import re
-            for script in soup.find_all('script', type='application/ld+json'):
-                try:
-                    data = json.loads(script.string or '')
-                    if isinstance(data, dict):
-                        date_val = data.get('datePublished') or data.get('dateCreated')
-                        if date_val:
-                            published = str(date_val)[:10]
-                            break
-                    elif isinstance(data, list):
-                        for item in data:
-                            if isinstance(item, dict):
-                                date_val = item.get('datePublished') or item.get('dateCreated')
-                                if date_val:
-                                    published = str(date_val)[:10]
-                                    break
-                except:
-                    pass
+            date_metas = [
+                ('meta', {'property': 'article:published_time'}),
+                ('meta', {'property': 'og:article:published_time'}),
+                ('meta', {'name': 'article:published_time'}),
+                ('meta', {'name': 'publishdate'}),
+                ('meta', {'name': 'date'}),
+                ('meta', {'property': 'og:regDate'}),
+            ]
+            for tag, attrs in date_metas:
+                meta = soup.find(tag, attrs)
+                if meta and meta.get('content'):
+                    published = meta['content'][:10]
+                    break
 
-    except Exception as e:
-        return JsonResponse({'error': f'페이지를 가져올 수 없습니다: {str(e)}'})
+            if not published:
+                import json
+                for script in soup.find_all('script', type='application/ld+json'):
+                    try:
+                        data = json.loads(script.string or '')
+                        if isinstance(data, dict):
+                            date_val = data.get('datePublished') or data.get('dateCreated')
+                            if date_val:
+                                published = str(date_val)[:10]
+                                break
+                        elif isinstance(data, list):
+                            for item in data:
+                                if isinstance(item, dict):
+                                    date_val = item.get('datePublished') or item.get('dateCreated')
+                                    if date_val:
+                                        published = str(date_val)[:10]
+                                        break
+                    except:
+                        pass
 
-    news = SectorNews.objects.create(
-        sector=sector,
-        title=title,
-        link=link,
-        source=source,
-        published=published
-    )
+        except Exception as e:
+            if not content:
+                return JsonResponse({'error': f'페이지를 가져올 수 없습니다: {str(e)}'})
+
+    if link:
+        news = SectorNews.objects.create(
+            sector=sector,
+            title=title,
+            link=link,
+            content=content,
+            source=source,
+            published=published,
+        )
+    else:
+        news = SectorNews.objects.create(
+            sector=sector,
+            title='',
+            link='',
+            content='',
+            summary=content,
+            source=source,
+            published=published,
+        )
 
     return JsonResponse({
         'success': True,
         'id': news.id,
         'title': news.title,
         'link': news.link,
+        'content': news.content,
+        'summary': news.summary,
         'source': news.source,
         'published': news.published,
     })

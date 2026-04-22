@@ -121,7 +121,7 @@
                 <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
                     <td style="padding-left:16px;">
                         <strong>{{ item.etf.name }}</strong>
-                        {% if item.etf.is_holding %}<span style="font-size:0.7rem;background:#fef3c7;padding:1px 5px;border-radius:3px;margin-left:4px;">보유</span>{% endif %}
+                        {% if item.etf.is_holding %}<span title="보유중">💰</span>{% endif %}
                         {% for sector in item.etf.custom_sectors.all %}
                         <a href="{% url 'stocks:sector_detail' sector.id %}" style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:0.68rem;background:#ecfdf5;color:#059669;text-decoration:none;margin-left:4px;" onclick="event.stopPropagation();">{{ sector.name }}</a>
                         {% endfor %}

@@ -60,10 +60,17 @@
 <!-- 뉴스 정보 -->
 <h5 class="section-heading" style="margin-top:0;">뉴스 정보</h5>
 <div class="brief-card">
+    {% if news.link %}
     <div style="font-size:0.9rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">
-        <a href="{{ news.link }}" target="_blank" style="text-decoration:none;color:var(--text-primary);">{{ news.title }}</a>
+        <a href="{{ news.link }}" target="_blank" style="text-decoration:none;color:var(--text-primary);">{{ news.title|default:news.link }}</a>
     </div>
-    <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;color:var(--text-secondary);line-height:2;">
+    {% elif news.title %}
+    <div style="font-size:0.9rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">{{ news.title }}</div>
+    {% endif %}
+    {% if news.content %}
+    <div style="font-size:0.88rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;margin-top:8px;">{{ news.content }}</div>
+    {% endif %}
+    <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;color:var(--text-secondary);line-height:2;margin-top:4px;">
         <span>{{ news.sector.name }}</span>
         {% if news.source %}<span>{{ news.source }}</span>{% endif %}
         {% if news.published %}<span>{{ news.published|slice:":10" }}</span>{% endif %}

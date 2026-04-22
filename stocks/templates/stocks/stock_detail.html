@@ -82,6 +82,7 @@
 .tag-badge.market-kospi { background: #eff6ff; color: #2962ff; }
 .tag-badge.market-kosdaq { background: #ecfdf5; color: #059669; }
 .tag-badge.holding { background: #ecfdf5; color: #059669; }
+.tag-badge.tracking { background: #eff6ff; color: #2563eb; }
 .tag-badge.interest-super { background: #fef2f2; color: #dc2626; }
 .tag-badge.interest-normal { background: #fffbeb; color: #d97706; }
 
@@ -221,6 +222,16 @@
 
 .edit-list-item { padding:14px 16px; border-bottom:1px solid #f3f4f6; }
 .edit-list-item:last-child { border-bottom:none; }
+
+.saved-item-body { cursor:pointer; }
+.saved-item[data-expanded="false"] .item-title-text { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.saved-item[data-expanded="false"] .item-body-text { max-height:3em; overflow:hidden; }
+.saved-item[data-expanded="true"] .item-title-text { white-space:normal; word-break:break-word; }
+.saved-item[data-expanded="true"] .item-body-text { max-height:none; }
+.saved-item .expand-only { display:none; }
+.saved-item[data-expanded="true"] .expand-only { display:block; }
+.toggle-hint { font-size:0.72rem; color:var(--text-muted); margin-top:4px; user-select:none; }
+
 .search-group { display:flex; gap:8px; align-items:center; }
 .spinner-sm { display:inline-block; width:14px; height:14px; border:2px solid var(--border-color); border-top-color:var(--text-primary); border-radius:50%; animation:spin 0.6s linear infinite; }
 .prompt-badge { display:inline-block; padding:3px 10px; border-radius:4px; font-size:0.72rem; font-weight:500; cursor:pointer; background:#ecfdf5; color:#059669; transition:all 0.15s; }
@@ -278,6 +289,9 @@
             {% if stock.is_holding %}
             <span class="tag-badge holding">보유</span>
             {% endif %}
+            {% if stock.is_tracking %}
+            <span class="tag-badge tracking">👀 추적</span>
+            {% endif %}
             {% if stock.interest_level == 'super' %}
             <span class="tag-badge interest-super">초관심</span>
             {% elif stock.interest_level == 'normal' %}
@@ -294,7 +308,6 @@
     <button class="market-tab" data-target="supply-content">수급</button>
     <button class="market-tab" data-target="disclosure-content">공시</button>
     <button class="market-tab" data-target="report-content">리포트{% with total=total_summary_count|add:total_attachment_count %}{% if total %}<span class="tab-count">{{ total }}</span>{% endif %}{% endwith %}</button>
-    <button class="market-tab" data-target="telegram-content">텔레그램{% if telegram_messages %}<span class="tab-count">{{ telegram_messages|length }}</span>{% endif %}</button>
     <button class="market-tab" data-target="news-content">뉴스{% if news_articles %}<span class="tab-count">{{ news_articles|length }}</span>{% endif %}</button>
     <button class="market-tab" data-target="nodaji-content">노다지{% if nodaji_summary_count %}<span class="tab-count">{{ nodaji_summary_count }}</span>{% endif %}</button>
     <button class="market-tab" data-target="youtube-content">유튜브<span class="tab-count d-none" id="ytTabCount"></span></button>
@@ -472,6 +485,14 @@
                 <script type="text/plain" id="sellReasonRaw">{{ stock.sell_reason|safe }}</script>
             </div>
             {% endif %}
+            <!-- 최근매매판별 -->
+            {% if stock.recent_trade_judgment %}
+            <div style="margin-bottom:8px;">
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">최근매매판별</div>
+                <div class="markdown-content" style="font-size:0.85rem;" id="recentJudgmentMarkdown"></div>
+                <script type="text/plain" id="recentJudgmentRaw">{{ stock.recent_trade_judgment|safe }}</script>
+            </div>
+            {% endif %}
             <div style="display:flex;justify-content:flex-end;margin-top:8px;">
                 <span id="btnTradeEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
@@ -504,6 +525,13 @@
             <div style="margin-bottom:12px;">
                 <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">매도근거 (마크다운)</label>
                 <textarea class="form-control" id="sellReasonTextarea" rows="4" style="font-family:monospace;font-size:0.85rem;" placeholder="매도근거를 입력하세요...">{{ stock.sell_reason }}</textarea>
+            </div>
+            <div style="margin-bottom:12px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <label style="font-size:0.78rem;color:var(--text-muted);">최근매매판별 (마크다운)</label>
+                    <span class="prompt-badge" id="btnCopyPromptTrade" style="cursor:pointer;">프롬프트 복사</span>
+                </div>
+                <textarea class="form-control" id="recentJudgmentTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;" placeholder="AI로부터 받은 매매 판단 결과를 붙여넣기...">{{ stock.recent_trade_judgment }}</textarea>
             </div>
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" id="btnTradeCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
@@ -1370,32 +1398,70 @@
     </div>
 </div>
 
-<!-- ========== 텔레그램 탭 ========== -->
-<div id="telegram-content" class="tab-panel" style="display:none;">
-    <h5 class="section-heading" style="margin-top:0;">저장된 메시지 <span class="tab-count" id="savedTelegramCount">{{ telegram_messages|length }}</span></h5>
+<!-- ========== 뉴스 탭 ========== -->
+<div id="news-content" class="tab-panel" style="display:none;">
+    <h5 class="section-heading" style="margin-top:0;">저장</h5>
+    <div class="brief-card">
+        <div style="margin-bottom:8px;">
+            <input type="text" class="form-control" id="newsLink" placeholder="뉴스 링크를 붙여넣기... (선택)" style="font-size:0.82rem;">
+        </div>
+        <div style="margin-bottom:8px;">
+            <textarea class="form-control" id="newsContent" placeholder="내용 (선택) — 텔레그램 메시지나 AI 요약 내용을 붙여넣기" rows="4" style="font-size:0.82rem; resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:var(--text-muted); font-size:0.75rem;">링크 또는 내용 중 하나 이상 입력</span>
+            <button type="button" class="btn-refresh primary" id="btnSaveNewsLink" style="white-space:nowrap;">저장</button>
+        </div>
+    </div>
+
+    <h5 class="section-heading">저장된 뉴스 <span class="tab-count" id="savedNewsCount">{{ news_articles|length }}</span></h5>
     <div class="brief-card" style="padding:0; overflow:hidden;">
-        <div id="savedTelegramList">
-            {% for msg in telegram_messages %}
-            <div class="edit-list-item" data-id="{{ msg.id }}">
+        <div id="savedNewsList">
+            {% for news in news_articles %}
+            <div class="edit-list-item saved-item" data-id="{{ news.id }}" data-expanded="false">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                    <div style="flex:1; overflow:hidden;">
-                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                            <span class="channel-badge">{{ msg.channel_name|default:msg.channel }}</span>
-                            <span style="color:var(--text-muted); font-size:0.75rem;">{{ msg.date }} {{ msg.time }}</span>
+                    <div class="saved-item-body" style="flex:1; overflow:hidden;">
+                        {% if news.link %}
+                        <div class="item-title-text" style="font-weight:600; font-size:0.85rem; color:var(--text-primary);"><span style="margin-right:4px;" title="뉴스">📰</span>{{ news.title|default:news.link }}</div>
+                        {% if news.content %}
+                        <div class="item-body-text" style="font-size:0.82rem; white-space:pre-wrap; color:var(--text-secondary); margin-top:2px;">{{ news.content }}</div>
+                        {% endif %}
+                        {% if news.summary %}
+                        <div class="expand-only" style="margin-top:8px; padding-top:8px; border-top:1px dashed #e5e7eb; font-size:0.82rem; white-space:pre-wrap; color:var(--text-primary); line-height:1.6;">{{ news.summary }}</div>
+                        {% endif %}
+                        {% else %}
+                        <div class="item-body-text" style="font-size:0.82rem; white-space:pre-wrap; color:var(--text-primary);"><span style="margin-right:4px;" title="텔레그램">💬</span>{{ news.summary|default:news.content }}</div>
+                        {% endif %}
+                        {% if news.my_opinion %}
+                        <div class="expand-only" style="margin-top:8px; padding:8px 12px; background:#fffbeb; border-left:3px solid #f59e0b; font-size:0.82rem; white-space:pre-wrap; color:var(--text-primary); line-height:1.6;"><div style="font-weight:600; font-size:0.72rem; color:#d97706; margin-bottom:4px;">내생각</div>{{ news.my_opinion }}</div>
+                        {% endif %}
+                        {% if news.source or news.published %}
+                        <div style="margin-top:2px;">
+                            {% if news.source %}<span style="color:var(--text-muted); font-size:0.75rem;">{{ news.source }}</span>{% endif %}
+                            {% if news.published %}<span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">{{ news.published|slice:":10" }}</span>{% endif %}
                         </div>
-                        <div style="font-size:0.82rem; white-space:pre-wrap; max-height:3em; overflow:hidden;">{{ msg.text|truncatechars:150 }}</div>
+                        {% endif %}
+                        <div class="toggle-hint">▼ 펼치기</div>
                     </div>
-                    <div style="display:flex; gap:6px; margin-left:8px; white-space:nowrap;">
-                        <button type="button" class="btn-refresh primary btn-view-telegram"
-                            data-channel="{{ msg.channel_name|default:msg.channel }}"
-                            data-date="{{ msg.date }} {{ msg.time }}"
-                            data-text="{{ msg.text|escapejs }}">전체보기</button>
-                        <button type="button" class="btn-refresh danger btn-delete-telegram" data-id="{{ msg.id }}">삭제</button>
+                    <div style="display:flex; flex-direction:column; gap:4px; margin-left:8px; align-items:flex-end;">
+                        <div style="display:flex; gap:4px; align-items:center;">
+                            <a href="{% url 'stocks:news_summary' news.id %}" style="text-decoration:none; line-height:1; display:flex;" title="요약">
+                                {% if news.summary %}
+                                <span class="status-badge done">요약</span>
+                                {% else %}
+                                <span class="status-badge pending">요약</span>
+                                {% endif %}
+                            </a>
+                            <span class="status-badge pending btn-delete-news" data-id="{{ news.id }}" style="cursor:pointer;">삭제</span>
+                        </div>
+                        <div>
+                            <span class="prompt-badge btn-copy-prompt-news" data-id="{{ news.id }}" data-link="{{ news.link }}" data-content="{{ news.content|escape }}" style="cursor:pointer; background:#f3f4f6; color:var(--text-secondary);">프롬프트 복사</span>
+                        </div>
                     </div>
                 </div>
             </div>
             {% empty %}
-            <div style="text-align:center; color:var(--text-muted); padding:16px;" id="noSavedTelegram">저장된 메시지가 없습니다.</div>
+            <div style="text-align:center; color:var(--text-muted); padding:16px;" id="noSavedNews">저장된 뉴스가 없습니다.</div>
             {% endfor %}
         </div>
     </div>
@@ -1415,67 +1481,6 @@
             <div id="channelTabContent"></div>
         </div>
         <div id="telegramEmpty" style="color:var(--text-muted); font-size:0.82rem;">검색어를 입력하고 검색 버튼을 클릭하세요.</div>
-    </div>
-</div>
-
-<!-- ========== 뉴스 탭 ========== -->
-<div id="news-content" class="tab-panel" style="display:none;">
-    <h5 class="section-heading" style="margin-top:0;">링크로 저장</h5>
-    <div class="brief-card">
-        <div style="display:flex; gap:8px; align-items:center; margin-bottom:4px;">
-            <input type="text" class="form-control" id="newsLink" placeholder="뉴스 링크를 붙여넣기..." style="font-size:0.82rem;">
-            <button type="button" class="btn-refresh primary" id="btnSaveNewsLink" style="white-space:nowrap;">저장</button>
-        </div>
-        <span style="color:var(--text-muted); font-size:0.75rem;">네이버 뉴스, 구글 뉴스 등 뉴스 링크</span>
-    </div>
-
-    <h5 class="section-heading">저장된 뉴스 <span class="tab-count" id="savedNewsCount">{{ news_articles|length }}</span></h5>
-    <div class="brief-card" style="padding:0; overflow:hidden;">
-        <div id="savedNewsList">
-            {% for news in news_articles %}
-            <div class="edit-list-item" data-id="{{ news.id }}">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                    <div style="flex:1; overflow:hidden;">
-                        <a href="{{ news.link }}" target="_blank" style="font-weight:600; font-size:0.85rem; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; color:var(--text-primary);">{{ news.title }}</a>
-                        <span style="color:var(--text-muted); font-size:0.75rem;">{{ news.source }}</span>
-                        <span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">{{ news.published|slice:":10" }}</span>
-                    </div>
-                    <div style="display:flex; flex-direction:column; gap:4px; margin-left:8px; align-items:flex-end;">
-                        <div style="display:flex; gap:4px; align-items:center;">
-                            <a href="{% url 'stocks:news_summary' news.id %}" style="text-decoration:none; line-height:1; display:flex;" title="요약">
-                                {% if news.summary %}
-                                <span class="status-badge done">요약</span>
-                                {% else %}
-                                <span class="status-badge pending">요약</span>
-                                {% endif %}
-                            </a>
-                            <span class="status-badge pending btn-delete-news" data-id="{{ news.id }}" style="cursor:pointer;">삭제</span>
-                        </div>
-                        <div>
-                            <span class="prompt-badge btn-copy-prompt-news" data-id="{{ news.id }}" data-link="{{ news.link }}" style="cursor:pointer; background:#f3f4f6; color:var(--text-secondary);">프롬프트 복사</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% empty %}
-            <div style="text-align:center; color:var(--text-muted); padding:16px;" id="noSavedNews">저장된 뉴스가 없습니다.</div>
-            {% endfor %}
-        </div>
-    </div>
-
-    <h5 class="section-heading">Google 뉴스</h5>
-    <div class="brief-card">
-        <div class="search-group" style="margin-bottom:12px;">
-            <input type="text" id="newsSearchInput" class="form-control" value="{{ stock.name }}" placeholder="검색어 입력" style="font-size:0.82rem;">
-            <button type="button" id="btnSearchNews" class="btn-refresh primary" style="white-space:nowrap;">검색</button>
-        </div>
-        <div id="newsLoading" class="d-none" style="text-align:center; padding:16px;">
-            <span class="spinner-sm"></span>
-            <span style="margin-left:8px; color:var(--text-secondary); font-size:0.82rem;">검색 중... (5~10초 소요)</span>
-        </div>
-        <div id="newsResult">
-            <div style="color:var(--text-muted); font-size:0.82rem;">검색어를 입력하고 검색 버튼을 클릭하세요.</div>
-        </div>
     </div>
 </div>
 
@@ -1534,23 +1539,12 @@
     </div>
 </div>
 
-<!-- 텔레그램 메시지 전체보기 모달 -->
-<div class="modal-overlay" id="telegramModal">
-    <div class="modal-box">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <div>
-                <span class="channel-badge" id="telegramModalChannel"></span>
-                <span style="color:var(--text-muted); font-size:0.78rem; margin-left:8px;" id="telegramModalDate"></span>
-            </div>
-            <button type="button" class="modal-close" id="telegramModalClose">&times;</button>
-        </div>
-        <div style="white-space:pre-wrap; max-height:70vh; overflow-y:auto; font-size:0.85rem; line-height:1.6;" id="telegramModalText"></div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
 {{ briefing_data|json_script:"briefing-data-json" }}
+{{ news_prompt_vars|json_script:"news-prompt-vars" }}
+{{ trade_prompt_vars|json_script:"trade-prompt-vars" }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
@@ -1705,6 +1699,7 @@ function renderContent(rawId, markdownId) {
 renderContent('memoRaw', 'memoMarkdown');
 if (document.getElementById('buyReasonRaw')) renderContent('buyReasonRaw', 'buyReasonMarkdown');
 if (document.getElementById('sellReasonRaw')) renderContent('sellReasonRaw', 'sellReasonMarkdown');
+if (document.getElementById('recentJudgmentRaw')) renderContent('recentJudgmentRaw', 'recentJudgmentMarkdown');
 renderContent('keyBriefingRaw', 'keyBriefingMarkdown');
 renderContent('analysisRaw', 'analysisMarkdown');
 renderContent('finAnalysisV2Raw', 'finAnalysisV2Markdown');
@@ -1796,6 +1791,7 @@ document.getElementById('btnTradeSave').addEventListener('click', async () => {
         formData.append('buy_price', document.getElementById('buyPriceInput').value);
         formData.append('sell_price', document.getElementById('sellPriceInput').value);
         formData.append('buy_price_range', document.getElementById('buyRangeInput').value);
+        formData.append('recent_trade_judgment', document.getElementById('recentJudgmentTextarea').value);
         const resp = await fetch(`/api/stock/${stockCode}/trade/`, {
             method: 'POST',
             headers: { 'X-CSRFToken': '{{ csrf_token }}' },
@@ -2332,12 +2328,11 @@ document.getElementById('telegramSearchInput')?.addEventListener('keypress', fun
     if (e.key === 'Enter') searchTelegram();
 });
 
-// 텔레그램 메시지 저장
+// 텔레그램 검색 결과 → 뉴스(내용)로 저장
 document.addEventListener('click', async (e) => {
     if (!e.target.classList.contains('btn-save-telegram-msg')) return;
 
     const btn = e.target;
-    const channel = btn.dataset.channel;
     const channelName = btn.dataset.channelName;
     const date = btn.dataset.date;
     const time = btn.dataset.time;
@@ -2349,13 +2344,10 @@ document.addEventListener('click', async (e) => {
     try {
         const formData = new FormData();
         formData.append('stock_code', stockCode);
-        formData.append('channel', channel);
-        formData.append('channel_name', channelName);
-        formData.append('date', date);
-        formData.append('time', time);
-        formData.append('text', text);
+        formData.append('link', '');
+        formData.append('content', text);
 
-        const response = await fetch('/api/telegram/message/save/', {
+        const response = await fetch('/api/news/save-by-link/', {
             method: 'POST',
             headers: { 'X-CSRFToken': '{{ csrf_token }}' },
             body: formData
@@ -2364,40 +2356,13 @@ document.addEventListener('click', async (e) => {
 
         if (data.success) {
             btn.textContent = '저장됨';
-            btn.classList.remove('success');
             btn.style.borderColor = '#059669';
             btn.style.color = '#059669';
-
-            // 저장된 메시지 목록에 추가
-            const noSaved = document.getElementById('noSavedTelegram');
-            if (noSaved) noSaved.remove();
-
-            const savedList = document.getElementById('savedTelegramList');
-            const newItem = document.createElement('div');
-            newItem.className = 'edit-list-item';
-            newItem.dataset.id = data.id;
-            newItem.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                    <div style="flex:1; overflow:hidden;">
-                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                            <span class="channel-badge">${channelName}</span>
-                            <span style="color:var(--text-muted); font-size:0.75rem;">${date} ${time}</span>
-                        </div>
-                        <div style="font-size:0.82rem; white-space:pre-wrap; max-height:3em; overflow:hidden;">${text.substring(0, 150)}</div>
-                    </div>
-                    <div style="display:flex; gap:6px; margin-left:8px; white-space:nowrap;">
-                        <button type="button" class="btn-refresh primary btn-view-telegram"
-                            data-channel="${channelName}"
-                            data-date="${date} ${time}"
-                            data-text="${encodeURIComponent(text).replace(/'/g, "\\'")}">전체보기</button>
-                        <button type="button" class="btn-refresh danger btn-delete-telegram" data-id="${data.id}">삭제</button>
-                    </div>
-                </div>`;
-            savedList.insertBefore(newItem, savedList.firstChild);
-
-            // 카운트 업데이트
-            const countEl = document.getElementById('savedTelegramCount');
-            countEl.textContent = parseInt(countEl.textContent) + 1;
+            addNewsToList({
+                ...data,
+                source: data.source || channelName,
+                published: data.published || `${date} ${time}`,
+            });
         } else {
             alert(data.error || '저장 실패');
             btn.textContent = '저장';
@@ -2407,83 +2372,6 @@ document.addEventListener('click', async (e) => {
         alert('오류: ' + err.message);
         btn.textContent = '저장';
         btn.disabled = false;
-    }
-});
-
-// 텔레그램 메시지 삭제
-document.addEventListener('click', async (e) => {
-    if (!e.target.classList.contains('btn-delete-telegram')) return;
-
-    if (!confirm('삭제하시겠습니까?')) return;
-
-    const btn = e.target;
-    const msgId = btn.dataset.id;
-    btn.disabled = true;
-
-    try {
-        const response = await fetch(`/api/telegram/message/${msgId}/delete/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-        });
-        const data = await response.json();
-
-        if (data.success) {
-            const item = btn.closest('.edit-list-item');
-            item.remove();
-
-            const countEl = document.getElementById('savedTelegramCount');
-            const newCount = parseInt(countEl.textContent) - 1;
-            countEl.textContent = newCount;
-
-            if (newCount === 0) {
-                document.getElementById('savedTelegramList').innerHTML = `
-                    <div style="text-align:center; color:var(--text-muted); padding:16px;" id="noSavedTelegram">저장된 메시지가 없습니다.</div>`;
-            }
-        } else {
-            alert(data.error || '삭제 실패');
-            btn.disabled = false;
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-        btn.disabled = false;
-    }
-});
-
-// 텔레그램 메시지 전체보기 (커스텀 모달)
-document.addEventListener('click', function(e) {
-    if (!e.target.classList.contains('btn-view-telegram')) return;
-
-    const btn = e.target;
-    let text = btn.dataset.text;
-
-    // URL 인코딩된 경우 디코딩
-    try {
-        text = decodeURIComponent(text);
-    } catch (err) {
-        // 이미 디코딩된 경우
-    }
-
-    // 유니코드 이스케이프 시퀀스 디코딩
-    text = text.replace(/\\{1,2}u([0-9a-fA-F]{4})/gi, (m, cc) => String.fromCharCode(parseInt(cc, 16)));
-    text = text.replace(/\\r/g, '\r');
-    text = text.replace(/\\n/g, '\n');
-    text = text.replace(/\\t/g, '\t');
-    text = text.replace(/\\\\/g, '\\');
-
-    document.getElementById('telegramModalChannel').textContent = btn.dataset.channel;
-    document.getElementById('telegramModalDate').textContent = btn.dataset.date;
-    document.getElementById('telegramModalText').textContent = text;
-
-    document.getElementById('telegramModal').classList.add('show');
-});
-
-// 모달 닫기
-document.getElementById('telegramModalClose')?.addEventListener('click', () => {
-    document.getElementById('telegramModal').classList.remove('show');
-});
-document.getElementById('telegramModal')?.addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) {
-        e.currentTarget.classList.remove('show');
     }
 });
 
@@ -2511,8 +2399,12 @@ function copyToClipboard(text) {
 }
 const savedPrompts = {
     prompt_news: `{{ saved_prompts.prompt_news|default:""|escapejs }}`,
+    prompt_news_with_context: `{{ saved_prompts.prompt_news_with_context|default:""|escapejs }}`,
+    prompt_trade: `{{ saved_prompts.prompt_trade|default:""|escapejs }}`,
     prompt_youtube: `{{ saved_prompts.prompt_youtube|default:""|escapejs }}`
 };
+const newsPromptVars = JSON.parse(document.getElementById('news-prompt-vars').textContent);
+const tradePromptVars = JSON.parse(document.getElementById('trade-prompt-vars').textContent);
 
 // ===== 뉴스 저장/검색/삭제 =====
 let savedNewsLinks = new Set([
@@ -2523,16 +2415,23 @@ let savedNewsLinks = new Set([
 const btnSaveNewsLink = document.getElementById('btnSaveNewsLink');
 const newsLinkInput = document.getElementById('newsLink');
 
+const newsContentInput = document.getElementById('newsContent');
+
+function escHtml(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 if (btnSaveNewsLink) {
     btnSaveNewsLink.addEventListener('click', async () => {
         const link = newsLinkInput.value.trim();
-        if (!link) {
-            alert('뉴스 링크를 입력하세요.');
+        const content = newsContentInput.value.trim();
+        if (!link && !content) {
+            alert('링크 또는 내용을 입력하세요.');
             return;
         }
 
-        if (savedNewsLinks.has(link)) {
-            alert('이미 저장된 뉴스입니다.');
+        if (link && savedNewsLinks.has(link)) {
+            alert('이미 저장된 링크입니다.');
             return;
         }
 
@@ -2543,6 +2442,7 @@ if (btnSaveNewsLink) {
             const formData = new FormData();
             formData.append('stock_code', stockCode);
             formData.append('link', link);
+            formData.append('content', content);
 
             const response = await fetch('/api/news/save-by-link/', {
                 method: 'POST',
@@ -2554,9 +2454,10 @@ if (btnSaveNewsLink) {
             if (data.error) {
                 alert(data.error);
             } else {
-                savedNewsLinks.add(data.link);
+                if (data.link) savedNewsLinks.add(data.link);
                 addNewsToList(data);
                 newsLinkInput.value = '';
+                newsContentInput.value = '';
             }
         } catch (err) {
             alert('오류: ' + err.message);
@@ -2580,22 +2481,48 @@ function addNewsToList(data) {
     const newItem = document.createElement('div');
     newItem.className = 'edit-list-item';
     newItem.dataset.id = data.id;
+
+    const title = data.title || data.link || '';
+    let bodyHtml = '';
+    if (data.link) {
+        bodyHtml = `<div class="item-title-text" style="font-weight:600; font-size:0.85rem; color:var(--text-primary);"><span style="margin-right:4px;" title="뉴스">📰</span>${escHtml(title)}</div>`;
+        if (data.content) {
+            bodyHtml += `<div class="item-body-text" style="font-size:0.82rem; white-space:pre-wrap; color:var(--text-secondary); margin-top:2px;">${escHtml(data.content)}</div>`;
+        }
+        if (data.summary) {
+            bodyHtml += `<div class="expand-only" style="margin-top:8px; padding-top:8px; border-top:1px dashed #e5e7eb; font-size:0.82rem; white-space:pre-wrap; color:var(--text-primary); line-height:1.6;">${escHtml(data.summary)}</div>`;
+        }
+    } else {
+        const preview = data.summary || data.content || '';
+        bodyHtml = `<div class="item-body-text" style="font-size:0.82rem; white-space:pre-wrap; color:var(--text-primary);"><span style="margin-right:4px;" title="텔레그램">💬</span>${escHtml(preview)}</div>`;
+    }
+    if (data.my_opinion) {
+        bodyHtml += `<div class="expand-only" style="margin-top:8px; padding:8px 12px; background:#fffbeb; border-left:3px solid #f59e0b; font-size:0.82rem; white-space:pre-wrap; color:var(--text-primary); line-height:1.6;"><div style="font-weight:600; font-size:0.72rem; color:#d97706; margin-bottom:4px;">내생각</div>${escHtml(data.my_opinion)}</div>`;
+    }
+    const metaParts = [];
+    if (data.source) metaParts.push(`<span style="color:var(--text-muted); font-size:0.75rem;">${escHtml(data.source)}</span>`);
+    if (data.published) metaParts.push(`<span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">${escHtml((data.published || '').slice(0, 10))}</span>`);
+    const metaHtml = metaParts.length ? `<div style="margin-top:2px;">${metaParts.join('')}</div>` : '';
+
+    newItem.classList.add('saved-item');
+    newItem.dataset.expanded = 'false';
+    const summaryBadgeClass = data.summary ? 'done' : 'pending';
     newItem.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div style="flex:1; overflow:hidden;">
-                <a href="${data.link}" target="_blank" style="font-weight:600; font-size:0.85rem; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; color:var(--text-primary);">${data.title}</a>
-                <span style="color:var(--text-muted); font-size:0.75rem;">${data.source || ''}</span>
-                <span style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;">${(data.published || '').slice(0, 10)}</span>
+            <div class="saved-item-body" style="flex:1; overflow:hidden;">
+                ${bodyHtml}
+                ${metaHtml}
+                <div class="toggle-hint">▼ 펼치기</div>
             </div>
             <div style="display:flex; flex-direction:column; gap:4px; margin-left:8px; align-items:flex-end;">
                 <div style="display:flex; gap:4px; align-items:center;">
                     <a href="/news/${data.id}/summary/" style="text-decoration:none; line-height:1; display:flex;" title="요약">
-                        <span class="status-badge pending">요약</span>
+                        <span class="status-badge ${summaryBadgeClass}">요약</span>
                     </a>
                     <span class="status-badge pending btn-delete-news" data-id="${data.id}" style="cursor:pointer;">삭제</span>
                 </div>
                 <div>
-                    <span class="prompt-badge btn-copy-prompt-news" data-id="${data.id}" data-link="${data.link}" style="cursor:pointer; background:#f3f4f6; color:var(--text-secondary);">프롬프트 복사</span>
+                    <span class="prompt-badge btn-copy-prompt-news" data-id="${data.id}" data-link="${escHtml(data.link || '')}" data-content="${escHtml(data.content || '')}" style="cursor:pointer; background:#f3f4f6; color:var(--text-secondary);">프롬프트 복사</span>
                 </div>
             </div>
         </div>
@@ -2604,50 +2531,6 @@ function addNewsToList(data) {
 
     const countEl = document.getElementById('savedNewsCount');
     countEl.textContent = parseInt(countEl.textContent) + 1;
-}
-
-// 검색 결과에서 뉴스 저장
-async function saveNewsFromSearch(btn, link, title, source, published) {
-    if (savedNewsLinks.has(link)) {
-        alert('이미 저장된 뉴스입니다.');
-        return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = '저장 중...';
-
-    try {
-        const formData = new FormData();
-        formData.append('stock_code', stockCode);
-        formData.append('link', link);
-        formData.append('title', title);
-        formData.append('source', source);
-        formData.append('published', published);
-
-        const response = await fetch('/api/news/save/', {
-            method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-            body: formData
-        });
-        const data = await response.json();
-
-        if (data.error) {
-            alert(data.error);
-            btn.disabled = false;
-            btn.textContent = '저장';
-        } else {
-            savedNewsLinks.add(data.link);
-            addNewsToList(data);
-            const badge = document.createElement('span');
-            badge.className = 'status-badge done';
-            badge.textContent = '저장됨';
-            btn.replaceWith(badge);
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-        btn.disabled = false;
-        btn.textContent = '저장';
-    }
 }
 
 // 뉴스 삭제
@@ -2668,8 +2551,8 @@ document.addEventListener('click', async (e) => {
 
         if (data.success) {
             const item = e.target.closest('.edit-list-item');
-            const link = item.querySelector('a[target="_blank"]').href;
-            savedNewsLinks.delete(link);
+            const linkAnchor = item.querySelector('a[target="_blank"]');
+            if (linkAnchor) savedNewsLinks.delete(linkAnchor.href);
             item.remove();
 
             const countEl = document.getElementById('savedNewsCount');
@@ -2689,13 +2572,98 @@ document.addEventListener('click', async (e) => {
     }
 });
 
-// 뉴스 프롬프트 복사
+// 항목 펼치기/접기 (body 영역 클릭)
+document.getElementById('savedNewsList')?.addEventListener('click', function(e) {
+    if (e.target.closest('a, button, .btn-delete-news, .btn-copy-prompt-news, .status-badge, .prompt-badge')) return;
+    const body = e.target.closest('.saved-item-body');
+    if (!body) return;
+    const item = body.closest('.saved-item');
+    if (!item) return;
+    const expanded = item.dataset.expanded === 'true';
+    item.dataset.expanded = expanded ? 'false' : 'true';
+    const hint = body.querySelector('.toggle-hint');
+    if (hint) hint.textContent = expanded ? '▼ 펼치기' : '▲ 접기';
+});
+
+// 프롬프트 템플릿 변수 치환
+function renderNewsPrompt(template, vars) {
+    if (!template) return '';
+    return template.replace(/\{([가-힣A-Za-z_][가-힣A-Za-z0-9_]*)\}/g, (match, key) => {
+        if (Object.prototype.hasOwnProperty.call(vars, key)) {
+            return vars[key] == null ? '' : String(vars[key]);
+        }
+        return match;
+    });
+}
+
+// 매매근거 프롬프트 복사
+document.getElementById('btnCopyPromptTrade')?.addEventListener('click', async function() {
+    const template = savedPrompts.prompt_trade || '';
+    if (!template.trim()) {
+        alert('매매근거 프롬프트가 설정에 저장되어 있지 않습니다. 설정 → 프롬프트 → 매매근거에서 저장해 주세요.');
+        return;
+    }
+    const vars = {
+        '종목명': tradePromptVars.stock_name || '',
+        '종목코드': tradePromptVars.stock_code || '',
+        '시장': tradePromptVars.market || '',
+        '현재가': tradePromptVars.current_price || '',
+        '변동률': tradePromptVars.change_rate || '',
+        '시총': tradePromptVars.market_cap || '',
+        'PER': tradePromptVars.per || '',
+        'PBR': tradePromptVars.pbr || '',
+        '52주고가': tradePromptVars.high_52w || '',
+        '52주저가': tradePromptVars.low_52w || '',
+        '수급_20일': tradePromptVars.supply_20d || '',
+        '공매도_20일': tradePromptVars.short_20d || '',
+        '핵심브리핑': tradePromptVars.key_briefing || '',
+        '매수근거': tradePromptVars.buy_reason || '',
+        '매도근거': tradePromptVars.sell_reason || '',
+        '향후이벤트': tradePromptVars.future_events || '',
+    };
+    const text = renderNewsPrompt(template, vars);
+    try {
+        await copyToClipboard(text);
+        const el = this;
+        const original = el.textContent;
+        el.textContent = '복사됨!';
+        setTimeout(() => { el.textContent = original; }, 1500);
+    } catch (err) {
+        alert('복사 실패: ' + err.message);
+    }
+});
+
 document.getElementById('savedNewsList')?.addEventListener('click', async function(e) {
     if (!e.target.classList.contains('btn-copy-prompt-news')) return;
 
-    const link = e.target.dataset.link;
-    const prompt = savedPrompts.prompt_news || '';
-    const text = `종목: ${stockName}\n링크: ${link}\n\n${prompt}`;
+    const link = e.target.dataset.link || '';
+    const content = e.target.dataset.content || '';
+
+    const hasContext = !!(newsPromptVars && (newsPromptVars.key_briefing || '').trim());
+    const template = hasContext
+        ? (savedPrompts.prompt_news_with_context || savedPrompts.prompt_news || '')
+        : (savedPrompts.prompt_news || '');
+
+    const vars = {
+        '종목명': newsPromptVars.stock_name || stockName || '',
+        '종목코드': newsPromptVars.stock_code || stockCode || '',
+        '섹터명': newsPromptVars.sector_name || '',
+        '뉴스링크': link,
+        '뉴스내용': content,
+        '핵심브리핑': newsPromptVars.key_briefing || '',
+        '재무분석': newsPromptVars.financial_analysis || '',
+        '컨센서스분석': newsPromptVars.consensus_analysis || '',
+        '향후이벤트': newsPromptVars.future_events || '',
+    };
+
+    let text = renderNewsPrompt(template, vars);
+    if (!text.trim()) {
+        // 프롬프트가 비어 있으면 기본 포맷으로 폴백
+        const parts = [`종목: ${stockName}`];
+        if (link) parts.push(`링크: ${link}`);
+        if (content) parts.push(`내용:\n${content}`);
+        text = parts.join('\n');
+    }
 
     try {
         await copyToClipboard(text);
@@ -2706,72 +2674,6 @@ document.getElementById('savedNewsList')?.addEventListener('click', async functi
         alert('복사 실패: ' + err.message);
     }
 });
-
-// Google 뉴스 검색
-const btnNews = document.getElementById('btnSearchNews');
-const newsLoading = document.getElementById('newsLoading');
-const newsResult = document.getElementById('newsResult');
-const newsSearchInput = document.getElementById('newsSearchInput');
-
-async function searchNews() {
-    const searchQuery = newsSearchInput.value.trim();
-    if (!searchQuery) {
-        alert('검색어를 입력하세요.');
-        return;
-    }
-
-    btnNews.disabled = true;
-    newsLoading.classList.remove('d-none');
-    newsResult.innerHTML = '';
-
-    try {
-        const response = await fetch(`/api/news/search/?keyword=${encodeURIComponent(searchQuery)}`);
-        const data = await response.json();
-
-        if (data.error) {
-            newsResult.innerHTML = `<div class="info-box warn">${data.error}</div>`;
-        } else if (data.results.length === 0) {
-            newsResult.innerHTML = '<div style="color:var(--text-muted);">검색 결과가 없습니다.</div>';
-        } else {
-            let html = '<div style="overflow-x:auto;"><table class="modern-table">';
-            html += '<thead><tr><th style="width:100px; padding-left:16px;">날짜</th><th>제목</th><th style="width:100px;" class="d-none d-md-table-cell">출처</th><th style="width:60px;"></th></tr></thead><tbody>';
-            data.results.forEach(item => {
-                const isSaved = savedNewsLinks.has(item.link);
-                html += `<tr>`;
-                html += `<td style="color:var(--text-muted); padding-left:16px; font-size:0.75rem;">${(item.date || '').slice(0, 10) || '-'}</td>`;
-                html += `<td><a href="${item.link}" target="_blank" style="text-decoration:none; color:var(--text-primary);">${item.title}</a></td>`;
-                html += `<td class="d-none d-md-table-cell" style="color:var(--text-muted); font-size:0.75rem;">${item.source || ''}</td>`;
-                html += `<td style="text-align:right; padding-right:16px;">`;
-                if (isSaved) {
-                    html += `<span class="status-badge done" style="white-space:nowrap;">저장됨</span>`;
-                } else {
-                    html += `<button class="btn-refresh primary btn-save-news" style="white-space:nowrap;" data-link="${item.link}" data-title="${item.title.replace(/"/g, '&quot;')}" data-source="${item.source || ''}" data-published="${item.date || ''}">저장</button>`;
-                }
-                html += `</td></tr>`;
-            });
-            html += '</tbody></table></div>';
-            newsResult.innerHTML = html;
-
-            // 저장 버튼 이벤트
-            newsResult.querySelectorAll('.btn-save-news').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    saveNewsFromSearch(btn, btn.dataset.link, btn.dataset.title, btn.dataset.source, btn.dataset.published);
-                });
-            });
-        }
-    } catch (err) {
-        newsResult.innerHTML = `<div class="info-box warn">오류: ${err.message}</div>`;
-    } finally {
-        btnNews.disabled = false;
-        newsLoading.classList.add('d-none');
-    }
-}
-
-btnNews?.addEventListener('click', searchNews);
-newsSearchInput?.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') searchNews();
-});
-
 
 // ===== YouTube Timeline =====
 function parseMd(text) {
