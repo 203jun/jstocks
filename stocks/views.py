@@ -1195,6 +1195,7 @@ def stock_edit(request, code):
         new_interest_level = interest_level if interest_level else None
         stock.interest_level = new_interest_level
         stock.is_holding = request.POST.get('is_holding') == 'on'
+        stock.is_tracking = request.POST.get('is_tracking') == 'on'
 
         stock.save()
 

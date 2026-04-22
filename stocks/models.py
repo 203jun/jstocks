@@ -162,6 +162,11 @@ class Info(models.Model):
         verbose_name='보유중',
         help_text='현재 보유 중인 종목 여부'
     )
+    is_tracking = models.BooleanField(
+        default=False,
+        verbose_name='추적중',
+        help_text='단기 매매를 위해 추적 중인 종목 여부'
+    )
 
     # === 사용자 정의 업종 ===
     themes = models.ManyToManyField(
