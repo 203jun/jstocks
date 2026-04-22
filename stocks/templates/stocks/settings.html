@@ -238,6 +238,28 @@ small.text-muted {
     color: var(--text-secondary);
     margin-bottom: 10px;
 }
+
+/* ===== 다크모드 전용 오버라이드 ===== */
+[data-theme="dark"] .accordion-button,
+[data-theme="dark"] .accordion-button:not(.collapsed),
+[data-theme="dark"] .accordion-item {
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+}
+[data-theme="dark"] .accordion-button::after { filter: invert(1) brightness(1.5); }
+[data-theme="dark"] .accordion-item { border-color: var(--border-color) !important; }
+[data-theme="dark"] .tag-chip { background: #22262f !important; color: var(--text-primary); }
+[data-theme="dark"] .info-box { background: #22262f !important; color: var(--text-secondary); }
+[data-theme="dark"] .add-form-box { background: #22262f !important; }
+[data-theme="dark"] .alert-secondary { background: #22262f !important; color: var(--text-primary); }
+[data-theme="dark"] .alert-warning { background: #3a2f15 !important; color: #fde68a; border-color: #634a18 !important; }
+[data-theme="dark"] .alert-danger { background: #3a1c1c !important; color: #fca5a5; border-color: #7f1d1d !important; }
+[data-theme="dark"] .alert-info { background: #162338 !important; color: #93c5fd; }
+[data-theme="dark"] .badge.bg-light { background: #22262f !important; color: var(--text-secondary) !important; }
+[data-theme="dark"] .form-control.bg-light { background: #22262f !important; }
+[data-theme="dark"] .nav-tabs .nav-link { color: var(--text-secondary); }
+[data-theme="dark"] .nav-tabs .nav-link.active { color: var(--text-primary); background: var(--bg-card); }
+[data-theme="dark"] .settings-input { background: #22262f; color: var(--text-primary); }
 {% endblock %}
 
 {% block content %}

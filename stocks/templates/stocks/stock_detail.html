@@ -1549,6 +1549,11 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 const stockName = "{{ stock.name }}";
+const _isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+const chartBg = _isDarkTheme ? '#1a1d24' : '#ffffff';
+const chartText = _isDarkTheme ? '#9ca3af' : '#333';
+const chartGrid = _isDarkTheme ? '#2a2e38' : '#f0f0f0';
+const chartBorder = _isDarkTheme ? '#2a2e38' : '#ddd';
 const stockCode = "{{ stock.code }}";
 const themeName = "{{ stock.themes.first.name|default:""|escapejs }}";
 const themeCategoryName = "{{ stock.themes.first.category.name|default:""|escapejs }}";
@@ -1593,7 +1598,9 @@ document.querySelectorAll('.sub-tab').forEach(tab => {
         if (commonQuestions.has(q)) {
             const label = document.createElement('span');
             label.textContent = '공통';
-            label.style.cssText = 'font-size:0.65rem;padding:1px 6px;border-radius:3px;background:#e8f0fe;color:#1a73e8;font-weight:600;flex-shrink:0;';
+            label.style.cssText = _isDarkTheme
+                ? 'font-size:0.65rem;padding:1px 6px;border-radius:3px;background:#1e2e4a;color:#93b4ff;font-weight:600;flex-shrink:0;'
+                : 'font-size:0.65rem;padding:1px 6px;border-radius:3px;background:#e8f0fe;color:#1a73e8;font-weight:600;flex-shrink:0;';
             item.querySelector('div').insertBefore(label, item.querySelector('div').firstChild);
         }
     });
@@ -2887,11 +2894,11 @@ function initDailyChart(candleData, volumeData) {
 
     const chart = LightweightCharts.createChart(container, {
         width: container.clientWidth, height: 400,
-        layout: { backgroundColor: '#ffffff', textColor: '#333' },
-        grid: { vertLines: { color: '#f0f0f0' }, horzLines: { color: '#f0f0f0' } },
+        layout: { backgroundColor: chartBg, textColor: chartText },
+        grid: { vertLines: { color: chartGrid }, horzLines: { color: chartGrid } },
         crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-        rightPriceScale: { borderColor: '#ddd' },
-        timeScale: { borderColor: '#ddd', timeVisible: true, fixLeftEdge: true, fixRightEdge: true },
+        rightPriceScale: { borderColor: chartBorder },
+        timeScale: { borderColor: chartBorder, timeVisible: true, fixLeftEdge: true, fixRightEdge: true },
         handleScale: { axisPressedMouseMove: { price: false } },
     });
 
@@ -2958,11 +2965,11 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
 
     const chart = LightweightCharts.createChart(container, {
         width: container.clientWidth, height: 400,
-        layout: { backgroundColor: '#ffffff', textColor: '#333' },
-        grid: { vertLines: { color: '#f0f0f0' }, horzLines: { color: '#f0f0f0' } },
+        layout: { backgroundColor: chartBg, textColor: chartText },
+        grid: { vertLines: { color: chartGrid }, horzLines: { color: chartGrid } },
         crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-        rightPriceScale: { borderColor: '#ddd' },
-        timeScale: { borderColor: '#ddd', timeVisible: true, fixLeftEdge: true, fixRightEdge: true },
+        rightPriceScale: { borderColor: chartBorder },
+        timeScale: { borderColor: chartBorder, timeVisible: true, fixLeftEdge: true, fixRightEdge: true },
         handleScale: { axisPressedMouseMove: { price: false } },
     });
 
@@ -2991,11 +2998,11 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
 
     const chart = LightweightCharts.createChart(container, {
         width: container.clientWidth, height: 400,
-        layout: { backgroundColor:'#fff', textColor:'#333' },
-        grid: { vertLines:{color:'#f0f0f0'}, horzLines:{color:'#f0f0f0'} },
+        layout: { backgroundColor: chartBg, textColor: chartText },
+        grid: { vertLines:{color: chartGrid}, horzLines:{color: chartGrid} },
         crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-        rightPriceScale: { borderColor:'#ddd' },
-        timeScale: { borderColor:'#ddd', timeVisible:true, fixLeftEdge:true, fixRightEdge:true },
+        rightPriceScale: { borderColor: chartBorder },
+        timeScale: { borderColor: chartBorder, timeVisible:true, fixLeftEdge:true, fixRightEdge:true },
         handleScale: { axisPressedMouseMove:{price:false} },
     });
     const candleSeries = chart.addCandlestickSeries({ upColor:'#ef5350', downColor:'#26a69a', borderUpColor:'#ef5350', borderDownColor:'#26a69a', wickUpColor:'#ef5350', wickDownColor:'#26a69a' });
@@ -3031,11 +3038,11 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
 
     const chart = LightweightCharts.createChart(container, {
         width: container.clientWidth, height: 400,
-        layout: { backgroundColor:'#fff', textColor:'#333' },
-        grid: { vertLines:{color:'#f0f0f0'}, horzLines:{color:'#f0f0f0'} },
+        layout: { backgroundColor: chartBg, textColor: chartText },
+        grid: { vertLines:{color: chartGrid}, horzLines:{color: chartGrid} },
         crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-        rightPriceScale: { borderColor:'#ddd' },
-        timeScale: { borderColor:'#ddd', timeVisible:true, fixLeftEdge:true, fixRightEdge:true },
+        rightPriceScale: { borderColor: chartBorder },
+        timeScale: { borderColor: chartBorder, timeVisible:true, fixLeftEdge:true, fixRightEdge:true },
         handleScale: { axisPressedMouseMove:{price:false} },
     });
     const candleSeries = chart.addCandlestickSeries({ upColor:'#ef5350', downColor:'#26a69a', borderUpColor:'#ef5350', borderDownColor:'#26a69a', wickUpColor:'#ef5350', wickDownColor:'#26a69a' });
@@ -3240,7 +3247,7 @@ if (investorChartData && investorChartData.length > 0) {
                 },
                 scales: {
                     x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } },
-                    y: { ticks: { callback: v => Math.abs(v) >= 100000000 ? (v/100000000).toFixed(1)+'억' : Math.abs(v) >= 10000 ? (v/10000).toFixed(1)+'만' : v.toFixed(0) }, grid: { color: '#f0f0f0' } }
+                    y: { ticks: { callback: v => Math.abs(v) >= 100000000 ? (v/100000000).toFixed(1)+'억' : Math.abs(v) >= 10000 ? (v/10000).toFixed(1)+'만' : v.toFixed(0) }, grid: { color: chartGrid } }
                 }
             }
         });
@@ -3274,7 +3281,7 @@ if (investorChartDataDaum && investorChartDataDaum.length > 0) {
                     y: {
                         position: 'left',
                         ticks: { callback: v => Math.abs(v) >= 100000000 ? (v/100000000).toFixed(1)+'억' : Math.abs(v) >= 10000 ? (v/10000).toFixed(1)+'만' : v.toFixed(0) },
-                        grid: { color: '#f0f0f0' }
+                        grid: { color: chartGrid }
                     },
                     y1: {
                         position: 'right',

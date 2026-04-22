@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}JStocks{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script>
+        (function() {
+            try {
+                var t = localStorage.getItem('theme') || 'light';
+                document.documentElement.setAttribute('data-theme', t);
+            } catch (e) {}
+        })();
+    </script>
     <style>
         :root {
             --bg-page: #f5f6f8;
@@ -20,6 +28,106 @@
             --up-color: #dc3545;
             --down-color: #2962ff;
         }
+
+        [data-theme="dark"] {
+            --bg-page: #0f1115;
+            --bg-card: #1a1d24;
+            --text-primary: #c2c7d0;
+            --text-secondary: #8a909b;
+            --text-muted: #5f6671;
+            --border-color: #2a2e38;
+            --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+            --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.5);
+            --up-color: #ef5350;
+            --down-color: #5b8def;
+        }
+        [data-theme="dark"] body { color-scheme: dark; }
+        [data-theme="dark"] img { filter: brightness(0.9); }
+
+        /* 다크모드: 템플릿 하드코딩 라이트 색상 상쇄 (행 구분선/연한 배경/카드) */
+        [data-theme="dark"] .modern-table tbody td,
+        [data-theme="dark"] .mobile-stock-item,
+        [data-theme="dark"] .edit-list-item,
+        [data-theme="dark"] .list-item {
+            border-bottom-color: var(--border-color) !important;
+        }
+        [data-theme="dark"] .modern-table tbody tr:hover,
+        [data-theme="dark"] .mobile-stock-item:hover {
+            background: #22262f !important;
+        }
+        [data-theme="dark"] .brief-card,
+        [data-theme="dark"] .card-v2 {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+        }
+        /* 매우 연한 배경(#f9fafb, #f3f4f6)을 카드 배경으로 매핑 */
+        [data-theme="dark"] [style*="background:#f9fafb"],
+        [data-theme="dark"] [style*="background: #f9fafb"],
+        [data-theme="dark"] [style*="background:#f3f4f6"],
+        [data-theme="dark"] [style*="background: #f3f4f6"] {
+            background: #22262f !important;
+        }
+        /* 정보 박스 연한 배경 색들 살짝 어둡게 */
+        [data-theme="dark"] [style*="background:#ecfdf5"],
+        [data-theme="dark"] [style*="background: #ecfdf5"] { background: #0e2a1f !important; }
+        [data-theme="dark"] [style*="background:#fef3c7"],
+        [data-theme="dark"] [style*="background: #fef3c7"] { background: #3a2f15 !important; }
+        [data-theme="dark"] [style*="background:#fef2f2"],
+        [data-theme="dark"] [style*="background: #fef2f2"] { background: #3a1c1c !important; }
+        [data-theme="dark"] [style*="background:#fffbeb"],
+        [data-theme="dark"] [style*="background: #fffbeb"] { background: #332a10 !important; }
+        [data-theme="dark"] [style*="background:#eff6ff"],
+        [data-theme="dark"] [style*="background: #eff6ff"] { background: #162338 !important; }
+        [data-theme="dark"] [style*="background:#fff3cd"],
+        [data-theme="dark"] [style*="background: #fff3cd"] { background: #3a2f15 !important; }
+        /* 하드코딩 흰색 배경 → 카드 배경 */
+        [data-theme="dark"] [style*="background:#fff"],
+        [data-theme="dark"] [style*="background: #fff"],
+        [data-theme="dark"] [style*="background:#ffffff"],
+        [data-theme="dark"] [style*="background: #ffffff"] {
+            background: var(--bg-card) !important;
+        }
+        /* 부트스트랩 form-control 다크 */
+        [data-theme="dark"] .form-control,
+        [data-theme="dark"] .form-select,
+        [data-theme="dark"] input,
+        [data-theme="dark"] textarea,
+        [data-theme="dark"] select {
+            background-color: #22262f;
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+        [data-theme="dark"] .form-control::placeholder,
+        [data-theme="dark"] textarea::placeholder,
+        [data-theme="dark"] input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* 뱃지류 다크 톤다운 (클래스 기반) */
+        [data-theme="dark"] .tag-badge.market-kospi,
+        [data-theme="dark"] .tag-badge.tracking { background: #1e2e4a !important; color: #93b4ff !important; }
+        [data-theme="dark"] .tag-badge.market-kosdaq,
+        [data-theme="dark"] .tag-badge.holding,
+        [data-theme="dark"] .status-badge.done { background: #0e2a1f !important; color: #4ade80 !important; }
+        [data-theme="dark"] .tag-badge.interest-super { background: #3a1c1c !important; color: #fca5a5 !important; }
+        [data-theme="dark"] .tag-badge.interest-normal { background: #332a10 !important; color: #fbbf24 !important; }
+        [data-theme="dark"] .status-badge.pending { background: #22262f !important; color: var(--text-muted) !important; }
+        [data-theme="dark"] .status-badge.info { background: #1e2e4a !important; color: #93b4ff !important; }
+        [data-theme="dark"] .channel-badge { background: #22262f !important; color: var(--text-secondary) !important; }
+        [data-theme="dark"] .prompt-badge { background: #0e2a1f !important; color: #4ade80 !important; }
+
+        /* 마크다운 렌더링 영역 다크 */
+        [data-theme="dark"] .markdown-content { color: var(--text-primary); }
+        [data-theme="dark"] .markdown-content h1,
+        [data-theme="dark"] .markdown-content h2 { border-bottom-color: var(--border-color) !important; }
+        [data-theme="dark"] .markdown-content th,
+        [data-theme="dark"] .markdown-content td { border-color: var(--border-color) !important; }
+        [data-theme="dark"] .markdown-content th { background: #22262f !important; color: var(--text-primary); }
+        [data-theme="dark"] .markdown-content tr:hover { background: #22262f !important; }
+        [data-theme="dark"] .markdown-content blockquote { background: #22262f !important; color: var(--text-secondary) !important; border-left-color: var(--text-muted) !important; }
+        [data-theme="dark"] .markdown-content code { background: #22262f !important; color: #f472b6 !important; }
+        [data-theme="dark"] .markdown-content hr { border-top-color: var(--border-color) !important; }
+        [data-theme="dark"] .markdown-content a { color: #5b8def !important; }
 
         * { box-sizing: border-box; }
         html { overflow-y: scroll; }
@@ -183,6 +291,10 @@
             <div class="nav-right">
                 <a href="{% url 'stocks:stock_list' %}">목록</a>
                 <a href="{% url 'stocks:settings' %}">설정</a>
+                <button type="button" id="btnThemeToggle" class="nav-logout-btn" title="테마 변경" aria-label="테마 변경">
+                    <svg id="themeIconLight" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align:-2px;"><path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278"/></svg>
+                    <svg id="themeIconDark" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align:-2px;display:none;"><path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0m9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708"/></svg>
+                </button>
                 <form method="post" action="{% url 'logout' %}" style="display:inline;">
                     {% csrf_token %}
                     <button type="submit" class="nav-logout-btn" title="로그아웃"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align:-2px;"><path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/><path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/></svg></button>
@@ -205,6 +317,27 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+    <script>
+    (function() {
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            const iconLight = document.getElementById('themeIconLight');
+            const iconDark = document.getElementById('themeIconDark');
+            if (iconLight && iconDark) {
+                iconLight.style.display = theme === 'dark' ? 'none' : '';
+                iconDark.style.display = theme === 'dark' ? '' : 'none';
+            }
+        }
+        const saved = localStorage.getItem('theme') || 'light';
+        applyTheme(saved);
+        document.getElementById('btnThemeToggle')?.addEventListener('click', function() {
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
+            const next = current === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', next);
+            applyTheme(next);
+        });
+    })();
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

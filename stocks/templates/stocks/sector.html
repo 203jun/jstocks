@@ -68,6 +68,7 @@
 }
 .modern-table tbody tr:hover { background: #f9fafb; }
 .modern-table tbody tr.active-row { background: #f0f4ff; }
+[data-theme="dark"] .modern-table tbody tr.active-row { background: #1e2638 !important; }
 .modern-table tbody td {
     padding: 8px 12px;
     border-bottom: 1px solid #f3f4f6;
@@ -378,8 +379,8 @@ function createSectorChart(containerId, sectorData) {
                 tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.raw.toLocaleString('ko-KR') }}
             },
             scales: {
-                x: { grid: { display: false }, ticks: { maxTicksLimit: 10 }},
-                y: { ticks: { callback: v => Math.abs(v) >= 100000000 ? (v/100000000).toFixed(1)+'억' : Math.abs(v) >= 10000 ? (v/10000).toFixed(1)+'만' : v.toFixed(0) }, grid: { color: '#f0f0f0' }}
+                x: { grid: { display: false }, ticks: { maxTicksLimit: 10, color: (document.documentElement.getAttribute('data-theme') === 'dark' ? '#9ca3af' : '#6b7280') }},
+                y: { ticks: { callback: v => Math.abs(v) >= 100000000 ? (v/100000000).toFixed(1)+'억' : Math.abs(v) >= 10000 ? (v/10000).toFixed(1)+'만' : v.toFixed(0), color: (document.documentElement.getAttribute('data-theme') === 'dark' ? '#9ca3af' : '#6b7280') }, grid: { color: (document.documentElement.getAttribute('data-theme') === 'dark' ? '#2a2e38' : '#f0f0f0') }}
             }
         }
     });

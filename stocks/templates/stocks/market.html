@@ -99,7 +99,7 @@
 }
 .range-btn.active {
     background: var(--text-primary);
-    color: #fff;
+    color: var(--bg-card);
     border-color: var(--text-primary);
 }
 
@@ -766,11 +766,16 @@ function buildCumulative(rawData, days) {
 }
 
 // ===== Chart Options =====
+const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+const chartBgColor = isDarkTheme ? '#1a1d24' : '#ffffff';
+const chartTextColor = isDarkTheme ? '#9ca3af' : '#6b7280';
+const chartGridColor = isDarkTheme ? '#2a2e38' : '#f3f4f6';
+const chartBorderColor = isDarkTheme ? '#2a2e38' : '#e5e7eb';
 const chartOptions = {
-    layout: { background: { color: '#ffffff' }, textColor: '#6b7280', fontSize: 11 },
-    grid: { vertLines: { color: '#f3f4f6' }, horzLines: { color: '#f3f4f6' } },
-    timeScale: { timeVisible: false, borderColor: '#e5e7eb', fixLeftEdge: true, fixRightEdge: true },
-    rightPriceScale: { borderColor: '#e5e7eb' },
+    layout: { background: { color: chartBgColor }, textColor: chartTextColor, fontSize: 11 },
+    grid: { vertLines: { color: chartGridColor }, horzLines: { color: chartGridColor } },
+    timeScale: { timeVisible: false, borderColor: chartBorderColor, fixLeftEdge: true, fixRightEdge: true },
+    rightPriceScale: { borderColor: chartBorderColor },
     handleScale: { axisPressedMouseMove: { price: false } },
     crosshair: { mode: 0 },
 };
