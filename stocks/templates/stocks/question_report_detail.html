@@ -158,7 +158,7 @@ const reportType = document.getElementById('reportType');
 const preview = document.getElementById('preview');
 
 marked.setOptions({ breaks: true });
-marked.use({ extensions: [{ name: 'highlight', level: 'inline', start(src) { return src.indexOf('=='); }, tokenizer(src) { const match = src.match(/^==([^=]+)==/); if (match) return { type: 'highlight', raw: match[0], text: match[1] }; }, renderer(token) { return `<mark>${token.text}</mark>`; } }] });
+marked.use({ extensions: [{ name: 'highlight', level: 'inline', childTokens: ['tokens'], start(src) { return src.indexOf('=='); }, tokenizer(src) { const match = src.match(/^==([^=]+)==/); if (match) { const token = { type: 'highlight', raw: match[0], text: match[1], tokens: [] }; this.lexer.inline(token.text, token.tokens); return token; } }, renderer(token) { return `<mark>${this.parser.parseInline(token.tokens)}</mark>`; } }] });
 
 function copyToClipboard(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
