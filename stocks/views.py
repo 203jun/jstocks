@@ -626,11 +626,11 @@ def index(request):
     d10 = today + timedelta(days=10)
     upcoming_events = []
     for ev in StockEvent.objects.filter(date__gte=today, date__lte=d10).select_related('stock').order_by('date'):
-        upcoming_events.append({'type': '종목', 'name': ev.stock.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days})
+        upcoming_events.append({'type': '종목', 'name': ev.stock.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days, 'level': ev.stock.interest_level or ''})
     for ev in SectorEvent.objects.filter(date__gte=today, date__lte=d10).select_related('sector').order_by('date'):
-        upcoming_events.append({'type': '섹터', 'name': ev.sector.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days})
+        upcoming_events.append({'type': '섹터', 'name': ev.sector.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days, 'level': 'all'})
     for ev in ETFEvent.objects.filter(date__gte=today, date__lte=d10).select_related('etf').order_by('date'):
-        upcoming_events.append({'type': 'ETF', 'name': ev.etf.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days})
+        upcoming_events.append({'type': 'ETF', 'name': ev.etf.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days, 'level': 'all'})
     upcoming_events.sort(key=lambda x: x['date'])
 
     context = {
