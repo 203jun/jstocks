@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET
 from decouple import config
 from telethon import TelegramClient
 from django.views.decorators.http import require_POST
-from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, IndexChart, MarketTrend, InvestorTrend, ShortSelling, MarketDiary, StockDiary
+from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, IndexChart, MarketTrend, InvestorTrend, ShortSelling, MarketDiary, StockDiary, StockEvent, SectorEvent, ETFEvent
 
 
 def index(request):
@@ -620,6 +620,19 @@ def index(request):
             'in_sell_zone': in_sell_zone,
         })
 
+    # D-10 이내 이벤트 수집
+    from datetime import date
+    today = date.today()
+    d10 = today + timedelta(days=10)
+    upcoming_events = []
+    for ev in StockEvent.objects.filter(date__gte=today, date__lte=d10).select_related('stock').order_by('date'):
+        upcoming_events.append({'type': '종목', 'name': ev.stock.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days})
+    for ev in SectorEvent.objects.filter(date__gte=today, date__lte=d10).select_related('sector').order_by('date'):
+        upcoming_events.append({'type': '섹터', 'name': ev.sector.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days})
+    for ev in ETFEvent.objects.filter(date__gte=today, date__lte=d10).select_related('etf').order_by('date'):
+        upcoming_events.append({'type': 'ETF', 'name': ev.etf.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days})
+    upcoming_events.sort(key=lambda x: x['date'])
+
     context = {
         'super_stocks': super_stocks,
         'normal_stocks': normal_stocks,
@@ -632,6 +645,7 @@ def index(request):
         'card_report_stocks': card_report_stocks,
         'card_nodaji_stocks': card_nodaji_stocks,
         'status_stocks': status_stocks,
+        'upcoming_events': upcoming_events,
     }
     return render(request, 'stocks/index.html', context)
 
