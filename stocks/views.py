@@ -6218,6 +6218,7 @@ def stock_question_report_detail(request, report_id):
         trade_prompt_vars = {
             'stock_name': qr.stock.name,
             'stock_code': qr.stock.code,
+            'today': _today_d.strftime('%Y-%m-%d'),
             'market': qr.stock.market or '',
             'current_price': _fmt_num(qr.stock.current_price),
             'change_rate': f"{qr.stock.change_rate:+g}" if qr.stock.change_rate is not None else '',

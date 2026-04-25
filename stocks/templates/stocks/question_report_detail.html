@@ -234,6 +234,7 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
         const _orEmpty = (v) => (v && String(v).trim()) ? v : '없음';
         const tradeMap = {
             '종목코드': _orEmpty(tradeVars.stock_code),
+            '오늘날짜': _orEmpty(tradeVars.today),
             '시장': _orEmpty(tradeVars.market),
             '현재가': _orEmpty(tradeVars.current_price),
             '변동률': _orEmpty(tradeVars.change_rate),
