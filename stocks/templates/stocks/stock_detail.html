@@ -77,7 +77,18 @@
     font-size: 0.75rem; font-weight: 500;
 }
 .tag-badge.theme { background: #eff6ff; color: #2962ff; }
-.tag-badge.theme-cat { background: #2962ff; color: #fff; }
+.tag-badge.theme-cat { background: #f3f4f6; color: var(--text-muted); font-weight: 500; }
+.tag-badge.theme-name {
+    background: linear-gradient(135deg, #2962ff, #1e40af);
+    color: #fff; font-weight: 700; font-size: 0.78rem;
+    padding: 4px 12px; border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(41, 98, 255, 0.25);
+}
+[data-theme="dark"] .tag-badge.theme-cat { background: #22262f; color: var(--text-secondary); }
+[data-theme="dark"] .tag-badge.theme-name {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.4);
+}
 .tag-badge.sector { background: #ecfdf5; color: #059669; }
 .tag-badge.market-kospi { background: #eff6ff; color: #2962ff; }
 .tag-badge.market-kosdaq { background: #ecfdf5; color: #059669; }
@@ -360,9 +371,9 @@
             {% if stock.themes.all %}
             {% regroup stock.themes.all by category as theme_groups %}
             {% for group in theme_groups %}
-            <span class="tag-badge" style="background:#f3f4f6;color:var(--text-muted);">{{ group.grouper.name }}</span>
+            <span class="tag-badge theme-cat">{{ group.grouper.name }}</span>
             {% for theme in group.list %}
-            <span class="tag-badge" style="background:#f3f4f6;color:var(--text-muted);">{{ theme.name }}</span>
+            <span class="tag-badge theme-name">{{ theme.name }}</span>
             {% endfor %}
             {% endfor %}
             {% endif %}

@@ -102,6 +102,7 @@ urlpatterns = [
     path('api/category/<int:category_id>/delete/', views.category_delete, name='category_delete'),
     path('api/theme/add/', views.theme_add, name='theme_add'),
     path('api/theme/<int:theme_id>/delete/', views.theme_delete, name='theme_delete'),
+    path('api/theme/resolve/', views.theme_resolve, name='theme_resolve'),
     path('api/custom-sector/add/', views.custom_sector_add, name='custom_sector_add'),
     path('api/custom-sector/<int:sector_id>/delete/', views.custom_sector_delete, name='custom_sector_delete'),
     path('api/custom-sector/search/', views.custom_sector_search, name='custom_sector_search'),

@@ -1392,20 +1392,28 @@ def stock_edit(request, code):
     # 공매도 (최근 60일)
     short_sellings = ShortSelling.objects.filter(stock=stock).order_by('-date')[:60]
 
-    # 업종 (전체 및 현재 종목의 업종)
-    from .models import ThemeCategory, CustomSector
-    theme_categories = ThemeCategory.objects.prefetch_related('themes').all()
-    stock_theme_ids = list(stock.themes.values_list('id', flat=True))
-
     # 관심섹터 (전체)
+    from .models import CustomSector
     custom_sectors = CustomSector.objects.all()
+
+    # 종목분류 프롬프트 (설정에서 가져오기)
+    from .models import SystemSetting
+    classify_prompt = SystemSetting.objects.filter(key='prompt_classify').values_list('value', flat=True).first() or ''
+
+    # 종목분류 현황 (현재 DB에 저장된 모든 종목 분류 - "종목명 | 대분류 | 중분류")
+    classify_lines = []
+    stocks_with_themes = Info.objects.filter(themes__isnull=False).prefetch_related('themes__category').distinct()
+    for s in stocks_with_themes:
+        for t in s.themes.all():
+            classify_lines.append(f"{s.name} | {t.category.name} | {t.name}")
+    classify_status_text = '\n'.join(classify_lines)
 
     context = {
         'stock': stock,
         'interest_choices': interest_choices,
-        'theme_categories': theme_categories,
-        'stock_theme_ids': stock_theme_ids,
         'custom_sectors': custom_sectors,
+        'classify_prompt': classify_prompt,
+        'classify_status_text': classify_status_text,
         'gongsi_list': gongsi_list,
         'investor_trends': investor_trends,
         'investor_chart_data': json.dumps(investor_chart_data),
@@ -3882,21 +3890,12 @@ def sector_date_data(request):
 
 def settings(request):
     """설정 페이지"""
-    from .models import ThemeCategory, ExcludedYoutubeChannel, PreferredYoutubeChannel, Info, SystemSetting, CustomSector
+    from .models import ThemeCategory, ExcludedYoutubeChannel, PreferredYoutubeChannel, SystemSetting, CustomSector
 
     categories = ThemeCategory.objects.prefetch_related('themes').all()
     excluded_channels = ExcludedYoutubeChannel.objects.all()
     preferred_channels = PreferredYoutubeChannel.objects.all()
     custom_sectors = CustomSector.objects.all()
-
-    # 종목분류 프롬프트용 데이터 (종목 | 대분류 | 소분류)
-    stock_classify_lines = []
-    stocks_with_themes = Info.objects.filter(themes__isnull=False).prefetch_related('themes__category').distinct()
-    for stock in stocks_with_themes:
-        for theme in stock.themes.all():
-            stock_classify_lines.append(f"{stock.name} | {theme.category.name} | {theme.name}")
-    stock_classify_text = '\n'.join(stock_classify_lines)
-    stock_classify_lines_count = len(stock_classify_lines)
 
     # 저장된 프롬프트 불러오기
     saved_prompts = {}
@@ -3918,8 +3917,6 @@ def settings(request):
         'excluded_channels': excluded_channels,
         'preferred_channels': preferred_channels,
         'custom_sectors': custom_sectors,
-        'stock_classify_text': stock_classify_text,
-        'stock_classify_lines_count': stock_classify_lines_count,
         'saved_prompts': saved_prompts,
         'briefing_data_types': briefing_data_types,
     }
@@ -5265,6 +5262,69 @@ def theme_delete(request, theme_id):
     theme.delete()
 
     return JsonResponse({'success': True})
+
+
+@require_POST
+def theme_resolve(request):
+    """
+    '종목명|대분류|중분류' 형식 입력을 받아 ThemeCategory/Theme를 자동 생성하고
+    Theme id 목록을 반환. 종목명은 무시. 중분류는 컴마가 있어도 split하지 않고
+    하나의 Theme로 저장.
+
+    여러 줄 입력 가능 - 각 줄을 동일 규칙으로 처리.
+    """
+    from .models import Theme, ThemeCategory
+
+    raw = request.POST.get('text', '').strip()
+    if not raw:
+        return JsonResponse({'error': '입력값이 비어있습니다.'}, status=400)
+
+    results = []
+    errors = []
+
+    for lineno, line in enumerate(raw.splitlines(), start=1):
+        line = line.strip()
+        if not line:
+            continue
+
+        parts = [p.strip() for p in line.split('|')]
+        if len(parts) < 3:
+            errors.append(f'{lineno}행: "종목명|대분류|중분류" 형식이 아닙니다.')
+            continue
+
+        # 종목명(parts[0])은 무시
+        category_name = parts[1]
+        theme_name = '|'.join(parts[2:]).strip()  # 3개 이상 |가 와도 뒤를 통째로
+
+        if not category_name or not theme_name:
+            errors.append(f'{lineno}행: 대분류 또는 중분류가 비어있습니다.')
+            continue
+
+        if len(category_name) > 20:
+            errors.append(f'{lineno}행: 대분류명은 20자 이하여야 합니다.')
+            continue
+
+        if len(theme_name) > 100:
+            errors.append(f'{lineno}행: 중분류명은 100자 이하여야 합니다.')
+            continue
+
+        category, _ = ThemeCategory.objects.get_or_create(name=category_name)
+        theme, _ = Theme.objects.get_or_create(category=category, name=theme_name)
+
+        results.append({
+            'id': theme.id,
+            'category_name': category.name,
+            'name': theme.name,
+        })
+
+    if not results and errors:
+        return JsonResponse({'error': '\n'.join(errors)}, status=400)
+
+    return JsonResponse({
+        'success': True,
+        'themes': results,
+        'errors': errors,
+    })
 
 
 @require_GET

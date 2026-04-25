@@ -42,9 +42,9 @@ class Theme(models.Model):
         help_text='소속 대분류'
     )
     name = models.CharField(
-        max_length=20,
+        max_length=100,
         verbose_name='소분류명',
-        help_text='업종 소분류 이름 (최대 20자)'
+        help_text='업종 소분류 이름 (최대 100자)'
     )
     created_at = models.DateTimeField(
         auto_now_add=True,

@@ -260,6 +260,25 @@ small.text-muted {
 [data-theme="dark"] .nav-tabs .nav-link { color: var(--text-secondary); }
 [data-theme="dark"] .nav-tabs .nav-link.active { color: var(--text-primary); background: var(--bg-card); }
 [data-theme="dark"] .settings-input { background: #22262f; color: var(--text-primary); }
+
+/* 공용 확인 모달 */
+.confirm-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 2000;
+    justify-content: center; align-items: center;
+}
+.confirm-overlay.show { display: flex; }
+.confirm-box {
+    background: var(--bg-card); color: var(--text-primary);
+    border: 1px solid var(--border-color); border-radius: 10px;
+    padding: 22px 24px; max-width: 420px; width: 90%;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+}
+.confirm-message { font-size: 0.92rem; line-height: 1.55; margin-bottom: 18px; white-space: pre-line; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.confirm-actions .btn-refresh { padding: 6px 18px; }
+.confirm-actions .confirm-danger { color: var(--up-color); border-color: var(--up-color); }
+.confirm-actions .confirm-danger:hover { background: var(--up-color); color: #fff; }
 {% endblock %}
 
 {% block content %}
@@ -284,35 +303,8 @@ small.text-muted {
     <div class="tab-pane fade show active" id="theme-panel" role="tabpanel">
         <div class="brief-card">
             <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
-                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">업종 관리</span>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn-refresh" id="btnAddCategory">대분류 추가</button>
-                    <button type="button" class="btn-refresh" id="btnAddTheme">소분류 추가</button>
-                </div>
-            </div>
-
-            <!-- 대분류 추가 폼 -->
-            <div id="categoryAddForm" class="d-none add-form-box">
-                <div class="add-form-label">대분류 추가 (최대 20자)</div>
-                <div class="d-flex gap-2 align-items-center">
-                    <input type="text" class="settings-input" id="categoryAddName" placeholder="건설/플랜트, 바이오/제약 등" maxlength="20" style="flex:1;">
-                    <button type="button" id="btnSaveCategory" class="btn-refresh" style="padding:6px 20px;">저장</button>
-                </div>
-            </div>
-
-            <!-- 소분류 추가 폼 -->
-            <div id="themeAddForm" class="d-none add-form-box">
-                <div class="add-form-label">소분류 추가</div>
-                <div class="d-flex gap-2 align-items-center flex-wrap">
-                    <select class="settings-input" id="themeAddCategory" style="min-width:160px;">
-                        <option value="">대분류 선택</option>
-                        {% for category in categories %}
-                        <option value="{{ category.id }}">{{ category.name }}</option>
-                        {% endfor %}
-                    </select>
-                    <input type="text" class="settings-input" id="themeAddName" placeholder="소분류명 (최대 20자)" maxlength="20" style="flex:1;">
-                    <button type="button" id="btnSaveTheme" class="btn-refresh" style="padding:6px 20px;">저장</button>
-                </div>
+                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">업종 목록</span>
+                <span style="font-size:0.75rem;color:var(--text-muted);">추가는 종목/정보수정에서 자동 생성됩니다.</span>
             </div>
 
             <!-- 업종 목록 (아코디언) -->
@@ -345,14 +337,10 @@ small.text-muted {
                 </div>
                 {% empty %}
                 <div style="text-align:center;color:var(--text-muted);padding:24px;font-size:0.85rem;" id="emptyMessage">
-                    등록된 업종이 없습니다. 대분류를 먼저 추가하세요.
+                    등록된 업종이 없습니다. 종목/정보수정에서 프롬프트 복사 → 파싱 추가로 만들어주세요.
                 </div>
                 {% endfor %}
             </div>
-        </div>
-
-        <div style="margin-top:12px;font-size:0.78rem;color:var(--text-muted);">
-            <strong>사용법:</strong> 대분류(건설/플랜트, 바이오/제약 등)를 먼저 추가한 후, 소분류(도시정비/원전, P-CAB/GLP-1 등)를 추가하세요.
         </div>
     </div>
 
@@ -416,15 +404,6 @@ small.text-muted {
                     <textarea class="form-control" id="stockClassifyPrompt" rows="6" placeholder="종목분류 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_classify }}</textarea>
                     <small class="text-muted">AI에게 전달할 기본 프롬프트입니다. 수정 후 저장하세요.</small>
                 </div>
-                <div class="brief-card">
-                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
-                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">종목 분류 현황</span>
-                        <span style="font-size:0.78rem;color:var(--text-muted);">{{ stock_classify_lines_count }}개</span>
-                    </div>
-                    <textarea class="form-control bg-light" id="stockClassifyList" rows="8" readonly>{{ stock_classify_text }}</textarea>
-                    <small class="text-muted">DB에서 자동 생성됩니다. (종목명 | 대분류 | 소분류)</small>
-                </div>
-                <button type="button" class="btn-refresh" id="btnCopyAll" style="width:100%;padding:8px;">전체 복사 (종목 리스트 + 프롬프트)</button>
             </div>
             <!-- HTML변환 -->
             <div class="prompt-panel" id="html-convert-panel" style="display:none;">
@@ -600,10 +579,57 @@ small.text-muted {
         </div>
     </div>
 </div>
+
+<!-- 공용 확인 모달 -->
+<div class="confirm-overlay" id="confirmOverlay" role="dialog" aria-modal="true">
+    <div class="confirm-box">
+        <div class="confirm-message" id="confirmMessage"></div>
+        <div class="confirm-actions">
+            <button type="button" class="btn-refresh" id="confirmCancelBtn">취소</button>
+            <button type="button" class="btn-refresh confirm-danger" id="confirmOkBtn">삭제</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// === 공용 확인 모달 ===
+function showConfirm(message, { confirmText = '삭제', cancelText = '취소' } = {}) {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('confirmOverlay');
+        const msgEl = document.getElementById('confirmMessage');
+        const okBtn = document.getElementById('confirmOkBtn');
+        const cancelBtn = document.getElementById('confirmCancelBtn');
+
+        msgEl.textContent = message;
+        okBtn.textContent = confirmText;
+        cancelBtn.textContent = cancelText;
+        overlay.classList.add('show');
+
+        const cleanup = (result) => {
+            overlay.classList.remove('show');
+            okBtn.removeEventListener('click', onOk);
+            cancelBtn.removeEventListener('click', onCancel);
+            overlay.removeEventListener('click', onBackdrop);
+            document.removeEventListener('keydown', onKey);
+            resolve(result);
+        };
+        const onOk = () => cleanup(true);
+        const onCancel = () => cleanup(false);
+        const onBackdrop = (e) => { if (e.target === overlay) cleanup(false); };
+        const onKey = (e) => {
+            if (e.key === 'Escape') cleanup(false);
+            else if (e.key === 'Enter') cleanup(true);
+        };
+
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        overlay.addEventListener('click', onBackdrop);
+        document.addEventListener('keydown', onKey);
+    });
+}
+
 // URL 파라미터로 탭 전환
 (function() {
     const params = new URLSearchParams(window.location.search);
@@ -627,66 +653,15 @@ document.querySelectorAll('.prompt-sub-tab').forEach(tab => {
     });
 });
 
-// === 대분류 관리 ===
-const btnAddCategory = document.getElementById('btnAddCategory');
-const categoryAddForm = document.getElementById('categoryAddForm');
-const categoryAddName = document.getElementById('categoryAddName');
-const btnSaveCategory = document.getElementById('btnSaveCategory');
-
-btnAddCategory.addEventListener('click', () => {
-    categoryAddForm.classList.toggle('d-none');
-    themeAddForm.classList.add('d-none');
-    if (!categoryAddForm.classList.contains('d-none')) {
-        categoryAddName.focus();
-    }
-});
-
-btnSaveCategory.addEventListener('click', async () => {
-    const name = categoryAddName.value.trim();
-    if (!name) {
-        alert('대분류명을 입력해주세요.');
-        return;
-    }
-
-    btnSaveCategory.disabled = true;
-
-    try {
-        const formData = new FormData();
-        formData.append('name', name);
-
-        const response = await fetch('/api/category/add/', {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            // 페이지 새로고침 (아코디언 구조 복잡)
-            location.reload();
-        } else {
-            alert(data.error || '저장에 실패했습니다.');
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-    } finally {
-        btnSaveCategory.disabled = false;
-    }
-});
-
-categoryAddName.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') btnSaveCategory.click();
-});
-
-// 대분류 삭제
+// === 대분류 삭제 ===
 document.addEventListener('click', async (e) => {
     if (!e.target.classList.contains('btn-delete-category')) return;
 
     const categoryId = e.target.dataset.id;
     const categoryName = e.target.dataset.name;
 
-    if (!confirm(`"${categoryName}" 대분류와 모든 소분류를 삭제하시겠습니까?`)) return;
+    const ok = await showConfirm(`"${categoryName}" 대분류와 모든 소분류를 삭제하시겠습니까?`);
+    if (!ok) return;
 
     e.target.disabled = true;
 
@@ -710,101 +685,15 @@ document.addEventListener('click', async (e) => {
     }
 });
 
-// === 소분류 관리 ===
-const btnAddTheme = document.getElementById('btnAddTheme');
-const themeAddForm = document.getElementById('themeAddForm');
-const themeAddCategory = document.getElementById('themeAddCategory');
-const themeAddName = document.getElementById('themeAddName');
-const btnSaveTheme = document.getElementById('btnSaveTheme');
-
-btnAddTheme.addEventListener('click', () => {
-    themeAddForm.classList.toggle('d-none');
-    categoryAddForm.classList.add('d-none');
-    if (!themeAddForm.classList.contains('d-none')) {
-        themeAddCategory.focus();
-    }
-});
-
-btnSaveTheme.addEventListener('click', async () => {
-    const categoryId = themeAddCategory.value;
-    const name = themeAddName.value.trim();
-
-    if (!categoryId) {
-        alert('대분류를 선택해주세요.');
-        return;
-    }
-    if (!name) {
-        alert('소분류명을 입력해주세요.');
-        return;
-    }
-
-    btnSaveTheme.disabled = true;
-
-    try {
-        const formData = new FormData();
-        formData.append('category_id', categoryId);
-        formData.append('name', name);
-
-        const response = await fetch('/api/theme/add/', {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            // 해당 대분류의 소분류 목록에 추가
-            const themeList = document.querySelector(`.theme-list[data-category-id="${categoryId}"]`);
-            if (themeList) {
-                // 빈 메시지 제거
-                const emptyMsg = themeList.querySelector('.theme-empty');
-                if (emptyMsg) emptyMsg.remove();
-
-                // 새 뱃지 추가
-                const badge = document.createElement('span');
-                badge.className = 'tag-chip';
-                badge.dataset.themeId = data.id;
-                badge.innerHTML = `
-                    ${escapeHtml(data.name)}
-                    <button type="button" class="tag-chip-remove btn-delete-theme" data-id="${data.id}" data-name="${escapeHtml(data.name)}">&times;</button>
-                `;
-                themeList.appendChild(badge);
-
-                // 카운트 업데이트
-                const accordion = document.querySelector(`.accordion-item[data-category-id="${categoryId}"]`);
-                if (accordion) {
-                    const countBadge = accordion.querySelector('.accordion-button span[style*="border-radius"]');
-                    if (countBadge) {
-                        countBadge.textContent = parseInt(countBadge.textContent) + 1;
-                    }
-                }
-            }
-
-            themeAddName.value = '';
-            themeAddName.focus();
-        } else {
-            alert(data.error || '저장에 실패했습니다.');
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-    } finally {
-        btnSaveTheme.disabled = false;
-    }
-});
-
-themeAddName.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') btnSaveTheme.click();
-});
-
-// 소분류 삭제
+// === 소분류 삭제 ===
 document.addEventListener('click', async (e) => {
     if (!e.target.classList.contains('btn-delete-theme')) return;
 
     const themeId = e.target.dataset.id;
     const themeName = e.target.dataset.name;
 
-    if (!confirm(`"${themeName}" 소분류를 삭제하시겠습니까?`)) return;
+    const ok = await showConfirm(`"${themeName}" 소분류를 삭제하시겠습니까?`);
+    if (!ok) return;
 
     e.target.disabled = true;
 
@@ -938,28 +827,6 @@ function copyToClipboard(text) {
         }
     });
 }
-
-// 전체 복사 (종목 리스트 + 프롬프트)
-document.getElementById('btnCopyAll').addEventListener('click', async function() {
-    const prompt = document.getElementById('stockClassifyPrompt').value;
-    const list = document.getElementById('stockClassifyList').value;
-    const combined = list + '\n\n' + prompt;
-
-    try {
-        await copyToClipboard(combined);
-        const originalText = this.textContent;
-        this.textContent = '복사됨!';
-        this.classList.remove('btn-outline-primary');
-        this.classList.add('btn-success');
-        setTimeout(() => {
-            this.textContent = originalText;
-            this.classList.remove('btn-success');
-            this.classList.add('btn-outline-primary');
-        }, 1500);
-    } catch (err) {
-        alert('복사에 실패했습니다: ' + err.message);
-    }
-});
 
 // 기업분석: 리포트 생성 프롬프트 저장
 document.getElementById('btnSaveAnalysisPrompt').addEventListener('click', function() {

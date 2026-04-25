@@ -62,6 +62,10 @@
     outline:none;
 }
 
+/* Prompt copy badge */
+.prompt-badge { display:inline-block; padding:3px 10px; border-radius:4px; font-size:0.72rem; font-weight:500; cursor:pointer; background:#ecfdf5; color:#059669; transition:all 0.15s; }
+.prompt-badge:hover { background:#d1fae5; }
+
 /* Selected theme/sector tag */
 .selected-tag { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:4px; font-size:0.75rem; font-weight:500; color:#fff; }
 .selected-tag.theme { background:var(--down-color); }
@@ -160,9 +164,12 @@
             </div>
         </div>
 
-        <h5 class="section-heading">업종 <a href="{% url 'stocks:settings' %}" style="color:var(--text-muted); font-size:0.78rem; margin-left:8px; text-decoration:none;" target="_blank">관리</a></h5>
+        <h5 class="section-heading" style="display:flex; align-items:baseline; gap:8px;">
+            업종
+            <a href="{% url 'stocks:settings' %}" style="color:var(--text-muted); font-size:0.78rem; text-decoration:none;" target="_blank">관리</a>
+            <span class="prompt-badge" role="button" id="btnCopyClassifyPrompt" style="margin-left:auto; font-weight:400;">프롬프트 복사</span>
+        </h5>
         <div class="brief-card">
-            {% if theme_categories %}
             <!-- 선택된 테마 표시 -->
             <div id="selectedThemes" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
                 {% for theme in stock.themes.all %}
@@ -174,31 +181,21 @@
                 <span style="color:var(--text-muted); font-size:0.82rem;" id="noThemeMsg">선택된 업종이 없습니다.</span>
                 {% endfor %}
             </div>
-            <!-- 테마 추가 드롭다운 -->
-            <div style="display:flex; gap:8px; align-items:center;">
-                <select id="themeSelect" class="form-select" style="max-width:300px; font-size:0.82rem;">
-                    <option value="">업종 선택...</option>
-                    {% for category in theme_categories %}
-                    <optgroup label="{{ category.name }}">
-                        {% for theme in category.themes.all %}
-                        <option value="{{ theme.id }}" data-category="{{ category.name }}" data-name="{{ theme.name }}">{{ theme.name }}</option>
-                        {% endfor %}
-                    </optgroup>
-                    {% endfor %}
-                </select>
-                <button type="button" id="btnAddThemeToStock" class="btn-refresh">추가</button>
+
+            <!-- AI 결과 붙여넣기 (종목명|대분류|중분류) -->
+            <div style="display:flex; gap:8px; align-items:flex-start; margin-bottom:8px;">
+                <textarea id="themeResolveInput" class="form-control" rows="2"
+                    placeholder="종목명|대분류|중분류 형식으로 붙여넣기 (여러 줄 가능)"
+                    style="flex:1; font-size:0.82rem;"></textarea>
+                <button type="button" id="btnResolveTheme" class="btn-refresh" style="white-space:nowrap;">파싱 추가</button>
             </div>
+
             <!-- hidden inputs -->
             <div id="themeInputs">
                 {% for theme in stock.themes.all %}
-                <input type="hidden" name="themes" value="{{ theme.id }}">
+                <input type="hidden" name="themes" value="{{ theme.id }}" data-id="{{ theme.id }}">
                 {% endfor %}
             </div>
-            {% else %}
-            <div style="color:var(--text-muted); font-size:0.82rem;">
-                등록된 업종이 없습니다. <a href="{% url 'stocks:settings' %}" target="_blank">설정</a>에서 업종을 추가하세요.
-            </div>
-            {% endif %}
         </div>
 
         <h5 class="section-heading">관심섹터 <a href="{% url 'stocks:settings' %}" style="color:var(--text-muted); font-size:0.78rem; margin-left:8px; text-decoration:none;" target="_blank">관리</a></h5>
@@ -250,49 +247,113 @@
 <script>
 const stockName = "{{ stock.name }}";
 const stockCode = "{{ stock.code }}";
+const classifyPrompt = "{{ classify_prompt|escapejs }}";
+const classifyStatusText = "{{ classify_status_text|escapejs }}";
 
-// ============ 업종(테마) 추가/제거 ============
-document.getElementById('btnAddThemeToStock')?.addEventListener('click', function() {
-    const select = document.getElementById('themeSelect');
-    const themeId = select.value;
-    if (!themeId) return;
+function getCsrfToken() {
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [key, value] = cookie.trim().split('=');
+        if (key === 'csrftoken') return value;
+    }
+    return '';
+}
 
-    const option = select.options[select.selectedIndex];
-    const categoryName = option.dataset.category;
-    const themeName = option.dataset.name;
-
-    // 이미 추가된 테마인지 확인
-    if (document.querySelector(`.selected-theme[data-id="${themeId}"]`)) {
-        alert('이미 추가된 업종입니다.');
+// ============ 종목분류 프롬프트 복사 ============
+document.getElementById('btnCopyClassifyPrompt')?.addEventListener('click', async function() {
+    if (!classifyPrompt) {
+        alert('설정 → 프롬프트 → 종목분류에서 프롬프트를 먼저 등록하세요.');
         return;
     }
+    const text = classifyPrompt
+        .split('{종목분류현황}').join(classifyStatusText)
+        .split('{종목명}').join(stockName);
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+        } else {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        }
+        const orig = this.textContent;
+        this.textContent = '복사됨!';
+        setTimeout(() => { this.textContent = orig; }, 1500);
+    } catch (e) {
+        alert('클립보드 복사 실패: ' + e.message);
+    }
+});
 
-    // "선택된 업종이 없습니다" 메시지 제거
+// ============ AI 결과 파싱 → 업종 자동 생성/추가 ============
+function addThemeChip(themeId, categoryName, themeName) {
+    // 이미 추가됐으면 무시
+    if (document.querySelector(`.selected-theme[data-id="${themeId}"]`)) return false;
+
     const noThemeMsg = document.getElementById('noThemeMsg');
     if (noThemeMsg) noThemeMsg.remove();
 
-    // 태그 추가
     const badge = document.createElement('span');
     badge.className = 'selected-tag theme selected-theme';
     badge.dataset.id = themeId;
-    badge.innerHTML = `
-        ${categoryName} &gt; ${themeName}
-        <button type="button" class="tag-remove btn-remove-theme">&times;</button>
-    `;
+    badge.innerHTML = `${categoryName} &gt; ${themeName} <button type="button" class="tag-remove btn-remove-theme">&times;</button>`;
     document.getElementById('selectedThemes').appendChild(badge);
 
-    // hidden input 추가
     const input = document.createElement('input');
     input.type = 'hidden';
     input.name = 'themes';
     input.value = themeId;
     input.dataset.id = themeId;
     document.getElementById('themeInputs').appendChild(input);
+    return true;
+}
 
-    select.value = '';
+document.getElementById('btnResolveTheme')?.addEventListener('click', async function() {
+    const ta = document.getElementById('themeResolveInput');
+    const text = ta.value.trim();
+    if (!text) { alert('파싱할 텍스트를 입력하세요.'); return; }
+
+    const fd = new FormData();
+    fd.append('text', text);
+
+    try {
+        const res = await fetch("{% url 'stocks:theme_resolve' %}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrfToken() },
+            body: fd,
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(data.error || '파싱 실패');
+            return;
+        }
+
+        let added = 0, skipped = 0;
+        for (const t of (data.themes || [])) {
+            const ok = addThemeChip(t.id, t.category_name, t.name);
+            if (ok) added++; else skipped++;
+        }
+
+        let msg = `${added}개 업종 추가됨`;
+        if (skipped) msg += ` (이미 추가된 ${skipped}개 건너뜀)`;
+        if (data.errors && data.errors.length) {
+            msg += `\n\n경고:\n${data.errors.join('\n')}`;
+        }
+        msg += '\n\n저장 버튼을 눌러야 종목에 반영됩니다.';
+        alert(msg);
+
+        ta.value = '';
+    } catch (e) {
+        alert('요청 실패: ' + e.message);
+    }
 });
 
-// 테마 제거
+// ============ 업종(테마) 제거 ============
 document.getElementById('selectedThemes')?.addEventListener('click', function(e) {
     if (!e.target.classList.contains('btn-remove-theme')) return;
 
