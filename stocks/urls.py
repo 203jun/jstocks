@@ -182,6 +182,10 @@ urlpatterns = [
     path('api/research-prompt/add/', views.research_prompt_add, name='research_prompt_add'),
     path('api/research-prompt/<int:prompt_id>/update/', views.research_prompt_update, name='research_prompt_update'),
     path('api/research-prompt/<int:prompt_id>/delete/', views.research_prompt_delete, name='research_prompt_delete'),
+    path('api/quick-report/', views.quick_report_list, name='quick_report_list'),
+    path('api/quick-report/add/', views.quick_report_add, name='quick_report_add'),
+    path('api/quick-report/<int:prompt_id>/update/', views.quick_report_update, name='quick_report_update'),
+    path('api/quick-report/<int:prompt_id>/delete/', views.quick_report_delete, name='quick_report_delete'),
     # 파일 업로드 리포트 (종목)
     path('uploaded-report/<int:report_id>/summary/', views.uploaded_report_summary_page, name='uploaded_report_summary_page'),
     path('api/stock/uploaded-report/upload/', views.stock_uploaded_report_upload, name='stock_uploaded_report_upload'),

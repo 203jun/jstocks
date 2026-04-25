@@ -1020,11 +1020,26 @@ def stock_detail(request, code):
     }
 
     # 질문리포트
-    from .models import StockQuestionReport, ResearchPrompt
-    question_reports = StockQuestionReport.objects.filter(stock=stock).order_by('-created_at')
+    from .models import StockQuestionReport, ResearchPrompt, QuickReport
+    question_reports = list(StockQuestionReport.objects.filter(stock=stock).order_by('-created_at'))
 
-    # 공통리서치 프롬프트
+    # 공통리서치 / 퀵리포트 프롬프트
     research_prompts = ResearchPrompt.objects.all()
+    quick_prompts = QuickReport.objects.all()
+    common_question_set = set(research_prompts.values_list('question', flat=True))
+    quick_question_set = set(quick_prompts.values_list('question', flat=True))
+
+    # 공통 / 퀵 / 개별 분리 (공통 우선)
+    common_question_reports = []
+    quick_question_reports = []
+    custom_question_reports = []
+    for qr in question_reports:
+        if qr.question in common_question_set:
+            common_question_reports.append(qr)
+        elif qr.question in quick_question_set:
+            quick_question_reports.append(qr)
+        else:
+            custom_question_reports.append(qr)
 
     # 업로드 리포트
     from .models import StockUploadedReport, SystemSetting
@@ -1155,6 +1170,9 @@ def stock_detail(request, code):
         'news_articles': news_articles,
         'telegram_messages': telegram_messages,
         'question_reports': question_reports,
+        'common_question_reports': common_question_reports,
+        'quick_question_reports': quick_question_reports,
+        'custom_question_reports': custom_question_reports,
         'research_prompts': research_prompts,
         'uploaded_reports': uploaded_reports,
         'total_summary_count': total_summary_count,
@@ -6123,7 +6141,7 @@ def youtube_video_update(request, video_id):
 
 def stock_question_report_detail(request, report_id):
     """리서치 상세/편집 페이지"""
-    from .models import StockQuestionReport, ResearchPrompt
+    from .models import StockQuestionReport, ResearchPrompt, QuickReport
     qr = get_object_or_404(StockQuestionReport, id=report_id)
 
     if request.method == 'POST':
@@ -6137,6 +6155,7 @@ def stock_question_report_detail(request, report_id):
         return redirect('stocks:stock_question_report_detail', report_id=report_id)
 
     research_prompts = ResearchPrompt.objects.all()
+    quick_prompts = QuickReport.objects.all()
 
     # 공통리서치용 노다지 요약 (6개월 이내, 요약 있는 것만)
     nodaji_summaries = ''
@@ -6204,6 +6223,7 @@ def stock_question_report_detail(request, report_id):
     return render(request, 'stocks/question_report_detail.html', {
         'qr': qr,
         'research_prompts': research_prompts,
+        'quick_prompts': quick_prompts,
         'nodaji_summaries': nodaji_summaries,
         'theme_category_name': theme_category_name,
         'theme_name': theme_name,
@@ -8336,6 +8356,93 @@ def research_prompt_delete(request, prompt_id):
         obj.delete()
         return JsonResponse({'success': True})
     except ResearchPrompt.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '프롬프트를 찾을 수 없습니다.'})
+
+
+# ============ 퀵리포트 ============
+
+def quick_report_list(request):
+    """퀵리포트 목록 조회"""
+    from .models import QuickReport
+
+    prompts = QuickReport.objects.all()
+    data = [{
+        'id': p.id,
+        'question': p.question,
+        'prompt': p.prompt,
+        'order': p.order,
+        'needs_attachment': p.needs_attachment
+    } for p in prompts]
+
+    return JsonResponse({'success': True, 'prompts': data})
+
+
+@require_POST
+def quick_report_add(request):
+    """퀵리포트 추가"""
+    from django.db.models import Max
+    from .models import QuickReport
+
+    question = request.POST.get('question', '').strip()
+    prompt = request.POST.get('prompt', '').strip()
+    needs_attachment = request.POST.get('needs_attachment') == 'true'
+
+    if not question:
+        return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
+
+    max_order = QuickReport.objects.aggregate(Max('order'))['order__max'] or 0
+    obj = QuickReport.objects.create(
+        question=question,
+        prompt=prompt,
+        order=max_order + 1,
+        needs_attachment=needs_attachment
+    )
+
+    return JsonResponse({
+        'success': True,
+        'id': obj.id,
+        'question': obj.question,
+        'prompt': obj.prompt,
+        'order': obj.order,
+        'needs_attachment': obj.needs_attachment
+    })
+
+
+@require_POST
+def quick_report_update(request, prompt_id):
+    """퀵리포트 수정"""
+    from .models import QuickReport
+
+    try:
+        obj = QuickReport.objects.get(id=prompt_id)
+    except QuickReport.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '프롬프트를 찾을 수 없습니다.'})
+
+    question = request.POST.get('question', '').strip()
+    prompt = request.POST.get('prompt', '').strip()
+    needs_attachment = request.POST.get('needs_attachment') == 'true'
+
+    if not question:
+        return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
+
+    obj.question = question
+    obj.prompt = prompt
+    obj.needs_attachment = needs_attachment
+    obj.save()
+
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def quick_report_delete(request, prompt_id):
+    """퀵리포트 삭제"""
+    from .models import QuickReport
+
+    try:
+        obj = QuickReport.objects.get(id=prompt_id)
+        obj.delete()
+        return JsonResponse({'success': True})
+    except QuickReport.DoesNotExist:
         return JsonResponse({'success': False, 'error': '프롬프트를 찾을 수 없습니다.'})
 
 

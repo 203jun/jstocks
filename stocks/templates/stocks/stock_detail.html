@@ -89,6 +89,52 @@
     background: linear-gradient(135deg, #3b82f6, #1d4ed8);
     box-shadow: 0 1px 3px rgba(59, 130, 246, 0.4);
 }
+
+/* 리서치: 그룹 레이아웃 */
+.research-group {
+    display:flex; gap:10px; padding:12px 16px;
+    border-bottom:1px solid var(--border-color); align-items:flex-start;
+}
+.research-group:last-child { border-bottom:none; }
+.research-chips { display:flex; flex-wrap:wrap; gap:6px; align-items:center; flex:1; }
+.research-custom-list { display:flex; flex-direction:column; flex:1; }
+
+/* 리서치 그룹 라벨 */
+.research-common-label, .research-quick-label, .research-custom-label {
+    display:inline-block; font-size:0.65rem; padding:2px 7px; border-radius:3px;
+    font-weight:600; flex-shrink:0; min-width:38px; text-align:center; margin-top:3px;
+}
+.research-common-label { background:#e8f0fe; color:#1a73e8; }
+.research-quick-label { background:#fef3c7; color:#b45309; }
+.research-custom-label { background:#f3f4f6; color:var(--text-muted); }
+[data-theme="dark"] .research-common-label { background:#1e2e4a; color:#93b4ff; }
+[data-theme="dark"] .research-quick-label { background:#3a2e10; color:#fbbf24; }
+[data-theme="dark"] .research-custom-label { background:#22262f; color:var(--text-secondary); }
+
+/* 칩 (공통/Quick) */
+.research-common-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 10px; border-radius:14px;
+    background:#f3f4f6; color:var(--text-primary); font-size:0.78rem;
+    text-decoration:none; transition:background 0.15s;
+}
+.research-common-chip:hover { background:#e5e7eb; color:var(--text-primary); }
+.research-common-chip .chip-date { font-size:0.7rem; color:var(--text-muted); }
+[data-theme="dark"] .research-common-chip { background:#22262f; color:var(--text-primary); }
+[data-theme="dark"] .research-common-chip:hover { background:#2c313b; }
+
+/* 일반 리서치 아이템 (컴팩트) */
+.research-custom-item {
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+    padding:5px 0; text-decoration:none; color:var(--text-primary);
+    font-size:0.82rem; border-bottom:1px solid #f3f4f6;
+}
+.research-custom-item:last-child { border-bottom:none; }
+.research-custom-item:hover { color:var(--text-primary); background:#fafafa; }
+.research-custom-title { color:var(--text-primary); }
+.research-custom-date { font-size:0.7rem; color:var(--text-muted); flex-shrink:0; }
+[data-theme="dark"] .research-custom-item { border-bottom-color:#2a2e36; }
+[data-theme="dark"] .research-custom-item:hover { background:#1f232b; }
 .tag-badge.sector { background: #ecfdf5; color: #059669; }
 .tag-badge.market-kospi { background: #eff6ff; color: #2962ff; }
 .tag-badge.market-kosdaq { background: #ecfdf5; color: #059669; }
@@ -578,16 +624,48 @@
     <!-- 리서치 -->
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;"><span>리서치 <span class="tab-count">{{ question_reports|length }}</span></span><button type="button" class="btn-refresh" id="btnAddQuestionReport" style="padding:4px 12px;font-weight:400;">+ 추가</button></h5>
     <div class="brief-card" style="padding:0; overflow:hidden;" id="researchList">
-        {% for qr in question_reports %}
-        <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="edit-list-item research-item" data-question="{{ qr.question }}" style="display:block;text-decoration:none;color:inherit;">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-                <span style="font-weight:600;color:var(--text-primary);">{{ qr.question|truncatechars:80 }}</span>
+        {% if common_question_reports %}
+        <div class="research-group">
+            <span class="research-common-label">공통</span>
+            <div class="research-chips">
+                {% for qr in common_question_reports %}
+                <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="research-common-chip" data-question="{{ qr.question }}" title="{{ qr.question }}">
+                    <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
+                    <span class="chip-date">{{ qr.updated_at|date:"y.m.d" }}</span>
+                </a>
+                {% endfor %}
             </div>
-            <span style="color:var(--text-muted);font-size:0.75rem;">{{ qr.created_at|date:"Y-m-d" }}</span>
-        </a>
-        {% empty %}
+        </div>
+        {% endif %}
+        {% if quick_question_reports %}
+        <div class="research-group">
+            <span class="research-quick-label">Quick</span>
+            <div class="research-chips">
+                {% for qr in quick_question_reports %}
+                <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="research-common-chip" data-question="{{ qr.question }}" title="{{ qr.question }}">
+                    <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
+                    <span class="chip-date">{{ qr.updated_at|date:"y.m.d" }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% if custom_question_reports %}
+        <div class="research-group">
+            <span class="research-custom-label">일반</span>
+            <div class="research-custom-list">
+                {% for qr in custom_question_reports %}
+                <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="research-custom-item" data-question="{{ qr.question }}">
+                    <span class="research-custom-title">{{ qr.question|truncatechars:80 }}</span>
+                    <span class="research-custom-date">{{ qr.updated_at|date:"y.m.d" }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% if not common_question_reports and not quick_question_reports and not custom_question_reports %}
         <div style="text-align:center; color:var(--text-muted); padding:24px;">저장된 리서치가 없습니다.</div>
-        {% endfor %}
+        {% endif %}
     </div>
 
     <!-- 실적 -->
@@ -1600,22 +1678,6 @@ document.querySelectorAll('.sub-tab').forEach(tab => {
         document.getElementById(this.dataset.subTarget).style.display = 'block';
     });
 });
-
-// ===== 공통리서치 라벨 표시 =====
-{
-    const commonQuestions = new Set([{% for rp in research_prompts %}'{{ rp.question }}',{% endfor %}]);
-    document.querySelectorAll('.research-item').forEach(item => {
-        const q = item.dataset.question;
-        if (commonQuestions.has(q)) {
-            const label = document.createElement('span');
-            label.textContent = '공통';
-            label.style.cssText = _isDarkTheme
-                ? 'font-size:0.65rem;padding:1px 6px;border-radius:3px;background:#1e2e4a;color:#93b4ff;font-weight:600;flex-shrink:0;'
-                : 'font-size:0.65rem;padding:1px 6px;border-radius:3px;background:#e8f0fe;color:#1a73e8;font-weight:600;flex-shrink:0;';
-            item.querySelector('div').insertBefore(label, item.querySelector('div').firstChild);
-        }
-    });
-}
 
 // ===== Research click handler =====
 // ===== 리서치 추가 =====
