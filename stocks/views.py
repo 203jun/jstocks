@@ -6079,6 +6079,239 @@ def youtube_video_update(request, video_id):
     return JsonResponse({'success': True})
 
 
+def _compute_technical_indicators(stock):
+    """
+    기술적 분석 프롬프트용 변수 계산 (DailyChart 기반).
+    pandas로 SMA/RSI/MACD/Stochastic/ATR/Bollinger/OBV 등 산출.
+    """
+    import pandas as pd
+    from datetime import date as _date, timedelta as _timedelta
+
+    qs = list(DailyChart.objects.filter(
+        stock=stock, date__gte=_date.today() - _timedelta(days=730)
+    ).order_by('date').values('date', 'opening_price', 'high_price', 'low_price', 'closing_price', 'trading_volume'))
+
+    if len(qs) < 5:
+        return {}
+
+    df = pd.DataFrame(qs).rename(columns={
+        'opening_price': 'open', 'high_price': 'high',
+        'low_price': 'low', 'closing_price': 'close',
+        'trading_volume': 'volume',
+    })
+    for col in ['open', 'high', 'low', 'close', 'volume']:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    # SMA
+    for n in [5, 20, 60, 120, 200]:
+        df[f'MA{n}'] = df['close'].rolling(n).mean()
+
+    # RSI(14)
+    delta = df['close'].diff()
+    gain = delta.clip(lower=0).rolling(14).mean()
+    loss = (-delta.clip(upper=0)).rolling(14).mean()
+    rs = gain / loss.replace(0, float('nan'))
+    df['RSI'] = 100 - (100 / (1 + rs))
+
+    # MACD(12,26,9)
+    ema12 = df['close'].ewm(span=12, adjust=False).mean()
+    ema26 = df['close'].ewm(span=26, adjust=False).mean()
+    df['MACD'] = ema12 - ema26
+    df['MACD_signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
+    df['MACD_hist'] = df['MACD'] - df['MACD_signal']
+
+    # Stochastic(14,3,3)
+    low14 = df['low'].rolling(14).min()
+    high14 = df['high'].rolling(14).max()
+    range14 = (high14 - low14).replace(0, float('nan'))
+    fast_k = 100 * (df['close'] - low14) / range14
+    df['STO_K'] = fast_k.rolling(3).mean()
+    df['STO_D'] = df['STO_K'].rolling(3).mean()
+
+    # ATR(14)
+    tr1 = df['high'] - df['low']
+    tr2 = (df['high'] - df['close'].shift()).abs()
+    tr3 = (df['low'] - df['close'].shift()).abs()
+    df['ATR'] = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1).rolling(14).mean()
+
+    # Bollinger(20,2)
+    bb_mid = df['close'].rolling(20).mean()
+    bb_std = df['close'].rolling(20).std()
+    df['BB_UP'] = bb_mid + 2 * bb_std
+    df['BB_MID'] = bb_mid
+    df['BB_LOW'] = bb_mid - 2 * bb_std
+
+    # OBV
+    sign = (df['close'].diff() > 0).astype(int) - (df['close'].diff() < 0).astype(int)
+    df['OBV'] = (sign * df['volume']).cumsum()
+
+    df['VOL_MA5'] = df['volume'].rolling(5).mean()
+    df['VOL_MA20'] = df['volume'].rolling(20).mean()
+
+    latest = df.iloc[-1]
+    close = float(latest['close'])
+
+    # 52주 고저
+    win = df.tail(252)
+    high52 = float(win['high'].max())
+    low52 = float(win['low'].min())
+    high52_date = win.loc[win['high'].idxmax(), 'date'].strftime('%Y-%m-%d')
+    low52_date = win.loc[win['low'].idxmin(), 'date'].strftime('%Y-%m-%d')
+    pos52 = (close - low52) / (high52 - low52) * 100 if high52 != low52 else 50.0
+
+    # 이평 배열
+    mas = [latest.get(f'MA{n}') for n in [5, 20, 60, 120, 200]]
+    if all(pd.notna(v) for v in mas):
+        if all(mas[i] >= mas[i+1] for i in range(4)):
+            arrangement = "정배열(5>20>60>120>200)"
+        elif all(mas[i] <= mas[i+1] for i in range(4)):
+            arrangement = "역배열(5<20<60<120<200)"
+        else:
+            arrangement = "혼조 (단기/장기 다른 방향)"
+    else:
+        arrangement = "데이터 부족"
+
+    # MACD 시그널 텍스트 (최근 10일 부호 변화)
+    macd_sig_text = "최근 10거래일 내 시그널 변화 없음"
+    if len(df) >= 10 and pd.notna(latest['MACD_hist']):
+        recent10 = df['MACD_hist'].tail(10).values
+        signs = [1 if v > 0 else -1 if v < 0 else 0 for v in recent10]
+        for i in range(len(signs) - 1, 0, -1):
+            if signs[i] and signs[i-1] and signs[i] != signs[i-1]:
+                days_ago = len(signs) - 1 - i
+                label = "골든크로스" if signs[i] > 0 else "데드크로스"
+                macd_sig_text = f"오늘 {label}" if days_ago == 0 else f"{days_ago}거래일 전 {label}"
+                break
+
+    # OBV 추세
+    obv_trend = "데이터 부족"
+    if len(df) >= 20 and pd.notna(latest['OBV']):
+        recent5 = float(df['OBV'].tail(5).mean())
+        prev15 = float(df['OBV'].tail(20).head(15).mean())
+        if prev15 == 0:
+            obv_trend = "판단 불가"
+        elif recent5 > prev15 * 1.02:
+            obv_trend = "상승 추세"
+        elif recent5 < prev15 * 0.98:
+            obv_trend = "하락 추세"
+        else:
+            obv_trend = "횡보"
+
+    # BB 위치
+    bb_pos_text = ""
+    if pd.notna(latest['BB_UP']) and pd.notna(latest['BB_LOW']) and pd.notna(latest['BB_MID']):
+        if close >= latest['BB_UP']:
+            bb_pos_text = "상단 돌파"
+        elif close <= latest['BB_LOW']:
+            bb_pos_text = "하단 돌파"
+        else:
+            denom = latest['BB_UP'] - latest['BB_MID']
+            ratio = (close - latest['BB_MID']) / denom if denom else 0
+            if ratio > 0.6:
+                bb_pos_text = "상단 근접"
+            elif ratio < -0.6:
+                bb_pos_text = "하단 근접"
+            else:
+                bb_pos_text = "중심선 부근"
+
+    bb_width = (latest['BB_UP'] - latest['BB_LOW']) / latest['BB_MID'] * 100 \
+        if pd.notna(latest['BB_MID']) and latest['BB_MID'] != 0 else None
+
+    high20 = float(df['high'].tail(20).max())
+    low20 = float(df['low'].tail(20).min())
+    high60 = float(df['high'].tail(60).max())
+    low60 = float(df['low'].tail(60).min())
+
+    vol_ratio = latest['volume'] / latest['VOL_MA20'] \
+        if pd.notna(latest['VOL_MA20']) and latest['VOL_MA20'] > 0 else None
+
+    # 주요 지지/저항 텍스트
+    levels = []
+    if pd.notna(latest['MA20']) and latest['MA20'] < close:
+        levels.append(f"지지 20일선 {int(latest['MA20']):,}원")
+    if pd.notna(latest['MA60']) and latest['MA60'] < close:
+        levels.append(f"지지 60일선 {int(latest['MA60']):,}원")
+    if high52 > close:
+        levels.append(f"저항 52주고가 {int(high52):,}원")
+    if pd.notna(latest['MA20']) and latest['MA20'] > close:
+        levels.append(f"저항 20일선 {int(latest['MA20']):,}원")
+    main_levels = ' / '.join(levels) if levels else '주요 레벨 없음'
+
+    # 최근 5일 캔들
+    candle_lines = []
+    weekday_kr = ['월', '화', '수', '목', '금', '토', '일']
+    for _, row in df.tail(5).iterrows():
+        wd = weekday_kr[row['date'].weekday()]
+        body = '양봉' if row['close'] > row['open'] else '음봉' if row['close'] < row['open'] else '도지'
+        rng = row['high'] - row['low']
+        body_size = abs(row['close'] - row['open'])
+        cand = '장대' if rng > 0 and body_size > rng * 0.7 else '단봉' if rng > 0 and body_size < rng * 0.3 else ''
+        v = row['volume']
+        vstr = f"{v/1_000_000:.1f}M" if v >= 1_000_000 else f"{v/1_000:.0f}K" if v >= 1_000 else f"{int(v)}"
+        candle_lines.append(
+            f"{row['date'].strftime('%Y-%m-%d')} ({wd}) | 시 {int(row['open']):,} / 고 {int(row['high']):,} / 저 {int(row['low']):,} / 종 {int(row['close']):,} / 거래량 {vstr} | {body} {cand}".strip()
+        )
+    last5_text = '\n'.join(candle_lines)
+
+    def fmt(v, dec=2):
+        import pandas as _pd
+        if v is None or _pd.isna(v):
+            return ''
+        try:
+            if dec == 0:
+                return f"{int(v):,}"
+            return f"{float(v):.{dec}f}"
+        except (TypeError, ValueError):
+            return str(v)
+
+    def gap(ma_val):
+        if ma_val is None or pd.isna(ma_val) or ma_val == 0:
+            return ''
+        return fmt((close / ma_val - 1) * 100, 2)
+
+    return {
+        'high_52w_date': high52_date,
+        'low_52w_date': low52_date,
+        'pos_52w': fmt(pos52, 1),
+        'MA5': fmt(latest.get('MA5'), 0),
+        'MA20': fmt(latest.get('MA20'), 0),
+        'MA60': fmt(latest.get('MA60'), 0),
+        'MA120': fmt(latest.get('MA120'), 0),
+        'MA200': fmt(latest.get('MA200'), 0),
+        'gap_5': gap(latest.get('MA5')),
+        'gap_20': gap(latest.get('MA20')),
+        'gap_60': gap(latest.get('MA60')),
+        'gap_120': gap(latest.get('MA120')),
+        'gap_200': gap(latest.get('MA200')),
+        'ma_arrangement': arrangement,
+        'rsi': fmt(latest.get('RSI'), 1),
+        'macd': fmt(latest.get('MACD'), 2),
+        'macd_signal': fmt(latest.get('MACD_signal'), 2),
+        'macd_hist': fmt(latest.get('MACD_hist'), 2),
+        'macd_signal_text': macd_sig_text,
+        'sto_k': fmt(latest.get('STO_K'), 1),
+        'sto_d': fmt(latest.get('STO_D'), 1),
+        'atr': fmt(latest.get('ATR'), 0),
+        'atr_ratio': fmt(latest['ATR'] / close * 100 if pd.notna(latest.get('ATR')) and close > 0 else None, 2),
+        'bb_up': fmt(latest.get('BB_UP'), 0),
+        'bb_mid': fmt(latest.get('BB_MID'), 0),
+        'bb_low': fmt(latest.get('BB_LOW'), 0),
+        'bb_pos': bb_pos_text,
+        'bb_width': fmt(bb_width, 2),
+        'recent_volume': fmt(latest.get('volume'), 0),
+        'vol_ma5': fmt(latest.get('VOL_MA5'), 0),
+        'vol_ma20': fmt(latest.get('VOL_MA20'), 0),
+        'vol_ratio': fmt(vol_ratio, 2),
+        'obv_trend': obv_trend,
+        'high_20': fmt(high20, 0),
+        'low_20': fmt(low20, 0),
+        'high_60': fmt(high60, 0),
+        'low_60': fmt(low60, 0),
+        'main_levels': main_levels,
+        'recent5_candles': last5_text,
+    }
+
+
 def stock_question_report_detail(request, report_id):
     """리서치 상세/편집 페이지"""
     from .models import StockQuestionReport, ResearchPrompt, QuickReport
@@ -6215,6 +6448,9 @@ def stock_question_report_detail(request, report_id):
         ).order_by('date_sort')
         _events_text = '\n'.join(f"- {s.date_text}: {s.content}" for s in _upcoming)
 
+        # 기술적 지표
+        tech = _compute_technical_indicators(qr.stock)
+
         trade_prompt_vars = {
             'stock_name': qr.stock.name,
             'stock_code': qr.stock.code,
@@ -6233,6 +6469,7 @@ def stock_question_report_detail(request, report_id):
             'buy_reason': qr.stock.buy_reason or '',
             'sell_reason': qr.stock.sell_reason or '',
             'future_events': _events_text,
+            **tech,
         }
 
     return render(request, 'stocks/question_report_detail.html', {
