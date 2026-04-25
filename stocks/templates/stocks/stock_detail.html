@@ -542,14 +542,6 @@
                 <script type="text/plain" id="sellReasonRaw">{{ stock.sell_reason|safe }}</script>
             </div>
             {% endif %}
-            <!-- 최근매매판별 -->
-            {% if stock.recent_trade_judgment %}
-            <div style="margin-bottom:8px;">
-                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">최근매매판별</div>
-                <div class="markdown-content" style="font-size:0.85rem;" id="recentJudgmentMarkdown"></div>
-                <script type="text/plain" id="recentJudgmentRaw">{{ stock.recent_trade_judgment|safe }}</script>
-            </div>
-            {% endif %}
             <div style="display:flex;justify-content:flex-end;margin-top:8px;">
                 <span id="btnTradeEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
@@ -582,13 +574,6 @@
             <div style="margin-bottom:12px;">
                 <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">매도근거 (마크다운)</label>
                 <textarea class="form-control" id="sellReasonTextarea" rows="4" style="font-family:monospace;font-size:0.85rem;" placeholder="매도근거를 입력하세요...">{{ stock.sell_reason }}</textarea>
-            </div>
-            <div style="margin-bottom:12px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                    <label style="font-size:0.78rem;color:var(--text-muted);">최근매매판별 (마크다운)</label>
-                    <span class="prompt-badge" id="btnCopyPromptTrade" style="cursor:pointer;">프롬프트 복사</span>
-                </div>
-                <textarea class="form-control" id="recentJudgmentTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;" placeholder="AI로부터 받은 매매 판단 결과를 붙여넣기...">{{ stock.recent_trade_judgment }}</textarea>
             </div>
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" id="btnTradeCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
@@ -1633,7 +1618,6 @@
 {% block extra_js %}
 {{ briefing_data|json_script:"briefing-data-json" }}
 {{ news_prompt_vars|json_script:"news-prompt-vars" }}
-{{ trade_prompt_vars|json_script:"trade-prompt-vars" }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
@@ -1780,7 +1764,6 @@ function renderContent(rawId, markdownId) {
 renderContent('memoRaw', 'memoMarkdown');
 if (document.getElementById('buyReasonRaw')) renderContent('buyReasonRaw', 'buyReasonMarkdown');
 if (document.getElementById('sellReasonRaw')) renderContent('sellReasonRaw', 'sellReasonMarkdown');
-if (document.getElementById('recentJudgmentRaw')) renderContent('recentJudgmentRaw', 'recentJudgmentMarkdown');
 renderContent('keyBriefingRaw', 'keyBriefingMarkdown');
 renderContent('analysisRaw', 'analysisMarkdown');
 renderContent('finAnalysisV2Raw', 'finAnalysisV2Markdown');
@@ -1872,7 +1855,6 @@ document.getElementById('btnTradeSave').addEventListener('click', async () => {
         formData.append('buy_price', document.getElementById('buyPriceInput').value);
         formData.append('sell_price', document.getElementById('sellPriceInput').value);
         formData.append('buy_price_range', document.getElementById('buyRangeInput').value);
-        formData.append('recent_trade_judgment', document.getElementById('recentJudgmentTextarea').value);
         const resp = await fetch(`/api/stock/${stockCode}/trade/`, {
             method: 'POST',
             headers: { 'X-CSRFToken': '{{ csrf_token }}' },
@@ -2481,11 +2463,9 @@ function copyToClipboard(text) {
 const savedPrompts = {
     prompt_news: `{{ saved_prompts.prompt_news|default:""|escapejs }}`,
     prompt_news_with_context: `{{ saved_prompts.prompt_news_with_context|default:""|escapejs }}`,
-    prompt_trade: `{{ saved_prompts.prompt_trade|default:""|escapejs }}`,
     prompt_youtube: `{{ saved_prompts.prompt_youtube|default:""|escapejs }}`
 };
 const newsPromptVars = JSON.parse(document.getElementById('news-prompt-vars').textContent);
-const tradePromptVars = JSON.parse(document.getElementById('trade-prompt-vars').textContent);
 
 // ===== 뉴스 저장/검색/삭제 =====
 let savedNewsLinks = new Set([
@@ -2676,43 +2656,6 @@ function renderNewsPrompt(template, vars) {
         return match;
     });
 }
-
-// 매매근거 프롬프트 복사
-document.getElementById('btnCopyPromptTrade')?.addEventListener('click', async function() {
-    const template = savedPrompts.prompt_trade || '';
-    if (!template.trim()) {
-        alert('매매근거 프롬프트가 설정에 저장되어 있지 않습니다. 설정 → 프롬프트 → 매매근거에서 저장해 주세요.');
-        return;
-    }
-    const vars = {
-        '종목명': tradePromptVars.stock_name || '',
-        '종목코드': tradePromptVars.stock_code || '',
-        '시장': tradePromptVars.market || '',
-        '현재가': tradePromptVars.current_price || '',
-        '변동률': tradePromptVars.change_rate || '',
-        '시총': tradePromptVars.market_cap || '',
-        'PER': tradePromptVars.per || '',
-        'PBR': tradePromptVars.pbr || '',
-        '52주고가': tradePromptVars.high_52w || '',
-        '52주저가': tradePromptVars.low_52w || '',
-        '수급_20일': tradePromptVars.supply_20d || '',
-        '공매도_20일': tradePromptVars.short_20d || '',
-        '핵심브리핑': tradePromptVars.key_briefing || '',
-        '매수근거': tradePromptVars.buy_reason || '',
-        '매도근거': tradePromptVars.sell_reason || '',
-        '향후이벤트': tradePromptVars.future_events || '',
-    };
-    const text = renderNewsPrompt(template, vars);
-    try {
-        await copyToClipboard(text);
-        const el = this;
-        const original = el.textContent;
-        el.textContent = '복사됨!';
-        setTimeout(() => { el.textContent = original; }, 1500);
-    } catch (err) {
-        alert('복사 실패: ' + err.message);
-    }
-});
 
 document.getElementById('savedNewsList')?.addEventListener('click', async function(e) {
     if (!e.target.classList.contains('btn-copy-prompt-news')) return;

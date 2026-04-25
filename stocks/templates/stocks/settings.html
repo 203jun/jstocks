@@ -391,7 +391,6 @@ small.text-muted {
             <button class="prompt-sub-tab" data-target="youtube-prompt-panel" id="youtube-prompt-tab">유튜브</button>
             <button class="prompt-sub-tab" data-target="news-prompt-panel" id="news-prompt-tab">뉴스</button>
             <button class="prompt-sub-tab" data-target="supply-demand-analysis-prompt-panel" id="supply-demand-analysis-prompt-tab">수급분석</button>
-            <button class="prompt-sub-tab" data-target="trade-prompt-panel" id="trade-prompt-tab">매매근거</button>
         </div>
 
         <div id="promptTabContent">
@@ -575,18 +574,6 @@ small.text-muted {
                     </div>
                     <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px;">핵심브리핑이 있을 때 사용. 분석 자료 + 뉴스 다각도 해석용.</div>
                     <textarea class="form-control" id="promptNewsContext" rows="16" placeholder="맥락 포함 프롬프트를 입력하세요. {핵심브리핑}, {재무분석} 등 변수 사용...">{{ saved_prompts.prompt_news_with_context }}</textarea>
-                </div>
-            </div>
-            <!-- 매매근거 -->
-            <div class="prompt-panel" id="trade-prompt-panel" style="display:none;">
-                <div class="info-box" style="margin-bottom:16px;"><small><strong>도구:</strong> Claude<br><strong>사용 위치:</strong> 종목 상세 → 기본정보 → <code>매매근거</code> 섹션의 <code>프롬프트 복사</code> 버튼<br><strong>사용 가능한 변수:</strong><br>• 기본: <code>{종목명}</code> <code>{종목코드}</code> <code>{시장}</code><br>• 가격: <code>{현재가}</code> <code>{변동률}</code> <code>{시총}</code> <code>{PER}</code> <code>{PBR}</code> <code>{52주고가}</code> <code>{52주저가}</code><br>• 수급(최근 20일): <code>{수급_20일}</code> <code>{공매도_20일}</code><br>• 분석 자료: <code>{핵심브리핑}</code> <code>{매수근거}</code> <code>{매도근거}</code> <code>{향후이벤트}</code></small></div>
-                <div class="brief-card">
-                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
-                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">매매 판단 프롬프트</span>
-                        <button type="button" class="btn-refresh" id="btnSaveTradePrompt">저장</button>
-                    </div>
-                    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px;">현재 시점에서 매수/매도/보유/관망 중 어떤 액션이 합리적인지 판단받을 때 사용.</div>
-                    <textarea class="form-control" id="promptTrade" rows="20" placeholder="매매 판단용 프롬프트를 입력하세요. 변수는 비어 있으면 빈 문자열로 치환됩니다...">{{ saved_prompts.prompt_trade }}</textarea>
                 </div>
             </div>
         </div>
@@ -1201,12 +1188,6 @@ document.getElementById('btnSaveNewsPrompt').addEventListener('click', function(
 document.getElementById('btnSaveNewsContextPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptNewsContext').value;
     savePrompt('prompt_news_with_context', value, this);
-});
-
-// 매매근거 프롬프트 저장
-document.getElementById('btnSaveTradePrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptTrade').value;
-    savePrompt('prompt_trade', value, this);
 });
 
 // === 핵심브리핑 탭 ===

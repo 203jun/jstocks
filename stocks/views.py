@@ -941,8 +941,8 @@ def stock_detail(request, code):
     telegram_messages = TelegramMessage.objects.filter(stock=stock).order_by('-date', '-time')
 
     # 뉴스 프롬프트용 변수 (향후 이벤트 포함)
-    from datetime import date as _date, timedelta as _timedelta
-    from django.db.models import Q as _Q, Max as _Max, Min as _Min
+    from datetime import date as _date
+    from django.db.models import Q as _Q
     _today = _date.today()
     upcoming_schedules = Schedule.objects.filter(stock=stock).filter(
         _Q(date_sort__gte=_today) | _Q(date_sort__isnull=True)
@@ -957,65 +957,6 @@ def stock_detail(request, code):
         'key_briefing': stock.key_briefing or '',
         'financial_analysis': stock.financial_analysis_v2 or '',
         'consensus_analysis': stock.consensus_analysis or '',
-        'future_events': future_events_text,
-    }
-
-    # 매매근거 프롬프트용 변수
-    _one_year_ago = _today - _timedelta(days=365)
-    _yearly = DailyChart.objects.filter(stock=stock, date__gte=_one_year_ago).aggregate(
-        high52=_Max('high_price'), low52=_Min('low_price')
-    )
-    _high52 = _yearly.get('high52')
-    _low52 = _yearly.get('low52')
-
-    # 최근 20거래일 수급 (날짜 최신 순으로 표시)
-    _supply_trends = investor_trends[:20]
-    if _supply_trends:
-        _supply_lines = ["날짜        | 외국인(주)   | 기관(주)     | 개인(주)"]
-        for t in _supply_trends:
-            _supply_lines.append(
-                f"{t.date.strftime('%Y-%m-%d')}  | {int(t.foreign or 0):>12,} | {int(t.institution or 0):>12,} | {int(t.individual or 0):>12,}"
-            )
-        _supply_text = '\n'.join(_supply_lines)
-    else:
-        _supply_text = ''
-
-    # 최근 20거래일 공매도
-    _shorts = list(short_sellings[:20])
-    if _shorts:
-        _short_lines = ["날짜        | 공매도량(주) | 매매비중(%)  | 평균가(원)"]
-        for s in _shorts:
-            _short_lines.append(
-                f"{s.date.strftime('%Y-%m-%d')}  | {int(s.short_volume or 0):>12,} | {float(s.trading_weight or 0):>11.2f} | {int(s.short_average_price or 0):>10,}"
-            )
-        _short_text = '\n'.join(_short_lines)
-    else:
-        _short_text = ''
-
-    def _fmt_num(v, suffix=''):
-        if v is None or v == '':
-            return ''
-        try:
-            return f"{int(v):,}{suffix}"
-        except (TypeError, ValueError):
-            return str(v)
-
-    trade_prompt_vars = {
-        'stock_name': stock.name,
-        'stock_code': stock.code,
-        'market': stock.market or '',
-        'current_price': _fmt_num(stock.current_price),
-        'change_rate': f"{stock.change_rate:+g}" if stock.change_rate is not None else '',
-        'market_cap': _fmt_num(stock.market_cap),
-        'per': str(stock.per) if stock.per is not None else '',
-        'pbr': str(stock.pbr) if stock.pbr is not None else '',
-        'high_52w': _fmt_num(_high52),
-        'low_52w': _fmt_num(_low52),
-        'supply_20d': _supply_text,
-        'short_20d': _short_text,
-        'key_briefing': stock.key_briefing or '',
-        'buy_reason': stock.buy_reason or '',
-        'sell_reason': stock.sell_reason or '',
         'future_events': future_events_text,
     }
 
@@ -1182,7 +1123,6 @@ def stock_detail(request, code):
         'gap_chart_data': json.dumps(gap_chart_data),
         'saved_prompts': {s.key: s.value for s in SystemSetting.objects.filter(key__startswith='prompt_')},
         'news_prompt_vars': news_prompt_vars,
-        'trade_prompt_vars': trade_prompt_vars,
         'ma10_value': ma10_value,
         'ma20_value': ma20_value,
         'ma60_value': ma60_value,
@@ -6220,6 +6160,80 @@ def stock_question_report_detail(request, report_id):
         if quarter_cons and quarter_cons.operating_profit is not None:
             consensus_quarter_op = str(int(quarter_cons.operating_profit))
 
+    # === 매매근거(Quick) 프롬프트용 변수 ===
+    trade_prompt_vars = {}
+    if qr.stock:
+        from datetime import date as _date, timedelta as _timedelta
+        from django.db.models import Max as _Max, Min as _Min
+        from .models import InvestorTrend, ShortSelling
+
+        def _fmt_num(v):
+            if v is None or v == '':
+                return ''
+            try:
+                return f"{int(v):,}"
+            except (TypeError, ValueError):
+                return str(v)
+
+        # 52주 고저
+        _today_d = _date.today()
+        _yearly = DailyChart.objects.filter(
+            stock=qr.stock, date__gte=_today_d - _timedelta(days=365)
+        ).aggregate(high52=_Max('high_price'), low52=_Min('low_price'))
+        _high52 = _yearly.get('high52')
+        _low52 = _yearly.get('low52')
+
+        # 최근 20거래일 수급
+        _trends = list(InvestorTrend.objects.filter(stock=qr.stock).order_by('-date')[:20])
+        if _trends:
+            _supply_lines = ["날짜        | 외국인(주)   | 기관(주)     | 개인(주)"]
+            for t in _trends:
+                _supply_lines.append(
+                    f"{t.date.strftime('%Y-%m-%d')}  | {int(t.foreign or 0):>12,} | {int(t.institution or 0):>12,} | {int(t.individual or 0):>12,}"
+                )
+            _supply_text = '\n'.join(_supply_lines)
+        else:
+            _supply_text = ''
+
+        # 최근 20거래일 공매도
+        _shorts = list(ShortSelling.objects.filter(stock=qr.stock).order_by('-date')[:20])
+        if _shorts:
+            _short_lines = ["날짜        | 공매도량(주) | 매매비중(%)  | 평균가(원)"]
+            for s in _shorts:
+                _short_lines.append(
+                    f"{s.date.strftime('%Y-%m-%d')}  | {int(s.short_volume or 0):>12,} | {float(s.trading_weight or 0):>11.2f} | {int(s.short_average_price or 0):>10,}"
+                )
+            _short_text = '\n'.join(_short_lines)
+        else:
+            _short_text = ''
+
+        # 향후 이벤트
+        from .models import Schedule
+        from django.db.models import Q as _Q
+        _upcoming = Schedule.objects.filter(stock=qr.stock).filter(
+            _Q(date_sort__gte=_today_d) | _Q(date_sort__isnull=True)
+        ).order_by('date_sort')
+        _events_text = '\n'.join(f"- {s.date_text}: {s.content}" for s in _upcoming)
+
+        trade_prompt_vars = {
+            'stock_name': qr.stock.name,
+            'stock_code': qr.stock.code,
+            'market': qr.stock.market or '',
+            'current_price': _fmt_num(qr.stock.current_price),
+            'change_rate': f"{qr.stock.change_rate:+g}" if qr.stock.change_rate is not None else '',
+            'market_cap': _fmt_num(qr.stock.market_cap),
+            'per': str(qr.stock.per) if qr.stock.per is not None else '',
+            'pbr': str(qr.stock.pbr) if qr.stock.pbr is not None else '',
+            'high_52w': _fmt_num(_high52),
+            'low_52w': _fmt_num(_low52),
+            'supply_20d': _supply_text,
+            'short_20d': _short_text,
+            'key_briefing': qr.stock.key_briefing or '',
+            'buy_reason': qr.stock.buy_reason or '',
+            'sell_reason': qr.stock.sell_reason or '',
+            'future_events': _events_text,
+        }
+
     return render(request, 'stocks/question_report_detail.html', {
         'qr': qr,
         'research_prompts': research_prompts,
@@ -6231,6 +6245,7 @@ def stock_question_report_detail(request, report_id):
         'consensus_eps': consensus_eps,
         'consensus_op': consensus_op,
         'consensus_quarter_op': consensus_quarter_op,
+        'trade_prompt_vars': trade_prompt_vars,
     })
 
 
@@ -7166,14 +7181,9 @@ def stock_trade_save(request, code):
         stock.buy_price_range = new_range
         changed = True
 
-    recent_trade_judgment = request.POST.get('recent_trade_judgment')
-    if recent_trade_judgment is not None and recent_trade_judgment.strip() != (stock.recent_trade_judgment or '').strip():
-        stock.recent_trade_judgment = recent_trade_judgment.strip()
-        changed = True
-
     if changed:
         stock.trade_updated_at = date.today()
-        stock.save(update_fields=['buy_reason', 'sell_reason', 'buy_price', 'sell_price', 'buy_price_range', 'recent_trade_judgment', 'trade_updated_at'])
+        stock.save(update_fields=['buy_reason', 'sell_reason', 'buy_price', 'sell_price', 'buy_price_range', 'trade_updated_at'])
 
     return JsonResponse({'success': True, 'updated_at': stock.trade_updated_at.strftime('%Y-%m-%d') if stock.trade_updated_at else ''})
 

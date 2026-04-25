@@ -164,6 +164,7 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ trade_prompt_vars|json_script:"trade-prompt-vars" }}
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 const reportInput = document.getElementById('reportInput');
@@ -223,10 +224,34 @@ const stockCurrentPrice = '{{ stock_current_price|escapejs }}';
 const consensusEps = '{{ consensus_eps|escapejs }}';
 const consensusOp = '{{ consensus_op|escapejs }}';
 const consensusQuarterOp = '{{ consensus_quarter_op|escapejs }}';
+const tradeVarsEl = document.getElementById('trade-prompt-vars');
+const tradeVars = tradeVarsEl ? JSON.parse(tradeVarsEl.textContent) : {};
 document.querySelectorAll('.common-research-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
         const question = btn.dataset.question;
         let prompt = btn.dataset.prompt.replace(/\{종목명\}/g, entityName);
+        // 매매근거(Quick) 변수 치환 — 빈 값은 '없음'으로 명시 (LLM 혼동 방지)
+        const _orEmpty = (v) => (v && String(v).trim()) ? v : '없음';
+        const tradeMap = {
+            '종목코드': _orEmpty(tradeVars.stock_code),
+            '시장': _orEmpty(tradeVars.market),
+            '현재가': _orEmpty(tradeVars.current_price),
+            '변동률': _orEmpty(tradeVars.change_rate),
+            '시총': _orEmpty(tradeVars.market_cap),
+            'PER': _orEmpty(tradeVars.per),
+            'PBR': _orEmpty(tradeVars.pbr),
+            '52주고가': _orEmpty(tradeVars.high_52w),
+            '52주저가': _orEmpty(tradeVars.low_52w),
+            '수급_20일': _orEmpty(tradeVars.supply_20d),
+            '공매도_20일': _orEmpty(tradeVars.short_20d),
+            '핵심브리핑': _orEmpty(tradeVars.key_briefing),
+            '매수근거': _orEmpty(tradeVars.buy_reason),
+            '매도근거': _orEmpty(tradeVars.sell_reason),
+            '향후이벤트': _orEmpty(tradeVars.future_events),
+        };
+        for (const [k, v] of Object.entries(tradeMap)) {
+            prompt = prompt.split('{' + k + '}').join(v);
+        }
         if (themeName) {
             prompt = prompt.replace(/\{대분류\}/g, themeCategoryName);
             prompt = prompt.replace(/\{소분류\}/g, themeName);
