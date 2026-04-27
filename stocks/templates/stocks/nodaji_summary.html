@@ -68,7 +68,10 @@
             <textarea name="summary" id="summary" placeholder="마크다운 형식으로 입력하세요...">{{ nodaji.summary }}</textarea>
         </div>
         <div>
-            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">요약</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">요약</div>
+                <span class="prompt-badge btn-copy-summary-prompt" role="button" data-source="summary">프롬프트 복사</span>
+            </div>
             <textarea name="my_opinion" rows="3" style="width:100%;font-family:monospace;font-size:0.85rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;color:var(--text-primary);line-height:1.7;resize:vertical;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ nodaji.my_opinion }}</textarea>
         </div>
     </div>
@@ -112,6 +115,43 @@ if (opinionRaw && opinionPreview) {
     const htmlTagPattern = /<(div|span|p|br|hr|table|tr|td|th|ul|ol|li|a|h[1-6]|strong|em|b|i|code|pre|blockquote)[\s>\/]/i;
     opinionPreview.innerHTML = htmlTagPattern.test(content) ? content : parseMd(content);
 }
+
+// 요약 프롬프트 복사
+function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+    }
+    return new Promise((resolve, reject) => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); resolve(); }
+        catch (err) { reject(err); }
+        finally { document.body.removeChild(ta); }
+    });
+}
+document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+        const promptTemplate = `{{ prompt_summary|default:""|escapejs }}`;
+        if (!promptTemplate) { alert('설정 → 프롬프트 → 요약에서 프롬프트를 먼저 등록하세요.'); return; }
+        const sourceId = btn.getAttribute('data-source');
+        const sourceEl = sourceId ? document.getElementById(sourceId) : null;
+        const sourceText = (sourceEl ? ('value' in sourceEl ? sourceEl.value : sourceEl.textContent) : '').trim();
+        if (!sourceText) { alert('원문이 없습니다.'); return; }
+        const prompt = promptTemplate.replace(/\{원문\}/g, sourceText);
+        try {
+            await copyToClipboard(prompt);
+            const original = btn.textContent;
+            btn.textContent = '복사됨!';
+            setTimeout(() => { btn.textContent = original; }, 1500);
+        } catch (err) {
+            alert('복사 실패: ' + err.message);
+        }
+    });
+});
 
 // 프롬프트 복사
 const btnCopyPrompt = document.getElementById('btnCopyNodajiPrompt');

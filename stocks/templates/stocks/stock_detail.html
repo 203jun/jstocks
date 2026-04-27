@@ -593,14 +593,23 @@
             </div>
             {% if stock.key_briefing_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.key_briefing_opinion|safe }}</script></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
-                <span class="prompt-badge" role="button" id="btnCopyBriefingPrompt">프롬프트 복사</span>
                 <span id="btnBriefingEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
         </div>
         <!-- 편집 모드 -->
         <div id="briefingEditMode" class="d-none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">핵심 브리핑</div>
+                <span class="prompt-badge" role="button" id="btnCopyBriefingPrompt">프롬프트 복사</span>
+            </div>
             <textarea class="form-control" id="briefingTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.key_briefing }}</textarea>
-            <div style="margin-bottom:8px;"><div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">요약</div><textarea class="form-control" id="briefingOpinion" rows="3" style="font-family:monospace;font-size:0.85rem;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ stock.key_briefing_opinion }}</textarea></div>
+            <div style="margin-top:16px;margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">요약</div>
+                    <span class="prompt-badge btn-copy-summary-prompt" role="button" data-source="briefingTextarea">프롬프트복사</span>
+                </div>
+                <textarea class="form-control" id="briefingOpinion" rows="3" style="font-family:monospace;font-size:0.85rem;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ stock.key_briefing_opinion }}</textarea>
+            </div>
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" id="btnBriefingCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
                 <button type="button" id="btnBriefingSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
@@ -754,7 +763,6 @@
             {% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
                 {% if stock.analysis_type != 'markdown' and analysis_html_exists %}<button type="button" class="btn-refresh btn-open-analysis-window" style="font-size:0.72rem;">새창보기</button>{% endif %}
-                <span class="prompt-badge" role="button" id="btnCopyAnalysisPrompt">프롬프트 복사</span>
                 <span id="btnAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
         </div>
@@ -766,6 +774,10 @@
                     <label style="font-size:0.82rem;cursor:pointer;"><input type="radio" name="analysisTypeEdit" value="markdown" {% if stock.analysis_type == 'markdown' %}checked{% endif %}> 마크다운</label>
                     <label style="font-size:0.82rem;cursor:pointer;"><input type="radio" name="analysisTypeEdit" value="html" {% if stock.analysis_type != 'markdown' %}checked{% endif %}> HTML</label>
                 </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">기업분석</div>
+                <span class="prompt-badge" role="button" id="btnCopyAnalysisPrompt">프롬프트 복사</span>
             </div>
             <textarea class="form-control" id="analysisTextarea" rows="12" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="기업분석 내용을 입력하세요..."></textarea>
             <div class="d-flex justify-content-end gap-2">
@@ -793,7 +805,13 @@
                 <span class="prompt-badge" role="button" id="btnCopyFinAnalysisPrompt">프롬프트 복사</span>
             </div>
             <textarea class="form-control" id="finAnalysisV2Textarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.financial_analysis_v2 }}</textarea>
-            <div style="margin-bottom:8px;"><div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">요약</div><textarea class="form-control" id="finAnalysisV2Opinion" rows="3" style="font-family:monospace;font-size:0.85rem;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ stock.financial_analysis_v2_opinion }}</textarea></div>
+            <div style="margin-top:16px;margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">요약</div>
+                    <span class="prompt-badge btn-copy-summary-prompt" role="button" data-source="finAnalysisV2Textarea">프롬프트복사</span>
+                </div>
+                <textarea class="form-control" id="finAnalysisV2Opinion" rows="3" style="font-family:monospace;font-size:0.85rem;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ stock.financial_analysis_v2_opinion }}</textarea>
+            </div>
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" id="btnFinAnalysisV2Cancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
                 <button type="button" id="btnFinAnalysisV2Save" class="btn-refresh" style="padding:4px 12px;">저장</button>
@@ -819,7 +837,13 @@
                 <span class="prompt-badge" role="button" id="btnCopyConsensusAnalysisPrompt">프롬프트 복사</span>
             </div>
             <textarea class="form-control" id="consensusAnalysisTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.consensus_analysis }}</textarea>
-            <div style="margin-bottom:8px;"><div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">요약</div><textarea class="form-control" id="consensusAnalysisOpinion" rows="3" style="font-family:monospace;font-size:0.85rem;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ stock.consensus_analysis_opinion }}</textarea></div>
+            <div style="margin-top:16px;margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">요약</div>
+                    <span class="prompt-badge btn-copy-summary-prompt" role="button" data-source="consensusAnalysisTextarea">프롬프트복사</span>
+                </div>
+                <textarea class="form-control" id="consensusAnalysisOpinion" rows="3" style="font-family:monospace;font-size:0.85rem;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ stock.consensus_analysis_opinion }}</textarea>
+            </div>
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" id="btnConsensusAnalysisCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
                 <button type="button" id="btnConsensusAnalysisSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
@@ -845,7 +869,13 @@
                 <span class="prompt-badge" role="button" id="btnCopyQuarterAnalysisPrompt">프롬프트 복사</span>
             </div>
             <textarea class="form-control" id="quarterAnalysisTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.quarter_analysis }}</textarea>
-            <div style="margin-bottom:8px;"><div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">요약</div><textarea class="form-control" id="quarterAnalysisOpinion" rows="3" style="font-family:monospace;font-size:0.85rem;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ stock.quarter_analysis_opinion }}</textarea></div>
+            <div style="margin-top:16px;margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">요약</div>
+                    <span class="prompt-badge btn-copy-summary-prompt" role="button" data-source="quarterAnalysisTextarea">프롬프트복사</span>
+                </div>
+                <textarea class="form-control" id="quarterAnalysisOpinion" rows="3" style="font-family:monospace;font-size:0.85rem;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ stock.quarter_analysis_opinion }}</textarea>
+            </div>
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" id="btnQuarterAnalysisCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
                 <button type="button" id="btnQuarterAnalysisSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
@@ -1126,14 +1156,23 @@
             </div>
             {% if stock.supply_demand_analysis_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.supply_demand_analysis_opinion|safe }}</script></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
-                <span class="prompt-badge" role="button" id="btnCopySdAnalysisPrompt">프롬프트 복사</span>
                 <span id="btnSdAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
         </div>
         <!-- 편집 모드 -->
         <div id="sdAnalysisEditMode" class="d-none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">수급분석</div>
+                <span class="prompt-badge" role="button" id="btnCopySdAnalysisPrompt">프롬프트 복사</span>
+            </div>
             <textarea class="form-control" id="sdAnalysisTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.supply_demand_analysis }}</textarea>
-            <div style="margin-bottom:8px;"><div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">요약</div><textarea class="form-control" id="sdAnalysisOpinion" rows="3" style="font-family:monospace;font-size:0.85rem;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ stock.supply_demand_analysis_opinion }}</textarea></div>
+            <div style="margin-top:16px;margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">요약</div>
+                    <span class="prompt-badge btn-copy-summary-prompt" role="button" data-source="sdAnalysisTextarea">프롬프트복사</span>
+                </div>
+                <textarea class="form-control" id="sdAnalysisOpinion" rows="3" style="font-family:monospace;font-size:0.85rem;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ stock.supply_demand_analysis_opinion }}</textarea>
+            </div>
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" id="btnSdAnalysisCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
                 <button type="button" id="btnSdAnalysisSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
@@ -2093,6 +2132,30 @@ document.getElementById('btnCopySdAnalysisPrompt').addEventListener('click', asy
     } catch (err) {
         alert('복사 실패: ' + err.message);
     }
+});
+
+// ===== 요약 프롬프트복사 (공통) =====
+document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+        const promptTemplate = `{{ saved_prompts.prompt_summary|default:""|escapejs }}`;
+        if (!promptTemplate) { alert('설정 → 프롬프트 → 요약에서 프롬프트를 먼저 등록하세요.'); return; }
+
+        const sourceId = btn.getAttribute('data-source');
+        const sourceEl = sourceId ? document.getElementById(sourceId) : null;
+        const sourceText = (sourceEl ? ('value' in sourceEl ? sourceEl.value : sourceEl.textContent) : '').trim();
+        if (!sourceText) { alert('원문이 없습니다.'); return; }
+
+        const prompt = promptTemplate.replace(/\{원문\}/g, sourceText);
+
+        try {
+            await copyToClipboard(prompt);
+            const original = btn.textContent;
+            btn.textContent = '복사됨!';
+            setTimeout(() => { btn.textContent = original; }, 1500);
+        } catch (err) {
+            alert('복사 실패: ' + err.message);
+        }
+    });
 });
 
 // 핵심 브리핑 프롬프트 복사

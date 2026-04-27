@@ -391,6 +391,7 @@ small.text-muted {
             <button class="prompt-sub-tab" data-target="youtube-prompt-panel" id="youtube-prompt-tab">유튜브</button>
             <button class="prompt-sub-tab" data-target="news-prompt-panel" id="news-prompt-tab">뉴스</button>
             <button class="prompt-sub-tab" data-target="supply-demand-analysis-prompt-panel" id="supply-demand-analysis-prompt-tab">수급분석</button>
+            <button class="prompt-sub-tab" data-target="summary-prompt-panel" id="summary-prompt-tab">요약</button>
         </div>
 
         <div id="promptTabContent">
@@ -496,6 +497,17 @@ small.text-muted {
                     </div>
                     <div class="info-box"><small><strong>사용:</strong> 수급 탭 → 수급분석 → 프롬프트 복사<br><strong>기능:</strong> 종목명과 함께 수급분석용 프롬프트 복사</small></div>
                     <textarea class="form-control" id="promptSupplyDemandAnalysis" rows="10" placeholder="수급분석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_supply_demand_analysis }}</textarea>
+                </div>
+            </div>
+            <!-- 요약 프롬프트 -->
+            <div class="prompt-panel" id="summary-prompt-panel" style="display:none;">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">요약 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="btnSaveSummaryPrompt">저장</button>
+                    </div>
+                    <div class="info-box"><small><strong>사용:</strong> 종목 상세 → 각 분석 섹션 → 요약 영역에 마크다운 입력<br><strong>기능:</strong> 분석 결과를 바탕으로 요약 작성용 프롬프트 복사</small></div>
+                    <textarea class="form-control" id="promptSummary" rows="10" placeholder="요약용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_summary }}</textarea>
                 </div>
             </div>
             <!-- 컨센서스분석 프롬프트 -->
@@ -1159,6 +1171,12 @@ document.getElementById('btnSaveFinAnalysisPrompt').addEventListener('click', fu
 document.getElementById('btnSaveSupplyDemandAnalysisPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptSupplyDemandAnalysis').value;
     savePrompt('prompt_supply_demand_analysis', value, this);
+});
+
+// 요약 프롬프트 저장
+document.getElementById('btnSaveSummaryPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptSummary').value;
+    savePrompt('prompt_summary', value, this);
 });
 
 // 컨센서스분석 프롬프트 저장

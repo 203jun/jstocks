@@ -2631,10 +2631,12 @@ def nodaji_summary(request, nodaji_id):
 
     from .models import SystemSetting
     nodaji_prompt = SystemSetting.objects.filter(key='prompt_nodaji').values_list('value', flat=True).first() or ''
+    prompt_summary = SystemSetting.objects.filter(key='prompt_summary').values_list('value', flat=True).first() or ''
 
     return render(request, 'stocks/nodaji_summary.html', {
         'nodaji': nodaji,
         'nodaji_prompt': nodaji_prompt,
+        'prompt_summary': prompt_summary,
     })
 
 
@@ -3428,7 +3430,7 @@ def _fetch_stock_data_loader_with_summary_valuation_REMOVED():
 
 def youtube_summary(request, video_id):
     """유튜브 영상 요약 편집 페이지"""
-    from .models import YoutubeVideo
+    from .models import YoutubeVideo, SystemSetting
     video = get_object_or_404(YoutubeVideo, id=video_id)
 
     if request.method == 'POST':
@@ -3438,8 +3440,11 @@ def youtube_summary(request, video_id):
         messages.success(request, '요약이 저장되었습니다.')
         return redirect('stocks:youtube_summary', video_id=video_id)
 
+    prompt_summary = SystemSetting.objects.filter(key='prompt_summary').values_list('value', flat=True).first() or ''
+
     return render(request, 'stocks/youtube_summary.html', {
         'video': video,
+        'prompt_summary': prompt_summary,
     })
 
 
@@ -6314,7 +6319,7 @@ def _compute_technical_indicators(stock):
 
 def stock_question_report_detail(request, report_id):
     """리서치 상세/편집 페이지"""
-    from .models import StockQuestionReport, ResearchPrompt, QuickReport
+    from .models import StockQuestionReport, ResearchPrompt, QuickReport, SystemSetting
     qr = get_object_or_404(StockQuestionReport, id=report_id)
 
     if request.method == 'POST':
@@ -6472,6 +6477,8 @@ def stock_question_report_detail(request, report_id):
             **tech,
         }
 
+    prompt_summary = SystemSetting.objects.filter(key='prompt_summary').values_list('value', flat=True).first() or ''
+
     return render(request, 'stocks/question_report_detail.html', {
         'qr': qr,
         'research_prompts': research_prompts,
@@ -6484,12 +6491,13 @@ def stock_question_report_detail(request, report_id):
         'consensus_op': consensus_op,
         'consensus_quarter_op': consensus_quarter_op,
         'trade_prompt_vars': trade_prompt_vars,
+        'prompt_summary': prompt_summary,
     })
 
 
 def sector_question_report_detail(request, report_id):
     """섹터 리서치 상세/편집 페이지"""
-    from .models import SectorQuestionReport
+    from .models import SectorQuestionReport, SystemSetting
     qr = get_object_or_404(SectorQuestionReport, id=report_id)
 
     if request.method == 'POST':
@@ -6501,9 +6509,12 @@ def sector_question_report_detail(request, report_id):
         qr.save()
         return redirect('stocks:sector_question_report_detail', report_id=report_id)
 
+    prompt_summary = SystemSetting.objects.filter(key='prompt_summary').values_list('value', flat=True).first() or ''
+
     return render(request, 'stocks/question_report_detail.html', {
         'qr': qr,
         'is_sector': True,
+        'prompt_summary': prompt_summary,
     })
 
 
@@ -7621,7 +7632,7 @@ def news_delete(request, news_id):
 
 def news_summary(request, news_id):
     """뉴스 요약 페이지"""
-    from .models import News
+    from .models import News, SystemSetting
 
     news = get_object_or_404(News, id=news_id)
 
@@ -7630,8 +7641,11 @@ def news_summary(request, news_id):
         news.my_opinion = request.POST.get('my_opinion', '')
         news.save()
 
+    prompt_summary = SystemSetting.objects.filter(key='prompt_summary').values_list('value', flat=True).first() or ''
+
     return render(request, 'stocks/news_summary.html', {
         'news': news,
+        'prompt_summary': prompt_summary,
     })
 
 
@@ -7668,9 +7682,12 @@ def report_summary(request, report_id):
     except SystemSetting.DoesNotExist:
         pass
 
+    prompt_summary = SystemSetting.objects.filter(key='prompt_summary').values_list('value', flat=True).first() or ''
+
     return render(request, 'stocks/report_summary.html', {
         'report': report,
         'saved_prompt': saved_prompt,
+        'prompt_summary': prompt_summary,
     })
 
 
@@ -7691,7 +7708,7 @@ def report_file_delete(request, report_id):
 
 def uploaded_report_summary_page(request, report_id):
     """파일 업로드 리포트 요약 페이지"""
-    from .models import StockUploadedReport
+    from .models import StockUploadedReport, SystemSetting
 
     report = get_object_or_404(StockUploadedReport, id=report_id)
 
@@ -7704,8 +7721,11 @@ def uploaded_report_summary_page(request, report_id):
         messages.success(request, '저장되었습니다.')
         return redirect('stocks:uploaded_report_summary_page', report_id=report_id)
 
+    prompt_summary = SystemSetting.objects.filter(key='prompt_summary').values_list('value', flat=True).first() or ''
+
     return render(request, 'stocks/uploaded_report_summary.html', {
         'report': report,
+        'prompt_summary': prompt_summary,
     })
 
 
@@ -8935,7 +8955,7 @@ def sector_news_delete(request, news_id):
 def sector_news_summary(request, news_id):
     """섹터 뉴스 요약 페이지"""
     from django.contrib import messages
-    from .models import SectorNews
+    from .models import SectorNews, SystemSetting
 
     news = get_object_or_404(SectorNews, id=news_id)
 
@@ -8944,7 +8964,12 @@ def sector_news_summary(request, news_id):
         news.my_opinion = request.POST.get('my_opinion', '')
         news.save()
 
-    return render(request, 'stocks/sector_news_summary.html', {'news': news})
+    prompt_summary = SystemSetting.objects.filter(key='prompt_summary').values_list('value', flat=True).first() or ''
+
+    return render(request, 'stocks/sector_news_summary.html', {
+        'news': news,
+        'prompt_summary': prompt_summary,
+    })
 
 
 # ============ 섹터 유튜브 ============
@@ -9187,7 +9212,7 @@ def sector_youtube_video_delete(request, video_id):
 
 def sector_youtube_summary(request, video_id):
     """섹터 유튜브 영상 요약 편집 페이지"""
-    from .models import SectorYoutubeVideo
+    from .models import SectorYoutubeVideo, SystemSetting
 
     video = get_object_or_404(SectorYoutubeVideo, id=video_id)
 
@@ -9198,8 +9223,11 @@ def sector_youtube_summary(request, video_id):
         messages.success(request, '요약이 저장되었습니다.')
         return redirect('stocks:sector_youtube_summary', video_id=video_id)
 
+    prompt_summary = SystemSetting.objects.filter(key='prompt_summary').values_list('value', flat=True).first() or ''
+
     return render(request, 'stocks/sector_youtube_summary.html', {
         'video': video,
+        'prompt_summary': prompt_summary,
     })
 
 
