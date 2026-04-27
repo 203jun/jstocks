@@ -44,11 +44,12 @@
     </div>
 </div>
 
-<!-- 내생각 -->
+<!-- 요약 -->
 {% if nodaji.my_opinion %}
-<h5 class="section-heading">내생각</h5>
+<h5 class="section-heading">요약</h5>
 <div class="brief-card">
-    <div style="font-size:0.88rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.7;">{{ nodaji.my_opinion }}</div>
+    <div class="markdown-content" id="opinionPreview" style="font-size:0.88rem;color:var(--text-primary);line-height:1.7;"></div>
+    <script type="text/plain" id="opinionRaw">{{ nodaji.my_opinion|safe }}</script>
 </div>
 {% endif %}
 
@@ -67,8 +68,8 @@
             <textarea name="summary" id="summary" placeholder="마크다운 형식으로 입력하세요...">{{ nodaji.summary }}</textarea>
         </div>
         <div>
-            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">내생각</div>
-            <textarea name="my_opinion" rows="3" style="width:100%;font-size:0.85rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;color:var(--text-primary);line-height:1.7;resize:vertical;" placeholder="이 내용에 대한 나의 의견...">{{ nodaji.my_opinion }}</textarea>
+            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">요약</div>
+            <textarea name="my_opinion" rows="3" style="width:100%;font-family:monospace;font-size:0.85rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;color:var(--text-primary);line-height:1.7;resize:vertical;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ nodaji.my_opinion }}</textarea>
         </div>
     </div>
 </form>
@@ -99,6 +100,13 @@ function updatePreview() {
 
 textarea.addEventListener('input', updatePreview);
 updatePreview();
+
+// 요약 마크다운 렌더링
+const opinionRaw = document.getElementById('opinionRaw');
+const opinionPreview = document.getElementById('opinionPreview');
+if (opinionRaw && opinionPreview) {
+    opinionPreview.innerHTML = parseMd(opinionRaw.textContent);
+}
 
 // 프롬프트 복사
 const btnCopyPrompt = document.getElementById('btnCopyNodajiPrompt');

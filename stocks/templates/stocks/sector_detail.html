@@ -453,7 +453,7 @@
                         <div class="item-body-text" style="font-size:0.82rem; white-space:pre-wrap; color:var(--text-primary);"><span style="margin-right:4px;" title="텔레그램">💬</span>{{ news.summary|default:news.content }}</div>
                         {% endif %}
                         {% if news.my_opinion %}
-                        <div class="expand-only" style="margin-top:8px; padding:8px 12px; background:#fffbeb; border-left:3px solid #f59e0b; font-size:0.82rem; white-space:pre-wrap; color:var(--text-primary); line-height:1.6;"><div style="font-weight:600; font-size:0.72rem; color:#d97706; margin-bottom:4px;">내생각</div>{{ news.my_opinion }}</div>
+                        <div class="expand-only" style="margin-top:8px; padding:8px 12px; background:#fffbeb; border-left:3px solid #f59e0b; font-size:0.82rem; color:var(--text-primary); line-height:1.6;"><div style="font-weight:600; font-size:0.72rem; color:#d97706; margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.82rem;"></div><script type="text/plain" class="opinion-raw">{{ news.my_opinion|safe }}</script></div>
                         {% endif %}
                         {% if news.source or news.published %}
                         <div style="margin-top:2px;">
@@ -842,6 +842,14 @@ if (secMemoRaw.trim()) {
     secMemoMd.innerHTML = marked.parse(secMemoRaw.replace(/~/g, '&#126;'));
 }
 
+// 요약(구 내생각) 마크다운 렌더링
+document.querySelectorAll('.opinion-raw').forEach(raw => {
+    const md = raw.previousElementSibling;
+    if (raw && md) {
+        md.innerHTML = marked.parse(raw.textContent.replace(/~/g, '&#126;'));
+    }
+});
+
 document.getElementById('btnSecMemoEdit').addEventListener('click', () => {
     document.getElementById('secMemoViewMode').classList.add('d-none');
     document.getElementById('secMemoEditMode').classList.remove('d-none');
@@ -1176,7 +1184,7 @@ function addNewsToList(data) {
         bodyHtml = `<div class="item-body-text" style="font-size:0.82rem; white-space:pre-wrap; color:var(--text-primary);"><span style="margin-right:4px;" title="텔레그램">💬</span>${escHtml(preview)}</div>`;
     }
     if (data.my_opinion) {
-        bodyHtml += `<div class="expand-only" style="margin-top:8px; padding:8px 12px; background:#fffbeb; border-left:3px solid #f59e0b; font-size:0.82rem; white-space:pre-wrap; color:var(--text-primary); line-height:1.6;"><div style="font-weight:600; font-size:0.72rem; color:#d97706; margin-bottom:4px;">내생각</div>${escHtml(data.my_opinion)}</div>`;
+        bodyHtml += `<div class="expand-only" style="margin-top:8px; padding:8px 12px; background:#fffbeb; border-left:3px solid #f59e0b; font-size:0.82rem; color:var(--text-primary); line-height:1.6;"><div style="font-weight:600; font-size:0.72rem; color:#d97706; margin-bottom:4px;">요약</div><div class="markdown-content" style="font-size:0.82rem;">${marked.parse(data.my_opinion.replace(/~/g, '&#126;'))}</div></div>`;
     }
     const metaParts = [];
     if (data.source) metaParts.push(`<span style="color:var(--text-muted); font-size:0.75rem;">${escHtml(data.source)}</span>`);
