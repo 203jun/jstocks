@@ -591,6 +591,7 @@
                 <div class="markdown-content" id="keyBriefingMarkdown"></div>
                 <script type="text/plain" id="keyBriefingRaw">{{ stock.key_briefing|default:""|safe }}</script>
             </div>
+            {% if stock.key_briefing_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.key_briefing_opinion|safe }}</script></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
                 <span class="prompt-badge" role="button" id="btnCopyBriefingPrompt">프롬프트 복사</span>
                 <span id="btnBriefingEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
@@ -599,6 +600,7 @@
         <!-- 편집 모드 -->
         <div id="briefingEditMode" class="d-none">
             <textarea class="form-control" id="briefingTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.key_briefing }}</textarea>
+            <div style="margin-bottom:8px;"><div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">요약</div><textarea class="form-control" id="briefingOpinion" rows="3" style="font-family:monospace;font-size:0.85rem;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ stock.key_briefing_opinion }}</textarea></div>
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" id="btnBriefingCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
                 <button type="button" id="btnBriefingSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
@@ -1902,6 +1904,8 @@ document.getElementById('btnBriefingSave').addEventListener('click', async () =>
     try {
         const formData = new FormData();
         formData.append('key_briefing', text);
+        const opinionEl = document.getElementById('briefingOpinion');
+        if (opinionEl) formData.append('my_opinion', opinionEl.value);
         const resp = await fetch(`/api/stock/${stockCode}/key-briefing/`, {
             method: 'POST',
             headers: { 'X-CSRFToken': '{{ csrf_token }}' },
@@ -1911,6 +1915,21 @@ document.getElementById('btnBriefingSave').addEventListener('click', async () =>
         if (data.success) {
             document.getElementById('keyBriefingRaw').textContent = text;
             renderContent('keyBriefingRaw', 'keyBriefingMarkdown');
+            // 요약 영역 갱신
+            const opinionVal = opinionEl ? opinionEl.value.trim() : '';
+            let opinionBlock = document.getElementById('briefingViewMode').querySelector('.opinion-md');
+            if (opinionVal) {
+                if (!opinionBlock) {
+                    const wrapper = document.createElement('div');
+                    wrapper.style.cssText = 'margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);';
+                    wrapper.innerHTML = '<div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div>';
+                    document.getElementById('briefingViewMode').querySelector('[style*="max-height"]').after(wrapper);
+                    opinionBlock = wrapper.querySelector('.opinion-md');
+                }
+                opinionBlock.innerHTML = marked.parse(opinionVal.replace(/~/g, '&#126;'));
+            } else if (opinionBlock) {
+                opinionBlock.closest('[style*="margin-top:12px"]').remove();
+            }
             const dateEl = document.getElementById('briefingUpdatedAt');
             if (dateEl) {
                 dateEl.textContent = 'update: ' + data.updated_at;

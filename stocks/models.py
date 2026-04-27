@@ -219,7 +219,11 @@ class Info(models.Model):
         help_text='핵심 브리핑 마지막 수정일'
     )
 
-    # === 내생각 (각 분석별) ===
+    key_briefing_opinion = models.TextField(
+        blank=True, default='', verbose_name='핵심브리핑 요약'
+    )
+
+    # === 요약 (각 분석별) ===
     financial_analysis_v2_opinion = models.TextField(
         blank=True, default='', verbose_name='재무분석 내생각'
     )

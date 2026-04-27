@@ -7357,10 +7357,17 @@ def stock_key_briefing_save(request, code):
     from datetime import date
     stock = get_object_or_404(Info, code=code)
     key_briefing = request.POST.get('key_briefing', '').strip()
+    opinion = request.POST.get('my_opinion', '').strip()
+    update_fields = []
     if key_briefing != (stock.key_briefing or '').strip():
         stock.key_briefing = key_briefing
         stock.key_briefing_updated_at = date.today()
-        stock.save(update_fields=['key_briefing', 'key_briefing_updated_at'])
+        update_fields += ['key_briefing', 'key_briefing_updated_at']
+    if opinion != (stock.key_briefing_opinion or '').strip():
+        stock.key_briefing_opinion = opinion
+        update_fields.append('key_briefing_opinion')
+    if update_fields:
+        stock.save(update_fields=update_fields)
     return JsonResponse({'success': True, 'updated_at': stock.key_briefing_updated_at.strftime('%Y-%m-%d') if stock.key_briefing_updated_at else ''})
 
 
