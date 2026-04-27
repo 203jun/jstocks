@@ -77,6 +77,22 @@
 .stock-list-wrap { background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius); box-shadow:var(--shadow-card); overflow:hidden; margin-top:24px; }
 .stock-list-wrap .modern-table thead th { position:sticky; top:0; z-index:1; }
 
+/* Mobile: sticky 종목명 column + right-edge shadow hint */
+@media (max-width: 767px) {
+    #statusTable th:first-child,
+    #statusTable td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: var(--bg-card);
+        box-shadow: 6px 0 6px -6px rgba(0,0,0,0.18);
+    }
+    #statusTable thead th:first-child { z-index: 3; }
+    #statusTable tbody tr:hover td:first-child { background: #f9fafb; }
+    #statusTable tbody tr.price-hit td:first-child { background: #fffbeb; }
+    #statusTable tbody tr.price-hit:hover td:first-child { background: #fef3c7; }
+}
+
 /* Empty stock list */
 .empty-stock-list { display:none; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius); box-shadow:var(--shadow-card); padding:24px; text-align:center; color:var(--text-muted); margin-top:24px; }
 

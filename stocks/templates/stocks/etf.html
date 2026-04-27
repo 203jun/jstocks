@@ -93,6 +93,20 @@
 @media (max-width: 768px) {
     .hide-mobile { display: none; }
 }
+
+/* Mobile: sticky 종목명 column + right-edge shadow hint */
+@media (max-width: 767px) {
+    #etfStatusTable th:first-child,
+    #etfStatusTable td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: var(--bg-card);
+        box-shadow: 6px 0 6px -6px rgba(0,0,0,0.18);
+    }
+    #etfStatusTable thead th:first-child { z-index: 3; }
+    #etfStatusTable tbody tr:hover td:first-child { background: #f9fafb; }
+}
 {% endblock %}
 
 {% block content %}
@@ -102,7 +116,7 @@
 {% if status_etfs %}
 <div class="brief-card" style="padding:0; overflow:hidden;">
     <div style="overflow-x:auto;">
-        <table class="modern-table">
+        <table class="modern-table" id="etfStatusTable">
             <thead>
                 <tr>
                     <th style="padding-left:16px;">종목명</th>
