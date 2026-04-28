@@ -255,20 +255,10 @@ small.text-muted {
     border-color: #3b82f6;
     color: #1e40af;
 }
-.graph-node.middle {
-    background: #fef3c7;
-    border-color: #f59e0b;
-    color: #92400e;
-}
 .graph-node.sink {
     background: #f0fdf4;
     border-color: #22c55e;
     color: #166534;
-}
-.graph-node.isolated {
-    background: #f9fafb;
-    border-color: var(--border-color);
-    color: var(--text-secondary);
 }
 .graph-node.highlighted {
     box-shadow: 0 0 0 3px rgba(124,58,237,0.35);
@@ -299,9 +289,7 @@ small.text-muted {
     border: 1.5px solid;
 }
 [data-theme="dark"] .graph-node.source { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; }
-[data-theme="dark"] .graph-node.middle { background: #3a2f15; border-color: #f59e0b; color: #fcd34d; }
 [data-theme="dark"] .graph-node.sink { background: #14332a; border-color: #22c55e; color: #86efac; }
-[data-theme="dark"] .graph-node.isolated { background: #22262f; border-color: var(--border-color); color: var(--text-secondary); }
 
 /* Info box */
 .info-box {
@@ -473,7 +461,8 @@ small.text-muted {
     <div class="tab-pane fade show active" id="prompt-panel" role="tabpanel">
         <!-- 프롬프트 하위 탭 -->
         <div class="d-flex flex-wrap gap-2 mb-3" id="promptSubTabs">
-            <button class="prompt-sub-tab active" data-target="stock-classify-panel" id="stock-classify-tab">종목분류</button>
+            <button class="prompt-sub-tab tab-graph active" data-target="prompt-graph-panel" id="prompt-graph-tab">연결도</button>
+            <button class="prompt-sub-tab" data-target="stock-classify-panel" id="stock-classify-tab">종목분류</button>
             <button class="prompt-sub-tab" data-target="html-convert-panel" id="html-convert-tab">HTML변환</button>
             <button class="prompt-sub-tab" data-target="data-loader-panel" id="data-loader-tab">핵심브리핑</button>
             <button class="prompt-sub-tab" data-target="research-prompt-panel" id="research-prompt-tab">공통리서치</button>
@@ -488,12 +477,11 @@ small.text-muted {
             <button class="prompt-sub-tab" data-target="news-prompt-panel" id="news-prompt-tab">뉴스</button>
             <button class="prompt-sub-tab" data-target="supply-demand-analysis-prompt-panel" id="supply-demand-analysis-prompt-tab">수급분석</button>
             <button class="prompt-sub-tab" data-target="summary-prompt-panel" id="summary-prompt-tab">요약</button>
-            <button class="prompt-sub-tab tab-graph" data-target="prompt-graph-panel" id="prompt-graph-tab">연결도</button>
         </div>
 
         <div id="promptTabContent">
             <!-- 종목분류 -->
-            <div class="prompt-panel" id="stock-classify-panel">
+            <div class="prompt-panel" id="stock-classify-panel" style="display:none;">
                 <div class="brief-card">
                     <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
                         <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">프롬프트</span>
@@ -664,17 +652,16 @@ small.text-muted {
                 </div>
             </div>
             <!-- 연결도 -->
-            <div class="prompt-panel" id="prompt-graph-panel" style="display:none;">
+            <div class="prompt-panel" id="prompt-graph-panel">
                 <div class="brief-card">
                     <div style="margin-bottom:16px;">
                         <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">프롬프트 연결도</span>
                         <span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px;">어떤 프롬프트가 다른 프롬프트의 결과를 인풋으로 사용하는지 보여줍니다.</span>
                     </div>
                     <div class="graph-legend">
-                        <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#eff6ff;border-color:#3b82f6;"></div>원본 데이터 (인풋 전용)</div>
-                        <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#fef3c7;border-color:#f59e0b;"></div>중간 단계 (인풋 받고 & 제공)</div>
-                        <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#f0fdf4;border-color:#22c55e;"></div>최종 결과 (인풋만 받음)</div>
-                        <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#f9fafb;border-color:#ccc;"></div>독립 프롬프트</div>
+                        <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#eff6ff;border-color:#3b82f6;"></div>인풋 제공</div>
+                        <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#f0fdf4;border-color:#22c55e;"></div>인풋 사용</div>
+                        <div class="graph-legend-item" style="color:var(--text-muted);">클릭 시 해당 프롬프트로 이동</div>
                     </div>
                     <div class="graph-container">
                         <div class="graph-canvas" id="graphCanvas">
@@ -1443,42 +1430,21 @@ document.addEventListener('click', async (e) => {
 // === 프롬프트 연결도 그래프 ===
 (function() {
     const edges = [
-        { from: 'HTML변환', to: '기업분석' },
         { from: '재무분석', to: '직전분기재무해석' },
         { from: '컨센서스분석', to: '직전분기재무해석' },
         { from: '핵심브리핑', to: '뉴스(맥락)' },
         { from: '재무분석', to: '뉴스(맥락)' },
         { from: '컨센서스분석', to: '뉴스(맥락)' },
-        { from: '핵심브리핑', to: '요약' },
-        { from: '재무분석', to: '요약' },
-        { from: '컨센서스분석', to: '요약' },
-        { from: '직전분기재무해석', to: '요약' },
-        { from: '수급분석', to: '요약' },
     ];
 
-    // 탭 ID 매핑
     const tabMap = {
-        '종목분류': 'stock-classify-tab',
-        'HTML변환': 'html-convert-tab',
         '핵심브리핑': 'data-loader-tab',
-        '공통리서치': 'research-prompt-tab',
-        '퀵리포트': 'quick-report-tab',
-        '기업분석': 'stock-analysis-tab',
         '재무분석': 'fin-analysis-prompt-tab',
         '컨센서스분석': 'consensus-analysis-prompt-tab',
         '직전분기재무해석': 'quarter-analysis-prompt-tab',
-        '리포트': 'report-prompt-tab',
-        '노다지': 'nodaji-tab',
-        '유튜브': 'youtube-prompt-tab',
-        '뉴스(기본)': 'news-prompt-tab',
         '뉴스(맥락)': 'news-prompt-tab',
-        '수급분석': 'supply-demand-analysis-prompt-tab',
-        '요약': 'summary-prompt-tab',
     };
 
-    const allNames = Object.keys(tabMap);
-
-    // 역할 분류
     const sources = new Set();
     const targets = new Set();
     edges.forEach(e => { sources.add(e.from); targets.add(e.to); });
@@ -1488,22 +1454,14 @@ document.addEventListener('click', async (e) => {
         const isTgt = targets.has(name);
         if (isSrc && isTgt) return 'middle';
         if (isSrc) return 'source';
-        if (isTgt) return 'sink';
-        return 'isolated';
+        return 'sink';
     }
 
-    // 레이어 분류
-    const layer0 = []; // source only
-    const layer1 = []; // middle
-    const layer2 = []; // sink only
-    const isolated = [];
-
-    allNames.forEach(name => {
-        const role = getRole(name);
-        if (role === 'source') layer0.push(name);
-        else if (role === 'middle') layer1.push(name);
-        else if (role === 'sink') layer2.push(name);
-        else isolated.push(name);
+    const layer0 = []; // source
+    const layer1 = []; // target
+    Object.keys(tabMap).forEach(name => {
+        if (targets.has(name)) layer1.push(name);
+        else layer0.push(name);
     });
 
     function renderGraph() {
@@ -1511,17 +1469,16 @@ document.addEventListener('click', async (e) => {
         const svg = document.getElementById('graphSvg');
         if (!canvas || !svg) return;
 
-        // 기존 노드 제거
         canvas.querySelectorAll('.graph-node').forEach(n => n.remove());
         svg.innerHTML = '';
 
-        const colX = [40, 340, 640];
-        const nodeW = 120;
-        const nodeH = 36;
+        const colX = [40, 380];
+        const nodeW = 130;
+        const nodeH = 38;
         const nodePositions = {};
 
         function placeNodes(list, col, startY) {
-            const gap = 52;
+            const gap = 56;
             list.forEach((name, i) => {
                 const x = colX[col];
                 const y = startY + i * gap;
@@ -1542,7 +1499,6 @@ document.addEventListener('click', async (e) => {
                     const tabId = tabMap[name];
                     if (tabId) document.getElementById(tabId).click();
                 });
-
                 div.addEventListener('mouseenter', () => highlightConnections(name));
                 div.addEventListener('mouseleave', clearHighlights);
 
@@ -1550,55 +1506,20 @@ document.addEventListener('click', async (e) => {
             });
         }
 
-        // 세 컬럼 배치
-        const centerY0 = Math.max(20, (Math.max(layer0.length, layer1.length, layer2.length) * 52 - layer0.length * 52) / 2 + 20);
-        const centerY1 = Math.max(20, (Math.max(layer0.length, layer1.length, layer2.length) * 52 - layer1.length * 52) / 2 + 20);
-        const centerY2 = Math.max(20, (Math.max(layer0.length, layer1.length, layer2.length) * 52 - layer2.length * 52) / 2 + 20);
+        const maxLen = Math.max(layer0.length, layer1.length);
+        const centerY0 = Math.max(20, (maxLen * 56 - layer0.length * 56) / 2 + 20);
+        const centerY1 = Math.max(20, (maxLen * 56 - layer1.length * 56) / 2 + 20);
 
         placeNodes(layer0, 0, centerY0);
         placeNodes(layer1, 1, centerY1);
-        placeNodes(layer2, 2, centerY2);
 
-        // 독립 프롬프트 아래쪽 배치
-        const maxLayerBottom = Math.max(
-            centerY0 + layer0.length * 52,
-            centerY1 + layer1.length * 52,
-            centerY2 + layer2.length * 52
-        );
-        const isoStartY = maxLayerBottom + 30;
-        const isoGap = 135;
-        isolated.forEach((name, i) => {
-            const x = 40 + i * isoGap;
-            const y = isoStartY;
-            nodePositions[name] = { x, y, w: nodeW, h: nodeH };
-
-            const div = document.createElement('div');
-            div.className = 'graph-node isolated';
-            div.textContent = name;
-            div.style.left = x + 'px';
-            div.style.top = y + 'px';
-            div.style.width = nodeW + 'px';
-            div.style.height = nodeH + 'px';
-            div.style.lineHeight = nodeH + 'px';
-            div.style.padding = '0';
-            div.dataset.name = name;
-
-            div.addEventListener('click', () => {
-                const tabId = tabMap[name];
-                if (tabId) document.getElementById(tabId).click();
-            });
-
-            canvas.appendChild(div);
-        });
-
-        // 캔버스 크기 조정
-        const canvasH = isoStartY + nodeH + 40;
+        const canvasH = Math.max(centerY0 + layer0.length * 56, centerY1 + layer1.length * 56) + 30;
         canvas.style.minHeight = canvasH + 'px';
-        svg.setAttribute('viewBox', `0 0 820 ${canvasH}`);
-        svg.style.width = '820px';
+        canvas.style.minWidth = '560px';
+        svg.setAttribute('viewBox', `0 0 560 ${canvasH}`);
+        svg.style.width = '560px';
         svg.style.height = canvasH + 'px';
 
-        // 화살표 마커
         const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
         defs.innerHTML = `
             <marker id="arrowDefault" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
@@ -1610,7 +1531,6 @@ document.addEventListener('click', async (e) => {
         `;
         svg.appendChild(defs);
 
-        // 엣지 그리기
         edges.forEach(e => {
             const from = nodePositions[e.from];
             const to = nodePositions[e.to];
@@ -1647,11 +1567,8 @@ document.addEventListener('click', async (e) => {
         });
 
         canvas.querySelectorAll('.graph-node').forEach(n => {
-            if (connected.has(n.dataset.name)) {
-                n.classList.add('highlighted');
-            } else {
-                n.style.opacity = '0.3';
-            }
+            if (connected.has(n.dataset.name)) n.classList.add('highlighted');
+            else n.style.opacity = '0.3';
         });
 
         svg.querySelectorAll('path').forEach(p => {
@@ -1674,7 +1591,6 @@ document.addEventListener('click', async (e) => {
             n.classList.remove('highlighted');
             n.style.opacity = '';
         });
-
         svg.querySelectorAll('path').forEach(p => {
             p.setAttribute('stroke', '#94a3b8');
             p.setAttribute('stroke-width', '1.5');
@@ -1683,12 +1599,11 @@ document.addEventListener('click', async (e) => {
         });
     }
 
-    // 연결도 탭 클릭 시 그래프 렌더링
+    // 초기 렌더링 + 탭 전환 시 렌더링
+    setTimeout(renderGraph, 50);
     const graphTab = document.getElementById('prompt-graph-tab');
     if (graphTab) {
-        graphTab.addEventListener('click', () => {
-            setTimeout(renderGraph, 50);
-        });
+        graphTab.addEventListener('click', () => setTimeout(renderGraph, 50));
     }
 })();
 </script>
