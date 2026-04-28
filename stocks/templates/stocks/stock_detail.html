@@ -4304,7 +4304,14 @@ document.getElementById('btnCopyFinAnalysisPrompt').addEventListener('click', as
             if (quarterData.length) dataText += formatFinDataAsText(label + ' 분기', quarterData, fields) + '\n';
         });
 
+        // 최근분기: 분기 데이터 중 가장 마지막 period (예: "2025 3Q")
+        const quarterData0 = responses[1]?.data || [];
+        const latestQuarter = quarterData0.length ? quarterData0[quarterData0.length - 1].period : '';
+        const todayStr = new Date().toISOString().slice(0, 10);
+
         let prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
+        prompt = prompt.replace(/\{최근분기[^}]*\}/g, latestQuarter);
+        prompt = prompt.replace(/\{오늘날짜[^}]*\}/g, todayStr);
         // 개별 플레이스홀더 치환
         const placeholders = {
             '{포괄손익계산서 데이터}': 0, '{재무상태표 데이터}': 1, '{현금흐름표 데이터}': 2,
