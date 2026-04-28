@@ -245,7 +245,6 @@ document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
             '시장': _v(tradeVars.market),
             '현재가': stockCurrentPrice ? Number(stockCurrentPrice).toLocaleString() : _v(tradeVars.current_price),
             '변동률': _v(tradeVars.change_rate),
-            '시총': _v(tradeVars.market_cap),
             '시가총액': _v(tradeVars.market_cap),
             'PER': _v(tradeVars.per),
             'PBR': _v(tradeVars.pbr),
@@ -298,7 +297,6 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
             '시장': _orEmpty(tradeVars.market),
             '현재가': _orEmpty(tradeVars.current_price),
             '변동률': _orEmpty(tradeVars.change_rate),
-            '시총': _orEmpty(tradeVars.market_cap),
             '시가총액': _orEmpty(tradeVars.market_cap),
             'PER': _orEmpty(tradeVars.per),
             'PBR': _orEmpty(tradeVars.pbr),
@@ -366,11 +364,6 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
             prompt = prompt.replace(/이 회사의 업종 분류:[\s\S]*?위 업종 특성에 맞는[^\n]*\n*/g, '');
         }
         // 밸류에이션 데이터 치환
-        if (stockCurrentPrice) {
-            prompt = prompt.replace(/\{현재주가\}/g, Number(stockCurrentPrice).toLocaleString());
-        } else {
-            prompt = prompt.replace(/.*\{현재주가\}.*\n?/g, '');
-        }
         if (consensusEps) {
             prompt = prompt.replace(/\{컨센서스EPS\}/g, Number(consensusEps).toLocaleString());
         } else {
@@ -387,7 +380,7 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
             prompt = prompt.replace(/.*\{분기컨센서스영업이익\}.*\n?/g, '');
         }
         if (nodajiData) {
-            prompt = prompt.replace(/\{노다지 데이터\}/g, nodajiData);
+            prompt = prompt.replace(/\{노다지\}/g, nodajiData);
         } else {
             // 노다지 데이터 없으면 해당 섹션 제거
             prompt = prompt.replace(/## 탐방\/주담통화 자료 \(노다지\)[\s\S]*?(?=---\n\n## 출력)/, '');

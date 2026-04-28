@@ -6592,36 +6592,6 @@ def consensus_analysis_save(request, code):
     return JsonResponse({'success': True, 'updated_at': stock.consensus_analysis_updated_at.strftime('%Y-%m-%d'), 'base_quarter': base_quarter})
 
 
-@require_GET
-def quarter_analysis_data(request, code):
-    """직전분기재무해석 프롬프트용 데이터 조회"""
-    stock = get_object_or_404(Info, code=code)
-    return JsonResponse({
-        'success': True,
-        'financial_previous': stock.financial_analysis_v2_previous or '',
-        'financial_previous_quarter': stock.financial_analysis_v2_previous_base_quarter or '',
-        'financial_current': stock.financial_analysis_v2 or '',
-        'financial_current_quarter': stock.financial_analysis_v2_base_quarter or '',
-        'consensus_previous': stock.consensus_analysis_previous or '',
-        'consensus_previous_quarter': stock.consensus_analysis_previous_base_quarter or '',
-        'consensus_current': stock.consensus_analysis or '',
-        'consensus_current_quarter': stock.consensus_analysis_base_quarter or '',
-    })
-
-
-@require_POST
-def quarter_analysis_save(request, code):
-    """직전분기재무해석 저장"""
-    from datetime import date
-    stock = get_object_or_404(Info, code=code)
-    text = request.POST.get('content', '').strip()
-    stock.quarter_analysis = text
-    stock.quarter_analysis_updated_at = date.today()
-    opinion = request.POST.get('my_opinion')
-    if opinion is not None:
-        stock.quarter_analysis_opinion = opinion
-    stock.save(update_fields=['quarter_analysis', 'quarter_analysis_updated_at', 'quarter_analysis_opinion'])
-    return JsonResponse({'success': True, 'updated_at': stock.quarter_analysis_updated_at.strftime('%Y-%m-%d')})
 
 
 @require_POST

@@ -858,43 +858,6 @@
         </div>
     </div>
 
-    <!-- 직전분기재무해석 -->
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">직전분기재무해석{% if stock.quarter_analysis_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="quarterAnalysisUpdatedAt">update: {{ stock.quarter_analysis_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
-    <div class="brief-card">
-        <div id="quarterAnalysisViewMode">
-            <div style="max-height:600px;overflow-y:auto;">
-                <div class="markdown-content" id="quarterAnalysisMarkdown"></div>
-                <script type="text/plain" id="quarterAnalysisRaw">{{ stock.quarter_analysis|default:""|safe }}</script>
-            </div>
-            {% if stock.quarter_analysis_opinion %}<div class="opinion-popover" style="display:none;margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.quarter_analysis_opinion|safe }}</script></div>{% endif %}
-            <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
-                {% if stock.quarter_analysis_opinion %}<span class="btn-toggle-opinion" style="font-size:0.72rem;color:var(--accent-color);cursor:pointer;font-weight:600;">요약</span>{% endif %}
-                <span id="btnQuarterAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
-            </div>
-        </div>
-        <div id="quarterAnalysisEditMode" class="d-none">
-            <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-                <span class="prompt-badge" role="button" id="btnCopyQuarterAnalysisPrompt">프롬프트 복사</span>
-            </div>
-            <textarea class="form-control" id="quarterAnalysisTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.quarter_analysis }}</textarea>
-            <div style="margin-top:16px;margin-bottom:8px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                    <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">요약</div>
-                    <span class="prompt-badge btn-copy-summary-prompt" role="button" data-source="quarterAnalysisTextarea">프롬프트복사</span>
-                </div>
-                <textarea class="form-control" id="quarterAnalysisOpinion" rows="3" style="font-family:monospace;font-size:0.85rem;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ stock.quarter_analysis_opinion }}</textarea>
-            </div>
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" id="btnQuarterAnalysisCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
-                <button type="button" id="btnQuarterAnalysisSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
-            </div>
-            <div style="margin-top:12px;padding:10px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:6px;font-size:0.75rem;color:var(--text-muted);line-height:1.6;">
-                • 재무분석/컨센서스분석 저장 시마다 기존 내용이 "직전"으로 자동 이동<br>
-                • 기준분기는 포괄손익계산서 분기 데이터의 마지막 분기로 자동 감지<br>
-                • 직전과 현재의 기준분기가 같으면 복사 시 확인 알림 표시
-            </div>
-        </div>
-    </div>
 
     <!-- 포괄손익계산서 -->
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
@@ -1818,7 +1781,6 @@ renderContent('keyBriefingRaw', 'keyBriefingMarkdown');
 renderContent('analysisRaw', 'analysisMarkdown');
 renderContent('finAnalysisV2Raw', 'finAnalysisV2Markdown');
 renderContent('consensusAnalysisRaw', 'consensusAnalysisMarkdown');
-renderContent('quarterAnalysisRaw', 'quarterAnalysisMarkdown');
 renderContent('sdAnalysisRaw', 'sdAnalysisMarkdown');
 
 // ===== 요약(구 내생각) 마크다운 렌더링 =====
@@ -2189,7 +2151,7 @@ document.getElementById('btnCopySdAnalysisPrompt').addEventListener('click', asy
 
     let prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
     prompt = prompt.replace(/\{현재가[^}]*\}/g, currentPrice);
-    prompt = prompt.replace(/\{기준일[^}]*\}/g, latestDate);
+    prompt = prompt.replace(/\{오늘날짜[^}]*\}/g, latestDate);
     prompt = prompt.replace(/\{외국인누적\}/g, foreignTotal.toLocaleString());
     prompt = prompt.replace(/\{기관누적\}/g, institutionTotal.toLocaleString());
     prompt = prompt.replace(/\{주별수급데이터\}/g, weeklyText);
@@ -2291,10 +2253,10 @@ btnCopyBriefingPrompt.addEventListener('click', async () => {
     const analysisMap = {
         '{재무분석}': briefingData.financial_analysis,
         '{컨센서스분석}': briefingData.consensus_analysis,
-        '{밸류에이션분석}': briefingData.valuation_analysis,
-        '{업황매크로분석}': briefingData.macro_analysis,
-        '{이벤트분석}': briefingData.event_analysis,
-        '{경쟁사분석}': briefingData.competitor_analysis,
+        '{밸류에이션}': briefingData.valuation_analysis,
+        '{업황매크로}': briefingData.macro_analysis,
+        '{향후이벤트}': briefingData.event_analysis,
+        '{경쟁사}': briefingData.competitor_analysis,
     };
     for (const [placeholder, value] of Object.entries(analysisMap)) {
         if (value) {
@@ -4216,62 +4178,6 @@ function setupAnalysisEditor(prefix, apiPath) {
 }
 setupAnalysisEditor('finAnalysisV2', 'financial-analysis-v2');
 setupAnalysisEditor('consensusAnalysis', 'consensus-analysis');
-setupAnalysisEditor('quarterAnalysis', 'quarter-analysis');
-
-// ===== 직전분기재무해석 프롬프트 복사 =====
-document.getElementById('btnCopyQuarterAnalysisPrompt').addEventListener('click', async () => {
-    const btn = document.getElementById('btnCopyQuarterAnalysisPrompt');
-    const promptTemplate = `{{ saved_prompts.prompt_quarter_analysis|default:""|escapejs }}`;
-    if (!promptTemplate) { alert('설정 → 프롬프트 → 직전분기재무해석에서 프롬프트를 먼저 등록하세요.'); return; }
-
-    btn.textContent = '로딩 중...';
-    try {
-        const resp = await fetch(`/api/stock/${stockCode}/quarter-analysis/data/`);
-        const d = await resp.json();
-        if (!d.success) { alert('데이터 로드 실패'); btn.textContent = '프롬프트 복사'; return; }
-
-        // 직전 데이터가 없으면 경고
-        if (!d.financial_previous && !d.consensus_previous) {
-            alert('직전 데이터가 없습니다. 재무분석/컨센서스분석을 2회 이상 저장해야 직전 데이터가 생성됩니다.');
-            btn.textContent = '프롬프트 복사';
-            return;
-        }
-
-        // 분기 변동 여부 체크
-        const prevQ = d.financial_previous_quarter || d.consensus_previous_quarter || '';
-        const curQ = d.financial_current_quarter || d.consensus_current_quarter || '';
-        if (prevQ && curQ && prevQ === curQ) {
-            if (!confirm(`직전(${prevQ})과 현재(${curQ})의 기준 분기가 동일합니다. 계속 복사하시겠습니까?`)) {
-                btn.textContent = '프롬프트 복사';
-                return;
-            }
-        }
-
-        let prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
-        prompt = prompt.replace(/\{직전분기[^}]*\}/g, prevQ || '정보 없음');
-        prompt = prompt.replace(/\{이번분기[^}]*\}/g, curQ || '정보 없음');
-        prompt = prompt.replace(/\{오늘날짜[^}]*\}/g, new Date().toISOString().slice(0, 10));
-
-        // 직전 분기 데이터
-        const prevFinQ = d.financial_previous_quarter ? ` (${d.financial_previous_quarter} 기준)` : '';
-        const prevConQ = d.consensus_previous_quarter ? ` (${d.consensus_previous_quarter} 기준)` : '';
-        prompt = prompt.replace('{직전 분기 재무분석 데이터}', d.financial_previous ? d.financial_previous + '\n' + prevFinQ : '데이터 없음');
-        prompt = prompt.replace('{직전 분기 컨센서스분석 데이터}', d.consensus_previous ? d.consensus_previous + '\n' + prevConQ : '데이터 없음');
-
-        // 이번 분기 데이터
-        const curFinQ = d.financial_current_quarter ? ` (${d.financial_current_quarter} 기준)` : '';
-        const curConQ = d.consensus_current_quarter ? ` (${d.consensus_current_quarter} 기준)` : '';
-        prompt = prompt.replace('{이번 분기 재무분석 데이터}', d.financial_current ? d.financial_current + '\n' + curFinQ : '데이터 없음');
-        prompt = prompt.replace('{이번 분기 컨센서스분석 데이터}', d.consensus_current ? d.consensus_current + '\n' + curConQ : '데이터 없음');
-
-        await copyToClipboard(prompt);
-        btn.textContent = '복사됨!';
-        setTimeout(() => { btn.textContent = '프롬프트 복사'; }, 1500);
-    } catch (err) {
-        alert('복사 실패: ' + err.message);
-        btn.textContent = '프롬프트 복사';
-    }
-});
 
 // ===== 컨센서스분석 프롬프트 복사 =====
 document.getElementById('btnCopyConsensusAnalysisPrompt').addEventListener('click', async () => {
@@ -4310,7 +4216,7 @@ document.getElementById('btnCopyConsensusAnalysisPrompt').addEventListener('clic
 
         let prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
         prompt = prompt.replace(/\{현재가[^}]*\}/g, currentPrice);
-        prompt = prompt.replace(/\{기준일자[^}]*\}/g, todayStr);
+        prompt = prompt.replace(/\{오늘날짜[^}]*\}/g, todayStr);
         prompt = prompt.replace(/\{3개월평균목표주가[^}]*\}/g, avgTargetPrice3m ? Number(avgTargetPrice3m).toLocaleString('ko-KR') : '데이터 없음');
         if (prompt.includes('{컨센서스 데이터}')) {
             prompt = prompt.replace('{컨센서스 데이터}', dataText.trim());

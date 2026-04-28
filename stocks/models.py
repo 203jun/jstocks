@@ -230,9 +230,6 @@ class Info(models.Model):
     consensus_analysis_opinion = models.TextField(
         blank=True, default='', verbose_name='컨센서스분석 내생각'
     )
-    quarter_analysis_opinion = models.TextField(
-        blank=True, default='', verbose_name='직전분기재무해석 내생각'
-    )
     supply_demand_analysis_opinion = models.TextField(
         blank=True, default='', verbose_name='수급분석 내생각'
     )
@@ -325,14 +322,6 @@ class Info(models.Model):
         max_length=10, blank=True, default='', verbose_name='컨센서스분석 기준분기'
     )
 
-    # === 직전분기재무해석 ===
-    quarter_analysis = models.TextField(
-        blank=True, default='', verbose_name='직전분기재무해석',
-        help_text='직전분기재무해석 내용 (마크다운)'
-    )
-    quarter_analysis_updated_at = models.DateField(
-        null=True, blank=True, verbose_name='직전분기재무해석 업데이트일'
-    )
 
     # === 인사이트 (투자포인트/리스크/일정 통합) ===
     insight_summary_html = models.TextField(

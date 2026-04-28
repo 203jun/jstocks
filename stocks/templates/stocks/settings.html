@@ -483,7 +483,6 @@ small.text-muted {
             <button class="prompt-sub-tab" data-target="stock-analysis-panel" id="stock-analysis-tab">기업분석</button>
             <button class="prompt-sub-tab" data-target="fin-analysis-prompt-panel" id="fin-analysis-prompt-tab">재무분석</button>
             <button class="prompt-sub-tab" data-target="consensus-analysis-prompt-panel" id="consensus-analysis-prompt-tab">컨센서스분석</button>
-            <button class="prompt-sub-tab" data-target="quarter-analysis-prompt-panel" id="quarter-analysis-prompt-tab">직전분기재무해석</button>
             <button class="prompt-sub-tab" data-target="report-prompt-panel" id="report-prompt-tab">리포트</button>
             <button class="prompt-sub-tab" data-target="nodaji-panel" id="nodaji-tab">노다지</button>
             <button class="prompt-sub-tab" data-target="youtube-prompt-panel" id="youtube-prompt-tab">유튜브</button>
@@ -605,17 +604,6 @@ small.text-muted {
                     </div>
                     <div class="d-flex flex-wrap gap-1 mb-2" id="consensusVarList"></div>
                     <textarea class="form-control" id="promptConsensusAnalysis" rows="10" placeholder="컨센서스분석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_consensus_analysis }}</textarea>
-                </div>
-            </div>
-            <!-- 직전분기재무해석 프롬프트 -->
-            <div class="prompt-panel" id="quarter-analysis-prompt-panel" style="display:none;">
-                <div class="brief-card">
-                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
-                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">직전분기재무해석 프롬프트</span>
-                        <button type="button" class="btn-refresh" id="btnSaveQuarterAnalysisPrompt">저장</button>
-                    </div>
-                    <div class="d-flex flex-wrap gap-1 mb-2" id="quarterVarList"></div>
-                    <textarea class="form-control" id="promptQuarterAnalysis" rows="10" placeholder="직전분기재무해석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_quarter_analysis }}</textarea>
                 </div>
             </div>
             <!-- 리포트 -->
@@ -1293,12 +1281,6 @@ document.getElementById('btnSaveConsensusAnalysisPrompt').addEventListener('clic
     savePrompt('prompt_consensus_analysis', value, this);
 });
 
-// 직전분기재무해석 프롬프트 저장
-document.getElementById('btnSaveQuarterAnalysisPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptQuarterAnalysis').value;
-    savePrompt('prompt_quarter_analysis', value, this);
-});
-
 // 리포트 프롬프트 저장
 document.getElementById('btnSaveReportSummaryPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptReportSummary').value;
@@ -1346,7 +1328,6 @@ const varChipTargets = [
     ['promptAnalysis', 'analysisVarList'],
     ['promptFinAnalysis', 'finAnalysisVarList'],
     ['promptConsensusAnalysis', 'consensusVarList'],
-    ['promptQuarterAnalysis', 'quarterVarList'],
     ['promptReportSummary', 'reportVarList'],
     ['promptNodaji', 'nodajiVarList'],
     ['promptYoutube', 'youtubeVarList'],
@@ -1481,7 +1462,6 @@ document.getElementById('btnLoadAllVars').addEventListener('click', async () => 
         { name: '기업분석', id: 'promptAnalysis' },
         { name: '재무분석', id: 'promptFinAnalysis' },
         { name: '컨센서스분석', id: 'promptConsensusAnalysis' },
-        { name: '직전분기재무해석', id: 'promptQuarterAnalysis' },
         { name: '리포트', id: 'promptReportSummary' },
         { name: '노다지', id: 'promptNodaji' },
         { name: '유튜브', id: 'promptYoutube' },
@@ -1552,8 +1532,6 @@ document.getElementById('btnLoadAllVars').addEventListener('click', async () => 
 // === 프롬프트 연결도 그래프 ===
 (function() {
     const edges = [
-        { from: '재무분석', to: '직전분기재무해석' },
-        { from: '컨센서스분석', to: '직전분기재무해석' },
         { from: '핵심브리핑', to: '뉴스(맥락)' },
         { from: '재무분석', to: '뉴스(맥락)' },
         { from: '컨센서스분석', to: '뉴스(맥락)' },
@@ -1563,7 +1541,6 @@ document.getElementById('btnLoadAllVars').addEventListener('click', async () => 
         '핵심브리핑': 'data-loader-tab',
         '재무분석': 'fin-analysis-prompt-tab',
         '컨센서스분석': 'consensus-analysis-prompt-tab',
-        '직전분기재무해석': 'quarter-analysis-prompt-tab',
         '뉴스(맥락)': 'news-prompt-tab',
     };
 
