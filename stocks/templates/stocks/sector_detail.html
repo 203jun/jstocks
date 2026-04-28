@@ -198,6 +198,9 @@
 }
 .report-channel-tab:hover { background: #f0f0f0; }
 .report-channel-tab.active { background: #2962ff; color: #fff; border-color: #2962ff; }
+[data-theme="dark"] .report-channel-tab { background: #22262f; color: var(--text-secondary); border-color: var(--border-color); }
+[data-theme="dark"] .report-channel-tab:hover { background: #2c313b; }
+[data-theme="dark"] .report-channel-tab.active { background: #1e3a8a; color: #dbeafe; border-color: #1e3a8a; }
 
 .highlight {
     background-color: #fef3c7;
@@ -205,6 +208,7 @@
     border-radius: 2px;
     font-weight: bold;
 }
+[data-theme="dark"] .highlight { background-color: #3a2f15; color: #fbbf24; }
 
 /* Modal overlay */
 .modal-overlay {
