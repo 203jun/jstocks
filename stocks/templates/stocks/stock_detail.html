@@ -4120,6 +4120,9 @@ document.getElementById('btnCopyQuarterAnalysisPrompt').addEventListener('click'
         }
 
         let prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
+        prompt = prompt.replace(/\{직전분기[^}]*\}/g, prevQ || '정보 없음');
+        prompt = prompt.replace(/\{이번분기[^}]*\}/g, curQ || '정보 없음');
+        prompt = prompt.replace(/\{오늘날짜[^}]*\}/g, new Date().toISOString().slice(0, 10));
 
         // 직전 분기 데이터
         const prevFinQ = d.financial_previous_quarter ? ` (${d.financial_previous_quarter} 기준)` : '';
