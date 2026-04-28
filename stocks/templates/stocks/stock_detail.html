@@ -2145,7 +2145,13 @@ document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
         const sourceText = (sourceEl ? ('value' in sourceEl ? sourceEl.value : sourceEl.textContent) : '').trim();
         if (!sourceText) { alert('원문이 없습니다.'); return; }
 
-        const prompt = promptTemplate.replace(/\{원문\}/g, sourceText);
+        const currentPrice = (document.getElementById('currentPrice')?.textContent || '').trim();
+        const changeRate = (document.getElementById('changeRate')?.textContent || '').trim();
+
+        let prompt = promptTemplate.replace(/\{원문\}/g, sourceText);
+        prompt = prompt.replace(/\{종목명[^}]*\}/g, stockName);
+        prompt = prompt.replace(/\{현재가[^}]*\}/g, currentPrice);
+        prompt = prompt.replace(/\{등락률[^}]*\}/g, changeRate);
 
         try {
             await copyToClipboard(prompt);
