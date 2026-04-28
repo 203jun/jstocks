@@ -990,7 +990,7 @@ function renderResearchPrompts(prompts) {
             </div>
             <div class="mb-2">
                 <label class="form-label small fw-bold mb-1">질문</label>
-                <input type="text" class="form-control form-control-sm research-question" data-id="${p.id}" value="${escapeHtml(p.question)}" placeholder="질문 입력...">
+                <input type="text" class="form-control form-control-sm research-question" data-id="${p.id}" value="${escapeHtml(p.question)}" readonly style="background:#f9fafb;cursor:not-allowed;">
             </div>
             <div class="mb-2">
                 <label class="form-label small fw-bold mb-1">프롬프트</label>
@@ -1009,11 +1009,14 @@ function renderResearchPrompts(prompts) {
 
 // 리서치 프롬프트 추가
 btnAddResearchPrompt.addEventListener('click', async () => {
+    const question = prompt('질문명을 입력하세요 (등록 후 수정 불가):');
+    if (!question || !question.trim()) return;
+
     btnAddResearchPrompt.disabled = true;
 
     try {
         const formData = new FormData();
-        formData.append('question', '새 질문');
+        formData.append('question', question.trim());
         formData.append('prompt', '');
 
         const response = await fetch('/api/research-prompt/add/', {
@@ -1151,7 +1154,7 @@ function renderQuickReports(prompts) {
             </div>
             <div class="mb-2">
                 <label class="form-label small fw-bold mb-1">질문</label>
-                <input type="text" class="form-control form-control-sm quick-question" data-id="${p.id}" value="${escapeHtml(p.question)}" placeholder="질문 입력...">
+                <input type="text" class="form-control form-control-sm quick-question" data-id="${p.id}" value="${escapeHtml(p.question)}" readonly style="background:#f9fafb;cursor:not-allowed;">
             </div>
             <div class="mb-2">
                 <label class="form-label small fw-bold mb-1">프롬프트</label>
@@ -1169,10 +1172,13 @@ function renderQuickReports(prompts) {
 }
 
 btnAddQuickReport.addEventListener('click', async () => {
+    const question = prompt('질문명을 입력하세요 (등록 후 수정 불가):');
+    if (!question || !question.trim()) return;
+
     btnAddQuickReport.disabled = true;
     try {
         const formData = new FormData();
-        formData.append('question', '새 질문');
+        formData.append('question', question.trim());
         formData.append('prompt', '');
 
         const response = await fetch('/api/quick-report/add/', {
