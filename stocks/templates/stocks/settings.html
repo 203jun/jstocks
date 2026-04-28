@@ -992,7 +992,7 @@ function renderResearchPrompts(prompts) {
                 </div>
             </div>
             <input type="hidden" class="research-question" data-id="${p.id}" value="${escapeHtml(p.question)}">
-            <textarea class="form-control form-control-sm research-prompt" data-id="${p.id}" rows="4" placeholder="프롬프트 입력...">${escapeHtml(p.prompt)}</textarea>
+            <textarea class="form-control form-control-sm research-prompt" data-id="${p.id}" rows="8" placeholder="프롬프트 입력...">${escapeHtml(p.prompt)}</textarea>
             <div class="d-flex align-items-center mt-2">
                 <div class="form-check">
                     <input class="form-check-input research-attachment" type="checkbox" data-id="${p.id}" ${p.needs_attachment ? 'checked' : ''}>
@@ -1152,7 +1152,7 @@ function renderQuickReports(prompts) {
                 </div>
             </div>
             <input type="hidden" class="quick-question" data-id="${p.id}" value="${escapeHtml(p.question)}">
-            <textarea class="form-control form-control-sm quick-prompt" data-id="${p.id}" rows="4" placeholder="프롬프트 입력...">${escapeHtml(p.prompt)}</textarea>
+            <textarea class="form-control form-control-sm quick-prompt" data-id="${p.id}" rows="8" placeholder="프롬프트 입력...">${escapeHtml(p.prompt)}</textarea>
             <div class="d-flex align-items-center mt-2">
                 <div class="form-check">
                     <input class="form-check-input quick-attachment" type="checkbox" data-id="${p.id}" ${p.needs_attachment ? 'checked' : ''}>
