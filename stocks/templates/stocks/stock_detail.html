@@ -591,8 +591,9 @@
                 <div class="markdown-content" id="keyBriefingMarkdown"></div>
                 <script type="text/plain" id="keyBriefingRaw">{{ stock.key_briefing|default:""|safe }}</script>
             </div>
-            {% if stock.key_briefing_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.key_briefing_opinion|safe }}</script></div>{% endif %}
+            {% if stock.key_briefing_opinion %}<div class="opinion-popover" style="display:none;margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.key_briefing_opinion|safe }}</script></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
+                {% if stock.key_briefing_opinion %}<span class="btn-toggle-opinion" style="font-size:0.72rem;color:var(--accent-color);cursor:pointer;font-weight:600;">요약</span>{% endif %}
                 <span id="btnBriefingEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
         </div>
@@ -795,8 +796,9 @@
                 <div class="markdown-content" id="finAnalysisV2Markdown"></div>
                 <script type="text/plain" id="finAnalysisV2Raw">{{ stock.financial_analysis_v2|default:""|safe }}</script>
             </div>
-            {% if stock.financial_analysis_v2_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.financial_analysis_v2_opinion|safe }}</script></div>{% endif %}
+            {% if stock.financial_analysis_v2_opinion %}<div class="opinion-popover" style="display:none;margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.financial_analysis_v2_opinion|safe }}</script></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
+                {% if stock.financial_analysis_v2_opinion %}<span class="btn-toggle-opinion" style="font-size:0.72rem;color:var(--accent-color);cursor:pointer;font-weight:600;">요약</span>{% endif %}
                 <span id="btnFinAnalysisV2Edit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
         </div>
@@ -827,8 +829,9 @@
                 <div class="markdown-content" id="consensusAnalysisMarkdown"></div>
                 <script type="text/plain" id="consensusAnalysisRaw">{{ stock.consensus_analysis|default:""|safe }}</script>
             </div>
-            {% if stock.consensus_analysis_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.consensus_analysis_opinion|safe }}</script></div>{% endif %}
+            {% if stock.consensus_analysis_opinion %}<div class="opinion-popover" style="display:none;margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.consensus_analysis_opinion|safe }}</script></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
+                {% if stock.consensus_analysis_opinion %}<span class="btn-toggle-opinion" style="font-size:0.72rem;color:var(--accent-color);cursor:pointer;font-weight:600;">요약</span>{% endif %}
                 <span id="btnConsensusAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
         </div>
@@ -859,8 +862,9 @@
                 <div class="markdown-content" id="quarterAnalysisMarkdown"></div>
                 <script type="text/plain" id="quarterAnalysisRaw">{{ stock.quarter_analysis|default:""|safe }}</script>
             </div>
-            {% if stock.quarter_analysis_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.quarter_analysis_opinion|safe }}</script></div>{% endif %}
+            {% if stock.quarter_analysis_opinion %}<div class="opinion-popover" style="display:none;margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.quarter_analysis_opinion|safe }}</script></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
+                {% if stock.quarter_analysis_opinion %}<span class="btn-toggle-opinion" style="font-size:0.72rem;color:var(--accent-color);cursor:pointer;font-weight:600;">요약</span>{% endif %}
                 <span id="btnQuarterAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
         </div>
@@ -1154,8 +1158,9 @@
                 <div class="markdown-content" id="sdAnalysisMarkdown"></div>
                 <script type="text/plain" id="sdAnalysisRaw">{{ stock.supply_demand_analysis|default:""|safe }}</script>
             </div>
-            {% if stock.supply_demand_analysis_opinion %}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.supply_demand_analysis_opinion|safe }}</script></div>{% endif %}
+            {% if stock.supply_demand_analysis_opinion %}<div class="opinion-popover" style="display:none;margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.supply_demand_analysis_opinion|safe }}</script></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
+                {% if stock.supply_demand_analysis_opinion %}<span class="btn-toggle-opinion" style="font-size:0.72rem;color:var(--accent-color);cursor:pointer;font-weight:600;">요약</span>{% endif %}
                 <span id="btnSdAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
         </div>
@@ -1822,6 +1827,18 @@ document.querySelectorAll('.opinion-raw').forEach(raw => {
     }
 });
 
+// ===== 요약 팝오버 토글 =====
+document.querySelectorAll('.btn-toggle-opinion').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const card = btn.closest('.brief-card') || btn.closest('[id$="ViewMode"]');
+        const popover = card?.querySelector('.opinion-popover');
+        if (!popover) return;
+        const isVisible = popover.style.display !== 'none';
+        popover.style.display = isVisible ? 'none' : 'block';
+        btn.textContent = isVisible ? '요약' : '요약 닫기';
+    });
+});
+
 // ===== 메모 인라인 편집 =====
 document.getElementById('btnMemoEdit').addEventListener('click', () => {
     document.getElementById('memoViewMode').classList.add('d-none');
@@ -1956,18 +1973,37 @@ document.getElementById('btnBriefingSave').addEventListener('click', async () =>
             renderContent('keyBriefingRaw', 'keyBriefingMarkdown');
             // 요약 영역 갱신
             const opinionVal = opinionEl ? opinionEl.value.trim() : '';
-            let opinionBlock = document.getElementById('briefingViewMode').querySelector('.opinion-md');
+            const viewMode = document.getElementById('briefingViewMode');
+            let opinionBlock = viewMode.querySelector('.opinion-md');
+            const btnBar = viewMode.querySelector('[style*="justify-content:flex-end"]');
+            let toggleBtn = btnBar?.querySelector('.btn-toggle-opinion');
             if (opinionVal) {
                 if (!opinionBlock) {
                     const wrapper = document.createElement('div');
-                    wrapper.style.cssText = 'margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);';
+                    wrapper.className = 'opinion-popover';
+                    wrapper.style.cssText = 'display:none;margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);';
                     wrapper.innerHTML = '<div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div>';
-                    document.getElementById('briefingViewMode').querySelector('[style*="max-height"]').after(wrapper);
+                    viewMode.querySelector('[style*="max-height"]').after(wrapper);
                     opinionBlock = wrapper.querySelector('.opinion-md');
                 }
                 opinionBlock.innerHTML = marked.parse(opinionVal.replace(/~/g, '&#126;'));
+                if (!toggleBtn && btnBar) {
+                    toggleBtn = document.createElement('span');
+                    toggleBtn.className = 'btn-toggle-opinion';
+                    toggleBtn.style.cssText = 'font-size:0.72rem;color:var(--accent-color);cursor:pointer;font-weight:600;';
+                    toggleBtn.textContent = '요약';
+                    toggleBtn.addEventListener('click', () => {
+                        const pop = viewMode.querySelector('.opinion-popover');
+                        if (!pop) return;
+                        const vis = pop.style.display !== 'none';
+                        pop.style.display = vis ? 'none' : 'block';
+                        toggleBtn.textContent = vis ? '요약' : '요약 닫기';
+                    });
+                    btnBar.prepend(toggleBtn);
+                }
             } else if (opinionBlock) {
-                opinionBlock.closest('[style*="margin-top:12px"]').remove();
+                opinionBlock.closest('.opinion-popover')?.remove();
+                toggleBtn?.remove();
             }
             const dateEl = document.getElementById('briefingUpdatedAt');
             if (dateEl) {
@@ -2032,6 +2068,40 @@ document.getElementById('btnSdAnalysisSave').addEventListener('click', async () 
                 span.style.cssText = 'font-size:0.68rem;font-weight:400;color:var(--text-muted);';
                 span.textContent = 'update: ' + data.updated_at;
                 heading.appendChild(span);
+            }
+            // 요약 영역 갱신
+            const sdViewMode = document.getElementById('sdAnalysisViewMode');
+            const sdOpinionVal = opinionEl ? opinionEl.value.trim() : '';
+            let sdOpBlock = sdViewMode.querySelector('.opinion-md');
+            const sdBtnBar = sdViewMode.querySelector('[style*="justify-content:flex-end"]');
+            let sdToggleBtn = sdBtnBar?.querySelector('.btn-toggle-opinion');
+            if (sdOpinionVal) {
+                if (!sdOpBlock) {
+                    const w = document.createElement('div');
+                    w.className = 'opinion-popover';
+                    w.style.cssText = 'display:none;margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);';
+                    w.innerHTML = '<div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div>';
+                    sdViewMode.querySelector('[style*="max-height"]').after(w);
+                    sdOpBlock = w.querySelector('.opinion-md');
+                }
+                sdOpBlock.innerHTML = marked.parse(sdOpinionVal.replace(/~/g, '&#126;'));
+                if (!sdToggleBtn && sdBtnBar) {
+                    sdToggleBtn = document.createElement('span');
+                    sdToggleBtn.className = 'btn-toggle-opinion';
+                    sdToggleBtn.style.cssText = 'font-size:0.72rem;color:var(--accent-color);cursor:pointer;font-weight:600;';
+                    sdToggleBtn.textContent = '요약';
+                    sdToggleBtn.addEventListener('click', () => {
+                        const pop = sdViewMode.querySelector('.opinion-popover');
+                        if (!pop) return;
+                        const vis = pop.style.display !== 'none';
+                        pop.style.display = vis ? 'none' : 'block';
+                        sdToggleBtn.textContent = vis ? '요약' : '요약 닫기';
+                    });
+                    sdBtnBar.prepend(sdToggleBtn);
+                }
+            } else if (sdOpBlock) {
+                sdOpBlock.closest('.opinion-popover')?.remove();
+                sdToggleBtn?.remove();
             }
             document.getElementById('sdAnalysisEditMode').classList.add('d-none');
             document.getElementById('sdAnalysisViewMode').classList.remove('d-none');
@@ -4100,6 +4170,39 @@ function setupAnalysisEditor(prefix, apiPath) {
                         span.textContent = 'update: ' + data.updated_at;
                         heading.appendChild(span);
                     }
+                }
+                // 요약 영역 갱신
+                const opinionVal = opinionEl ? opinionEl.value.trim() : '';
+                let opBlock = viewMode.querySelector('.opinion-md');
+                const btnBar = viewMode.querySelector('[style*="justify-content:flex-end"]');
+                let tBtn = btnBar?.querySelector('.btn-toggle-opinion');
+                if (opinionVal) {
+                    if (!opBlock) {
+                        const w = document.createElement('div');
+                        w.className = 'opinion-popover';
+                        w.style.cssText = 'display:none;margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);';
+                        w.innerHTML = '<div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div>';
+                        viewMode.querySelector('[style*="max-height"]').after(w);
+                        opBlock = w.querySelector('.opinion-md');
+                    }
+                    opBlock.innerHTML = marked.parse(opinionVal.replace(/~/g, '&#126;'));
+                    if (!tBtn && btnBar) {
+                        tBtn = document.createElement('span');
+                        tBtn.className = 'btn-toggle-opinion';
+                        tBtn.style.cssText = 'font-size:0.72rem;color:var(--accent-color);cursor:pointer;font-weight:600;';
+                        tBtn.textContent = '요약';
+                        tBtn.addEventListener('click', () => {
+                            const pop = viewMode.querySelector('.opinion-popover');
+                            if (!pop) return;
+                            const vis = pop.style.display !== 'none';
+                            pop.style.display = vis ? 'none' : 'block';
+                            tBtn.textContent = vis ? '요약' : '요약 닫기';
+                        });
+                        btnBar.prepend(tBtn);
+                    }
+                } else if (opBlock) {
+                    opBlock.closest('.opinion-popover')?.remove();
+                    tBtn?.remove();
                 }
                 editMode.classList.add('d-none'); viewMode.classList.remove('d-none');
             } else { alert('저장 실패'); }
