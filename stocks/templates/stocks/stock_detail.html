@@ -4168,7 +4168,14 @@ document.getElementById('btnCopyConsensusAnalysisPrompt').addEventListener('clic
             parts.push(formatFinDataAsText('컨센서스 분기', quarterResp.data, consensusFields));
         const dataText = parts.length ? parts.join('\n') : '데이터 없음';
 
+        const currentPrice = (document.getElementById('currentPrice')?.textContent || '').trim();
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const avgTargetPrice3m = '{{ avg_target_price_3m|default:"" }}';
+
         let prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
+        prompt = prompt.replace(/\{현재가[^}]*\}/g, currentPrice);
+        prompt = prompt.replace(/\{기준일자[^}]*\}/g, todayStr);
+        prompt = prompt.replace(/\{3개월평균목표주가[^}]*\}/g, avgTargetPrice3m ? Number(avgTargetPrice3m).toLocaleString('ko-KR') : '데이터 없음');
         if (prompt.includes('{컨센서스 데이터}')) {
             prompt = prompt.replace('{컨센서스 데이터}', dataText.trim());
         } else {

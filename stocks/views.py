@@ -1034,6 +1034,14 @@ def stock_detail(request, code):
             latest_report_gap_date = r.date
             break
 
+    # 3개월 평균 목표주가 (컨센서스 프롬프트용)
+    from datetime import timedelta
+    three_months_ago = _today - timedelta(days=90)
+    recent_target_prices = Report.objects.filter(
+        stock=stock, date__gte=three_months_ago, target_price__isnull=False
+    ).values_list('target_price', flat=True)
+    avg_target_price_3m = round(sum(recent_target_prices) / len(recent_target_prices)) if recent_target_prices else None
+
     # 주가 vs 목표가 차트 데이터 (리포트 탭용)
     price_chart_data = []
     target_chart_data = []
@@ -1127,6 +1135,7 @@ def stock_detail(request, code):
         'ma20_value': ma20_value,
         'ma60_value': ma60_value,
         'briefing_data': _build_briefing_data(stock, question_reports, nodaji_list, reports),
+        'avg_target_price_3m': avg_target_price_3m,
     }
     return render(request, 'stocks/stock_detail.html', context)
 
