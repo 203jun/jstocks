@@ -2179,6 +2179,27 @@ btnCopyBriefingPrompt.addEventListener('click', async () => {
 
     let prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
 
+    // 현재가, 3개월평균목표주가, 상승여력, 시가총액
+    const currentPrice = (document.getElementById('currentPrice')?.textContent || '').trim();
+    const avgTP = '{{ avg_target_price_3m|default:"" }}';
+    let uptrendPct = '';
+    if (avgTP && currentPrice) {
+        const curNum = parseInt(currentPrice.replace(/,/g, ''), 10);
+        const tpNum = parseInt(avgTP, 10);
+        if (curNum > 0) uptrendPct = ((tpNum / curNum - 1) * 100).toFixed(1);
+    }
+    let marketCap = '';
+    document.querySelectorAll('#stockInfoArea span, .d-flex span').forEach(el => {
+        if (el.textContent.includes('시가총액')) {
+            const text = el.parentElement?.textContent?.replace('시가총액', '').trim();
+            if (text) marketCap = text;
+        }
+    });
+    prompt = prompt.replace(/\{현재가[^}]*\}/g, currentPrice);
+    prompt = prompt.replace(/\{3개월평균목표주가[^}]*\}/g, avgTP ? Number(avgTP).toLocaleString('ko-KR') : '데이터 없음');
+    prompt = prompt.replace(/\{상승여력[^}]*\}/g, uptrendPct || '산출 불가');
+    prompt = prompt.replace(/\{시가총액[^}]*\}/g, marketCap || '-');
+
     // 대분류/소분류
     if (themeName) {
         prompt = prompt.replace(/\{대분류\}/g, themeCategoryName);
