@@ -2110,7 +2110,12 @@ document.getElementById('btnCopySdAnalysisPrompt').addEventListener('click', asy
     ).join('\n');
 
     // === 치환 ===
+    const currentPrice = (document.getElementById('currentPrice')?.textContent || '').trim();
+    const latestDate = data60.length ? data60[0].date : '';
+
     let prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
+    prompt = prompt.replace(/\{현재가[^}]*\}/g, currentPrice);
+    prompt = prompt.replace(/\{기준일[^}]*\}/g, latestDate);
     prompt = prompt.replace(/\{외국인누적\}/g, foreignTotal.toLocaleString());
     prompt = prompt.replace(/\{기관누적\}/g, institutionTotal.toLocaleString());
     prompt = prompt.replace(/\{주별수급데이터\}/g, weeklyText);
