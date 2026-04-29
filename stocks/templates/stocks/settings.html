@@ -476,11 +476,9 @@ small.text-muted {
         <div class="d-flex flex-wrap gap-2 mb-3" id="promptSubTabs">
             <button class="prompt-sub-tab tab-graph active" data-target="prompt-graph-panel" id="prompt-graph-tab">연결도</button>
             <button class="prompt-sub-tab" data-target="stock-classify-panel" id="stock-classify-tab">종목분류</button>
-            <button class="prompt-sub-tab" data-target="html-convert-panel" id="html-convert-tab">HTML변환</button>
             <button class="prompt-sub-tab" data-target="data-loader-panel" id="data-loader-tab">핵심브리핑</button>
             <button class="prompt-sub-tab" data-target="research-prompt-panel" id="research-prompt-tab">공통리서치</button>
             <button class="prompt-sub-tab" data-target="quick-report-panel" id="quick-report-tab">퀵리포트</button>
-            <button class="prompt-sub-tab" data-target="stock-analysis-panel" id="stock-analysis-tab">기업분석</button>
             <button class="prompt-sub-tab" data-target="fin-analysis-prompt-panel" id="fin-analysis-prompt-tab">재무분석</button>
             <button class="prompt-sub-tab" data-target="consensus-analysis-prompt-panel" id="consensus-analysis-prompt-tab">컨센서스분석</button>
             <button class="prompt-sub-tab" data-target="report-prompt-panel" id="report-prompt-tab">리포트</button>
@@ -501,19 +499,6 @@ small.text-muted {
                     </div>
                     <textarea class="form-control" id="stockClassifyPrompt" rows="6" placeholder="종목분류 시 사용할 프롬프트를 입력하세요...">{{ saved_prompts.prompt_classify }}</textarea>
                     <small class="text-muted">AI에게 전달할 기본 프롬프트입니다. 수정 후 저장하세요.</small>
-                </div>
-            </div>
-            <!-- HTML변환 -->
-            <div class="prompt-panel" id="html-convert-panel" style="display:none;">
-                <div class="brief-card">
-                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
-                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">HTML 변환 프롬프트</span>
-                        <button type="button" class="btn-refresh" id="btnSaveHtmlPrompt">저장</button>
-                    </div>
-                    <div class="info-box"><small><strong>도구:</strong> Gemini 사고모드<br><strong>사용:</strong> Deep Research 결과를 복사한 후 이 프롬프트와 함께 사용하세요.</small></div>
-                    <textarea class="form-control" id="promptHtml" rows="8" placeholder="HTML 변환용 프롬프트...">{{ saved_prompts.prompt_html }}</textarea>
-                    <small class="text-muted">리포트 결과를 HTML 파일로 변환하는 프롬프트</small>
-                    <div class="info-box warn" style="margin-top:8px;"><small><strong>생성 실패 시:</strong> 가끔 HTML을 만들지 못하는 경우가 있습니다.<br>→ 일반 프롬프트로 이동 후: {결과 복사} --- html 형태로 정리해줘.</small></div>
                 </div>
             </div>
             <!-- 핵심브리핑 -->
@@ -549,17 +534,6 @@ small.text-muted {
                     <div style="font-size:0.75rem;color:var(--up-color);margin-bottom:12px;">* 질문명은 종목 리서치와 연결되므로 변경하지 마세요. 변경 시 기존 리서치와의 연결이 끊어집니다.</div>
                     <div id="quickReportList"></div>
                     <div id="quickReportEmpty" class="text-center py-4 d-none" style="color:var(--text-muted);font-size:0.85rem;">등록된 퀵리포트가 없습니다.</div>
-                </div>
-            </div>
-            <!-- 기업분석 -->
-            <div class="prompt-panel" id="stock-analysis-panel" style="display:none;">
-                <div class="brief-card">
-                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
-                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">기업분석 프롬프트</span>
-                        <button type="button" class="btn-refresh" id="btnSaveAnalysisPrompt">저장</button>
-                    </div>
-                    <div class="d-flex flex-wrap gap-1 mb-2" id="analysisVarList"></div>
-                    <textarea class="form-control" id="promptAnalysis" rows="8" placeholder="Deep Research용 프롬프트...">{{ saved_prompts.prompt_analysis }}</textarea>
                 </div>
             </div>
             <!-- 재무분석 프롬프트 -->
@@ -906,12 +880,6 @@ document.getElementById('btnSaveClassifyPrompt').addEventListener('click', funct
     savePrompt('prompt_classify', value, this);
 });
 
-// HTML 변환 프롬프트 저장
-document.getElementById('btnSaveHtmlPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptHtml').value;
-    savePrompt('prompt_html', value, this);
-});
-
 // 클립보드 복사 함수 (HTTPS/HTTP 모두 지원)
 function copyToClipboard(text) {
     // 1. navigator.clipboard 사용 시도 (HTTPS 환경)
@@ -937,12 +905,6 @@ function copyToClipboard(text) {
         }
     });
 }
-
-// 기업분석: 리포트 생성 프롬프트 저장
-document.getElementById('btnSaveAnalysisPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptAnalysis').value;
-    savePrompt('prompt_analysis', value, this);
-});
 
 // 노다지 프롬프트 저장
 document.getElementById('btnSaveNodajiPrompt').addEventListener('click', function() {
@@ -1325,7 +1287,6 @@ function renderVarChips(textareaId, containerEl) {
 // 변수 칩 등록: [textareaId, containerId]
 const varChipTargets = [
     ['promptBriefing', 'briefingVarList'],
-    ['promptAnalysis', 'analysisVarList'],
     ['promptFinAnalysis', 'finAnalysisVarList'],
     ['promptConsensusAnalysis', 'consensusVarList'],
     ['promptReportSummary', 'reportVarList'],
@@ -1459,7 +1420,6 @@ document.getElementById('btnLoadAllVars').addEventListener('click', async () => 
 
     const promptSources = [
         { name: '핵심브리핑', id: 'promptBriefing' },
-        { name: '기업분석', id: 'promptAnalysis' },
         { name: '재무분석', id: 'promptFinAnalysis' },
         { name: '컨센서스분석', id: 'promptConsensusAnalysis' },
         { name: '리포트', id: 'promptReportSummary' },
@@ -1470,7 +1430,6 @@ document.getElementById('btnLoadAllVars').addEventListener('click', async () => 
         { name: '수급분석', id: 'promptSupplyDemandAnalysis' },
         { name: '요약', id: 'promptSummary' },
         { name: '종목분류', id: 'stockClassifyPrompt' },
-        { name: 'HTML변환', id: 'promptHtml' },
     ];
 
     const results = [];

@@ -184,26 +184,6 @@ class Info(models.Model):
         help_text='사용자 정의 섹터 (화장품, 2차전지 등)'
     )
 
-    # === 기업분석 ===
-    analysis_text = models.TextField(
-        blank=True,
-        default='',
-        verbose_name='기업분석(텍스트)',
-        help_text='기업분석 내용'
-    )
-    analysis_type = models.CharField(
-        max_length=10,
-        default='html',
-        choices=[('html', 'HTML'), ('markdown', '마크다운')],
-        verbose_name='기업분석 타입',
-        help_text='HTML 또는 마크다운'
-    )
-    analysis_updated_at = models.DateField(
-        null=True,
-        blank=True,
-        verbose_name='기업분석 업데이트일',
-        help_text='기업분석 마지막 수정일'
-    )
 
     # === 핵심 브리핑 ===
     key_briefing = models.TextField(
@@ -367,18 +347,6 @@ class Info(models.Model):
         help_text='AI 매매 판단 결과 저장'
     )
 
-    @property
-    def has_insight_and_analysis(self):
-        """기업분석, 핵심 브리핑 모두 있는지 확인"""
-        # 기업분석: DB 필드 또는 HTML 파일 존재 여부 확인
-        has_analysis = bool(self.analysis_text)
-        if not has_analysis:
-            from pathlib import Path
-            from django.conf import settings
-            html_path = Path(settings.MEDIA_ROOT) / 'analysis' / f'{self.code}.html'
-            has_analysis = html_path.exists()
-        has_key_briefing = bool(self.key_briefing)
-        return has_analysis and has_key_briefing
 
     class Meta:
         db_table = 'info'

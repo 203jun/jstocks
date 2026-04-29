@@ -819,14 +819,7 @@ def stock_detail(request, code):
     # 섹터 (업종) - 고유한 이름만 추출
     sectors = stock.sectors.values('code', 'name').distinct().order_by('name')
 
-    # 기업분석 확인 (타입에 따라 파일 또는 DB)
-    html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
-    if stock.analysis_type == 'markdown':
-        analysis_html_exists = bool(stock.analysis_text)
-    else:
-        analysis_html_exists = html_path.exists()
-
-    # 리포트 (최근 20개)
+# 리포트 (최근 20개)
     reports_queryset = Report.objects.filter(stock=stock).order_by('-date')
     total_reports = reports_queryset.count()
     reports = list(reports_queryset[:20])
@@ -1066,7 +1059,6 @@ def stock_detail(request, code):
     context = {
         'stock': stock,
         'sectors': sectors,
-        'analysis_html_exists': analysis_html_exists,
         'volume_change_rate': volume_change_rate,
         'has_recent_report': has_recent_report,
         'has_recent_nodaji': has_recent_nodaji,
@@ -1393,26 +1385,6 @@ def stock_edit(request, code):
 
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 
-@xframe_options_sameorigin
-def stock_analysis_html(request, code):
-    """기업분석 리포트 HTML 페이지"""
-    from django.http import HttpResponse, Http404
-    stock = get_object_or_404(Info, code=code)
-    html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
-    if not html_path.exists():
-        raise Http404("기업분석 HTML이 없습니다.")
-    html_content = html_path.read_text(encoding='utf-8')
-    return HttpResponse(html_content, content_type='text/html; charset=utf-8')
-
-
-@xframe_options_sameorigin
-def stock_analysis_summary_html(request, code):
-    """기업분석 요약 HTML 페이지"""
-    from django.http import HttpResponse, Http404
-    stock = get_object_or_404(Info, code=code)
-    if not stock.analysis_text:
-        raise Http404("기업분석 요약이 없습니다.")
-    return HttpResponse(stock.analysis_text, content_type='text/html; charset=utf-8')
 
 
 @xframe_options_sameorigin
@@ -2885,14 +2857,6 @@ def fetch_stock_data_loader(request, code):
     lines = []
     lines.append(f"=== {stock.name} ({stock.code}) 데이터 ===\n")
 
-    # 기업분석
-    if 'analysis' in types:
-        lines.append("## 기업분석")
-        if stock.analysis_text:
-            lines.append(html_to_text(stock.analysis_text))
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
 
     # 핵심 브리핑
     if 'key_briefing' in types:
@@ -3062,37 +3026,7 @@ def fetch_stock_data_loader_with_summary(request, code):
     lines = []
     lines.append(f"=== {stock.name} ({stock.code}) 데이터 ===\n")
 
-    # 1. 기업분석
-    if 'analysis' in data_types:
-        lines.append("## 기업분석")
-        analysis_content = None
-        analysis_type = stock.analysis_type or 'html'
-        # analysis_text 필드 확인
-        if stock.analysis_text:
-            analysis_content = stock.analysis_text
-        else:
-            # HTML 파일 확인
-            from pathlib import Path
-            from django.conf import settings as django_settings
-            html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
-            if html_path.exists():
-                try:
-                    analysis_content = html_path.read_text(encoding='utf-8')
-                    analysis_type = 'html'  # 파일은 항상 HTML
-                except:
-                    pass
-
-        if analysis_content:
-            # 마크다운은 그대로, HTML은 텍스트로 변환
-            if analysis_type == 'markdown':
-                lines.append(analysis_content)
-            else:
-                lines.append(html_to_text(analysis_content))
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
-
-    # 2. 핵심 브리핑
+# 2. 핵심 브리핑
     if 'key_briefing' in data_types:
         lines.append("## 핵심 브리핑")
         if stock.key_briefing:
@@ -3275,32 +3209,7 @@ def _fetch_stock_data_loader_with_summary_valuation_REMOVED():
     lines = []
     lines.append(f"=== {stock.name} ({stock.code}) 데이터 ===\n")
 
-    if 'analysis' in data_types:
-        lines.append("## 기업분석")
-        analysis_content = None
-        analysis_type = stock.analysis_type or 'html'
-        if stock.analysis_text:
-            analysis_content = stock.analysis_text
-        else:
-            from pathlib import Path
-            from django.conf import settings as django_settings
-            html_path = Path(django_settings.MEDIA_ROOT) / 'analysis' / f'{code}.html'
-            if html_path.exists():
-                try:
-                    analysis_content = html_path.read_text(encoding='utf-8')
-                    analysis_type = 'html'
-                except:
-                    pass
-        if analysis_content:
-            if analysis_type == 'markdown':
-                lines.append(analysis_content)
-            else:
-                lines.append(html_to_text(analysis_content))
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
-
-    if 'key_briefing' in data_types:
+if 'key_briefing' in data_types:
         lines.append("## 핵심 브리핑")
         if stock.key_briefing:
             lines.append(stock.key_briefing)
@@ -6594,36 +6503,6 @@ def consensus_analysis_save(request, code):
 
 
 
-@require_POST
-@require_POST
-def stock_analysis_save(request, code):
-    """종목 기업분석 저장 API"""
-    from datetime import date
-    from pathlib import Path
-    stock = get_object_or_404(Info, code=code)
-    analysis_type = request.POST.get('analysis_type', 'markdown')
-    content = request.POST.get('content', '').strip()
-
-    analysis_dir = Path(django_settings.MEDIA_ROOT) / 'analysis'
-    analysis_dir.mkdir(parents=True, exist_ok=True)
-    html_path = analysis_dir / f'{code}.html'
-
-    if analysis_type == 'html':
-        if content:
-            html_path.write_text(content, encoding='utf-8')
-        elif html_path.exists():
-            html_path.unlink()
-        stock.analysis_text = ''
-    else:
-        stock.analysis_text = content
-        if html_path.exists():
-            html_path.unlink()
-
-    stock.analysis_type = analysis_type
-    stock.analysis_updated_at = date.today()
-    stock.save(update_fields=['analysis_type', 'analysis_text', 'analysis_updated_at'])
-
-    return JsonResponse({'success': True, 'updated_at': stock.analysis_updated_at.strftime('%Y-%m-%d')})
 
 
 def _parse_financial_table(raw_text, field_map, first_labels=None, int_fields=None, debug=False):
