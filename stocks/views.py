@@ -3209,7 +3209,7 @@ def _fetch_stock_data_loader_with_summary_valuation_REMOVED():
     lines = []
     lines.append(f"=== {stock.name} ({stock.code}) 데이터 ===\n")
 
-if 'key_briefing' in data_types:
+    if 'key_briefing' in data_types:
         lines.append("## 핵심 브리핑")
         if stock.key_briefing:
             lines.append(stock.key_briefing)
