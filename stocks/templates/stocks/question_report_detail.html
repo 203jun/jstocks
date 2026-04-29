@@ -258,7 +258,7 @@ document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
             '핵심브리핑': _v(tradeVars.key_briefing),
             '매수근거': _v(tradeVars.buy_reason),
             '매도근거': _v(tradeVars.sell_reason),
-            '향후이벤트': _v(tradeVars.future_events),
+            '공통리서치: 향후 이벤트': _v(tradeVars.future_events),
         };
         for (const [k, v] of Object.entries(summaryMap)) {
             prompt = prompt.split('{' + k + '}').join(v);
@@ -310,7 +310,7 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
             '핵심브리핑': _orEmpty(tradeVars.key_briefing),
             '매수근거': _orEmpty(tradeVars.buy_reason),
             '매도근거': _orEmpty(tradeVars.sell_reason),
-            '향후이벤트': _orEmpty(tradeVars.future_events),
+            '공통리서치: 향후 이벤트': _orEmpty(tradeVars.future_events),
             // 이동평균
             'MA5': _orEmpty(tradeVars.MA5),
             'MA20': _orEmpty(tradeVars.MA20),
