@@ -365,6 +365,7 @@
 <!-- 메인 탭 -->
 <div class="market-tabs">
     <button class="market-tab active" data-target="info-content">기본정보</button>
+    <button class="market-tab" data-target="analysis-content">기업분석</button>
     <button class="market-tab" data-target="supply-content">수급</button>
     <button class="market-tab" data-target="disclosure-content">공시</button>
     <button class="market-tab" data-target="report-content">리포트{% with total=total_summary_count|add:total_attachment_count %}{% if total %}<span class="tab-count">{{ total }}</span>{% endif %}{% endwith %}</button>
@@ -748,6 +749,330 @@
     <!-- 업데이트 시간 -->
     <div style="text-align:right;font-size:0.75rem;color:var(--text-muted);margin-top:8px;">
         업데이트: {{ stock.updated_at|date:"Y-m-d H:i" }}
+    </div>
+</div>
+
+<!-- ========== 기업분석 탭 ========== -->
+<div id="analysis-content" class="tab-panel" style="display:none;">
+    <!-- 재무분석 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;margin-top:0;">재무분석{% if stock.financial_analysis_v2_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="finAnalysisV2UpdatedAt">update: {{ stock.financial_analysis_v2_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
+    <div class="brief-card">
+        <div id="finAnalysisV2ViewMode">
+            <div style="max-height:600px;overflow-y:auto;">
+                <div class="markdown-content" id="finAnalysisV2Markdown"></div>
+                <script type="text/plain" id="finAnalysisV2Raw">{{ stock.financial_analysis_v2|default:""|safe }}</script>
+            </div>
+            {% if stock.financial_analysis_v2_opinion %}<div class="opinion-popover" style="display:none;margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.financial_analysis_v2_opinion|safe }}</script></div>{% endif %}
+            <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
+                {% if stock.financial_analysis_v2_opinion %}<span class="btn-toggle-opinion" style="font-size:0.72rem;color:var(--accent-color);cursor:pointer;font-weight:600;">요약</span>{% endif %}
+                <span id="btnFinAnalysisV2Edit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
+            </div>
+        </div>
+        <div id="finAnalysisV2EditMode" class="d-none">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+                <span class="prompt-badge" role="button" id="btnCopyFinAnalysisPrompt">프롬프트 복사</span>
+            </div>
+            <textarea class="form-control" id="finAnalysisV2Textarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.financial_analysis_v2 }}</textarea>
+            <div style="margin-top:16px;margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">요약</div>
+                    <span class="prompt-badge btn-copy-summary-prompt" role="button" data-source="finAnalysisV2Textarea">프롬프트복사</span>
+                </div>
+                <textarea class="form-control" id="finAnalysisV2Opinion" rows="3" style="font-family:monospace;font-size:0.85rem;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ stock.financial_analysis_v2_opinion }}</textarea>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnFinAnalysisV2Cancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnFinAnalysisV2Save" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 컨센서스분석 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">컨센서스분석{% if stock.consensus_analysis_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="consensusAnalysisUpdatedAt">update: {{ stock.consensus_analysis_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
+    <div class="brief-card">
+        <div id="consensusAnalysisViewMode">
+            <div style="max-height:600px;overflow-y:auto;">
+                <div class="markdown-content" id="consensusAnalysisMarkdown"></div>
+                <script type="text/plain" id="consensusAnalysisRaw">{{ stock.consensus_analysis|default:""|safe }}</script>
+            </div>
+            {% if stock.consensus_analysis_opinion %}<div class="opinion-popover" style="display:none;margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.consensus_analysis_opinion|safe }}</script></div>{% endif %}
+            <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
+                {% if stock.consensus_analysis_opinion %}<span class="btn-toggle-opinion" style="font-size:0.72rem;color:var(--accent-color);cursor:pointer;font-weight:600;">요약</span>{% endif %}
+                <span id="btnConsensusAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
+            </div>
+        </div>
+        <div id="consensusAnalysisEditMode" class="d-none">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+                <span class="prompt-badge" role="button" id="btnCopyConsensusAnalysisPrompt">프롬프트 복사</span>
+            </div>
+            <textarea class="form-control" id="consensusAnalysisTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.consensus_analysis }}</textarea>
+            <div style="margin-top:16px;margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">요약</div>
+                    <span class="prompt-badge btn-copy-summary-prompt" role="button" data-source="consensusAnalysisTextarea">프롬프트복사</span>
+                </div>
+                <textarea class="form-control" id="consensusAnalysisOpinion" rows="3" style="font-family:monospace;font-size:0.85rem;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ stock.consensus_analysis_opinion }}</textarea>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" id="btnConsensusAnalysisCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnConsensusAnalysisSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 포괄손익계산서 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
+        포괄손익계산서
+        <span style="display:flex;align-items:center;gap:8px;">
+            <span id="btnIncomeInput" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">데이터 입력</span>
+        </span>
+    </h5>
+
+    <!-- 입력 모드 -->
+    <div id="incomeInputMode" class="d-none" style="margin-bottom:16px;">
+        <div class="brief-card">
+            <textarea class="form-control" id="incomeRawTextarea" rows="6" style="font-family:monospace;font-size:0.8rem;margin-bottom:8px;" placeholder="FnGuide 포괄손익계산서 테이블을 복사하여 붙여넣으세요. 연간/분기는 자동 감지됩니다."></textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <a class="prompt-badge" style="text-decoration:none;" href="https://comp.wisereport.co.kr/company/c1030001.aspx?cmp_cd={{ stock.code }}&cn=" target="_blank">companywise</a>
+                <button type="button" id="btnIncomeCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnIncomeSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 연간 테이블 -->
+    <div class="brief-card" id="incomeAnnualCard">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">연간</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="incomeAnnualTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody>
+                    <tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 분기 테이블 -->
+    <div class="brief-card" id="incomeQuarterCard" style="margin-top:12px;">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">분기</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="incomeQuarterTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody>
+                    <tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 재무상태표 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
+        재무상태표
+        <span style="display:flex;align-items:center;gap:8px;">
+            <span id="btnBalanceInput" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">데이터 입력</span>
+        </span>
+    </h5>
+
+    <div id="balanceInputMode" class="d-none" style="margin-bottom:16px;">
+        <div class="brief-card">
+            <textarea class="form-control" id="balanceRawTextarea" rows="6" style="font-family:monospace;font-size:0.8rem;margin-bottom:8px;" placeholder="FnGuide 재무상태표 테이블을 복사하여 붙여넣으세요. 연간/분기는 자동 감지됩니다."></textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <a class="prompt-badge" style="text-decoration:none;" href="https://comp.wisereport.co.kr/company/c1030001.aspx?cmp_cd={{ stock.code }}&cn=" target="_blank">companywise</a>
+                <button type="button" id="btnBalanceCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnBalanceSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="brief-card" id="balanceAnnualCard">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">연간</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="balanceAnnualTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="brief-card" id="balanceQuarterCard" style="margin-top:12px;">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">분기</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="balanceQuarterTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 현금흐름표 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
+        현금흐름표
+        <span style="display:flex;align-items:center;gap:8px;">
+            <span id="btnCashFlowInput" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">데이터 입력</span>
+        </span>
+    </h5>
+
+    <div id="cashFlowInputMode" class="d-none" style="margin-bottom:16px;">
+        <div class="brief-card">
+            <textarea class="form-control" id="cashFlowRawTextarea" rows="6" style="font-family:monospace;font-size:0.8rem;margin-bottom:8px;" placeholder="FnGuide 현금흐름표 테이블을 복사하여 붙여넣으세요. 연간/분기는 자동 감지됩니다."></textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <a class="prompt-badge" style="text-decoration:none;" href="https://comp.wisereport.co.kr/company/c1030001.aspx?cmp_cd={{ stock.code }}&cn=" target="_blank">companywise</a>
+                <button type="button" id="btnCashFlowCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnCashFlowSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="brief-card" id="cashFlowAnnualCard">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">연간</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="cashFlowAnnualTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="brief-card" id="cashFlowQuarterCard" style="margin-top:12px;">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">분기</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="cashFlowQuarterTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 수익성 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
+        수익성
+        <span id="btnProfitabilityInput" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">데이터 입력</span>
+    </h5>
+
+    <div id="profitabilityInputMode" class="d-none" style="margin-bottom:16px;">
+        <div class="brief-card">
+            <textarea class="form-control" id="profitabilityRawTextarea" rows="6" style="font-family:monospace;font-size:0.8rem;margin-bottom:8px;" placeholder="FnGuide 수익성 테이블을 복사하여 붙여넣으세요. 연간/분기는 자동 감지됩니다."></textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <a class="prompt-badge" style="text-decoration:none;" href="https://comp.wisereport.co.kr/company/c1040001.aspx?cmp_cd={{ stock.code }}&cn=" target="_blank">companywise</a>
+                <button type="button" id="btnProfitabilityCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnProfitabilitySave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="brief-card">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">연간</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="profitabilityAnnualTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="brief-card" style="margin-top:12px;">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">분기</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="profitabilityQuarterTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 성장성 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
+        성장성
+        <span id="btnGrowthInput" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">데이터 입력</span>
+    </h5>
+    <div id="growthInputMode" class="d-none" style="margin-bottom:16px;">
+        <div class="brief-card">
+            <textarea class="form-control" id="growthRawTextarea" rows="6" style="font-family:monospace;font-size:0.8rem;margin-bottom:8px;" placeholder="FnGuide 성장성 테이블을 복사하여 붙여넣으세요. 연간/분기는 자동 감지됩니다."></textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <a class="prompt-badge" style="text-decoration:none;" href="https://comp.wisereport.co.kr/company/c1040001.aspx?cmp_cd={{ stock.code }}&cn=" target="_blank">companywise</a>
+                <button type="button" id="btnGrowthCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnGrowthSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+    <div class="brief-card">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">연간</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="growthAnnualTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
+        </div>
+    </div>
+    <div class="brief-card" style="margin-top:12px;">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">분기</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="growthQuarterTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
+        </div>
+    </div>
+
+    <!-- 안정성 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
+        안정성
+        <span id="btnProfitInput" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">데이터 입력</span>
+    </h5>
+
+    <div id="profitInputMode" class="d-none" style="margin-bottom:16px;">
+        <div class="brief-card">
+            <textarea class="form-control" id="profitRawTextarea" rows="6" style="font-family:monospace;font-size:0.8rem;margin-bottom:8px;" placeholder="FnGuide 안정성 테이블을 복사하여 붙여넣으세요. 연간/분기는 자동 감지됩니다."></textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <a class="prompt-badge" style="text-decoration:none;" href="https://comp.wisereport.co.kr/company/c1040001.aspx?cmp_cd={{ stock.code }}&cn=" target="_blank">companywise</a>
+                <button type="button" id="btnProfitCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnProfitSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="brief-card">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">연간</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="profitAnnualTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="brief-card" style="margin-top:12px;">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">분기</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="profitQuarterTable">
+                <thead><tr><th>항목</th></tr></thead>
+                <tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 컨센서스 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
+        컨센서스
+        <span id="btnConsensusInput" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">데이터 입력</span>
+    </h5>
+    <div id="consensusInputMode" class="d-none" style="margin-bottom:16px;">
+        <div class="brief-card">
+            <textarea class="form-control" id="consensusRawTextarea" rows="6" style="font-family:monospace;font-size:0.8rem;margin-bottom:8px;" placeholder="FnGuide 컨센서스 테이블을 복사하여 붙여넣으세요."></textarea>
+            <div class="d-flex justify-content-end gap-2">
+                <a class="prompt-badge" style="text-decoration:none;" href="https://comp.wisereport.co.kr/company/c1050001.aspx?cmp_cd={{ stock.code }}&cn=" target="_blank">companywise</a>
+                <button type="button" id="btnConsensusCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
+                <button type="button" id="btnConsensusSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
+            </div>
+        </div>
+    </div>
+    <div class="brief-card">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">연간</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="consensusAnnualTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
+        </div>
+    </div>
+    <div class="brief-card" style="margin-top:12px;">
+        <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">분기</div>
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="consensusQuarterTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
+        </div>
     </div>
 </div>
 
@@ -4420,5 +4745,15 @@ function renderTable(tableId, rows, fields) {
     window._loadConsensusData = loadConsensusData;
 })();
 
+// 기업분석 탭 클릭 시 모든 데이터 로드
+document.querySelector('[data-target="analysis-content"]').addEventListener('click', () => {
+    window._loadIncomeData();
+    window._loadBalanceData();
+    window._loadCashFlowData();
+    window._loadProfitData();
+    window._loadProfitabilityData();
+    window._loadGrowthData();
+    window._loadConsensusData();
+});
 </script>
 {% endblock %}
