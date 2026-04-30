@@ -446,10 +446,11 @@
         </div>
         <!-- 작성 폼 -->
         <div id="stockDiaryForm" class="d-none" style="margin-bottom:16px;padding:16px;background:#f9fafb;border-radius:8px;">
-            <div class="d-flex gap-2 mb-2">
+            <div class="d-flex justify-content-between align-items-center mb-2">
                 <input type="date" id="stockDiaryDate" style="border:1px solid #ddd;border-radius:6px;padding:4px 10px;font-size:0.82rem;color:var(--text-body);">
+                <span class="prompt-badge" role="button" id="btnCopyDiaryPrompt">프롬프트 복사</span>
             </div>
-            <textarea id="stockDiaryContent" rows="5" placeholder="투자 기록을 남겨보세요..." style="width:100%;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:0.85rem;line-height:1.7;resize:vertical;font-family:inherit;"></textarea>
+            <textarea id="stockDiaryContent" rows="5" placeholder="투자 기록을 남겨보세요... (마크다운 지원: **굵게**)" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:0.85rem;line-height:1.7;resize:vertical;font-family:inherit;"></textarea>
             <div class="d-flex justify-content-end gap-2 mt-2">
                 <button type="button" id="btnStockDiaryCancel" class="btn-refresh" style="padding:6px 16px;">취소</button>
                 <button type="button" id="btnStockDiarySave" class="btn-refresh" style="padding:6px 16px;">저장</button>
@@ -3979,7 +3980,23 @@ btnSdSave.addEventListener('click', async () => {
     finally { btnSdSave.disabled = false; btnSdSave.textContent = '저장'; }
 });
 
-// ===== 기업분석 탭 - 재무분석/컨센서스분석/직전분기재무해석 인라인 편집 =====
+// 투자일지 프롬프트 복사
+document.getElementById('btnCopyDiaryPrompt').addEventListener('click', async () => {
+    const btn = document.getElementById('btnCopyDiaryPrompt');
+    const promptTemplate = `{{ saved_prompts.prompt_diary|default:""|escapejs }}`;
+    if (!promptTemplate) { alert('설정 → 프롬프트 → 투자일지에서 프롬프트를 먼저 등록하세요.'); return; }
+    let prompt = promptTemplate.replace(/\{종목명\}/g, stockName);
+    prompt = prompt.replace(/\{종목코드\}/g, stockCode);
+    prompt = prompt.replace(/\{오늘날짜\}/g, new Date().toISOString().split('T')[0]);
+    try {
+        await copyToClipboard(prompt);
+        const original = btn.textContent;
+        btn.textContent = '복사됨!';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+    } catch (err) { alert('복사 실패: ' + err.message); }
+});
+
+// ===== 기업분석 탭 - 재무분석/컨센서스분석 인라인 편집 =====
 function setupAnalysisEditor(prefix, apiPath) {
     const viewMode = document.getElementById(`${prefix}ViewMode`);
     const editMode = document.getElementById(`${prefix}EditMode`);
