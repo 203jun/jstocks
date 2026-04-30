@@ -3985,23 +3985,50 @@ document.getElementById('btnCopyDiaryPrompt').addEventListener('click', async ()
     const btn = document.getElementById('btnCopyDiaryPrompt');
     const promptTemplate = `{{ saved_prompts.prompt_diary|default:""|escapejs }}`;
     if (!promptTemplate) { alert('설정 → 프롬프트 → 투자일지에서 프롬프트를 먼저 등록하세요.'); return; }
-    const now = new Date();
-    const currentPrice = (document.getElementById('currentPrice')?.textContent || '').trim();
-    const changeRate = (document.getElementById('changeRate')?.textContent || '').trim();
-    const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-    let prompt = promptTemplate.replace(/\{종목명\}/g, stockName);
-    prompt = prompt.replace(/\{종목코드\}/g, stockCode);
-    prompt = prompt.replace(/\{티커\}/g, stockCode);
-    prompt = prompt.replace(/\{오늘날짜\}/g, now.toISOString().split('T')[0]);
-    prompt = prompt.replace(/\{현재시간\}/g, timeStr);
-    prompt = prompt.replace(/\{현재가\}/g, currentPrice);
-    prompt = prompt.replace(/\{변동률\}/g, changeRate);
+
+    btn.textContent = '데이터 조회 중...';
     try {
+        // 최신 데이터 가져오기
+        const resp = await fetch(`/api/stock/${stockCode}/refresh/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        const result = await resp.json();
+
+        let price = '', rate = '';
+        if (result.success && result.data) {
+            const d = result.data;
+            price = d.current_price ? Number(d.current_price).toLocaleString('ko-KR') : '';
+            rate = d.change_rate !== null ? `${d.change_rate > 0 ? '+' : ''}${d.change_rate}` : '';
+            // DOM도 갱신
+            document.getElementById('currentPrice').textContent = price || '-';
+            const crEl = document.getElementById('changeRate');
+            if (d.change_rate !== null) {
+                crEl.textContent = `${rate}%`;
+                crEl.className = d.change_rate > 0 ? 'text-up' : d.change_rate < 0 ? 'text-down' : '';
+            }
+        } else {
+            price = (document.getElementById('currentPrice')?.textContent || '').trim();
+            rate = (document.getElementById('changeRate')?.textContent || '').replace('%','').trim();
+        }
+
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+        let prompt = promptTemplate.replace(/\{종목명\}/g, stockName);
+        prompt = prompt.replace(/\{종목코드\}/g, stockCode);
+        prompt = prompt.replace(/\{티커\}/g, stockCode);
+        prompt = prompt.replace(/\{오늘날짜\}/g, now.toISOString().split('T')[0]);
+        prompt = prompt.replace(/\{현재시간\}/g, timeStr);
+        prompt = prompt.replace(/\{현재가\}/g, price);
+        prompt = prompt.replace(/\{변동률\}/g, rate);
+
         await copyToClipboard(prompt);
-        const original = btn.textContent;
         btn.textContent = '복사됨!';
-        setTimeout(() => { btn.textContent = original; }, 1500);
-    } catch (err) { alert('복사 실패: ' + err.message); }
+        setTimeout(() => { btn.textContent = '프롬프트 복사'; }, 1500);
+    } catch (err) {
+        alert('복사 실패: ' + err.message);
+        btn.textContent = '프롬프트 복사';
+    }
 });
 
 // ===== 기업분석 탭 - 재무분석/컨센서스분석 인라인 편집 =====
