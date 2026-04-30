@@ -263,6 +263,13 @@ document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
         for (const [k, v] of Object.entries(summaryMap)) {
             prompt = prompt.split('{' + k + '}').join(v);
         }
+        // 공통리서치 결과 동적 치환
+        for (const [k, v] of Object.entries(tradeVars)) {
+            if (k.startsWith('공통리서치: ') && !summaryMap.hasOwnProperty(k)) {
+                const val = _v(v);
+                prompt = prompt.split('{' + k + '}').join(val || '없음');
+            }
+        }
         try {
             await copyToClipboard(prompt);
             const original = btn.textContent;
@@ -355,6 +362,20 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
         };
         for (const [k, v] of Object.entries(tradeMap)) {
             prompt = prompt.split('{' + k + '}').join(v);
+        }
+        // 공통리서치 결과 동적 치환
+        for (const [k, v] of Object.entries(tradeVars)) {
+            if (k.startsWith('공통리서치: ')) {
+                const val = (v && String(v).trim()) ? v : '';
+                if (val) {
+                    prompt = prompt.split('{' + k + '}').join(val);
+                } else {
+                    // 빈 값이면 해당 섹션 줄 제거 (※ 줄 포함)
+                    const escaped = k.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&');
+                    prompt = prompt.replace(new RegExp(`\\[.*?\\]\\n\\{${escaped}\\}\\n※[^\\n]*\\n?`, 'g'), '');
+                    prompt = prompt.replace(new RegExp(`\\{${escaped}\\}`, 'g'), '없음');
+                }
+            }
         }
         if (themeName) {
             prompt = prompt.replace(/\{대분류\}/g, themeCategoryName);

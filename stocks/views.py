@@ -6374,6 +6374,10 @@ def stock_question_report_detail(request, report_id):
         # 기술적 지표
         tech = _compute_technical_indicators(qr.stock)
 
+        # 공통리서치 결과 (질문명으로 매칭)
+        _qr_reports = StockQuestionReport.objects.filter(stock=qr.stock)
+        _qr_map = {r.question: r.report or '' for r in _qr_reports}
+
         trade_prompt_vars = {
             'stock_name': qr.stock.name,
             'stock_code': qr.stock.code,
@@ -6393,6 +6397,7 @@ def stock_question_report_detail(request, report_id):
             'sell_reason': qr.stock.sell_reason or '',
             'future_events': _events_text,
             **tech,
+            **{f'공통리서치: {q}': r for q, r in _qr_map.items()},
         }
 
     prompt_summary = SystemSetting.objects.filter(key='prompt_summary').values_list('value', flat=True).first() or ''
