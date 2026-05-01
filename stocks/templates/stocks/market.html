@@ -630,22 +630,8 @@
 <!-- 장전시황 -->
 <h5 class="section-heading" style="margin-top: 32px;">장전시황</h5>
 <div id="section-morning-market">
-    <!-- 하보노 -->
-    <div class="brief-card">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <span style="font-size:0.82rem;color:var(--text-muted);">하보노 · 개장 전 체크포인트</span>
-            <button type="button" id="btnFetchHabono" class="btn-refresh" style="padding: 6px 16px;">불러오기</button>
-        </div>
-        <div id="habonoLoading" class="text-center py-4 d-none">
-            <div class="spinner-border spinner-border-sm" role="status" style="color: var(--text-muted);"></div>
-            <span style="margin-left:8px;font-size:0.85rem;color:var(--text-muted);">불러오는 중...</span>
-        </div>
-        <div id="habonoResult" class="d-none" style="font-size:0.85rem;line-height:2;"></div>
-        <div id="habonoEmpty" style="color:var(--text-muted);font-size:0.85rem;">버튼을 클릭하면 최신 게시물을 불러옵니다.</div>
-    </div>
-
     <!-- 텔레그램 -->
-    <div class="brief-card" style="margin-top: 12px;">
+    <div class="brief-card">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <span style="font-size:0.82rem;color:var(--text-muted);">텔레그램</span>
             <button type="button" id="btnFetchMorning" class="btn-refresh" style="padding: 6px 16px;">불러오기</button>
@@ -661,35 +647,7 @@
 
 <!-- 마감시황 -->
 <h5 class="section-heading" style="margin-top: 32px;">마감시황</h5>
-<div id="section-closing-market">
-    <!-- 하보노 마감체크포인트 -->
-    <div class="brief-card">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <span style="font-size:0.82rem;color:var(--text-muted);">하보노 · 마감체크포인트</span>
-            <button type="button" id="btnFetchHabonoClose" class="btn-refresh" style="padding: 6px 16px;">불러오기</button>
-        </div>
-        <div id="habonoCloseLoading" class="text-center py-4 d-none">
-            <div class="spinner-border spinner-border-sm" role="status" style="color: var(--text-muted);"></div>
-            <span style="margin-left:8px;font-size:0.85rem;color:var(--text-muted);">불러오는 중...</span>
-        </div>
-        <div id="habonoCloseResult" class="d-none" style="font-size:0.85rem;line-height:2;"></div>
-        <div id="habonoCloseEmpty" style="color:var(--text-muted);font-size:0.85rem;">버튼을 클릭하면 최신 게시물을 불러옵니다.</div>
-    </div>
-
-    <!-- 하보노 마감시황자료 -->
-    <div class="brief-card" style="margin-top: 12px;">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <span style="font-size:0.82rem;color:var(--text-muted);">하보노 · 마감시황자료</span>
-            <button type="button" id="btnFetchHabonoData" class="btn-refresh" style="padding: 6px 16px;">불러오기</button>
-        </div>
-        <div id="habonoDataLoading" class="text-center py-4 d-none">
-            <div class="spinner-border spinner-border-sm" role="status" style="color: var(--text-muted);"></div>
-            <span style="margin-left:8px;font-size:0.85rem;color:var(--text-muted);">불러오는 중...</span>
-        </div>
-        <div id="habonoDataResult" class="d-none" style="font-size:0.85rem;line-height:2;"></div>
-        <div id="habonoDataEmpty" style="color:var(--text-muted);font-size:0.85rem;">버튼을 클릭하면 최신 게시물을 불러옵니다.</div>
-    </div>
-</div>
+<div id="section-closing-market"></div>
 
 <!-- 기타 -->
 <h5 class="section-heading" style="margin-top: 32px;">기타</h5>
@@ -705,20 +663,6 @@
         </div>
         <div id="briefResult" class="d-none"></div>
         <div id="briefEmpty" style="color:var(--text-muted);font-size:0.85rem;">버튼을 클릭하면 최신 브리프를 불러옵니다.</div>
-    </div>
-
-    <!-- 하보노 시황 -->
-    <div class="brief-card" style="margin-top: 12px;">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <span style="font-size:0.82rem;color:var(--text-muted);">하보노 · 시황</span>
-            <button type="button" id="btnFetchHabonoEtc" class="btn-refresh" style="padding: 6px 16px;">불러오기</button>
-        </div>
-        <div id="habonoEtcLoading" class="text-center py-4 d-none">
-            <div class="spinner-border spinner-border-sm" role="status" style="color: var(--text-muted);"></div>
-            <span style="margin-left:8px;font-size:0.85rem;color:var(--text-muted);">불러오는 중...</span>
-        </div>
-        <div id="habonoEtcResult" class="d-none" style="font-size:0.85rem;line-height:2;"></div>
-        <div id="habonoEtcEmpty" style="color:var(--text-muted);font-size:0.85rem;">버튼을 클릭하면 최신 게시물을 불러옵니다.</div>
     </div>
 
     <!-- 삼프로 영상 -->
@@ -1014,70 +958,6 @@ function updateCumulativeChart(market, chartData) {
     initCumulativeChart(containerId, buildCumulative(chartData, currentCumulativeDays));
     cumulativeChartInits[key] = true;
 }
-
-// ===== Habono (공통) =====
-const HABONO_CACHE_TTL = 24 * 60 * 60 * 1000;
-
-function initHabono({ btnId, loadingId, resultId, emptyId, cacheKey, category, limit }) {
-    const btn = document.getElementById(btnId);
-    const loading = document.getElementById(loadingId);
-    const result = document.getElementById(resultId);
-    const empty = document.getElementById(emptyId);
-
-    function render(results) {
-        result.innerHTML = results.map(item =>
-            `<a href="${item.url}" target="_blank" style="display:block;color:var(--text-body);text-decoration:none;">${item.title}<span style="margin-left:8px;font-size:0.75rem;color:var(--text-muted);">${item.date}</span></a>`
-        ).join('');
-        result.classList.remove('d-none');
-        empty.classList.add('d-none');
-    }
-
-    // 캐시 로드
-    try {
-        const cached = JSON.parse(localStorage.getItem(cacheKey));
-        if (cached && Date.now() - cached.ts < HABONO_CACHE_TTL && cached.results.length > 0) {
-            render(cached.results);
-        }
-    } catch(e) {}
-
-    btn.addEventListener('click', async () => {
-        btn.disabled = true;
-        loading.classList.remove('d-none');
-        result.classList.add('d-none');
-        empty.classList.add('d-none');
-
-        try {
-            const response = await fetch(`/api/habono/?category=${category}${limit ? '&limit=' + limit : ''}`);
-            const data = await response.json();
-
-            if (data.error) {
-                result.innerHTML = `<div style="color:var(--up-color);padding:12px;background:#fef2f2;border-radius:8px;">${data.error}</div>`;
-                result.classList.remove('d-none');
-            } else if (data.results.length === 0) {
-                result.innerHTML = '<div style="color:var(--text-muted);">게시물이 없습니다.</div>';
-                result.classList.remove('d-none');
-            } else {
-                localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), results: data.results }));
-                render(data.results);
-            }
-        } catch (err) {
-            result.innerHTML = `<div style="color:var(--up-color);padding:12px;background:#fef2f2;border-radius:8px;">오류: ${err.message}</div>`;
-            result.classList.remove('d-none');
-        } finally {
-            btn.disabled = false;
-            loading.classList.add('d-none');
-        }
-    });
-}
-
-// 장전시황 - 하보노 개장 전 체크포인트
-initHabono({ btnId: 'btnFetchHabono', loadingId: 'habonoLoading', resultId: 'habonoResult', emptyId: 'habonoEmpty', cacheKey: 'habono_open', category: '18f2bc7d3da000aui' });
-// 마감시황 - 하보노 마감체크포인트
-initHabono({ btnId: 'btnFetchHabonoClose', loadingId: 'habonoCloseLoading', resultId: 'habonoCloseResult', emptyId: 'habonoCloseEmpty', cacheKey: 'habono_close', category: '19be0a983e5000mk8' });
-// 마감시황 - 하보노 마감시황자료
-initHabono({ btnId: 'btnFetchHabonoData', loadingId: 'habonoDataLoading', resultId: 'habonoDataResult', emptyId: 'habonoDataEmpty', cacheKey: 'habono_data', category: '19be41e615d0004p8' });
-// 기타 - 하보노 시황
-initHabono({ btnId: 'btnFetchHabonoEtc', loadingId: 'habonoEtcLoading', resultId: 'habonoEtcResult', emptyId: 'habonoEtcEmpty', cacheKey: 'habono_etc', category: '19959997b68000aur', limit: 8 });
 
 // ===== 삼프로TV =====
 const btnFetch3pro = document.getElementById('btnFetch3pro');
