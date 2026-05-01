@@ -737,6 +737,82 @@ const kospiRawTrends = {{ kospi_raw_trends|safe }};
 const kosdaqRawTrends = {{ kosdaq_raw_trends|safe }};
 const futuresRawTrends = {{ futures_raw_trends|safe }};
 
+// ===== Youtube grid (공통) =====
+const savedPrompts = {
+    prompt_youtube: `{{ saved_prompts.prompt_youtube|default:""|escapejs }}`
+};
+
+function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+    }
+    return new Promise((resolve, reject) => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); resolve(); }
+        catch (err) { reject(err); }
+        finally { document.body.removeChild(ta); }
+    });
+}
+
+function escHtml(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderYoutubeGrid(container, results, options) {
+    const showChannel = !!(options && options.showChannel);
+    container.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">` +
+        results.map(item => {
+            const meta = showChannel
+                ? `${escHtml(item.channel || '')}${item.published ? ' · ' + escHtml(item.published) : ''}`
+                : (item.published ? escHtml(item.published) : '');
+            return `<div style="position:relative;">
+                <a href="${item.url}" target="_blank" style="text-decoration:none;color:var(--text-body);display:block;">
+                    <img src="${item.thumbnail}" style="width:100%;border-radius:6px;aspect-ratio:16/9;object-fit:cover;">
+                    <div style="font-size:0.8rem;line-height:1.4;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escHtml(item.title || '')}</div>
+                </a>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;gap:6px;">
+                    <div style="font-size:0.7rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${meta}</div>
+                    <span class="prompt-badge btn-copy-yt-prompt" data-url="${escHtml(item.url || '')}" style="cursor:pointer;background:#f3f4f6;color:var(--text-secondary);font-size:0.7rem;padding:2px 8px;flex-shrink:0;">프롬프트 복사</span>
+                </div>
+            </div>`;
+        }).join('') + `</div>`;
+    container.classList.remove('d-none');
+
+    container.querySelectorAll('.btn-copy-yt-prompt').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const url = btn.dataset.url || '';
+            const tpl = savedPrompts.prompt_youtube || '';
+            let text = tpl
+                ? tpl.replace(/\{[^}]*유튜브[^}]*(?:URL|url|Url)[^}]*\}/g, url)
+                : '';
+            if (!text.trim()) text = url;
+            try {
+                await copyToClipboard(text);
+                const original = btn.textContent;
+                btn.textContent = '복사됨!';
+                setTimeout(() => { btn.textContent = original; }, 1500);
+            } catch (err) {
+                alert('복사 실패: ' + err.message);
+            }
+        });
+    });
+}
+
+// prompt-badge 스타일 (종목/뉴스와 동일)
+(function injectPromptBadgeStyle() {
+    if (document.getElementById('promptBadgeStyle')) return;
+    const s = document.createElement('style');
+    s.id = 'promptBadgeStyle';
+    s.textContent = `.prompt-badge { display:inline-block; padding:3px 10px; border-radius:4px; font-size:0.72rem; font-weight:500; cursor:pointer; background:#ecfdf5; color:#059669; transition:all 0.15s; } .prompt-badge:hover { background:#d1fae5; }`;
+    document.head.appendChild(s);
+})();
+
 // Raw 데이터에서 누적 계산
 function buildCumulative(rawData, days) {
     const sliced = rawData.slice(-days);
@@ -1009,15 +1085,7 @@ const THREEPRO_CACHE_KEY = 'threeproCacheV2';
 const THREEPRO_CACHE_TTL = 24 * 60 * 60 * 1000;
 
 function render3proResults(results) {
-    threeproResult.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">` +
-        results.map(item =>
-            `<a href="${item.url}" target="_blank" style="text-decoration:none;color:var(--text-body);">
-                <img src="${item.thumbnail}" style="width:100%;border-radius:6px;aspect-ratio:16/9;object-fit:cover;">
-                <div style="font-size:0.8rem;line-height:1.4;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${item.title}</div>
-                ${item.published ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">${item.published}</div>` : ''}
-            </a>`
-        ).join('') + `</div>`;
-    threeproResult.classList.remove('d-none');
+    renderYoutubeGrid(threeproResult, results, { showChannel: false });
     threeproEmpty.classList.add('d-none');
 }
 
@@ -1070,15 +1138,7 @@ const M815_CACHE_TTL = 24 * 60 * 60 * 1000;
 const M815_QUERY = '#찐시황';
 
 function renderM815Results(results) {
-    m815Result.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">` +
-        results.map(item =>
-            `<a href="${item.url}" target="_blank" style="text-decoration:none;color:var(--text-body);">
-                <img src="${item.thumbnail}" style="width:100%;border-radius:6px;aspect-ratio:16/9;object-fit:cover;">
-                <div style="font-size:0.8rem;line-height:1.4;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${item.title}</div>
-                ${item.published ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">${item.published}</div>` : ''}
-            </a>`
-        ).join('') + `</div>`;
-    m815Result.classList.remove('d-none');
+    renderYoutubeGrid(m815Result, results, { showChannel: false });
     m815Empty.classList.add('d-none');
 }
 
@@ -1128,15 +1188,7 @@ const ytSearchResult = document.getElementById('ytSearchResult');
 const ytSearchEmpty = document.getElementById('ytSearchEmpty');
 
 function renderYtSearchResults(results) {
-    ytSearchResult.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">` +
-        results.map(item =>
-            `<a href="${item.url}" target="_blank" style="text-decoration:none;color:var(--text-body);">
-                <img src="${item.thumbnail}" style="width:100%;border-radius:6px;aspect-ratio:16/9;object-fit:cover;">
-                <div style="font-size:0.8rem;line-height:1.4;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${item.title}</div>
-                <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">${item.channel || ''}${item.published ? ' · ' + item.published : ''}</div>
-            </a>`
-        ).join('') + `</div>`;
-    ytSearchResult.classList.remove('d-none');
+    renderYoutubeGrid(ytSearchResult, results, { showChannel: true });
     ytSearchEmpty.classList.add('d-none');
 }
 
