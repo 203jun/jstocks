@@ -157,6 +157,9 @@
 .status-badge.done { background: #ecfdf5; color: #059669; }
 .status-badge.pending { background: #f3f4f6; color: var(--text-muted); }
 
+.prompt-badge { display:inline-block; padding:3px 10px; border-radius:4px; font-size:0.72rem; font-weight:500; cursor:pointer; background:#ecfdf5; color:#059669; transition:all 0.15s; }
+.prompt-badge:hover { background:#d1fae5; }
+
 /* Channel badge */
 .channel-badge {
     display: inline-block;
@@ -537,6 +540,11 @@
 marked.use({ extensions: [{ name: 'highlight', level: 'inline', childTokens: ['tokens'], start(src) { return src.indexOf('=='); }, tokenizer(src) { const match = src.match(/^==([^=]+)==/); if (match) { const token = { type: 'highlight', raw: match[0], text: match[1], tokens: [] }; this.lexer.inline(token.text, token.tokens); return token; } }, renderer(token) { return `<mark>${this.parser.parseInline(token.tokens)}</mark>`; } }] });
 const sectorName = "{{ sector.name|escapejs }}";
 const sectorId = {{ sector.id }};
+const savedPrompts = {
+    prompt_news: `{{ saved_prompts.prompt_news|default:""|escapejs }}`,
+    prompt_news_with_context: `{{ saved_prompts.prompt_news_with_context|default:""|escapejs }}`,
+    prompt_youtube: `{{ saved_prompts.prompt_youtube|default:""|escapejs }}`
+};
 
 // ===== Tab switching =====
 document.querySelectorAll('.market-tab').forEach(tab => {
@@ -1367,9 +1375,16 @@ function renderYtTimeline(videos) {
                         ${v.note ? `<div style="margin-top:4px;margin-bottom:6px;padding:8px 10px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.7rem;font-weight:600;color:var(--text-secondary);margin-bottom:2px;">내생각</div><div style="font-size:0.82rem;color:var(--text-primary);white-space:pre-wrap;">${v.note}</div></div>` : ''}
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
                             <span class="yt-channel">${v.channel || ''}</span>
-                            <div style="display:flex;gap:10px;">
-                                <a href="/sector/youtube/${v.id}/summary/" style="font-size:0.72rem;color:var(--text-muted);text-decoration:none;">수정</a>
-                                <span class="btn-yt-delete" data-id="${v.id}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">삭제</span>
+                            <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
+                                <div style="display:flex; gap:4px; align-items:center;">
+                                    <a href="/sector/youtube/${v.id}/summary/" style="text-decoration:none; line-height:1; display:flex;" title="요약">
+                                        ${v.summary ? '<span class="status-badge done">요약</span>' : '<span class="status-badge pending">요약</span>'}
+                                    </a>
+                                    <span class="status-badge pending btn-yt-delete" data-id="${v.id}" style="cursor:pointer;">삭제</span>
+                                </div>
+                                <div>
+                                    <span class="prompt-badge btn-copy-prompt-yt" data-id="${v.id}" data-url="${escHtml(v.url || '')}" style="cursor:pointer; background:#f3f4f6; color:var(--text-secondary);">프롬프트 복사</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1388,6 +1403,31 @@ function renderYtTimeline(videos) {
                 const data = await res.json();
                 if (data.success) loadYtTimeline(true);
             } catch(e) { alert('삭제 오류: ' + e.message); }
+        });
+    });
+
+    ytTimeline.querySelectorAll('.btn-copy-prompt-yt').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const url = btn.dataset.url || '';
+            const tpl = (typeof savedPrompts !== 'undefined' ? (savedPrompts.prompt_youtube || '') : '');
+            let text = tpl
+                ? tpl.replace(/\{[^}]*유튜브[^}]*(?:URL|url|Url)[^}]*\}/g, url)
+                : '';
+            if (!text.trim()) text = url;
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = text; ta.style.position='fixed'; ta.style.left='-9999px';
+                    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+                }
+                const original = btn.textContent;
+                btn.textContent = '복사됨!';
+                setTimeout(() => { btn.textContent = original; }, 1500);
+            } catch (err) {
+                alert('복사 실패: ' + err.message);
+            }
         });
     });
 

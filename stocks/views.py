@@ -3732,6 +3732,7 @@ def sector_detail(request, sector_id):
     initial_items = all_items[:20]
     remaining_items = all_items[20:]
 
+    from .models import SystemSetting
     context = {
         'sector': sector,
         'related_stocks': related_stocks,
@@ -3745,6 +3746,7 @@ def sector_detail(request, sector_id):
         'news_articles': news_articles,
         'youtube_videos': youtube_videos,
         'uploaded_reports': uploaded_reports,
+        'saved_prompts': {s.key: s.value for s in SystemSetting.objects.filter(key__startswith='prompt_')},
     }
     return render(request, 'stocks/sector_detail.html', context)
 
