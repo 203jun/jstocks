@@ -6712,11 +6712,16 @@ def _parse_financial_table(raw_text, field_map, first_labels=None, int_fields=No
         else:
             columns.append(None)
 
-    # 첫 번째 연속 기간 컬럼 그룹만 사용
+    # 첫 번째 연속 기간 컬럼 그룹만 사용. 단, 선두에 빈/패딩 컬럼이 있을 수 있으므로
+    # 유효한 기간을 처음 만난 이후의 None에서만 truncate.
+    seen_period = False
     for i, col in enumerate(columns):
         if col is None:
-            columns[i:] = [None] * (len(columns) - i)
-            break
+            if seen_period:
+                columns[i:] = [None] * (len(columns) - i)
+                break
+        else:
+            seen_period = True
 
     debug_info['columns'] = [str(c) for c in columns if c is not None]
 
