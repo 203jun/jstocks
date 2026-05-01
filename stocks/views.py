@@ -6646,6 +6646,9 @@ def _parse_financial_table(raw_text, field_map, first_labels=None, int_fields=No
     if int_fields is None:
         int_fields = set()
     raw_text = raw_text.replace('\r\n', '\n').replace('\r', '\n')
+    # 비표준 공백(NBSP, 한자공백, 좁은공백 등) → 일반 공백
+    for ch in (' ', '　', ' ', ' ', '​', '﻿'):
+        raw_text = raw_text.replace(ch, ' ')
 
     # 공백 기반 paste 지원: FnGuide에서 탭이 보존되지 않고 공백으로 들어오는 경우 정규화.
     # 값 라인(선두에 공백 있음)과 헤더/라벨 라인(텍스트로 시작)을 구분해 다르게 처리.
@@ -6662,6 +6665,7 @@ def _parse_financial_table(raw_text, field_map, first_labels=None, int_fields=No
             ln = re.sub(r' {2,}', '\t', ln)
         new_lines.append(ln)
     raw_text = '\n'.join(new_lines)
+    debug_info['normalized_first_10_lines'] = [repr(l) for l in raw_text.split('\n')[:10]]
 
     lines = raw_text.strip().split('\n')
     if not lines:

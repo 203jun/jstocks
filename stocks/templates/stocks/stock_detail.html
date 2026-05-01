@@ -4516,7 +4516,11 @@ function renderTable(tableId, rows, fields) {
                 loadIncomeData();
             } else {
                 console.log('파싱 디버그:', data.debug);
-                alert(data.error || '저장 실패');
+                let msg = data.error || '저장 실패';
+                if (data.debug) {
+                    msg += '\n\n[디버그]\n' + JSON.stringify(data.debug, null, 2).slice(0, 800);
+                }
+                alert(msg);
             }
         } catch (e) { alert('오류: ' + e.message); }
         finally { btnSave.disabled = false; btnSave.textContent = '저장'; }
