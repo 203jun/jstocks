@@ -2356,8 +2356,34 @@ def fetch_youtube_channel(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+_PUBLISHED_UNITS = {
+    '분': 1,
+    '시간': 60,
+    '일': 60 * 24,
+    '주': 60 * 24 * 7,
+    '개월': 60 * 24 * 30,
+    '달': 60 * 24 * 30,
+    '년': 60 * 24 * 365,
+}
+
+
+def _parse_published_minutes(text):
+    """'1일 전', '37분 전', '스트리밍 시간: 2시간 전' 등을 분 단위 정수로 변환. 실패 시 매우 큰 값."""
+    import re
+    if not text:
+        return 10 ** 9
+    if '방금' in text:
+        return 0
+    m = re.search(r'(\d+)\s*(분|시간|일|주|개월|달|년)', text)
+    if not m:
+        return 10 ** 9
+    n = int(m.group(1))
+    unit = m.group(2)
+    return n * _PUBLISHED_UNITS.get(unit, 10 ** 6)
+
+
 def fetch_youtube_search(request):
-    """유튜브 키워드 검색 결과 (최신순) 가져오기"""
+    """유튜브 키워드 검색 결과를 업로드 시점 기준 최신순으로 반환"""
     import requests as http_requests
     import re
     from urllib.parse import quote
@@ -2367,7 +2393,7 @@ def fetch_youtube_search(request):
     if not query:
         return JsonResponse({'error': '검색어가 없습니다.'}, status=400)
 
-    # sp=CAISAhAB : 업로드 날짜순(최신) + 동영상 필터
+    # sp=CAISAhAB : 업로드 날짜 정렬 + 동영상 타입 필터
     url = f'https://www.youtube.com/results?search_query={quote(query)}&sp=CAISAhAB'
     try:
         headers = {
@@ -2383,7 +2409,7 @@ def fetch_youtube_search(request):
         data = json.loads(match.group(1))
         sections = data['contents']['twoColumnSearchResultsRenderer']['primaryContents']['sectionListRenderer']['contents']
 
-        results = []
+        candidates = []
         for section in sections:
             for item in section.get('itemSectionRenderer', {}).get('contents', []):
                 vid = item.get('videoRenderer')
@@ -2400,19 +2426,18 @@ def fetch_youtube_search(request):
                 if owner_runs:
                     channel = owner_runs[0].get('text', '')
 
-                results.append({
+                candidates.append({
                     'video_id': vid_id,
                     'title': title,
                     'thumbnail': f'https://i.ytimg.com/vi/{vid_id}/mqdefault.jpg',
                     'url': f'https://www.youtube.com/watch?v={vid_id}',
                     'published': published,
                     'channel': channel,
+                    '_age': _parse_published_minutes(published),
                 })
-                if len(results) >= limit:
-                    break
-            if len(results) >= limit:
-                break
 
+        candidates.sort(key=lambda r: r['_age'])
+        results = [{k: v for k, v in r.items() if k != '_age'} for r in candidates[:limit]]
         return JsonResponse({'success': True, 'results': results})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

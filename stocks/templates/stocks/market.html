@@ -699,6 +699,29 @@
         <div id="m815Result" class="d-none"></div>
         <div id="m815Empty" style="color:var(--text-muted);font-size:0.85rem;">버튼을 클릭하면 최신 영상을 불러옵니다.</div>
     </div>
+
+    <!-- 유튜브 직접 검색 -->
+    <div class="brief-card" style="margin-top: 12px;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span style="font-size:0.82rem;color:var(--text-muted);">유튜브 검색 · 최신순 15개</span>
+        </div>
+        <div class="d-flex gap-2 mb-2">
+            <input type="text" id="ytSearchInput" class="form-control" placeholder="검색어 입력 후 엔터 또는 검색" style="font-size:0.85rem;">
+            <button type="button" id="btnYtSearch" class="btn-refresh primary" style="padding:6px 16px;white-space:nowrap;">검색</button>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mb-3" id="ytSearchPresets">
+            <button type="button" class="btn-refresh yt-preset" data-q="윤지호" style="padding:4px 12px;font-size:0.78rem;">윤지호</button>
+            <button type="button" class="btn-refresh yt-preset" data-q="이건규" style="padding:4px 12px;font-size:0.78rem;">이건규</button>
+            <button type="button" class="btn-refresh yt-preset" data-q="이선엽" style="padding:4px 12px;font-size:0.78rem;">이선엽</button>
+            <button type="button" class="btn-refresh yt-preset" data-q="박현상" style="padding:4px 12px;font-size:0.78rem;">박현상</button>
+        </div>
+        <div id="ytSearchLoading" class="text-center py-4 d-none">
+            <div class="spinner-border spinner-border-sm" role="status" style="color: var(--text-muted);"></div>
+            <span style="margin-left:8px;font-size:0.85rem;color:var(--text-muted);">불러오는 중...</span>
+        </div>
+        <div id="ytSearchResult" class="d-none"></div>
+        <div id="ytSearchEmpty" style="color:var(--text-muted);font-size:0.85rem;">검색어를 입력하거나 버튼을 눌러 영상을 불러옵니다.</div>
+    </div>
 </div>
 
 {% endblock %}
@@ -1095,6 +1118,61 @@ btnFetch815.addEventListener('click', async () => {
         btnFetch815.disabled = false;
         m815Loading.classList.add('d-none');
     }
+});
+
+// ===== 유튜브 직접 검색 =====
+const ytSearchInput = document.getElementById('ytSearchInput');
+const btnYtSearch = document.getElementById('btnYtSearch');
+const ytSearchLoading = document.getElementById('ytSearchLoading');
+const ytSearchResult = document.getElementById('ytSearchResult');
+const ytSearchEmpty = document.getElementById('ytSearchEmpty');
+
+function renderYtSearchResults(results) {
+    ytSearchResult.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">` +
+        results.map(item =>
+            `<a href="${item.url}" target="_blank" style="text-decoration:none;color:var(--text-body);">
+                <img src="${item.thumbnail}" style="width:100%;border-radius:6px;aspect-ratio:16/9;object-fit:cover;">
+                <div style="font-size:0.8rem;line-height:1.4;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${item.title}</div>
+                <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">${item.channel || ''}${item.published ? ' · ' + item.published : ''}</div>
+            </a>`
+        ).join('') + `</div>`;
+    ytSearchResult.classList.remove('d-none');
+    ytSearchEmpty.classList.add('d-none');
+}
+
+async function runYtSearch(query) {
+    const q = (query || '').trim();
+    if (!q) { ytSearchInput.focus(); return; }
+    ytSearchInput.value = q;
+    btnYtSearch.disabled = true;
+    ytSearchLoading.classList.remove('d-none');
+    ytSearchResult.classList.add('d-none');
+    ytSearchEmpty.classList.add('d-none');
+    try {
+        const response = await fetch(`/api/youtube-search/?q=${encodeURIComponent(q)}&limit=15`);
+        const data = await response.json();
+        if (data.error) {
+            ytSearchResult.innerHTML = `<div style="color:var(--up-color);padding:12px;background:#fef2f2;border-radius:8px;">${data.error}</div>`;
+            ytSearchResult.classList.remove('d-none');
+        } else if (data.results.length === 0) {
+            ytSearchResult.innerHTML = '<div style="color:var(--text-muted);">검색 결과가 없습니다.</div>';
+            ytSearchResult.classList.remove('d-none');
+        } else {
+            renderYtSearchResults(data.results);
+        }
+    } catch (err) {
+        ytSearchResult.innerHTML = `<div style="color:var(--up-color);padding:12px;background:#fef2f2;border-radius:8px;">오류: ${err.message}</div>`;
+        ytSearchResult.classList.remove('d-none');
+    } finally {
+        btnYtSearch.disabled = false;
+        ytSearchLoading.classList.add('d-none');
+    }
+}
+
+btnYtSearch.addEventListener('click', () => runYtSearch(ytSearchInput.value));
+ytSearchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') runYtSearch(ytSearchInput.value); });
+document.querySelectorAll('#ytSearchPresets .yt-preset').forEach(btn => {
+    btn.addEventListener('click', () => runYtSearch(btn.dataset.q));
 });
 
 // ===== Morning Market =====
