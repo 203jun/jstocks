@@ -956,7 +956,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ytSaveMo
 
 ytSaveList.addEventListener('click', async (e) => {
     const row = e.target.closest('.yt-save-row');
-    if (!row || row.dataset.saving === 'true' || row.dataset.saved === 'true') return;
+    if (!row || row.dataset.saving === 'true') return;
     const type = row.dataset.type;
     const id = row.dataset.id;
     if (!ytSaveCurrentUrl) return;
@@ -980,14 +980,15 @@ ytSaveList.addEventListener('click', async (e) => {
         const data = await resp.json();
         if (data.error) {
             showYtSaveToast(data.error);
-        } else {
-            ytSaveSavedKeys.add(row.dataset.key);
-            showYtSaveToast('저장됨');
-            renderYtSaveList();
+            row.dataset.saving = 'false';
+            return;
         }
+        const summaryUrl = type === 'stock'
+            ? `/youtube/${data.id}/summary/`
+            : `/sector/youtube/${data.id}/summary/`;
+        window.location.href = summaryUrl;
     } catch (err) {
         showYtSaveToast('오류: ' + err.message);
-    } finally {
         row.dataset.saving = 'false';
     }
 });
