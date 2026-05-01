@@ -2454,6 +2454,16 @@ class StockDiary(models.Model):
     content = models.TextField(
         verbose_name='내용'
     )
+    is_buy = models.BooleanField(
+        default=False,
+        verbose_name='매수',
+        help_text='해당 일자에 매수 발생 여부'
+    )
+    is_sell = models.BooleanField(
+        default=False,
+        verbose_name='매도',
+        help_text='해당 일자에 매도 발생 여부'
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='생성일시'

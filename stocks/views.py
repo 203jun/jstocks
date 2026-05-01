@@ -680,6 +680,7 @@ def stock_list(request):
 
 def stock_detail(request, code):
     """종목 상세 페이지"""
+    from django.db.models import Q
     stock = get_object_or_404(Info.objects.prefetch_related('themes__category', 'custom_sectors'), code=code)
 
     # 연간 재무 데이터 (최근 6년)
@@ -1128,6 +1129,10 @@ def stock_detail(request, code):
         'ma60_value': ma60_value,
         'briefing_data': _build_briefing_data(stock, question_reports, nodaji_list, reports),
         'avg_target_price_3m': avg_target_price_3m,
+        'diary_trades_json': json.dumps([
+            {'date': d.date.strftime('%Y-%m-%d'), 'is_buy': d.is_buy, 'is_sell': d.is_sell}
+            for d in StockDiary.objects.filter(stock=stock).filter(Q(is_buy=True) | Q(is_sell=True)).only('date', 'is_buy', 'is_sell')
+        ]),
     }
     return render(request, 'stocks/stock_detail.html', context)
 
@@ -2132,6 +2137,8 @@ def stock_diary_list(request, code):
             'id': entry.id,
             'date': entry.date.strftime('%Y-%m-%d'),
             'content': entry.content,
+            'is_buy': entry.is_buy,
+            'is_sell': entry.is_sell,
             'updated_at': entry.updated_at.strftime('%Y-%m-%d %H:%M'),
         })
 
@@ -2143,11 +2150,17 @@ def stock_diary_list(request, code):
     })
 
 
+def _parse_bool(val):
+    return str(val).lower() in ('1', 'true', 'on', 'yes')
+
+
 @require_POST
 def stock_diary_save(request, code):
     """종목별 투자일지 저장 API"""
     date_str = request.POST.get('date', '').strip()
     content = request.POST.get('content', '').strip()
+    is_buy = _parse_bool(request.POST.get('is_buy', ''))
+    is_sell = _parse_bool(request.POST.get('is_sell', ''))
 
     if not date_str or not content:
         return JsonResponse({'error': '날짜와 내용을 입력하세요.'}, status=400)
@@ -2162,7 +2175,10 @@ def stock_diary_save(request, code):
     if StockDiary.objects.filter(stock=stock, date=date_val).exists():
         return JsonResponse({'error': '해당 날짜에 이미 일지가 있습니다.'}, status=400)
 
-    entry = StockDiary.objects.create(stock=stock, date=date_val, content=content)
+    entry = StockDiary.objects.create(
+        stock=stock, date=date_val, content=content,
+        is_buy=is_buy, is_sell=is_sell,
+    )
     return JsonResponse({'success': True, 'id': entry.id})
 
 
@@ -2184,6 +2200,11 @@ def stock_diary_update(request, code, diary_id):
             entry.date = new_date
         except ValueError:
             pass
+
+    if 'is_buy' in request.POST:
+        entry.is_buy = _parse_bool(request.POST.get('is_buy'))
+    if 'is_sell' in request.POST:
+        entry.is_sell = _parse_bool(request.POST.get('is_sell'))
 
     entry.content = content
     entry.save()

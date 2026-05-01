@@ -297,6 +297,11 @@
 .spinner-sm { display:inline-block; width:14px; height:14px; border:2px solid var(--border-color); border-top-color:var(--text-primary); border-radius:50%; animation:spin 0.6s linear infinite; }
 .prompt-badge { display:inline-block; padding:3px 10px; border-radius:4px; font-size:0.72rem; font-weight:500; cursor:pointer; background:#ecfdf5; color:#059669; transition:all 0.15s; }
 .prompt-badge:hover { background:#d1fae5; }
+.trade-badge { display:inline-block; padding:1px 7px; border-radius:3px; font-size:0.7rem; font-weight:600; line-height:1.4; }
+.trade-badge.buy { background:#fde2e1; color:#d32f2f; }
+.trade-badge.sell { background:#dcedc8; color:#1976d2; }
+[data-theme="dark"] .trade-badge.buy { background:#3a1f1f; color:#fca5a5; }
+[data-theme="dark"] .trade-badge.sell { background:#13243a; color:#93c5fd; }
 
 /* YouTube timeline */
 .timeline { position:relative; padding-left:24px; }
@@ -442,15 +447,23 @@
     <div class="brief-card">
         <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
             <span style="font-size:0.82rem;color:var(--text-muted);">종목 투자 기록</span>
-            <button type="button" id="btnStockDiaryNew" class="btn-refresh" style="padding:6px 16px;">새 글 작성</button>
+            <button type="button" id="btnStockDiaryNew" class="btn-refresh" style="padding:6px 16px;">추가</button>
         </div>
         <!-- 작성 폼 -->
-        <div id="stockDiaryForm" class="d-none" style="margin-bottom:16px;padding:16px;background:#f9fafb;border-radius:8px;">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <input type="date" id="stockDiaryDate" style="border:1px solid #ddd;border-radius:6px;padding:4px 10px;font-size:0.82rem;color:var(--text-body);">
+        <div id="stockDiaryForm" class="d-none" style="margin-bottom:16px;padding:16px;background:var(--bg-secondary, #f9fafb);border-radius:8px;">
+            <div class="d-flex justify-content-between align-items-center mb-2" style="gap:8px;flex-wrap:wrap;">
+                <div class="d-flex align-items-center" style="gap:10px;flex-wrap:wrap;">
+                    <input type="date" id="stockDiaryDate" style="border:1px solid var(--border-color);border-radius:6px;padding:4px 10px;font-size:0.82rem;color:var(--text-body);background:var(--bg-card);">
+                    <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.78rem;color:var(--text-secondary);cursor:pointer;">
+                        <input type="checkbox" id="stockDiaryIsBuy" style="cursor:pointer;"> 매수
+                    </label>
+                    <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.78rem;color:var(--text-secondary);cursor:pointer;">
+                        <input type="checkbox" id="stockDiaryIsSell" style="cursor:pointer;"> 매도
+                    </label>
+                </div>
                 <span class="prompt-badge" role="button" id="btnCopyDiaryPrompt">프롬프트 복사</span>
             </div>
-            <textarea id="stockDiaryContent" rows="5" placeholder="투자 기록을 남겨보세요... (마크다운 지원: **굵게**)" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:12px;font-size:0.85rem;line-height:1.7;resize:vertical;font-family:inherit;"></textarea>
+            <textarea id="stockDiaryContent" rows="5" placeholder="투자 기록을 남겨보세요... (마크다운 지원: **굵게**)" style="width:100%;border:1px solid var(--border-color);border-radius:8px;padding:12px;font-size:0.85rem;line-height:1.7;resize:vertical;font-family:inherit;background:var(--bg-card);color:var(--text-body);"></textarea>
             <div class="d-flex justify-content-end gap-2 mt-2">
                 <button type="button" id="btnStockDiaryCancel" class="btn-refresh" style="padding:6px 16px;">취소</button>
                 <button type="button" id="btnStockDiarySave" class="btn-refresh" style="padding:6px 16px;">저장</button>
@@ -2965,6 +2978,37 @@ const fullDailyVolume = {{ daily_volume_data|safe }};
 const maConfig = { 10: '#ff9800', 20: '#2196f3', 60: '#4caf50', 120: '#9c27b0' };
 let dailyMaSeries = {};
 let dailyChartInstance = null;
+let dailyCandleSeries = null;
+let diaryTrades = {{ diary_trades_json|safe }};
+
+function buildDiaryMarkers(trades) {
+    if (!Array.isArray(trades) || !trades.length) return [];
+    return trades.map(t => {
+        const isBoth = t.is_buy && t.is_sell;
+        const text = isBoth ? '매수+매도' : (t.is_buy ? '매수' : '매도');
+        const color = t.is_buy ? '#ef5350' : '#42a5f5';
+        const position = t.is_buy ? 'belowBar' : 'aboveBar';
+        const shape = t.is_buy ? 'arrowUp' : 'arrowDown';
+        return { time: t.date, position, color, shape, text };
+    }).sort((a, b) => a.time.localeCompare(b.time));
+}
+
+function applyDiaryMarkers() {
+    if (dailyCandleSeries) {
+        dailyCandleSeries.setMarkers(buildDiaryMarkers(diaryTrades));
+    }
+}
+
+async function refreshDiaryTrades() {
+    try {
+        const res = await fetch(`/api/stock/${stockCode}/diary/?limit=500&offset=0`);
+        const data = await res.json();
+        if (data.success) {
+            diaryTrades = (data.results || []).filter(r => r.is_buy || r.is_sell);
+            applyDiaryMarkers();
+        }
+    } catch(e) { console.error('diary trades refresh error', e); }
+}
 
 function initDailyChart(candleData, volumeData) {
     const container = document.getElementById('dailyChart');
@@ -2992,6 +3036,8 @@ function initDailyChart(candleData, volumeData) {
         wickUpColor: '#ef5350', wickDownColor: '#26a69a',
     });
     candleSeries.setData(candleData);
+    dailyCandleSeries = candleSeries;
+    candleSeries.setMarkers(buildDiaryMarkers(diaryTrades));
     addTradePriceBand(chart, candleData, candleSeries);
 
     for (const [period, color] of Object.entries(maConfig)) {
@@ -3903,7 +3949,10 @@ function renderSdTimeline(results) {
         html += `<div class="timeline-group">`;
         html += `<div class="timeline-date">${formatSdDate(date)}</div>`;
         groups[date].forEach(item => {
+            const tradeBadges = (item.is_buy ? '<span class="trade-badge buy">매수</span>' : '')
+                + (item.is_sell ? '<span class="trade-badge sell">매도</span>' : '');
             html += `<div class="timeline-item" data-id="${item.id}" style="margin-bottom:4px;">
+                ${tradeBadges ? `<div style="margin-bottom:2px;display:flex;gap:4px;">${tradeBadges}</div>` : ''}
                 <div class="sd-text morning-md" style="font-size:0.82rem;color:var(--text-secondary);line-height:1.7;max-height:3.2em;overflow:hidden;transition:max-height 0.3s ease;" data-id="${item.id}">${sdParseMd(item.content)}</div>
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;">
                     <span class="sd-toggle" data-id="${item.id}" style="font-size:0.72rem;color:#4f46e5;cursor:pointer;">더보기</span>
@@ -3932,7 +3981,7 @@ function renderSdTimeline(results) {
             try {
                 const res = await fetch(`/api/stock/${stockCode}/diary/${this.dataset.id}/delete/`, { method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'} });
                 const data = await res.json();
-                if (data.success) loadSd(true);
+                if (data.success) { loadSd(true); refreshDiaryTrades(); }
                 else alert(data.error || '삭제 실패');
             } catch(e) { alert('오류: ' + e.message); }
         });
@@ -3949,6 +3998,8 @@ function renderSdTimeline(results) {
                     sdEditId = id;
                     sdDate.value = entry.date;
                     sdContent.value = entry.content;
+                    document.getElementById('stockDiaryIsBuy').checked = !!entry.is_buy;
+                    document.getElementById('stockDiaryIsSell').checked = !!entry.is_sell;
                     sdForm.classList.remove('d-none');
                     btnSdNew.classList.add('d-none');
                     sdContent.focus();
@@ -3979,6 +4030,8 @@ btnSdNew.addEventListener('click', () => {
     sdEditId = null;
     sdDate.value = new Date().toISOString().split('T')[0];
     sdContent.value = '';
+    document.getElementById('stockDiaryIsBuy').checked = false;
+    document.getElementById('stockDiaryIsSell').checked = false;
     sdForm.classList.remove('d-none');
     btnSdNew.classList.add('d-none');
     sdContent.focus();
@@ -3998,11 +4051,17 @@ btnSdSave.addEventListener('click', async () => {
         const fd = new FormData();
         fd.append('date', sdDate.value);
         fd.append('content', content);
+        fd.append('is_buy', document.getElementById('stockDiaryIsBuy').checked ? '1' : '0');
+        fd.append('is_sell', document.getElementById('stockDiaryIsSell').checked ? '1' : '0');
         const url = sdEditId ? `/api/stock/${stockCode}/diary/${sdEditId}/update/` : `/api/stock/${stockCode}/diary/save/`;
         const res = await fetch(url, { method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}, body:fd });
         const data = await res.json();
         if (data.error) alert(data.error);
-        else { sdForm.classList.add('d-none'); btnSdNew.classList.remove('d-none'); sdEditId = null; loadSd(true); }
+        else {
+            sdForm.classList.add('d-none'); btnSdNew.classList.remove('d-none'); sdEditId = null;
+            loadSd(true);
+            await refreshDiaryTrades();
+        }
     } catch(e) { alert('오류: ' + e.message); }
     finally { btnSdSave.disabled = false; btnSdSave.textContent = '저장'; }
 });
