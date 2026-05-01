@@ -2179,6 +2179,9 @@ def stock_diary_save(request, code):
         stock=stock, date=date_val, content=content,
         is_buy=is_buy, is_sell=is_sell,
     )
+    if is_buy and not stock.is_holding:
+        stock.is_holding = True
+        stock.save(update_fields=['is_holding'])
     return JsonResponse({'success': True, 'id': entry.id})
 
 
@@ -2208,6 +2211,11 @@ def stock_diary_update(request, code, diary_id):
 
     entry.content = content
     entry.save()
+
+    if entry.is_buy and not entry.stock.is_holding:
+        entry.stock.is_holding = True
+        entry.stock.save(update_fields=['is_holding'])
+
     return JsonResponse({'success': True})
 
 
