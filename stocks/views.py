@@ -1755,7 +1755,7 @@ def search_disclosure(request):
 def market(request):
     """시황 페이지"""
     from django.db.models import Max, Min
-    from .models import SystemSetting
+    from .models import SystemSetting, CustomSector
 
     # KOSPI 차트 데이터 (최근 240일)
     kospi_charts = list(IndexChart.objects.filter(code='KOSPI').order_by('-date')[:240])
@@ -1910,6 +1910,14 @@ def market(request):
         'kosdaq_raw_trends': json.dumps(kosdaq_raw_trends),
         'futures_raw_trends': json.dumps(futures_raw_trends),
         'saved_prompts': {s.key: s.value for s in SystemSetting.objects.filter(key__startswith='prompt_')},
+        'interest_stocks_json': json.dumps([
+            {'code': s.code, 'name': s.name, 'level': s.interest_level}
+            for s in Info.objects.filter(interest_level__in=['super', 'normal']).order_by('-interest_level', 'name')
+        ]),
+        'custom_sectors_json': json.dumps([
+            {'id': s.id, 'name': s.name}
+            for s in CustomSector.objects.all().order_by('name')
+        ]),
     }
     return render(request, 'stocks/market.html', context)
 

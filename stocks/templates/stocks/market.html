@@ -724,6 +724,46 @@
     </div>
 </div>
 
+<!-- 유튜브 저장 대상 선택 모달 -->
+<div id="ytSaveModal" class="yt-save-overlay" style="display:none;" role="dialog" aria-modal="true">
+    <div class="yt-save-box">
+        <div class="yt-save-header">
+            <div>
+                <div style="font-size:0.95rem;font-weight:600;color:var(--text-primary);">유튜브 저장 대상 선택</div>
+                <div id="ytSaveTitle" style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px;"></div>
+            </div>
+            <span id="btnYtSaveClose" style="cursor:pointer;font-size:1.2rem;color:var(--text-muted);">×</span>
+        </div>
+        <div class="yt-save-tabs">
+            <button type="button" class="yt-save-tab active" data-tab="stocks">관심종목 <span id="ytSaveStockCount" style="font-size:0.7rem;color:var(--text-muted);"></span></button>
+            <button type="button" class="yt-save-tab" data-tab="sectors">관심섹터 <span id="ytSaveSectorCount" style="font-size:0.7rem;color:var(--text-muted);"></span></button>
+        </div>
+        <div style="padding:10px 14px 6px;">
+            <input type="text" id="ytSaveSearch" class="form-control" placeholder="검색..." style="font-size:0.85rem;">
+        </div>
+        <div id="ytSaveList" class="yt-save-list"></div>
+        <div id="ytSaveToast" class="yt-save-toast" style="display:none;"></div>
+    </div>
+</div>
+
+<style>
+.yt-save-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:9999; }
+.yt-save-box { width:560px; max-width:92vw; max-height:80vh; display:flex; flex-direction:column; background:var(--bg-card, #fff); border-radius:10px; overflow:hidden; box-shadow:0 12px 40px rgba(0,0,0,0.25); }
+.yt-save-header { display:flex; justify-content:space-between; align-items:flex-start; padding:14px 18px; border-bottom:1px solid var(--border-color); }
+.yt-save-tabs { display:flex; gap:8px; padding:8px 14px 0; border-bottom:1px solid var(--border-color); }
+.yt-save-tab { padding:6px 14px; border:none; background:transparent; cursor:pointer; font-size:0.85rem; color:var(--text-muted); border-bottom:2px solid transparent; }
+.yt-save-tab.active { color:var(--text-primary); font-weight:600; border-bottom-color:#4f46e5; }
+.yt-save-list { flex:1; overflow-y:auto; padding:6px 0; }
+.yt-save-row { display:flex; justify-content:space-between; align-items:center; padding:9px 18px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #f3f4f6; }
+.yt-save-row:hover { background:#f9fafb; }
+.yt-save-row .yt-save-tag { font-size:0.7rem; padding:2px 8px; border-radius:4px; background:#eef2ff; color:#4f46e5; }
+.yt-save-row[data-saving="true"] { opacity:0.5; pointer-events:none; }
+.yt-save-row[data-saved="true"] { background:#ecfdf5; }
+.yt-save-row[data-saved="true"] .yt-save-tag { background:#d1fae5; color:#059669; }
+.yt-save-empty { padding:24px; text-align:center; color:var(--text-muted); font-size:0.85rem; }
+.yt-save-toast { position:absolute; bottom:14px; left:50%; transform:translateX(-50%); background:#111827; color:#fff; padding:8px 14px; border-radius:6px; font-size:0.82rem; }
+</style>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -741,6 +781,9 @@ const futuresRawTrends = {{ futures_raw_trends|safe }};
 const savedPrompts = {
     prompt_youtube: `{{ saved_prompts.prompt_youtube|default:""|escapejs }}`
 };
+const interestStocks = {{ interest_stocks_json|safe }};
+const customSectors = {{ custom_sectors_json|safe }};
+const ytCsrfToken = '{{ csrf_token }}';
 
 function copyToClipboard(text) {
     if (navigator.clipboard && window.isSecureContext) {
@@ -777,7 +820,10 @@ function renderYoutubeGrid(container, results, options) {
                 </a>
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;gap:6px;">
                     <div style="font-size:0.7rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${meta}</div>
-                    <span class="prompt-badge btn-copy-yt-prompt" data-url="${escHtml(item.url || '')}" style="cursor:pointer;background:#f3f4f6;color:var(--text-secondary);font-size:0.7rem;padding:2px 8px;flex-shrink:0;">프롬프트 복사</span>
+                    <div style="display:flex;gap:4px;flex-shrink:0;">
+                        <span class="prompt-badge btn-save-yt-target" data-url="${escHtml(item.url || '')}" data-title="${escHtml(item.title || '')}" style="cursor:pointer;background:#eef2ff;color:#4f46e5;font-size:0.7rem;padding:2px 8px;">저장</span>
+                        <span class="prompt-badge btn-copy-yt-prompt" data-url="${escHtml(item.url || '')}" style="cursor:pointer;background:#f3f4f6;color:var(--text-secondary);font-size:0.7rem;padding:2px 8px;">프롬프트 복사</span>
+                    </div>
                 </div>
             </div>`;
         }).join('') + `</div>`;
@@ -802,7 +848,142 @@ function renderYoutubeGrid(container, results, options) {
             }
         });
     });
+
+    container.querySelectorAll('.btn-save-yt-target').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openYtSaveModal(btn.dataset.url || '', btn.dataset.title || '');
+        });
+    });
 }
+
+// ===== 유튜브 저장 대상 선택 모달 =====
+const ytSaveModal = document.getElementById('ytSaveModal');
+const ytSaveTitle = document.getElementById('ytSaveTitle');
+const ytSaveSearch = document.getElementById('ytSaveSearch');
+const ytSaveList = document.getElementById('ytSaveList');
+const ytSaveToast = document.getElementById('ytSaveToast');
+const ytSaveStockCount = document.getElementById('ytSaveStockCount');
+const ytSaveSectorCount = document.getElementById('ytSaveSectorCount');
+let ytSaveCurrentUrl = '';
+let ytSaveCurrentTab = 'stocks';
+let ytSaveSavedKeys = new Set(); // 모달 세션 동안 저장된 항목 표시용
+
+ytSaveStockCount.textContent = `(${interestStocks.length})`;
+ytSaveSectorCount.textContent = `(${customSectors.length})`;
+
+function openYtSaveModal(url, title) {
+    if (!url) return;
+    ytSaveCurrentUrl = url;
+    ytSaveCurrentTab = 'stocks';
+    ytSaveSavedKeys = new Set();
+    ytSaveTitle.textContent = title || url;
+    ytSaveSearch.value = '';
+    document.querySelectorAll('.yt-save-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'stocks'));
+    renderYtSaveList();
+    ytSaveModal.style.display = 'flex';
+    ytSaveSearch.focus();
+}
+
+function closeYtSaveModal() {
+    ytSaveModal.style.display = 'none';
+}
+
+function renderYtSaveList() {
+    const q = ytSaveSearch.value.trim().toLowerCase();
+    let rows = '';
+    if (ytSaveCurrentTab === 'stocks') {
+        const filtered = interestStocks.filter(s =>
+            !q || (s.name || '').toLowerCase().includes(q) || (s.code || '').includes(q)
+        );
+        if (filtered.length === 0) {
+            rows = `<div class="yt-save-empty">관심종목이 없습니다.</div>`;
+        } else {
+            rows = filtered.map(s => {
+                const key = `stock:${s.code}`;
+                const saved = ytSaveSavedKeys.has(key);
+                const levelLabel = s.level === 'super' ? '초관심' : '관심';
+                return `<div class="yt-save-row" data-key="${key}" data-type="stock" data-id="${s.code}" data-saved="${saved}">
+                    <span><strong>${escHtml(s.name)}</strong> <span style="color:var(--text-muted);font-size:0.75rem;">${escHtml(s.code)}</span></span>
+                    <span class="yt-save-tag">${saved ? '저장됨' : levelLabel}</span>
+                </div>`;
+            }).join('');
+        }
+    } else {
+        const filtered = customSectors.filter(s => !q || (s.name || '').toLowerCase().includes(q));
+        if (filtered.length === 0) {
+            rows = `<div class="yt-save-empty">관심섹터가 없습니다.</div>`;
+        } else {
+            rows = filtered.map(s => {
+                const key = `sector:${s.id}`;
+                const saved = ytSaveSavedKeys.has(key);
+                return `<div class="yt-save-row" data-key="${key}" data-type="sector" data-id="${s.id}" data-saved="${saved}">
+                    <span><strong>${escHtml(s.name)}</strong></span>
+                    <span class="yt-save-tag">${saved ? '저장됨' : '저장'}</span>
+                </div>`;
+            }).join('');
+        }
+    }
+    ytSaveList.innerHTML = rows;
+}
+
+function showYtSaveToast(msg) {
+    ytSaveToast.textContent = msg;
+    ytSaveToast.style.display = 'block';
+    clearTimeout(showYtSaveToast._t);
+    showYtSaveToast._t = setTimeout(() => { ytSaveToast.style.display = 'none'; }, 1800);
+}
+
+document.querySelectorAll('.yt-save-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.yt-save-tab').forEach(t => t.classList.toggle('active', t === tab));
+        ytSaveCurrentTab = tab.dataset.tab;
+        renderYtSaveList();
+    });
+});
+
+ytSaveSearch.addEventListener('input', renderYtSaveList);
+document.getElementById('btnYtSaveClose').addEventListener('click', closeYtSaveModal);
+ytSaveModal.addEventListener('click', (e) => { if (e.target === ytSaveModal) closeYtSaveModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ytSaveModal.style.display === 'flex') closeYtSaveModal(); });
+
+ytSaveList.addEventListener('click', async (e) => {
+    const row = e.target.closest('.yt-save-row');
+    if (!row || row.dataset.saving === 'true' || row.dataset.saved === 'true') return;
+    const type = row.dataset.type;
+    const id = row.dataset.id;
+    if (!ytSaveCurrentUrl) return;
+    row.dataset.saving = 'true';
+    try {
+        const fd = new FormData();
+        fd.append('link', ytSaveCurrentUrl);
+        let endpoint;
+        if (type === 'stock') {
+            fd.append('stock_code', id);
+            endpoint = '/api/youtube/video/save-by-link/';
+        } else {
+            fd.append('sector_id', id);
+            endpoint = '/api/sector/youtube/video/save-by-link/';
+        }
+        const resp = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': ytCsrfToken },
+            body: fd
+        });
+        const data = await resp.json();
+        if (data.error) {
+            showYtSaveToast(data.error);
+        } else {
+            ytSaveSavedKeys.add(row.dataset.key);
+            showYtSaveToast('저장됨');
+            renderYtSaveList();
+        }
+    } catch (err) {
+        showYtSaveToast('오류: ' + err.message);
+    } finally {
+        row.dataset.saving = 'false';
+    }
+});
 
 // prompt-badge 스타일 (종목/뉴스와 동일)
 (function injectPromptBadgeStyle() {
