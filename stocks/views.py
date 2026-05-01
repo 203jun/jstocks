@@ -5958,9 +5958,10 @@ def youtube_video_save_by_link(request):
 
     stock = get_object_or_404(Info, code=stock_code)
 
-    # 이미 저장된 영상인지 확인
-    if YoutubeVideo.objects.filter(stock=stock, video_id=video_id).exists():
-        return JsonResponse({'error': '이미 저장된 영상입니다.'}, status=400)
+    # 이미 저장된 영상이면 기존 id 반환 (저장 모달 등에서 바로 이동 가능)
+    existing = YoutubeVideo.objects.filter(stock=stock, video_id=video_id).first()
+    if existing:
+        return JsonResponse({'success': True, 'id': existing.id, 'duplicate': True})
 
     # 유튜브 페이지에서 영상 정보 가져오기
     try:
@@ -9020,9 +9021,10 @@ def sector_youtube_video_save_by_link(request):
 
     sector = get_object_or_404(CustomSector, id=sector_id)
 
-    # 이미 저장된 영상인지 확인
-    if SectorYoutubeVideo.objects.filter(sector=sector, video_id=video_id).exists():
-        return JsonResponse({'error': '이미 저장된 영상입니다.'}, status=400)
+    # 이미 저장된 영상이면 기존 id 반환 (저장 모달 등에서 바로 이동 가능)
+    existing = SectorYoutubeVideo.objects.filter(sector=sector, video_id=video_id).first()
+    if existing:
+        return JsonResponse({'success': True, 'id': existing.id, 'duplicate': True})
 
     # 유튜브 페이지에서 영상 정보 가져오기
     try:

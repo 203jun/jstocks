@@ -758,16 +758,12 @@
 .yt-save-row:hover { background:var(--bg-secondary, #f9fafb); }
 .yt-save-row .yt-save-tag { font-size:0.7rem; padding:2px 8px; border-radius:4px; background:#eef2ff; color:#4f46e5; }
 .yt-save-row[data-saving="true"] { opacity:0.5; pointer-events:none; }
-.yt-save-row[data-saved="true"] { background:#ecfdf5; }
-.yt-save-row[data-saved="true"] .yt-save-tag { background:#d1fae5; color:#059669; }
 .yt-save-empty { padding:24px; text-align:center; color:var(--text-muted); font-size:0.85rem; }
 .yt-save-toast { position:absolute; bottom:14px; left:50%; transform:translateX(-50%); background:#111827; color:#fff; padding:8px 14px; border-radius:6px; font-size:0.82rem; box-shadow:0 4px 12px rgba(0,0,0,0.3); }
 
 /* Dark mode */
 [data-theme="dark"] .yt-save-overlay { background:rgba(0,0,0,0.65); }
 [data-theme="dark"] .yt-save-row .yt-save-tag { background:#1e2e4a; color:#93b4ff; }
-[data-theme="dark"] .yt-save-row[data-saved="true"] { background:#0e2a1f; }
-[data-theme="dark"] .yt-save-row[data-saved="true"] .yt-save-tag { background:#0e2a1f; color:#4ade80; }
 [data-theme="dark"] .yt-save-toast { background:#0b1220; border:1px solid var(--border-color); }
 </style>
 
@@ -874,7 +870,6 @@ const ytSaveStockCount = document.getElementById('ytSaveStockCount');
 const ytSaveSectorCount = document.getElementById('ytSaveSectorCount');
 let ytSaveCurrentUrl = '';
 let ytSaveCurrentTab = 'stocks';
-let ytSaveSavedKeys = new Set(); // 모달 세션 동안 저장된 항목 표시용
 
 ytSaveStockCount.textContent = `(${interestStocks.length})`;
 ytSaveSectorCount.textContent = `(${customSectors.length})`;
@@ -883,7 +878,6 @@ function openYtSaveModal(url, title) {
     if (!url) return;
     ytSaveCurrentUrl = url;
     ytSaveCurrentTab = 'stocks';
-    ytSaveSavedKeys = new Set();
     ytSaveTitle.textContent = title || url;
     ytSaveSearch.value = '';
     document.querySelectorAll('.yt-save-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'stocks'));
@@ -907,12 +901,10 @@ function renderYtSaveList() {
             rows = `<div class="yt-save-empty">관심종목이 없습니다.</div>`;
         } else {
             rows = filtered.map(s => {
-                const key = `stock:${s.code}`;
-                const saved = ytSaveSavedKeys.has(key);
                 const levelLabel = s.level === 'super' ? '초관심' : '관심';
-                return `<div class="yt-save-row" data-key="${key}" data-type="stock" data-id="${s.code}" data-saved="${saved}">
+                return `<div class="yt-save-row" data-type="stock" data-id="${s.code}">
                     <span><strong>${escHtml(s.name)}</strong> <span style="color:var(--text-muted);font-size:0.75rem;">${escHtml(s.code)}</span></span>
-                    <span class="yt-save-tag">${saved ? '저장됨' : levelLabel}</span>
+                    <span class="yt-save-tag">${levelLabel}</span>
                 </div>`;
             }).join('');
         }
@@ -922,11 +914,8 @@ function renderYtSaveList() {
             rows = `<div class="yt-save-empty">관심섹터가 없습니다.</div>`;
         } else {
             rows = filtered.map(s => {
-                const key = `sector:${s.id}`;
-                const saved = ytSaveSavedKeys.has(key);
-                return `<div class="yt-save-row" data-key="${key}" data-type="sector" data-id="${s.id}" data-saved="${saved}">
+                return `<div class="yt-save-row" data-type="sector" data-id="${s.id}">
                     <span><strong>${escHtml(s.name)}</strong></span>
-                    <span class="yt-save-tag">${saved ? '저장됨' : '저장'}</span>
                 </div>`;
             }).join('');
         }
