@@ -6724,6 +6724,12 @@ def _parse_financial_table(raw_text, field_map, first_labels=None, int_fields=No
         if field_name is not None and i + 1 < len(lines):
             values_line = lines[i + 1]
             values = values_line.split('\t')
+            # 헤더는 [항목, P1, P2, ...] 형태이고 값 라인은 보통 [<empty>, V1, V2, ...]로
+            # 첫 칸이 행 라벨 자리(빈 칸)이다. 헤더 정렬에 맞추려면 빈 첫 칸을 버린다.
+            # 신규상장 등으로 일부 기간 값이 비어 있을 때 1칸 어긋나면 모든 값이 한 칸씩
+            # 잘못 매핑돼 결과적으로 저장이 누락된다.
+            if values and values[0].strip() == '':
+                values = values[1:]
             matched_labels.append({'label': label, 'field': field_name, 'values_count': len(values)})
 
             for j, val_str in enumerate(values):
