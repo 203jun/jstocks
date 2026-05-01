@@ -682,6 +682,23 @@
         <div id="threeproResult" class="d-none"></div>
         <div id="threeproEmpty" style="color:var(--text-muted);font-size:0.85rem;">버튼을 클릭하면 최신 영상을 불러옵니다.</div>
     </div>
+
+    <!-- 815 찐시황 -->
+    <div class="brief-card" style="margin-top: 12px;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span style="font-size:0.82rem;color:var(--text-muted);">815 찐시황 · 최신 영상</span>
+            <div class="d-flex gap-2">
+                <a href="https://www.youtube.com/@815moneytalk" target="_blank" class="btn-refresh" style="padding: 6px 16px;text-decoration:none;">채널</a>
+                <button type="button" id="btnFetch815" class="btn-refresh" style="padding: 6px 16px;">불러오기</button>
+            </div>
+        </div>
+        <div id="m815Loading" class="text-center py-4 d-none">
+            <div class="spinner-border spinner-border-sm" role="status" style="color: var(--text-muted);"></div>
+            <span style="margin-left:8px;font-size:0.85rem;color:var(--text-muted);">불러오는 중...</span>
+        </div>
+        <div id="m815Result" class="d-none"></div>
+        <div id="m815Empty" style="color:var(--text-muted);font-size:0.85rem;">버튼을 클릭하면 최신 영상을 불러옵니다.</div>
+    </div>
 </div>
 
 {% endblock %}
@@ -1016,6 +1033,67 @@ btnFetch3pro.addEventListener('click', async () => {
     } finally {
         btnFetch3pro.disabled = false;
         threeproLoading.classList.add('d-none');
+    }
+});
+
+// ===== 815 찐시황 =====
+const btnFetch815 = document.getElementById('btnFetch815');
+const m815Loading = document.getElementById('m815Loading');
+const m815Result = document.getElementById('m815Result');
+const m815Empty = document.getElementById('m815Empty');
+
+const M815_CACHE_KEY = 'm815CacheV1';
+const M815_CACHE_TTL = 24 * 60 * 60 * 1000;
+const M815_QUERY = '815머니톡 찐시황';
+
+function renderM815Results(results) {
+    m815Result.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">` +
+        results.map(item =>
+            `<a href="${item.url}" target="_blank" style="text-decoration:none;color:var(--text-body);">
+                <img src="${item.thumbnail}" style="width:100%;border-radius:6px;aspect-ratio:16/9;object-fit:cover;">
+                <div style="font-size:0.8rem;line-height:1.4;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${item.title}</div>
+                ${item.published ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">${item.published}</div>` : ''}
+            </a>`
+        ).join('') + `</div>`;
+    m815Result.classList.remove('d-none');
+    m815Empty.classList.add('d-none');
+}
+
+(function loadM815Cache() {
+    try {
+        const cached = JSON.parse(localStorage.getItem(M815_CACHE_KEY));
+        if (cached && Date.now() - cached.ts < M815_CACHE_TTL && cached.results.length > 0) {
+            renderM815Results(cached.results);
+        }
+    } catch(e) {}
+})();
+
+btnFetch815.addEventListener('click', async () => {
+    btnFetch815.disabled = true;
+    m815Loading.classList.remove('d-none');
+    m815Result.classList.add('d-none');
+    m815Empty.classList.add('d-none');
+
+    try {
+        const response = await fetch(`/api/youtube-search/?q=${encodeURIComponent(M815_QUERY)}&limit=15`);
+        const data = await response.json();
+
+        if (data.error) {
+            m815Result.innerHTML = `<div style="color:var(--up-color);padding:12px;background:#fef2f2;border-radius:8px;">${data.error}</div>`;
+            m815Result.classList.remove('d-none');
+        } else if (data.results.length === 0) {
+            m815Result.innerHTML = '<div style="color:var(--text-muted);">영상이 없습니다.</div>';
+            m815Result.classList.remove('d-none');
+        } else {
+            localStorage.setItem(M815_CACHE_KEY, JSON.stringify({ ts: Date.now(), results: data.results }));
+            renderM815Results(data.results);
+        }
+    } catch (err) {
+        m815Result.innerHTML = `<div style="color:var(--up-color);padding:12px;background:#fef2f2;border-radius:8px;">오류: ${err.message}</div>`;
+        m815Result.classList.remove('d-none');
+    } finally {
+        btnFetch815.disabled = false;
+        m815Loading.classList.add('d-none');
     }
 });
 

@@ -69,6 +69,7 @@ urlpatterns = [
     path('api/morning-market/', views.fetch_morning_market, name='fetch_morning_market'),
     path('api/habono/', views.fetch_habono, name='fetch_habono'),
     path('api/youtube-channel/', views.fetch_youtube_channel, name='fetch_youtube_channel'),
+    path('api/youtube-search/', views.fetch_youtube_search, name='fetch_youtube_search'),
     # 투자일기
     path('api/diary/', views.diary_list, name='diary_list'),
     path('api/diary/save/', views.diary_save, name='diary_save'),

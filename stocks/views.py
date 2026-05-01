@@ -2356,6 +2356,68 @@ def fetch_youtube_channel(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+def fetch_youtube_search(request):
+    """유튜브 키워드 검색 결과 (최신순) 가져오기"""
+    import requests as http_requests
+    import re
+    from urllib.parse import quote
+
+    query = request.GET.get('q', '').strip()
+    limit = int(request.GET.get('limit', 15))
+    if not query:
+        return JsonResponse({'error': '검색어가 없습니다.'}, status=400)
+
+    # sp=CAISAhAB : 업로드 날짜순(최신) + 동영상 필터
+    url = f'https://www.youtube.com/results?search_query={quote(query)}&sp=CAISAhAB'
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        resp = http_requests.get(url, headers=headers, timeout=10)
+        resp.raise_for_status()
+
+        match = re.search(r'var ytInitialData = ({.*?});</script>', resp.text)
+        if not match:
+            return JsonResponse({'error': '유튜브 데이터를 파싱할 수 없습니다.'}, status=500)
+
+        data = json.loads(match.group(1))
+        sections = data['contents']['twoColumnSearchResultsRenderer']['primaryContents']['sectionListRenderer']['contents']
+
+        results = []
+        for section in sections:
+            for item in section.get('itemSectionRenderer', {}).get('contents', []):
+                vid = item.get('videoRenderer')
+                if not vid:
+                    continue
+                vid_id = vid.get('videoId')
+                if not vid_id:
+                    continue
+                title_runs = vid.get('title', {}).get('runs', [])
+                title = title_runs[0]['text'] if title_runs else ''
+                published = vid.get('publishedTimeText', {}).get('simpleText', '')
+                channel = ''
+                owner_runs = vid.get('ownerText', {}).get('runs', [])
+                if owner_runs:
+                    channel = owner_runs[0].get('text', '')
+
+                results.append({
+                    'video_id': vid_id,
+                    'title': title,
+                    'thumbnail': f'https://i.ytimg.com/vi/{vid_id}/mqdefault.jpg',
+                    'url': f'https://www.youtube.com/watch?v={vid_id}',
+                    'published': published,
+                    'channel': channel,
+                })
+                if len(results) >= limit:
+                    break
+            if len(results) >= limit:
+                break
+
+        return JsonResponse({'success': True, 'results': results})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 @require_GET
 def market_youtube_list(request):
     """시황 유튜브 목록 API (페이지네이션)"""
