@@ -209,7 +209,7 @@
                         {% if item.signal_info %}{% if item.signal_info.signal_days_ago > 0 %}<span style="color:var(--text-muted);">{{ item.signal_info.signal_days_ago }}일전</span> {% endif %}<span class="signal-chart-btn {% if item.signal_info.signal_price_change > 0 %}text-up{% elif item.signal_info.signal_price_change < 0 %}text-down{% endif %}" style="text-decoration:underline;cursor:pointer;" data-code="{{ item.stock.code }}" data-name="{{ item.stock.name }}" data-signal-date="{{ item.signal_info.signal_date }}" data-signal-open="{{ item.signal_info.signal_open }}" data-signal-close="{{ item.signal_info.signal_close }}" data-current-price="{{ item.signal_info.current_price }}">{% if item.signal_info.signal_price_change > 0 %}+{% endif %}{{ item.signal_info.signal_price_change }}%</span>{% endif %}
                     </td>
                     <td style="text-align:center;">
-                        {% if item.pullback is not None %}&#10003;<span style="font-size:0.65rem;color:var(--text-muted);margin-left:2px;">{{ item.pullback }}%</span>{% endif %}
+                        {% if item.pullback_label %}<span style="font-size:0.72rem;{% if item.pullback_label == '얕은눌림' %}color:#e89800;{% elif item.pullback_label == '깊은눌림' %}color:var(--down-color);{% endif %}">{{ item.pullback_label }}</span><span style="font-size:0.65rem;{% if item.pullback < 0 %}color:var(--down-color);{% else %}color:var(--text-muted);{% endif %}margin-left:2px;">({{ item.pullback }}%)</span>{% endif %}
                     </td>
                     <td style="text-align:center;font-size:0.78rem;">{% if item.inst_label %}<span style="color:var(--up-color);font-weight:600;">{{ item.inst_label }}</span>{% endif %}</td>
                     <td style="text-align:center;font-size:0.78rem;">{% if item.frgn_label %}<span style="color:var(--up-color);font-weight:600;">{{ item.frgn_label }}</span>{% endif %}</td>
@@ -229,9 +229,9 @@
 </div>
 
 <div style="font-size:0.7rem;color:var(--text-muted);line-height:1.8;margin-top:8px;padding:0 4px;">
-    <span style="margin-right:12px;"><strong>배열</strong> <span style="color:var(--up-color);">▲</span>정(10>20>60) <span style="color:var(--down-color);">▼</span>역(10<20<60) <span>▬</span>혼조</span>
+    <span style="margin-right:12px;"><strong>배열</strong> <span style="color:var(--up-color);">▲</span>정(5>20>60>120+0.5%마진+120선↑) <span style="color:var(--down-color);">▼</span>역(반대+120선↓) <span>▬</span>혼조</span>
     <span style="margin-right:12px;"><strong>거래량</strong> 20일/60일 신고, <span style="color:var(--up-color);">양봉</span>/<span style="color:var(--down-color);">음봉</span></span>
-    <span style="margin-right:12px;"><strong>눌림목</strong> 20>60 정배열+60선 상승중+20선 아래로 눌림, 60선 대비 %표시</span>
+    <span style="margin-right:12px;"><strong>눌림목</strong> 정배열 시 MA20 이격률 기준: 과열(+5%↑) 추세중(+2~5%) 얕은눌림(-2~+2%) 깊은눌림(-5~-2%) 이탈(-5%↓)</span>
     <span style="margin-right:12px;"><strong>기관/외국인</strong> 20일=20일 최대 순매수, 숫자=연속 순매수 일수(3일 이상)</span>
     <span style="margin-right:12px;"><strong>신호</strong> 신고거래량(20/60일)+양봉+MA20위 발생 후 10거래일 내 종가 대비 등락, 클릭 시 차트</span>
     <span style="margin-right:12px;"><strong>리포트</strong> 3거래일 내</span>

@@ -467,9 +467,9 @@ def index(request):
     card_d_codes = {item['stock'].code for item in card_d_stocks}
     status_stocks = []
     for stock in target_stocks:
-        daily_data = list(DailyChart.objects.filter(stock=stock).order_by('-date')[:65])
+        daily_data = list(DailyChart.objects.filter(stock=stock).order_by('-date')[:130])
         if not daily_data:
-            status_stocks.append({'stock': stock, 'level': stock.interest_level, 'vol_high_20': False, 'vol_high_60': False, 'ma_align': '', 'pullback': None, 'has_report': False, 'has_nodaji': False, 'inst_label': '', 'frgn_label': ''})
+            status_stocks.append({'stock': stock, 'level': stock.interest_level, 'vol_high_20': False, 'vol_high_60': False, 'ma_align': '', 'pullback': None, 'pullback_label': '', 'has_report': False, 'has_nodaji': False, 'inst_label': '', 'frgn_label': ''})
             continue
 
         today = daily_data[0]
@@ -480,34 +480,39 @@ def index(request):
 
         # 배열 판단
         ma_align = ''
-        if len(daily_data) >= 60:
-            ma10 = sum(d.closing_price for d in daily_data[:10]) / 10
+        if len(daily_data) >= 125:
+            ma5 = sum(d.closing_price for d in daily_data[:5]) / 5
             ma20 = sum(d.closing_price for d in daily_data[:20]) / 20
             ma60 = sum(d.closing_price for d in daily_data[:60]) / 60
-            if ma10 > ma20 > ma60:
+            ma120 = sum(d.closing_price for d in daily_data[:120]) / 120
+            ma120_prev = sum(d.closing_price for d in daily_data[5:125]) / 120
+            m = 1.005
+            if (ma5 > ma20 * m and ma20 > ma60 * m and ma60 > ma120 * m
+                    and ma120 > ma120_prev):
                 ma_align = 'bull'
-            elif ma10 < ma20 < ma60:
+            elif (ma5 * m < ma20 and ma20 * m < ma60 and ma60 * m < ma120
+                  and ma120 < ma120_prev):
                 ma_align = 'bear'
             else:
                 ma_align = 'mixed'
 
-        # 눌림목 판단
+        # 눌림목 판단 (정배열일 때만)
         pullback = None
-        if stock.code in card_d_codes:
-            # card_d에서 gap_from_ma60 가져오기
-            for item in card_d_stocks:
-                if item['stock'].code == stock.code:
-                    pullback = item['gap_from_ma60']
-                    break
-        elif len(daily_data) >= 65:
-            # card_d에 없어도 직접 체크 (card_a/b에 있어서 제외된 경우)
-            ma20 = sum(d.closing_price for d in daily_data[:20]) / 20
-            ma60 = sum(d.closing_price for d in daily_data[:60]) / 60
-            ma60_5d = sum(d.closing_price for d in daily_data[5:65]) / 60
-            if (ma20 > ma60 and ma60 > ma60_5d
-                    and today.closing_price < ma20
-                    and today.closing_price >= ma60 * 0.90):
-                pullback = round((today.closing_price / ma60 - 1) * 100, 1)
+        pullback_label = ''
+        if ma_align == 'bull' and len(daily_data) >= 20:
+            _ma20 = sum(d.closing_price for d in daily_data[:20]) / 20
+            gap_pct = round((today.closing_price - _ma20) / _ma20 * 100, 1)
+            pullback = gap_pct
+            if gap_pct > 5:
+                pullback_label = '과열'
+            elif gap_pct > 2:
+                pullback_label = '추세중'
+            elif gap_pct > -2:
+                pullback_label = '얕은눌림'
+            elif gap_pct > -5:
+                pullback_label = '깊은눌림'
+            else:
+                pullback_label = '이탈'
 
         # 10일 스파크라인
         sparkline = [d.closing_price for d in daily_data[:10]]
@@ -609,6 +614,7 @@ def index(request):
             'is_bullish': today.closing_price >= today.opening_price if today.opening_price else True,
             'ma_align': ma_align,
             'pullback': pullback,
+            'pullback_label': pullback_label,
             'has_report': has_report,
             'has_nodaji': has_nodaji,
             'report_gap': report_gap,
@@ -3972,13 +3978,18 @@ def etf(request):
 
         # 배열 판단
         ma_align = ''
-        if len(daily_data) >= 60:
-            ma10 = sum(d.closing_price for d in daily_data[:10]) / 10
+        if len(daily_data) >= 125:
+            ma5 = sum(d.closing_price for d in daily_data[:5]) / 5
             ma20 = sum(d.closing_price for d in daily_data[:20]) / 20
             ma60 = sum(d.closing_price for d in daily_data[:60]) / 60
-            if ma10 > ma20 > ma60:
+            ma120 = sum(d.closing_price for d in daily_data[:120]) / 120
+            ma120_prev = sum(d.closing_price for d in daily_data[5:125]) / 120
+            m = 1.005
+            if (ma5 > ma20 * m and ma20 > ma60 * m and ma60 > ma120 * m
+                    and ma120 > ma120_prev):
                 ma_align = 'bull'
-            elif ma10 < ma20 < ma60:
+            elif (ma5 * m < ma20 and ma20 * m < ma60 and ma60 * m < ma120
+                  and ma120 < ma120_prev):
                 ma_align = 'bear'
             else:
                 ma_align = 'mixed'

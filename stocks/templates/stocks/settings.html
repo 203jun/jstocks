@@ -221,6 +221,26 @@ small.text-muted {
     border-color: #7c3aed;
 }
 
+.info-sub-tab {
+    padding: 6px 14px;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.info-sub-tab:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+.info-sub-tab.active {
+    color: var(--text-primary);
+    font-weight: 700;
+    border-color: var(--border-color);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-card);
+}
+
 /* 변수 칩 */
 .var-chip {
     display: inline-block;
@@ -323,6 +343,9 @@ small.text-muted {
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="sector-tab" data-bs-toggle="tab" data-bs-target="#sector-panel" type="button" role="tab">섹터</button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-panel" type="button" role="tab">정보</button>
+    </li>
 </ul>
 
 <!-- 탭 콘텐츠 -->
@@ -398,6 +421,44 @@ small.text-muted {
         </div>
         <div style="margin-top:12px;font-size:0.78rem;color:var(--text-muted);">
             <strong>사용법:</strong> 섹터를 추가하면 '섹터' 페이지 하단에 표시됩니다.
+        </div>
+    </div>
+
+    <!-- 정보 탭 -->
+    <div class="tab-pane fade" id="info-panel" role="tabpanel">
+        <!-- 정보 하위 탭 -->
+        <div class="d-flex flex-wrap gap-2 mb-3" id="infoSubTabs">
+            <button class="info-sub-tab active" data-target="info-terms-panel">용어</button>
+        </div>
+
+        <!-- 용어 패널 -->
+        <div class="info-panel-content" id="info-terms-panel" style="display:block;">
+            <div class="brief-card">
+                <div style="margin-bottom:18px;">
+                    <div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">배열</div>
+                    <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.6;">
+                        MA5, MA20, MA60, MA120 네 개의 이동평균선 순서와 MA120 기울기로 판정.<br>
+                        인접한 이평선 쌍마다 0.5% 이상 차이가 있어야 인정.<br><br>
+                        <strong>▲ 정배열:</strong> MA5 &gt; MA20 &gt; MA60 &gt; MA120 (각 0.5%↑ 마진) + MA120 상승 중 (5일 전 대비)<br>
+                        <strong>▼ 역배열:</strong> MA5 &lt; MA20 &lt; MA60 &lt; MA120 (각 0.5%↑ 마진) + MA120 하락 중 (5일 전 대비)<br>
+                        <strong>━ 혼조:</strong> 위 두 조건에 해당하지 않는 모든 경우
+                    </div>
+                </div>
+
+                <div style="margin-bottom:18px;">
+                    <div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">눌림목</div>
+                    <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.6;">
+                        정배열일 때만 표시. MA20 이격률 = (종가 - MA20) / MA20 × 100 으로 판정.<br><br>
+                        <strong>과열:</strong> 이격률 +5% 초과<br>
+                        <strong>추세중:</strong> 이격률 +2% ~ +5%<br>
+                        <strong style="color:#e89800;">얕은눌림:</strong> 이격률 -2% ~ +2% <span style="color:#e89800;">(주황)</span><br>
+                        <strong style="color:var(--down-color);">깊은눌림:</strong> 이격률 -5% ~ -2% <span style="color:var(--down-color);">(빨강)</span><br>
+                        <strong>이탈:</strong> 이격률 -5% 미만 (추세 훼손 의심)<br><br>
+                        이격률이 음수(-)이면 <span style="color:var(--down-color);">빨간색</span>으로 표시 (매수 기회 신호)
+                    </div>
+                </div>
+
+            </div>
         </div>
     </div>
 
@@ -670,6 +731,16 @@ document.querySelectorAll('.prompt-sub-tab').forEach(tab => {
         document.querySelectorAll('.prompt-sub-tab').forEach(t => t.classList.remove('active'));
         this.classList.add('active');
         document.querySelectorAll('.prompt-panel').forEach(p => p.style.display = 'none');
+        document.getElementById(this.dataset.target).style.display = 'block';
+    });
+});
+
+// 정보 서브탭 전환
+document.querySelectorAll('.info-sub-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.info-sub-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.info-panel-content').forEach(p => p.style.display = 'none');
         document.getElementById(this.dataset.target).style.display = 'block';
     });
 });
