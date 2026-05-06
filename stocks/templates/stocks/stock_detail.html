@@ -1138,6 +1138,7 @@
                 <div style="font-size:1.1rem;font-weight:700;{% if supply_dashboard.short_pnl > 5 %}color:var(--up-color);{% elif supply_dashboard.short_pnl < -5 %}color:var(--down-color);{% else %}color:var(--text-muted);{% endif %}">
                     {% if supply_dashboard.short_pnl > 0 %}+{% endif %}{{ supply_dashboard.short_pnl }}%
                 </div>
+                <div style="font-size:0.7rem;color:var(--text-muted);">평균가 {{ supply_dashboard.short_avg_price|intcomma }}</div>
             </div>
         </div>
 

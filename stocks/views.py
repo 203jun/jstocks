@@ -993,6 +993,7 @@ def stock_detail(request, code):
             'short_weight': round(today_short_weight, 1),
             'z_score': z_score,
             'short_pnl': short_pnl,
+            'short_avg_price': round(short_avg_price),
             'window': window,
         }
 
