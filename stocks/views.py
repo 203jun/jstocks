@@ -959,8 +959,8 @@ def stock_detail(request, code):
         today_short_weight = short_weights[-1] if short_weights else 0
         z_score = round((today_short_weight - short_avg) / short_std, 2) if short_std > 0 else 0
 
-        # 숏 손익률
-        cum_short_value = sum(s.short_trading_value or 0 for s in shorts_asc[-window:])
+        # 숏 손익률 (short_trading_value는 천원 단위이므로 ×1000)
+        cum_short_value = sum((s.short_trading_value or 0) * 1000 for s in shorts_asc[-window:])
         cum_short_vol = sum(s.short_volume or 0 for s in shorts_asc[-window:])
         short_avg_price = cum_short_value / cum_short_vol if cum_short_vol > 0 else 0
         short_pnl = round((current_price - short_avg_price) / short_avg_price * 100, 1) if short_avg_price > 0 else 0
@@ -996,18 +996,15 @@ def stock_detail(request, code):
             'window': window,
         }
 
-        # 주별 차트 (5거래일씩 묶어 최대 9주)
-        week_count = min(9, len(trends_asc) // 5)
-        chart_trends = trends_asc[-(week_count * 5):]
-        chart_shorts = shorts_asc[-(week_count * 5):]
-        for w in range(week_count):
-            week_t = chart_trends[w * 5:(w + 1) * 5]
-            week_s = chart_shorts[w * 5:(w + 1) * 5]
+        # 일별 차트 데이터
+        shorts_date_map = {s.date: s for s in shorts_asc}
+        for t in trends_asc[-window:]:
+            s = shorts_date_map.get(t.date)
             supply_dashboard_chart.append({
-                'label': week_t[-1].date.strftime('%m.%d'),
-                'foreign': sum(t.daum_foreign or 0 for t in week_t),
-                'institution': sum(t.daum_institution or 0 for t in week_t),
-                'short_weight': round(statistics.mean([float(s.trading_weight or 0) for s in week_s]), 2),
+                'label': t.date.strftime('%m.%d'),
+                'foreign': t.daum_foreign or 0,
+                'institution': t.daum_institution or 0,
+                'short_weight': float(s.trading_weight or 0) if s else 0,
             })
 
     # 저장된 뉴스 (게시일 최신순)
