@@ -928,44 +928,47 @@ def stock_detail(request, code):
     shorts_list = list(short_sellings)
     daum_count = len(investor_trends_daum)
     short_count = len(shorts_list)
-    if daum_count < 60 or short_count < 60:
+    min_days = 20
+    if daum_count < min_days or short_count < min_days:
         reasons = []
-        if daum_count < 60:
-            reasons.append(f'수급 데이터 {daum_count}/60일')
-        if short_count < 60:
-            reasons.append(f'공매도 데이터 {short_count}/60일')
+        if daum_count < min_days:
+            reasons.append(f'수급 데이터 {daum_count}/{min_days}일')
+        if short_count < min_days:
+            reasons.append(f'공매도 데이터 {short_count}/{min_days}일')
         supply_dashboard_reason = '데이터 부족: ' + ', '.join(reasons)
-    if daum_count >= 60 and short_count >= 60:
+    if daum_count >= min_days and short_count >= min_days:
         import statistics
         trends_asc = sorted(investor_trends_daum, key=lambda t: t.date)
         shorts_asc = sorted(shorts_list, key=lambda s: s.date)
+        # 사용할 윈도우: 최대 60일, 있는 만큼
+        window = min(60, daum_count, short_count)
 
         latest = trends_asc[-1]
         latest_dc = daily_charts_map.get(latest.date)
         current_price = latest_dc.closing_price if latest_dc else (stock.current_price or 0)
         today_volume = latest_dc.trading_volume if latest_dc else 0
 
-        # 외국인/기관 60일 누적
-        foreign_60 = sum(t.daum_foreign or 0 for t in trends_asc[-60:])
-        inst_60 = sum(t.daum_institution or 0 for t in trends_asc[-60:])
+        # 외국인/기관 누적
+        foreign_cum = sum(t.daum_foreign or 0 for t in trends_asc[-window:])
+        inst_cum = sum(t.daum_institution or 0 for t in trends_asc[-window:])
 
-        # 공매도 비중 60일
-        short_weights = [float(s.trading_weight or 0) for s in shorts_asc[-60:]]
+        # 공매도 비중
+        short_weights = [float(s.trading_weight or 0) for s in shorts_asc[-window:]]
         short_avg = statistics.mean(short_weights) if short_weights else 0
         short_std = statistics.stdev(short_weights) if len(short_weights) > 1 else 1
         today_short_weight = short_weights[-1] if short_weights else 0
         z_score = round((today_short_weight - short_avg) / short_std, 2) if short_std > 0 else 0
 
         # 숏 손익률
-        cum_short_value = sum(s.short_trading_value or 0 for s in shorts_asc[-60:])
-        cum_short_vol = sum(s.short_volume or 0 for s in shorts_asc[-60:])
+        cum_short_value = sum(s.short_trading_value or 0 for s in shorts_asc[-window:])
+        cum_short_vol = sum(s.short_volume or 0 for s in shorts_asc[-window:])
         short_avg_price = cum_short_value / cum_short_vol if cum_short_vol > 0 else 0
         short_pnl = round((current_price - short_avg_price) / short_avg_price * 100, 1) if short_avg_price > 0 else 0
 
         # C1: 수급 모멘텀
         recent_5 = sum((t.daum_foreign or 0) + (t.daum_institution or 0) for t in trends_asc[-5:])
-        daily_avg_60 = sum((t.daum_foreign or 0) + (t.daum_institution or 0) for t in trends_asc[-60:]) / 60
-        c1 = (recent_5 / 5) / daily_avg_60 * 100 if daily_avg_60 != 0 else 0
+        daily_avg = sum((t.daum_foreign or 0) + (t.daum_institution or 0) for t in trends_asc[-window:]) / window
+        c1 = (recent_5 / 5) / daily_avg * 100 if daily_avg != 0 else 0
         c1 = max(-100, min(100, c1))
 
         # C2: 공매도 Z-score 부호 반전
@@ -985,11 +988,12 @@ def stock_detail(request, code):
 
         supply_dashboard = {
             'score': total_score,
-            'foreign_60': foreign_60,
-            'inst_60': inst_60,
+            'foreign_cum': foreign_cum,
+            'inst_cum': inst_cum,
             'short_weight': round(today_short_weight, 1),
             'z_score': z_score,
             'short_pnl': short_pnl,
+            'window': window,
         }
 
         # 주별 차트 (5거래일씩 묶어 최대 9주)

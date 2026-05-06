@@ -1110,18 +1110,18 @@
                     {% if supply_dashboard.score > 0 %}+{% endif %}{{ supply_dashboard.score }}
                 </div>
             </div>
-            <!-- 외국인 60일 누적 -->
+            <!-- 외국인 누적 -->
             <div style="flex:1;min-width:120px;padding:12px;border-radius:8px;background:var(--bg-secondary);text-align:center;">
-                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">외국인 60일</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">외국인 {{ supply_dashboard.window }}일</div>
                 <div style="font-size:1.1rem;font-weight:700;color:#198754;">
-                    {{ supply_dashboard.foreign_60|intcomma }}
+                    {{ supply_dashboard.foreign_cum|intcomma }}
                 </div>
             </div>
-            <!-- 기관 60일 누적 -->
+            <!-- 기관 누적 -->
             <div style="flex:1;min-width:120px;padding:12px;border-radius:8px;background:var(--bg-secondary);text-align:center;">
-                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">기관 60일</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">기관 {{ supply_dashboard.window }}일</div>
                 <div style="font-size:1.1rem;font-weight:700;color:#dc3545;">
-                    {{ supply_dashboard.inst_60|intcomma }}
+                    {{ supply_dashboard.inst_cum|intcomma }}
                 </div>
             </div>
             <!-- 공매도 비중 + Z-score -->
