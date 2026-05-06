@@ -3940,6 +3940,7 @@ def settings(request):
         'custom_sectors': custom_sectors,
         'saved_prompts': saved_prompts,
         'briefing_data_types': briefing_data_types,
+        'telegram_channels': {str(k): v for k, v in TELEGRAM_CHANNELS.items()},
     }
     return render(request, 'stocks/settings.html', context)
 

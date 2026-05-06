@@ -429,6 +429,7 @@ small.text-muted {
         <!-- 정보 하위 탭 -->
         <div class="d-flex flex-wrap gap-2 mb-3" id="infoSubTabs">
             <button class="info-sub-tab active" data-target="info-terms-panel">용어</button>
+            <button class="info-sub-tab" data-target="info-telegram-panel">텔레그램</button>
         </div>
 
         <!-- 용어 패널 -->
@@ -452,12 +453,37 @@ small.text-muted {
                         <strong>과열:</strong> 이격률 +5% 초과<br>
                         <strong>추세중:</strong> 이격률 +2% ~ +5%<br>
                         <strong style="color:#e89800;">얕은눌림:</strong> 이격률 -2% ~ +2% <span style="color:#e89800;">(주황)</span><br>
-                        <strong style="color:var(--down-color);">깊은눌림:</strong> 이격률 -5% ~ -2% <span style="color:var(--down-color);">(빨강)</span><br>
+                        <strong style="color:var(--up-color);">깊은눌림:</strong> 이격률 -5% ~ -2% <span style="color:var(--up-color);">(빨강)</span><br>
                         <strong>이탈:</strong> 이격률 -5% 미만 (추세 훼손 의심)<br><br>
-                        이격률이 음수(-)이면 <span style="color:var(--down-color);">빨간색</span>으로 표시 (매수 기회 신호)
+                        이격률이 음수(-)이면 <span style="color:var(--up-color);">빨간색</span>으로 표시 (매수 기회 신호)
                     </div>
                 </div>
 
+            </div>
+        </div>
+
+        <!-- 텔레그램 패널 -->
+        <div class="info-panel-content" id="info-telegram-panel" style="display:none;">
+            <div class="brief-card">
+                <div style="margin-bottom:16px;">
+                    <div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">검색 결과 숫자 의미</div>
+                    <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.6;">
+                        채널 탭에 표시되는 숫자 2개:<br>
+                        <strong style="color:var(--up-color);">빨간 숫자</strong> = 최근 7일 이내 메시지 수<br>
+                        <strong style="color:var(--text-muted);">회색 숫자</strong> = 검색된 전체 메시지 수
+                    </div>
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:10px;">등록된 채널/그룹 ({{ telegram_channels|length }}개)</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        {% for ch_id, ch_name in telegram_channels.items %}
+                        <span style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:0.78rem;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-secondary);">
+                            {{ ch_name }} <span style="font-size:0.68rem;color:var(--text-muted);">{{ ch_id }}</span>
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
