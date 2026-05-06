@@ -994,6 +994,12 @@ def stock_detail(request, code):
             'z_score': z_score,
             'short_pnl': short_pnl,
             'window': window,
+            'debug_cum_value': cum_short_value,
+            'debug_cum_vol': cum_short_vol,
+            'debug_avg_price': round(short_avg_price),
+            'debug_current_price': current_price,
+            'debug_start_date': shorts_asc[-window].date.strftime('%Y-%m-%d'),
+            'debug_end_date': shorts_asc[-1].date.strftime('%Y-%m-%d'),
         }
 
         # 일별 차트 데이터
