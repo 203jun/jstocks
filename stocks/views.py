@@ -1492,6 +1492,7 @@ def etf_signal_chart_data(request, code):
 
 # 텔레그램 채널 목록 (채널ID: 표시명)
 TELEGRAM_CHANNELS = {
+    '@sunstudy1004': '선진짱',
     '@darthacking': '주식공시',
     '@valjuman': 'GL리서치',
     '@gaoshoukorea': '재야의고수',
@@ -1519,6 +1520,10 @@ TELEGRAM_CHANNELS = {
     '@jeilstock': '이지스',
     '@butler_works': '버틀러리포트',
     '@pharmbiohana': '원리버',
+    '@stock_ai_agent': '프리즘인사이트',
+    '@sejongdata2013': '세종기업데이터',
+    '@tazastock': '타자',
+    3796408122: 'IB투자파트너스',
 }
 
 
@@ -1544,6 +1549,7 @@ def search_telegram(request):
             by_channel = {}
 
             for channel in TELEGRAM_CHANNELS.keys():
+                channel_key = str(channel)
                 try:
                     entity = await client.get_entity(channel)
                     msgs = await client.get_messages(entity, search=keyword, limit=limit)
@@ -1562,9 +1568,9 @@ def search_telegram(request):
                             'text': msg.text
                         })
 
-                    by_channel[channel] = dict(by_date)
+                    by_channel[channel_key] = dict(by_date)
                 except Exception:
-                    by_channel[channel] = {}  # 채널 접근 실패
+                    by_channel[channel_key] = {}  # 채널 접근 실패
 
             return by_channel
 
@@ -1573,7 +1579,7 @@ def search_telegram(request):
         return JsonResponse({
             'success': True,
             'keyword': keyword,
-            'channel_names': TELEGRAM_CHANNELS,
+            'channel_names': {str(k): v for k, v in TELEGRAM_CHANNELS.items()},
             'results': results
         })
     except Exception as e:
@@ -3964,9 +3970,7 @@ def etf(request):
         if not daily_data:
             status_etfs.append({
                 'etf': etf_item, 'ma_align': '', 'vol_high_20': False, 'vol_high_60': False,
-                'is_bullish': True,
-                'above_ma10': None, 'above_ma20': None, 'above_ma60': None,
-                'ma10_cross': '', 'ma20_cross': '', 'ma60_cross': '',
+                'is_bullish': True, 'pullback': None, 'pullback_label': '',
             })
             continue
 
@@ -3994,45 +3998,23 @@ def etf(request):
             else:
                 ma_align = 'mixed'
 
-        # 이평선 위/아래 및 크로스 판단
-        above_ma10 = None
-        above_ma20 = None
-        above_ma60 = None
-        ma10_cross = ''
-        ma20_cross = ''
-        ma60_cross = ''
-        if len(daily_data) >= 10:
-            ma10_today = sum(d.closing_price for d in daily_data[:10]) / 10
-            above_ma10 = today.closing_price > ma10_today
-        if len(daily_data) >= 20:
-            ma20_today = sum(d.closing_price for d in daily_data[:20]) / 20
-            above_ma20 = today.closing_price > ma20_today
-        if len(daily_data) >= 60:
-            ma60_today = sum(d.closing_price for d in daily_data[:60]) / 60
-            above_ma60 = today.closing_price > ma60_today
-
-        if len(daily_data) >= 61:
-            yesterday = daily_data[1]
-            # MA10 크로스
-            ma10_yest = sum(d.closing_price for d in daily_data[1:11]) / 10
-            if today.closing_price > ma10_today and yesterday.closing_price <= ma10_yest:
-                ma10_cross = 'up'
-            elif today.closing_price < ma10_today and yesterday.closing_price >= ma10_yest:
-                ma10_cross = 'down'
-
-            # MA20 크로스
-            ma20_yest = sum(d.closing_price for d in daily_data[1:21]) / 20
-            if today.closing_price > ma20_today and yesterday.closing_price <= ma20_yest:
-                ma20_cross = 'up'
-            elif today.closing_price < ma20_today and yesterday.closing_price >= ma20_yest:
-                ma20_cross = 'down'
-
-            # MA60 크로스
-            ma60_yest = sum(d.closing_price for d in daily_data[1:61]) / 60
-            if today.closing_price > ma60_today and yesterday.closing_price <= ma60_yest:
-                ma60_cross = 'up'
-            elif today.closing_price < ma60_today and yesterday.closing_price >= ma60_yest:
-                ma60_cross = 'down'
+        # 눌림목 판단 (정배열일 때만)
+        pullback = None
+        pullback_label = ''
+        if ma_align == 'bull' and len(daily_data) >= 20:
+            _ma20 = sum(d.closing_price for d in daily_data[:20]) / 20
+            gap_pct = round((today.closing_price - _ma20) / _ma20 * 100, 1)
+            pullback = gap_pct
+            if gap_pct > 5:
+                pullback_label = '과열'
+            elif gap_pct > 2:
+                pullback_label = '추세중'
+            elif gap_pct > -2:
+                pullback_label = '얕은눌림'
+            elif gap_pct > -5:
+                pullback_label = '깊은눌림'
+            else:
+                pullback_label = '이탈'
 
         # 매수/매도 범위 판단
         in_buy_zone = etf_item.current_price and etf_item.buy_price and etf_item.current_price <= etf_item.buy_price
@@ -4044,12 +4026,8 @@ def etf(request):
             'vol_high_20': today_vol > 0 and today_vol >= max_vol_20,
             'vol_high_60': today_vol > 0 and today_vol >= max_vol_60,
             'is_bullish': today.closing_price >= today.opening_price if today.opening_price else True,
-            'above_ma10': above_ma10,
-            'above_ma20': above_ma20,
-            'above_ma60': above_ma60,
-            'ma10_cross': ma10_cross,
-            'ma20_cross': ma20_cross,
-            'ma60_cross': ma60_cross,
+            'pullback': pullback,
+            'pullback_label': pullback_label,
             'in_buy_zone': in_buy_zone,
             'in_sell_zone': in_sell_zone,
         })

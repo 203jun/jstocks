@@ -174,9 +174,9 @@
                     <th style="padding-left:16px;">종목명</th>
                     <th style="text-align:right;">가격</th>
                     <th style="text-align:center;">배열</th>
+                    <th style="text-align:center;">눌림목</th>
                     <th style="text-align:center;">오늘거래량</th>
                     <th style="text-align:center;">신호</th>
-                    <th style="text-align:center;">눌림목</th>
                     <th style="text-align:center;">기관</th>
                     <th style="text-align:center;">외국인</th>
                     <th style="text-align:center;">리포트</th>
@@ -203,13 +203,13 @@
                         {% if item.ma_align == 'bull' %}<span style="color:var(--up-color);font-size:0.7rem;" title="정배열">&#9650;</span>{% elif item.ma_align == 'bear' %}<span style="color:var(--down-color);font-size:0.7rem;" title="역배열">&#9660;</span>{% elif item.ma_align == 'mixed' %}<span style="color:var(--text-muted);font-size:0.7rem;" title="혼조">&#9644;</span>{% endif %}
                     </td>
                     <td style="text-align:center;">
+                        {% if item.pullback_label %}<span style="font-size:0.72rem;{% if item.pullback_label == '얕은눌림' %}color:#e89800;{% elif item.pullback_label == '깊은눌림' %}color:var(--down-color);{% endif %}">{{ item.pullback_label }}</span><span style="font-size:0.65rem;{% if item.pullback < 0 %}color:var(--down-color);{% else %}color:var(--text-muted);{% endif %}margin-left:2px;">({{ item.pullback }}%)</span>{% endif %}
+                    </td>
+                    <td style="text-align:center;">
                         {% if item.vol_high_60 %}<span style="color:{% if item.is_bullish %}var(--up-color){% else %}var(--down-color){% endif %};font-size:0.78rem;font-weight:600;">60일</span>{% elif item.vol_high_20 %}<span style="color:{% if item.is_bullish %}var(--up-color){% else %}var(--down-color){% endif %};font-size:0.78rem;font-weight:600;">20일</span>{% endif %}
                     </td>
                     <td style="text-align:center;font-size:0.75rem;white-space:nowrap;">
                         {% if item.signal_info %}{% if item.signal_info.signal_days_ago > 0 %}<span style="color:var(--text-muted);">{{ item.signal_info.signal_days_ago }}일전</span> {% endif %}<span class="signal-chart-btn {% if item.signal_info.signal_price_change > 0 %}text-up{% elif item.signal_info.signal_price_change < 0 %}text-down{% endif %}" style="text-decoration:underline;cursor:pointer;" data-code="{{ item.stock.code }}" data-name="{{ item.stock.name }}" data-signal-date="{{ item.signal_info.signal_date }}" data-signal-open="{{ item.signal_info.signal_open }}" data-signal-close="{{ item.signal_info.signal_close }}" data-current-price="{{ item.signal_info.current_price }}">{% if item.signal_info.signal_price_change > 0 %}+{% endif %}{{ item.signal_info.signal_price_change }}%</span>{% endif %}
-                    </td>
-                    <td style="text-align:center;">
-                        {% if item.pullback_label %}<span style="font-size:0.72rem;{% if item.pullback_label == '얕은눌림' %}color:#e89800;{% elif item.pullback_label == '깊은눌림' %}color:var(--down-color);{% endif %}">{{ item.pullback_label }}</span><span style="font-size:0.65rem;{% if item.pullback < 0 %}color:var(--down-color);{% else %}color:var(--text-muted);{% endif %}margin-left:2px;">({{ item.pullback }}%)</span>{% endif %}
                     </td>
                     <td style="text-align:center;font-size:0.78rem;">{% if item.inst_label %}<span style="color:var(--up-color);font-weight:600;">{{ item.inst_label }}</span>{% endif %}</td>
                     <td style="text-align:center;font-size:0.78rem;">{% if item.frgn_label %}<span style="color:var(--up-color);font-weight:600;">{{ item.frgn_label }}</span>{% endif %}</td>

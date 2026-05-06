@@ -122,10 +122,8 @@
                     <th style="padding-left:16px;">종목명</th>
                     <th style="text-align:right;">가격</th>
                     <th style="text-align:center;">배열</th>
+                    <th style="text-align:center;">눌림목</th>
                     <th style="text-align:center;">오늘거래량</th>
-                    <th style="text-align:center;">10선</th>
-                    <th style="text-align:center;">20선</th>
-                    <th style="text-align:center;">60선</th>
                     <th style="text-align:center;">매수</th>
                     <th style="text-align:center;">매도</th>
                 </tr>
@@ -148,16 +146,10 @@
                         {% if item.ma_align == 'bull' %}<span style="color:var(--up-color);font-size:0.7rem;" title="정배열">&#9650;</span>{% elif item.ma_align == 'bear' %}<span style="color:var(--down-color);font-size:0.7rem;" title="역배열">&#9660;</span>{% elif item.ma_align == 'mixed' %}<span style="color:var(--text-muted);font-size:0.7rem;" title="혼조">&#9644;</span>{% endif %}
                     </td>
                     <td style="text-align:center;">
+                        {% if item.pullback_label %}<span style="font-size:0.72rem;{% if item.pullback_label == '얕은눌림' %}color:#e89800;{% elif item.pullback_label == '깊은눌림' %}color:var(--down-color);{% endif %}">{{ item.pullback_label }}</span><span style="font-size:0.65rem;{% if item.pullback < 0 %}color:var(--down-color);{% else %}color:var(--text-muted);{% endif %}margin-left:2px;">({{ item.pullback }}%)</span>{% endif %}
+                    </td>
+                    <td style="text-align:center;">
                         {% if item.vol_high_60 %}<span style="color:{% if item.is_bullish %}var(--up-color){% else %}var(--down-color){% endif %};font-size:0.78rem;font-weight:600;">60일</span>{% elif item.vol_high_20 %}<span style="color:{% if item.is_bullish %}var(--up-color){% else %}var(--down-color){% endif %};font-size:0.78rem;font-weight:600;">20일</span>{% endif %}
-                    </td>
-                    <td style="text-align:center;">
-                        {% if item.above_ma10 != None %}{% if item.ma10_cross == 'up' %}<span style="color:var(--up-color);font-size:0.82rem;font-weight:700;">&#9733;</span>{% elif item.ma10_cross == 'down' %}<span style="color:var(--down-color);font-size:0.82rem;font-weight:700;">&#9733;</span>{% elif item.above_ma10 %}<span style="color:var(--up-color);font-size:0.7rem;">&#9650;</span>{% else %}<span style="color:var(--down-color);font-size:0.7rem;">&#9660;</span>{% endif %}{% endif %}
-                    </td>
-                    <td style="text-align:center;">
-                        {% if item.above_ma20 != None %}{% if item.ma20_cross == 'up' %}<span style="color:var(--up-color);font-size:0.82rem;font-weight:700;">&#9733;</span>{% elif item.ma20_cross == 'down' %}<span style="color:var(--down-color);font-size:0.82rem;font-weight:700;">&#9733;</span>{% elif item.above_ma20 %}<span style="color:var(--up-color);font-size:0.7rem;">&#9650;</span>{% else %}<span style="color:var(--down-color);font-size:0.7rem;">&#9660;</span>{% endif %}{% endif %}
-                    </td>
-                    <td style="text-align:center;">
-                        {% if item.above_ma60 != None %}{% if item.ma60_cross == 'up' %}<span style="color:var(--up-color);font-size:0.82rem;font-weight:700;">&#9733;</span>{% elif item.ma60_cross == 'down' %}<span style="color:var(--down-color);font-size:0.82rem;font-weight:700;">&#9733;</span>{% elif item.above_ma60 %}<span style="color:var(--up-color);font-size:0.7rem;">&#9650;</span>{% else %}<span style="color:var(--down-color);font-size:0.7rem;">&#9660;</span>{% endif %}{% endif %}
                     </td>
                     <td style="text-align:center;">{% if item.in_buy_zone %}<span style="color:var(--up-color);font-weight:600;">&#10003;</span>{% endif %}</td>
                     <td style="text-align:center;">{% if item.in_sell_zone %}<span style="color:var(--down-color);font-weight:600;">&#10003;</span>{% endif %}</td>
@@ -168,9 +160,9 @@
     </div>
 </div>
 <div style="font-size:0.7rem;color:var(--text-muted);line-height:1.8;margin-top:8px;padding:0 4px;">
-    <span style="margin-right:12px;"><strong>배열</strong> <span style="color:var(--up-color);">▲</span>정(10>20>60) <span style="color:var(--down-color);">▼</span>역(10<20<60) <span>▬</span>혼조</span>
+    <span style="margin-right:12px;"><strong>배열</strong> <span style="color:var(--up-color);">▲</span>정(5>20>60>120+0.5%마진+120선↑) <span style="color:var(--down-color);">▼</span>역(반대+120선↓) <span>▬</span>혼조</span>
     <span style="margin-right:12px;"><strong>거래량</strong> 20일/60일 신고, <span style="color:var(--up-color);">양봉</span>/<span style="color:var(--down-color);">음봉</span></span>
-    <span style="margin-right:12px;"><strong>10/20/60선</strong> <span style="color:var(--up-color);">▲</span>위 <span style="color:var(--down-color);">▼</span>아래, <span style="color:var(--up-color);">&#9733;</span><span style="color:var(--down-color);">&#9733;</span>=오늘 돌파/이탈</span>
+    <span style="margin-right:12px;"><strong>눌림목</strong> 정배열 시 MA20 이격률 기준: 과열(+5%↑) 추세중(+2~5%) <span style="color:#e89800;">얕은눌림</span>(-2~+2%) <span style="color:var(--down-color);">깊은눌림</span>(-5~-2%) 이탈(-5%↓)</span>
 </div>
 {% endif %}
 
