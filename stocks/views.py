@@ -921,6 +921,91 @@ def stock_detail(request, code):
     # 공매도 (최근 60일)
     short_sellings = ShortSelling.objects.filter(stock=stock).order_by('-date')[:60]
 
+    # ========== 수급 대시보드 계산 ==========
+    supply_dashboard = None
+    supply_dashboard_chart = []
+    supply_dashboard_reason = ''
+    shorts_list = list(short_sellings)
+    daum_count = len(investor_trends_daum)
+    short_count = len(shorts_list)
+    if daum_count < 60 or short_count < 60:
+        reasons = []
+        if daum_count < 60:
+            reasons.append(f'수급 데이터 {daum_count}/60일')
+        if short_count < 60:
+            reasons.append(f'공매도 데이터 {short_count}/60일')
+        supply_dashboard_reason = '데이터 부족: ' + ', '.join(reasons)
+    if daum_count >= 60 and short_count >= 60:
+        import statistics
+        trends_asc = sorted(investor_trends_daum, key=lambda t: t.date)
+        shorts_asc = sorted(shorts_list, key=lambda s: s.date)
+
+        latest = trends_asc[-1]
+        latest_dc = daily_charts_map.get(latest.date)
+        current_price = latest_dc.closing_price if latest_dc else (stock.current_price or 0)
+        today_volume = latest_dc.trading_volume if latest_dc else 0
+
+        # 외국인/기관 60일 누적
+        foreign_60 = sum(t.daum_foreign or 0 for t in trends_asc[-60:])
+        inst_60 = sum(t.daum_institution or 0 for t in trends_asc[-60:])
+
+        # 공매도 비중 60일
+        short_weights = [float(s.trading_weight or 0) for s in shorts_asc[-60:]]
+        short_avg = statistics.mean(short_weights) if short_weights else 0
+        short_std = statistics.stdev(short_weights) if len(short_weights) > 1 else 1
+        today_short_weight = short_weights[-1] if short_weights else 0
+        z_score = round((today_short_weight - short_avg) / short_std, 2) if short_std > 0 else 0
+
+        # 숏 손익률
+        cum_short_value = sum(s.short_trading_value or 0 for s in shorts_asc[-60:])
+        cum_short_vol = sum(s.short_volume or 0 for s in shorts_asc[-60:])
+        short_avg_price = cum_short_value / cum_short_vol if cum_short_vol > 0 else 0
+        short_pnl = round((current_price - short_avg_price) / short_avg_price * 100, 1) if short_avg_price > 0 else 0
+
+        # C1: 수급 모멘텀
+        recent_5 = sum((t.daum_foreign or 0) + (t.daum_institution or 0) for t in trends_asc[-5:])
+        daily_avg_60 = sum((t.daum_foreign or 0) + (t.daum_institution or 0) for t in trends_asc[-60:]) / 60
+        c1 = (recent_5 / 5) / daily_avg_60 * 100 if daily_avg_60 != 0 else 0
+        c1 = max(-100, min(100, c1))
+
+        # C2: 공매도 Z-score 부호 반전
+        c2 = -z_score * 50
+        c2 = max(-100, min(100, c2))
+
+        # C3: 숏 손익률 정규화
+        c3 = short_pnl * 10
+        c3 = max(-100, min(100, c3))
+
+        # C4: 수급 강도
+        today_net = (latest.daum_foreign or 0) + (latest.daum_institution or 0)
+        c4 = (today_net / today_volume * 100 * 3) if today_volume > 0 else 0
+        c4 = max(-100, min(100, c4))
+
+        total_score = round(0.3 * c1 + 0.3 * c2 + 0.2 * c3 + 0.2 * c4, 1)
+
+        supply_dashboard = {
+            'score': total_score,
+            'foreign_60': foreign_60,
+            'inst_60': inst_60,
+            'short_weight': round(today_short_weight, 1),
+            'z_score': z_score,
+            'short_pnl': short_pnl,
+        }
+
+        # 주별 차트 (5거래일씩 묶어 최대 9주)
+        week_count = min(9, len(trends_asc) // 5)
+        chart_trends = trends_asc[-(week_count * 5):]
+        chart_shorts = shorts_asc[-(week_count * 5):]
+        for w in range(week_count):
+            week_t = chart_trends[w * 5:(w + 1) * 5]
+            week_s = chart_shorts[w * 5:(w + 1) * 5]
+            supply_dashboard_chart.append({
+                'label': week_t[-1].date.strftime('%m.%d'),
+                'foreign': sum(t.daum_foreign or 0 for t in week_t),
+                'institution': sum(t.daum_institution or 0 for t in week_t),
+                'short_weight': round(statistics.mean([float(s.trading_weight or 0) for s in week_s]), 2),
+            })
+
     # 저장된 뉴스 (게시일 최신순)
     from .models import News
     def parse_news_date_detail(news):
@@ -1115,6 +1200,9 @@ def stock_detail(request, code):
             'short_average_price': s.short_average_price,
         } for s in short_sellings]),
         'short_sellings': short_sellings,
+        'supply_dashboard': supply_dashboard,
+        'supply_dashboard_chart': json.dumps(supply_dashboard_chart),
+        'supply_dashboard_reason': supply_dashboard_reason,
         'news_articles': news_articles,
         'telegram_messages': telegram_messages,
         'question_reports': question_reports,
