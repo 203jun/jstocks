@@ -430,6 +430,7 @@ small.text-muted {
         <div class="d-flex flex-wrap gap-2 mb-3" id="infoSubTabs">
             <button class="info-sub-tab active" data-target="info-terms-panel">용어</button>
             <button class="info-sub-tab" data-target="info-telegram-panel">텔레그램</button>
+            <button class="info-sub-tab" data-target="info-supply-panel">수급</button>
         </div>
 
         <!-- 용어 패널 -->
@@ -482,6 +483,52 @@ small.text-muted {
                             {{ ch_name }} <span style="font-size:0.68rem;color:var(--text-muted);">{{ ch_id }}</span>
                         </span>
                         {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 수급 패널 -->
+        <div class="info-panel-content" id="info-supply-panel" style="display:none;">
+            <div class="brief-card">
+                <div style="margin-bottom:18px;">
+                    <div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">종합 스코어 (-100 ~ +100)</div>
+                    <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.6;">
+                        수급 모멘텀·공매도·숏손익·수급강도 4개 지표의 가중합.<br>
+                        <strong style="color:var(--up-color);">+20 이상:</strong> 매수 우위<br>
+                        <strong>-20 ~ +20:</strong> 관망 (회색)<br>
+                        <strong style="color:var(--down-color);">-20 이하:</strong> 매도 우위
+                    </div>
+                </div>
+
+                <div style="margin-bottom:18px;">
+                    <div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">외국인 / 기관 누적 순매수</div>
+                    <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.6;">
+                        윈도우 기간(최대 60거래일) 동안의 누적 순매수량.<br>
+                        <strong style="color:var(--up-color);">+10만주 초과:</strong> 매수 우위<br>
+                        <strong>±10만주 이내:</strong> 보합 (회색)<br>
+                        <strong style="color:var(--down-color);">-10만주 미만:</strong> 매도 우위<br>
+                        <span style="font-size:0.75rem;color:var(--text-muted);">* 임계값은 대형주 기준. 종목 거래량에 따라 해석 조정 필요.</span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:18px;">
+                    <div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">공매도 강도 (Z-score)</div>
+                    <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.6;">
+                        (오늘 비중 - 평균) ÷ 표준편차. 평소 대비 공매도 수준.<br>
+                        <strong style="color:var(--up-color);">Z &lt; -1:</strong> 공매도 후퇴 (호재)<br>
+                        <strong>-1 ~ +1:</strong> 평상 (회색)<br>
+                        <strong style="color:var(--down-color);">Z &gt; +1:</strong> 공매도 진입 (악재)
+                    </div>
+                </div>
+
+                <div style="margin-bottom:18px;">
+                    <div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">숏 손익률</div>
+                    <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.6;">
+                        (현재가 - 공매도 평균가) ÷ 평균가 × 100. 공매도 세력의 평가손익.<br>
+                        <strong style="color:var(--up-color);">+5% 이상:</strong> 숏 손실 → 커버 압력 (호재)<br>
+                        <strong>±5% 이내:</strong> 본전 근처 (회색)<br>
+                        <strong style="color:var(--down-color);">-5% 이하:</strong> 숏 수익 → 추가 베팅 가능 (악재)
                     </div>
                 </div>
             </div>

@@ -1106,36 +1106,36 @@
             <!-- 종합 스코어 -->
             <div style="flex:1;min-width:120px;padding:12px;border-radius:8px;background:var(--bg-secondary);text-align:center;">
                 <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">종합 스코어</div>
-                <div style="font-size:1.4rem;font-weight:700;{% if supply_dashboard.score > 20 %}color:var(--up-color);{% elif supply_dashboard.score < -20 %}color:var(--down-color);{% else %}color:var(--text-primary);{% endif %}">
+                <div style="font-size:1.4rem;font-weight:700;{% if supply_dashboard.score > 20 %}color:var(--up-color);{% elif supply_dashboard.score < -20 %}color:var(--down-color);{% else %}color:var(--text-muted);{% endif %}">
                     {% if supply_dashboard.score > 0 %}+{% endif %}{{ supply_dashboard.score }}
                 </div>
             </div>
             <!-- 외국인 누적 -->
             <div style="flex:1;min-width:120px;padding:12px;border-radius:8px;background:var(--bg-secondary);text-align:center;">
                 <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">외국인 {{ supply_dashboard.window }}일</div>
-                <div style="font-size:1.1rem;font-weight:700;color:#198754;">
-                    {{ supply_dashboard.foreign_cum|intcomma }}
+                <div style="font-size:1.1rem;font-weight:700;{% if supply_dashboard.foreign_cum > 100000 %}color:var(--up-color);{% elif supply_dashboard.foreign_cum < -100000 %}color:var(--down-color);{% else %}color:var(--text-muted);{% endif %}">
+                    {% if supply_dashboard.foreign_cum > 0 %}+{% endif %}{{ supply_dashboard.foreign_cum|intcomma }}
                 </div>
             </div>
             <!-- 기관 누적 -->
             <div style="flex:1;min-width:120px;padding:12px;border-radius:8px;background:var(--bg-secondary);text-align:center;">
                 <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">기관 {{ supply_dashboard.window }}일</div>
-                <div style="font-size:1.1rem;font-weight:700;color:#dc3545;">
-                    {{ supply_dashboard.inst_cum|intcomma }}
+                <div style="font-size:1.1rem;font-weight:700;{% if supply_dashboard.inst_cum > 100000 %}color:var(--up-color);{% elif supply_dashboard.inst_cum < -100000 %}color:var(--down-color);{% else %}color:var(--text-muted);{% endif %}">
+                    {% if supply_dashboard.inst_cum > 0 %}+{% endif %}{{ supply_dashboard.inst_cum|intcomma }}
                 </div>
             </div>
-            <!-- 공매도 비중 + Z-score -->
+            <!-- 공매도 강도 Z-score -->
             <div style="flex:1;min-width:120px;padding:12px;border-radius:8px;background:var(--bg-secondary);text-align:center;">
-                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">공매도 비중</div>
-                <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);">
-                    {{ supply_dashboard.short_weight }}%
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">공매도 강도</div>
+                <div style="font-size:1.1rem;font-weight:700;{% if supply_dashboard.z_score < -1 %}color:var(--up-color);{% elif supply_dashboard.z_score > 1 %}color:var(--down-color);{% else %}color:var(--text-muted);{% endif %}">
+                    Z {{ supply_dashboard.z_score }}
                 </div>
-                <div style="font-size:0.7rem;color:var(--text-muted);">Z {{ supply_dashboard.z_score }}</div>
+                <div style="font-size:0.7rem;color:var(--text-muted);">오늘 {{ supply_dashboard.short_weight }}%</div>
             </div>
             <!-- 숏 손익률 -->
             <div style="flex:1;min-width:120px;padding:12px;border-radius:8px;background:var(--bg-secondary);text-align:center;">
                 <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">숏 손익률</div>
-                <div style="font-size:1.1rem;font-weight:700;{% if supply_dashboard.short_pnl > 0 %}color:var(--up-color);{% elif supply_dashboard.short_pnl < 0 %}color:var(--down-color);{% else %}color:var(--text-primary);{% endif %}">
+                <div style="font-size:1.1rem;font-weight:700;{% if supply_dashboard.short_pnl > 5 %}color:var(--up-color);{% elif supply_dashboard.short_pnl < -5 %}color:var(--down-color);{% else %}color:var(--text-muted);{% endif %}">
                     {% if supply_dashboard.short_pnl > 0 %}+{% endif %}{{ supply_dashboard.short_pnl }}%
                 </div>
             </div>
