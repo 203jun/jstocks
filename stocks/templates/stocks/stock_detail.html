@@ -1141,15 +1141,6 @@
             </div>
         </div>
 
-        <!-- 디버그 (임시) -->
-        <div style="font-size:0.7rem;color:var(--text-muted);line-height:1.6;padding:8px 4px;">
-            [DEBUG] 윈도우: {{ supply_dashboard.window }}일 ({{ supply_dashboard.debug_start_date }} ~ {{ supply_dashboard.debug_end_date }})
-            | 누적대금(원): {{ supply_dashboard.debug_cum_value|intcomma }}
-            | 누적량: {{ supply_dashboard.debug_cum_vol|intcomma }}
-            | 평균가: {{ supply_dashboard.debug_avg_price|intcomma }}
-            | 현재가: {{ supply_dashboard.debug_current_price|intcomma }}
-        </div>
-
         <!-- 이중축 차트 -->
         <div style="position:relative;height:260px;">
             <canvas id="supplyDashboardChart"></canvas>
