@@ -1148,9 +1148,12 @@
     </div>
 
     <script>
-    (function() {
-        const chartData = {{ supply_dashboard_chart|safe }};
-        if (!chartData.length) return;
+    window._supplyDashboardData = {{ supply_dashboard_chart|safe }};
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chartData = window._supplyDashboardData;
+        if (!chartData || !chartData.length) return;
 
         const labels = chartData.map(d => d.label);
         const foreignData = chartData.map(d => d.foreign);
@@ -1239,7 +1242,7 @@
                 },
             },
         });
-    })();
+    });
     </script>
     {% endif %}
 
