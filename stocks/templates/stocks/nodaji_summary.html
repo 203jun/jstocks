@@ -82,6 +82,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 marked.setOptions({ breaks: true, gfm: true, headerIds: false, mangle: false });
+marked.use({ extensions: [{ name: 'highlight', level: 'inline', childTokens: ['tokens'], start(src) { return src.indexOf('=='); }, tokenizer(src) { const match = src.match(/^==([^=]+)==/); if (match) { const token = { type: 'highlight', raw: match[0], text: match[1], tokens: [] }; this.lexer.inline(token.text, token.tokens); return token; } }, renderer(token) { return `<mark>${this.parser.parseInline(token.tokens)}</mark>`; } }] });
 
 const HTML_TAG_PATTERN = /<(div|span|p|br|hr|table|tr|td|th|thead|tbody|ul|ol|li|a|img|h[1-6]|strong|em|b|i|code|pre|blockquote|section|article|header|footer|nav|main|aside|figure|figcaption)[\s>\/]/i;
 
