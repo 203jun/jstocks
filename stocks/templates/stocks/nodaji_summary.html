@@ -56,7 +56,7 @@
 <!-- 미리보기 -->
 <h5 class="section-heading">미리보기</h5>
 <div class="brief-card" style="padding:0;">
-    <div id="preview" style="padding:16px; min-height:60px; font-size:0.88rem; line-height:1.7; color:var(--text-primary); border-radius:var(--radius);"></div>
+    <div id="preview" class="markdown-content" style="padding:16px; min-height:60px; font-size:0.88rem; line-height:1.7; color:var(--text-primary); border-radius:var(--radius);"></div>
 </div>
 
 <form method="post">
@@ -79,29 +79,23 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
+marked.setOptions({ breaks: true, gfm: true, headerIds: false, mangle: false });
+
+const HTML_TAG_PATTERN = /<(div|span|p|br|hr|table|tr|td|th|thead|tbody|ul|ol|li|a|img|h[1-6]|strong|em|b|i|code|pre|blockquote|section|article|header|footer|nav|main|aside|figure|figcaption)[\s>\/]/i;
+
+function renderMarkdown(text) {
+    if (!text) return '';
+    if (HTML_TAG_PATTERN.test(text)) return text;
+    return marked.parse(text.replace(/~/g, '&#126;'));
+}
+
 const textarea = document.getElementById('summary');
 const preview = document.getElementById('preview');
 
-function parseMd(text) {
-    let html = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
-    html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
-    html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
-    html = html.replace(/`(.+?)`/g, '<code style="background:#e5e7eb;padding:1px 4px;border-radius:3px;font-size:0.82rem;">$1</code>');
-    html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" style="color:#2962ff;">$1</a>');
-    html = html.replace(/(?<!")(?<!')(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" style="color:#2962ff;">$1</a>');
-    html = html.replace(/\n/g, '<br>');
-    return html;
-}
-
 function updatePreview() {
-    const text = textarea.value || '';
-    if (!text) { preview.innerHTML = ''; return; }
-    // HTML 태그가 포함되어 있으면 HTML로 렌더링, 아니면 마크다운 파싱
-    const htmlTagPattern = /<(div|span|p|br|hr|table|tr|td|th|ul|ol|li|a|h[1-6]|strong|em|b|i|code|pre|blockquote)[\s>\/]/i;
-    preview.innerHTML = htmlTagPattern.test(text) ? text : parseMd(text);
+    preview.innerHTML = renderMarkdown(textarea.value || '');
 }
 
 textarea.addEventListener('input', updatePreview);
@@ -111,9 +105,7 @@ updatePreview();
 const opinionRaw = document.getElementById('opinionRaw');
 const opinionPreview = document.getElementById('opinionPreview');
 if (opinionRaw && opinionPreview) {
-    const content = opinionRaw.textContent;
-    const htmlTagPattern = /<(div|span|p|br|hr|table|tr|td|th|ul|ol|li|a|h[1-6]|strong|em|b|i|code|pre|blockquote)[\s>\/]/i;
-    opinionPreview.innerHTML = htmlTagPattern.test(content) ? content : parseMd(content);
+    opinionPreview.innerHTML = renderMarkdown(opinionRaw.textContent);
 }
 
 // 요약 프롬프트 복사
