@@ -123,6 +123,20 @@
 [data-theme="dark"] .research-common-chip { background:#22262f; color:var(--text-primary); }
 [data-theme="dark"] .research-common-chip:hover { background:#2c313b; }
 
+/* 매매근거 강조 칩 */
+.research-trade-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 10px; border-radius:14px;
+    background:#fee2e2; color:#b91c1c; font-size:0.78rem; font-weight:600;
+    text-decoration:none; transition:background 0.15s;
+    border:1px solid #fca5a5;
+}
+.research-trade-chip:hover { background:#fecaca; color:#b91c1c; }
+.research-trade-chip .chip-date { font-size:0.7rem; color:#dc2626; font-weight:400; }
+[data-theme="dark"] .research-trade-chip { background:#3b1318; color:#fca5a5; border-color:#7f1d1d; }
+[data-theme="dark"] .research-trade-chip:hover { background:#4c1820; }
+[data-theme="dark"] .research-trade-chip .chip-date { color:#f87171; }
+
 /* 일반 리서치 아이템 (컴팩트) */
 .research-custom-item {
     display:flex; justify-content:space-between; align-items:center; gap:8px;
@@ -657,7 +671,7 @@
             <span class="research-quick-label">Quick</span>
             <div class="research-chips">
                 {% for qr in quick_question_reports %}
-                <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="research-common-chip" data-question="{{ qr.question }}" title="{{ qr.question }}">
+                <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="{% if '매매근거' in qr.question %}research-trade-chip{% else %}research-common-chip{% endif %}" data-question="{{ qr.question }}" title="{{ qr.question }}">
                     <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
                     <span class="chip-date">{{ qr.updated_at|date:"y.m.d" }}</span>
                 </a>

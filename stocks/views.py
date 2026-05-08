@@ -1068,6 +1068,8 @@ def stock_detail(request, code):
             quick_question_reports.append(qr)
         else:
             custom_question_reports.append(qr)
+    # '매매근거'를 Quick 리스트 맨 앞으로
+    quick_question_reports.sort(key=lambda q: (0 if '매매근거' in q.question else 1))
 
     # 업로드 리포트
     from .models import StockUploadedReport, SystemSetting
