@@ -201,6 +201,12 @@ function copyToClipboard(text) {
         }
     });
 }
+function warnMissingVars(prompt) {
+    const missing = prompt.match(/\{[^}]+\}/g);
+    if (missing) {
+        alert('다음 변수에 데이터가 없습니다:\n' + [...new Set(missing)].join(', '));
+    }
+}
 
 function updatePreview() {
     let content = reportInput.value;
@@ -270,6 +276,7 @@ document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
                 prompt = prompt.split('{' + k + '}').join(val || '없음');
             }
         }
+        warnMissingVars(prompt);
         try {
             await copyToClipboard(prompt);
             const original = btn.textContent;

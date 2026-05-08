@@ -805,6 +805,12 @@ function copyToClipboard(text) {
         finally { document.body.removeChild(ta); }
     });
 }
+function warnMissingVars(prompt) {
+    const missing = prompt.match(/\{[^}]+\}/g);
+    if (missing) {
+        alert('다음 변수에 데이터가 없습니다:\n' + [...new Set(missing)].join(', '));
+    }
+}
 
 function escHtml(s) {
     return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -842,6 +848,7 @@ function renderYoutubeGrid(container, results, options) {
                 ? tpl.replace(/\{[^}]*유튜브[^}]*(?:URL|url|Url)[^}]*\}/g, url)
                 : '';
             if (!text.trim()) text = url;
+            warnMissingVars(text);
             try {
                 await copyToClipboard(text);
                 const original = btn.textContent;

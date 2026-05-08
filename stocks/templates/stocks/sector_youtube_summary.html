@@ -162,6 +162,12 @@ function copyToClipboard(text) {
         finally { document.body.removeChild(ta); }
     });
 }
+function warnMissingVars(prompt) {
+    const missing = prompt.match(/\{[^}]+\}/g);
+    if (missing) {
+        alert('다음 변수에 데이터가 없습니다:\n' + [...new Set(missing)].join(', '));
+    }
+}
 document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
     btn.addEventListener('click', async () => {
         const promptTemplate = `{{ prompt_summary|default:""|escapejs }}`;
@@ -171,6 +177,7 @@ document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
         const sourceText = (sourceEl ? ('value' in sourceEl ? sourceEl.value : sourceEl.textContent) : '').trim();
         if (!sourceText) { alert('원문이 없습니다.'); return; }
         const prompt = promptTemplate.replace(/\{원문\}/g, sourceText);
+        warnMissingVars(prompt);
         try {
             await copyToClipboard(prompt);
             const original = btn.textContent;

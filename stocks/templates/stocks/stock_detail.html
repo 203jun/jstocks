@@ -2308,6 +2308,7 @@ document.getElementById('btnCopySdAnalysisPrompt').addEventListener('click', asy
     prompt = prompt.replace(/\{주별공매도데이터\}/g, ssWeeklyText);
     prompt = prompt.replace(/\{일별공매도데이터\}/g, ssDailyText);
 
+    warnMissingVars(prompt);
     try {
         await copyToClipboard(prompt);
         const original = btn.textContent;
@@ -2337,6 +2338,7 @@ document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
         prompt = prompt.replace(/\{현재가[^}]*\}/g, currentPrice);
         prompt = prompt.replace(/\{등락률[^}]*\}/g, changeRate);
 
+        warnMissingVars(prompt);
         try {
             await copyToClipboard(prompt);
             const original = btn.textContent;
@@ -2437,6 +2439,7 @@ btnCopyBriefingPrompt.addEventListener('click', async () => {
         prompt = prompt.replace(/## 직접 수집 자료[\s\S]*?(?=---\n\n## 출력)/g, '');
     }
 
+    warnMissingVars(prompt);
     try {
         await copyToClipboard(prompt);
         const original = btn.textContent;
@@ -2680,6 +2683,12 @@ function copyToClipboard(text) {
         }
     });
 }
+function warnMissingVars(prompt) {
+    const missing = prompt.match(/\{[^}]+\}/g);
+    if (missing) {
+        alert('다음 변수에 데이터가 없습니다:\n' + [...new Set(missing)].join(', '));
+    }
+}
 const savedPrompts = {
     prompt_news: `{{ saved_prompts.prompt_news|default:""|escapejs }}`,
     prompt_news_with_context: `{{ saved_prompts.prompt_news_with_context|default:""|escapejs }}`,
@@ -2909,6 +2918,7 @@ document.getElementById('savedNewsList')?.addEventListener('click', async functi
         text = parts.join('\n');
     }
 
+    warnMissingVars(text);
     try {
         await copyToClipboard(text);
         const original = e.target.textContent;
@@ -3040,6 +3050,7 @@ function renderYtTimeline(videos) {
                 ? template.replace(/\{[^}]*유튜브[^}]*(?:URL|url|Url)[^}]*\}/g, url)
                 : '';
             if (!text.trim()) text = url;
+            warnMissingVars(text);
             try {
                 await copyToClipboard(text);
                 const original = btn.textContent;
@@ -4275,6 +4286,7 @@ document.getElementById('btnCopyDiaryPrompt').addEventListener('click', async ()
         prompt = prompt.replace(/\{현재가\}/g, price);
         prompt = prompt.replace(/\{변동률\}/g, rate);
 
+        warnMissingVars(prompt);
         await copyToClipboard(prompt);
         btn.textContent = '복사됨!';
         setTimeout(() => { btn.textContent = '프롬프트 복사'; }, 1500);
@@ -4408,6 +4420,7 @@ document.getElementById('btnCopyConsensusAnalysisPrompt').addEventListener('clic
             prompt += '\n\n' + dataText;
         }
 
+        warnMissingVars(prompt);
         await copyToClipboard(prompt);
         btn.textContent = '복사됨!';
         setTimeout(() => { btn.textContent = '프롬프트 복사'; }, 1500);
@@ -4562,6 +4575,7 @@ document.getElementById('btnCopyFinAnalysisPrompt').addEventListener('click', as
             prompt += '\n\n' + dataText;
         }
 
+        warnMissingVars(prompt);
         await copyToClipboard(prompt);
         btn.textContent = '복사됨!';
         setTimeout(() => { btn.textContent = '프롬프트 복사'; }, 1500);

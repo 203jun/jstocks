@@ -268,6 +268,10 @@ document.getElementById('btnCopyClassifyPrompt')?.addEventListener('click', asyn
     const text = classifyPrompt
         .split('{종목분류현황}').join(classifyStatusText)
         .split('{종목명}').join(stockName);
+    const _missing = text.match(/\{[^}]+\}/g);
+    if (_missing) {
+        alert('다음 변수에 데이터가 없습니다:\n' + [...new Set(_missing)].join(', '));
+    }
     try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(text);
