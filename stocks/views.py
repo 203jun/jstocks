@@ -8849,6 +8849,93 @@ def quick_report_delete(request, prompt_id):
         return JsonResponse({'success': False, 'error': '프롬프트를 찾을 수 없습니다.'})
 
 
+# ============ 정리리포트 관리 ============
+
+def summary_report_list(request):
+    """정리리포트 목록 조회"""
+    from .models import SummaryReport
+
+    prompts = SummaryReport.objects.all()
+    data = [{
+        'id': p.id,
+        'question': p.question,
+        'prompt': p.prompt,
+        'order': p.order,
+        'needs_attachment': p.needs_attachment
+    } for p in prompts]
+
+    return JsonResponse({'success': True, 'prompts': data})
+
+
+@require_POST
+def summary_report_add(request):
+    """정리리포트 추가"""
+    from django.db.models import Max
+    from .models import SummaryReport
+
+    question = request.POST.get('question', '').strip()
+    prompt = request.POST.get('prompt', '').strip()
+    needs_attachment = request.POST.get('needs_attachment') == 'true'
+
+    if not question:
+        return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
+
+    max_order = SummaryReport.objects.aggregate(Max('order'))['order__max'] or 0
+    obj = SummaryReport.objects.create(
+        question=question,
+        prompt=prompt,
+        order=max_order + 1,
+        needs_attachment=needs_attachment
+    )
+
+    return JsonResponse({
+        'success': True,
+        'id': obj.id,
+        'question': obj.question,
+        'prompt': obj.prompt,
+        'order': obj.order,
+        'needs_attachment': obj.needs_attachment
+    })
+
+
+@require_POST
+def summary_report_update(request, prompt_id):
+    """정리리포트 수정"""
+    from .models import SummaryReport
+
+    try:
+        obj = SummaryReport.objects.get(id=prompt_id)
+    except SummaryReport.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '프롬프트를 찾을 수 없습니다.'})
+
+    question = request.POST.get('question', '').strip()
+    prompt = request.POST.get('prompt', '').strip()
+    needs_attachment = request.POST.get('needs_attachment') == 'true'
+
+    if not question:
+        return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
+
+    obj.question = question
+    obj.prompt = prompt
+    obj.needs_attachment = needs_attachment
+    obj.save()
+
+    return JsonResponse({'success': True})
+
+
+@require_POST
+def summary_report_delete(request, prompt_id):
+    """정리리포트 삭제"""
+    from .models import SummaryReport
+
+    try:
+        obj = SummaryReport.objects.get(id=prompt_id)
+        obj.delete()
+        return JsonResponse({'success': True})
+    except SummaryReport.DoesNotExist:
+        return JsonResponse({'success': False, 'error': '프롬프트를 찾을 수 없습니다.'})
+
+
 # ============ 섹터 텔레그램 메시지 ============
 
 @require_POST
