@@ -6634,6 +6634,7 @@ def stock_question_report_detail(request, report_id):
             'key_briefing': qr.stock.key_briefing or '',
             'financial_analysis': qr.stock.financial_analysis_v2 or '',
             'consensus_analysis': qr.stock.consensus_analysis or '',
+            'nodaji_summaries': nodaji_summaries,
         }
 
     return render(request, 'stocks/question_report_detail.html', {

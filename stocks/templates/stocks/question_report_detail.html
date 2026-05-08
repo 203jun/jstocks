@@ -434,6 +434,22 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
             // 노다지 데이터 없으면 해당 섹션 제거
             prompt = prompt.replace(/## 탐방\/주담통화 자료 \(노다지\)[\s\S]*?(?=---\n\n## 출력)/, '');
         }
+        // {전체내용} 치환
+        if (prompt.includes('{전체내용}')) {
+            const allData = JSON.parse(document.getElementById('all-content-data').textContent || '{}');
+            const sections = [];
+            if (allData.key_briefing) sections.push(`## 핵심브리핑\n${allData.key_briefing}`);
+            if (allData.common_reports && allData.common_reports.length) {
+                for (const r of allData.common_reports) sections.push(`## 공통리서치: ${r.question}\n${r.report}`);
+            }
+            if (allData.quick_reports && allData.quick_reports.length) {
+                for (const r of allData.quick_reports) sections.push(`## Quick: ${r.question}\n${r.report}`);
+            }
+            if (allData.financial_analysis) sections.push(`## 재무분석\n${allData.financial_analysis}`);
+            if (allData.consensus_analysis) sections.push(`## 컨센서스분석\n${allData.consensus_analysis}`);
+            if (allData.nodaji_summaries) sections.push(`## 노다지요약\n${allData.nodaji_summaries}`);
+            prompt = prompt.replace(/\{전체내용\}/g, sections.length ? sections.join('\n\n---\n\n') : '데이터 없음');
+        }
         document.getElementById('questionInput').value = question;
         try {
             await copyToClipboard(prompt);
