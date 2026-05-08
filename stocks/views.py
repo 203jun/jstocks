@@ -6613,6 +6613,27 @@ def stock_question_report_detail(request, report_id):
 
     prompt_summary = SystemSetting.objects.filter(key='prompt_summary').values_list('value', flat=True).first() or ''
 
+    # 전체내용복사용 데이터
+    all_content_data = {}
+    if qr.stock:
+        _all_reports = StockQuestionReport.objects.filter(stock=qr.stock).exclude(id=qr.id)
+        _common_set = set(research_prompts.values_list('question', flat=True))
+        _quick_set = set(quick_prompts.values_list('question', flat=True))
+        _common_reports = []
+        _quick_reports = []
+        for r in _all_reports:
+            if r.question in _common_set and r.report:
+                _common_reports.append({'question': r.question, 'report': r.report})
+            elif r.question in _quick_set and r.report:
+                _quick_reports.append({'question': r.question, 'report': r.report})
+        all_content_data = {
+            'common_reports': _common_reports,
+            'quick_reports': _quick_reports,
+            'key_briefing': qr.stock.key_briefing or '',
+            'financial_analysis': qr.stock.financial_analysis_v2 or '',
+            'consensus_analysis': qr.stock.consensus_analysis or '',
+        }
+
     return render(request, 'stocks/question_report_detail.html', {
         'qr': qr,
         'research_prompts': research_prompts,
@@ -6626,6 +6647,7 @@ def stock_question_report_detail(request, report_id):
         'consensus_quarter_op': consensus_quarter_op,
         'trade_prompt_vars': trade_prompt_vars,
         'prompt_summary': prompt_summary,
+        'all_content_data': all_content_data,
     })
 
 

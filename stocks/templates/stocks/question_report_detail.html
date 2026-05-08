@@ -91,11 +91,18 @@
 <!-- 질문 -->
 <h5 class="section-heading" style="margin-top:0;">질문</h5>
 <div class="brief-card">
-    <div style="font-size:0.9rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">
-        {{ qr.question }}
-    </div>
-    <div style="font-size:0.82rem;color:var(--text-secondary);">
-        {% if is_sector %}{{ qr.sector.name }}{% else %}{{ qr.stock.name }}{% endif %} · {{ qr.created_at|date:"Y-m-d H:i" }}
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+            <div style="font-size:0.9rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">
+                {{ qr.question }}
+            </div>
+            <div style="font-size:0.82rem;color:var(--text-secondary);">
+                {% if is_sector %}{{ qr.sector.name }}{% else %}{{ qr.stock.name }}{% endif %} · {{ qr.created_at|date:"Y-m-d H:i" }}
+            </div>
+        </div>
+        {% if not is_sector %}
+        <button type="button" class="btn-refresh" id="btnCopyAllContent" style="flex-shrink:0;">전체내용복사</button>
+        {% endif %}
     </div>
 </div>
 
@@ -171,6 +178,7 @@
 
 {% block extra_js %}
 {{ trade_prompt_vars|json_script:"trade-prompt-vars" }}
+{{ all_content_data|json_script:"all-content-data" }}
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 const reportInput = document.getElementById('reportInput');
@@ -451,5 +459,58 @@ document.getElementById('btnDelete').addEventListener('click', async () => {
         alert('오류: ' + err.message);
     }
 });
+
+// 전체내용복사
+const btnCopyAll = document.getElementById('btnCopyAllContent');
+if (btnCopyAll) {
+    const allData = JSON.parse(document.getElementById('all-content-data').textContent || '{}');
+    btnCopyAll.addEventListener('click', async () => {
+        const sections = [];
+
+        // 공통리서치
+        if (allData.common_reports && allData.common_reports.length) {
+            for (const r of allData.common_reports) {
+                sections.push(`## 공통리서치: ${r.question}\n${r.report}`);
+            }
+        }
+
+        // 퀵리포트
+        if (allData.quick_reports && allData.quick_reports.length) {
+            for (const r of allData.quick_reports) {
+                sections.push(`## Quick: ${r.question}\n${r.report}`);
+            }
+        }
+
+        // 핵심브리핑
+        if (allData.key_briefing) {
+            sections.push(`## 핵심브리핑\n${allData.key_briefing}`);
+        }
+
+        // 재무분석
+        if (allData.financial_analysis) {
+            sections.push(`## 재무분석\n${allData.financial_analysis}`);
+        }
+
+        // 컨센서스분석
+        if (allData.consensus_analysis) {
+            sections.push(`## 컨센서스분석\n${allData.consensus_analysis}`);
+        }
+
+        if (!sections.length) {
+            alert('복사할 내용이 없습니다.');
+            return;
+        }
+
+        const text = sections.join('\n\n---\n\n');
+        try {
+            await copyToClipboard(text);
+            const orig = btnCopyAll.textContent;
+            btnCopyAll.textContent = '복사됨!';
+            setTimeout(() => { btnCopyAll.textContent = orig; }, 1500);
+        } catch (err) {
+            alert('복사 실패: ' + err.message);
+        }
+    });
+}
 </script>
 {% endblock %}
