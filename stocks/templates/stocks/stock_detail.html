@@ -100,17 +100,19 @@
 .research-custom-list { display:flex; flex-direction:column; flex:1; }
 
 /* 리서치 그룹 라벨 */
-.research-common-label, .research-quick-label, .research-summary-label, .research-custom-label {
+.research-common-label, .research-quick-label, .research-summary-label, .research-waiting-label, .research-custom-label {
     display:inline-block; font-size:0.65rem; padding:2px 7px; border-radius:3px;
     font-weight:600; flex-shrink:0; min-width:38px; text-align:center; margin-top:3px;
 }
 .research-common-label { background:#e8f0fe; color:#1a73e8; }
 .research-quick-label { background:#fef3c7; color:#b45309; }
 .research-summary-label { background:#ecfdf5; color:#059669; }
+.research-waiting-label { background:#f5f3ff; color:#7c3aed; }
 .research-custom-label { background:#f3f4f6; color:var(--text-muted); }
 [data-theme="dark"] .research-common-label { background:#1e2e4a; color:#93b4ff; }
 [data-theme="dark"] .research-quick-label { background:#3a2e10; color:#fbbf24; }
 [data-theme="dark"] .research-summary-label { background:#11322a; color:#6ee7b7; }
+[data-theme="dark"] .research-waiting-label { background:#2a1f47; color:#c4b5fd; }
 [data-theme="dark"] .research-custom-label { background:#22262f; color:var(--text-secondary); }
 
 /* 칩 (공통/Quick) */
@@ -697,6 +699,19 @@
             </div>
         </div>
         {% endif %}
+        {% if waiting_question_reports %}
+        <div class="research-group">
+            <span class="research-waiting-label">대기</span>
+            <div class="research-chips">
+                {% for qr in waiting_question_reports %}
+                <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="research-common-chip" data-question="{{ qr.question }}" title="{{ qr.question }}">
+                    <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
+                    <span class="chip-date">{{ qr.updated_at|date:"y.m.d" }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
         {% if custom_question_reports %}
         <div class="research-group">
             <span class="research-custom-label">일반</span>
@@ -710,7 +725,7 @@
             </div>
         </div>
         {% endif %}
-        {% if not common_question_reports and not quick_question_reports and not summary_question_reports and not custom_question_reports %}
+        {% if not common_question_reports and not quick_question_reports and not summary_question_reports and not waiting_question_reports and not custom_question_reports %}
         <div style="text-align:center; color:var(--text-muted); padding:24px;">저장된 리서치가 없습니다.</div>
         {% endif %}
     </div>
