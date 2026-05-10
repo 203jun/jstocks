@@ -138,11 +138,12 @@ class Info(models.Model):
         choices=[
             ('super', '초관심'),
             ('normal', '관심'),
+            ('waiting', '대기'),
         ],
         null=True,
         blank=True,
         verbose_name='관심단계',
-        help_text='투자 관심 단계 (초관심 > 관심 > 인큐베이터)'
+        help_text='투자 관심 단계 (초관심 > 관심 > 대기)'
     )
     fav_sync_status = models.CharField(
         max_length=20,

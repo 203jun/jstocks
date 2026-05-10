@@ -909,7 +909,7 @@ function renderYtSaveList() {
             rows = `<div class="yt-save-empty">관심종목이 없습니다.</div>`;
         } else {
             rows = filtered.map(s => {
-                const levelLabel = s.level === 'super' ? '초관심' : '관심';
+                const levelLabel = s.level === 'super' ? '초관심' : (s.level === 'waiting' ? '대기' : '관심');
                 return `<div class="yt-save-row" data-type="stock" data-id="${s.code}">
                     <span><strong>${escHtml(s.name)}</strong> <span style="color:var(--text-muted);font-size:0.75rem;">${escHtml(s.code)}</span></span>
                     <span class="yt-save-tag">${levelLabel}</span>

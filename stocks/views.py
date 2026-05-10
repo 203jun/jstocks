@@ -37,9 +37,10 @@ def index(request):
 
     super_stocks = sort_by_theme(base_qs.filter(interest_level='super'))
     normal_stocks = sort_by_theme(base_qs.filter(interest_level='normal'))
+    waiting_stocks = sort_by_theme(base_qs.filter(interest_level='waiting'))
 
     # ============ 대시보드 카드 ============
-    target_stocks = sort_by_theme(base_qs.filter(interest_level__in=['super', 'normal']))
+    target_stocks = sort_by_theme(base_qs.filter(interest_level__in=['super', 'normal', 'waiting']))
 
     # 카드 A: 장기 신호 (60일 신고거래량)
     card_a_stocks = []  # 급등 (양봉, MA20 위)
@@ -642,6 +643,7 @@ def index(request):
     context = {
         'super_stocks': super_stocks,
         'normal_stocks': normal_stocks,
+        'waiting_stocks': waiting_stocks,
         'card_a_stocks': card_a_stocks,
         'card_a_down_stocks': card_a_down_stocks,
         'card_b_stocks': card_b_stocks,
@@ -2027,7 +2029,7 @@ def market(request):
         'saved_prompts': {s.key: s.value for s in SystemSetting.objects.filter(key__startswith='prompt_')},
         'interest_stocks_json': json.dumps([
             {'code': s.code, 'name': s.name, 'level': s.interest_level}
-            for s in Info.objects.filter(interest_level__in=['super', 'normal']).order_by('-interest_level', 'name')
+            for s in Info.objects.filter(interest_level__in=['super', 'normal', 'waiting']).order_by('-interest_level', 'name')
         ]),
         'custom_sectors_json': json.dumps([
             {'id': s.id, 'name': s.name}
