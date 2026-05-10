@@ -1048,24 +1048,29 @@ def stock_detail(request, code):
     }
 
     # 질문리포트
-    from .models import StockQuestionReport, ResearchPrompt, QuickReport
+    from .models import StockQuestionReport, ResearchPrompt, QuickReport, SummaryReport
     question_reports = list(StockQuestionReport.objects.filter(stock=stock).order_by('-created_at'))
 
-    # 공통리서치 / 퀵리포트 프롬프트
+    # 공통리서치 / 퀵리포트 / 정리리포트 프롬프트
     research_prompts = ResearchPrompt.objects.all()
     quick_prompts = QuickReport.objects.all()
+    summary_prompts = SummaryReport.objects.all()
     common_question_set = set(research_prompts.values_list('question', flat=True))
     quick_question_set = set(quick_prompts.values_list('question', flat=True))
+    summary_question_set = set(summary_prompts.values_list('question', flat=True))
 
-    # 공통 / 퀵 / 개별 분리 (공통 우선)
+    # 공통 / 퀵 / 정리 / 개별 분리 (공통 우선)
     common_question_reports = []
     quick_question_reports = []
+    summary_question_reports = []
     custom_question_reports = []
     for qr in question_reports:
         if qr.question in common_question_set:
             common_question_reports.append(qr)
         elif qr.question in quick_question_set:
             quick_question_reports.append(qr)
+        elif qr.question in summary_question_set:
+            summary_question_reports.append(qr)
         else:
             custom_question_reports.append(qr)
     # '매매근거'를 Quick 리스트 맨 앞으로
@@ -1212,6 +1217,7 @@ def stock_detail(request, code):
         'question_reports': question_reports,
         'common_question_reports': common_question_reports,
         'quick_question_reports': quick_question_reports,
+        'summary_question_reports': summary_question_reports,
         'custom_question_reports': custom_question_reports,
         'research_prompts': research_prompts,
         'uploaded_reports': uploaded_reports,
