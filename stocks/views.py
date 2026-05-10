@@ -6471,8 +6471,9 @@ def stock_question_report_detail(request, report_id):
 
     research_prompts = ResearchPrompt.objects.all()
     quick_prompts = QuickReport.objects.all()
-    from .models import SummaryReport
+    from .models import SummaryReport, WaitingReport
     summary_prompts = SummaryReport.objects.all()
+    waiting_prompts = WaitingReport.objects.all()
 
     # 공통리서치용 노다지 요약 (6개월 이내, 요약 있는 것만)
     nodaji_summaries = ''
@@ -6650,6 +6651,7 @@ def stock_question_report_detail(request, report_id):
         'research_prompts': research_prompts,
         'quick_prompts': quick_prompts,
         'summary_prompts': summary_prompts,
+        'waiting_prompts': waiting_prompts,
         'nodaji_summaries': nodaji_summaries,
         'theme_category_name': theme_category_name,
         'theme_name': theme_name,
