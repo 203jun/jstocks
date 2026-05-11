@@ -628,9 +628,7 @@
                 <div class="markdown-content" id="keyBriefingMarkdown"></div>
                 <script type="text/plain" id="keyBriefingRaw">{{ stock.key_briefing|default:""|safe }}</script>
             </div>
-            {% if stock.key_briefing_opinion %}<div class="opinion-popover" style="display:none;margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.key_briefing_opinion|safe }}</script></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
-                {% if stock.key_briefing_opinion %}<span class="btn-toggle-opinion" style="font-size:0.72rem;color:var(--accent-color);cursor:pointer;font-weight:600;">요약</span>{% endif %}
                 <span id="btnBriefingEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
         </div>
@@ -641,13 +639,6 @@
                 <span class="prompt-badge" role="button" id="btnCopyBriefingPrompt">프롬프트 복사</span>
             </div>
             <textarea class="form-control" id="briefingTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.key_briefing }}</textarea>
-            <div style="margin-top:16px;margin-bottom:8px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                    <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">요약</div>
-                    <span class="prompt-badge btn-copy-summary-prompt" role="button" data-source="briefingTextarea">프롬프트복사</span>
-                </div>
-                <textarea class="form-control" id="briefingOpinion" rows="3" style="font-family:monospace;font-size:0.85rem;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ stock.key_briefing_opinion }}</textarea>
-            </div>
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" id="btnBriefingCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
                 <button type="button" id="btnBriefingSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
@@ -2101,8 +2092,6 @@ document.getElementById('btnBriefingSave').addEventListener('click', async () =>
     try {
         const formData = new FormData();
         formData.append('key_briefing', text);
-        const opinionEl = document.getElementById('briefingOpinion');
-        if (opinionEl) formData.append('my_opinion', opinionEl.value);
         const resp = await fetch(`/api/stock/${stockCode}/key-briefing/`, {
             method: 'POST',
             headers: { 'X-CSRFToken': '{{ csrf_token }}' },
@@ -2112,40 +2101,6 @@ document.getElementById('btnBriefingSave').addEventListener('click', async () =>
         if (data.success) {
             document.getElementById('keyBriefingRaw').textContent = text;
             renderContent('keyBriefingRaw', 'keyBriefingMarkdown');
-            // 요약 영역 갱신
-            const opinionVal = opinionEl ? opinionEl.value.trim() : '';
-            const viewMode = document.getElementById('briefingViewMode');
-            let opinionBlock = viewMode.querySelector('.opinion-md');
-            const btnBar = viewMode.querySelector('[style*="justify-content:flex-end"]');
-            let toggleBtn = btnBar?.querySelector('.btn-toggle-opinion');
-            if (opinionVal) {
-                if (!opinionBlock) {
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'opinion-popover';
-                    wrapper.style.cssText = 'display:none;margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);';
-                    wrapper.innerHTML = '<div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div>';
-                    viewMode.querySelector('[style*="max-height"]').after(wrapper);
-                    opinionBlock = wrapper.querySelector('.opinion-md');
-                }
-                opinionBlock.innerHTML = marked.parse(opinionVal.replace(/~/g, '&#126;'));
-                if (!toggleBtn && btnBar) {
-                    toggleBtn = document.createElement('span');
-                    toggleBtn.className = 'btn-toggle-opinion';
-                    toggleBtn.style.cssText = 'font-size:0.72rem;color:var(--accent-color);cursor:pointer;font-weight:600;';
-                    toggleBtn.textContent = '요약';
-                    toggleBtn.addEventListener('click', () => {
-                        const pop = viewMode.querySelector('.opinion-popover');
-                        if (!pop) return;
-                        const vis = pop.style.display !== 'none';
-                        pop.style.display = vis ? 'none' : 'block';
-                        toggleBtn.textContent = vis ? '요약' : '요약 닫기';
-                    });
-                    btnBar.prepend(toggleBtn);
-                }
-            } else if (opinionBlock) {
-                opinionBlock.closest('.opinion-popover')?.remove();
-                toggleBtn?.remove();
-            }
             const dateEl = document.getElementById('briefingUpdatedAt');
             if (dateEl) {
                 dateEl.textContent = 'update: ' + data.updated_at;
