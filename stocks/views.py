@@ -1053,7 +1053,7 @@ def stock_detail(request, code):
     from .models import StockQuestionReport, ResearchPrompt, QuickReport, SummaryReport, WaitingReport
     question_reports = list(StockQuestionReport.objects.filter(stock=stock).order_by('-created_at'))
 
-    # 공통리서치 / 퀵리포트 / 정리리포트 / 대기 프롬프트
+    # 기업분석 / 퀵리포트 / 정리리포트 / 대기 프롬프트
     research_prompts = ResearchPrompt.objects.all()
     quick_prompts = QuickReport.objects.all()
     summary_prompts = SummaryReport.objects.all()
@@ -1063,7 +1063,7 @@ def stock_detail(request, code):
     summary_question_set = set(summary_prompts.values_list('question', flat=True))
     waiting_question_set = set(waiting_prompts.values_list('question', flat=True))
 
-    # 공통 / 퀵 / 정리 / 대기 / 개별 분리 (공통 우선)
+    # 기업분석 / 퀵 / 정리 / 대기 / 개별 분리 (기업분석 우선)
     common_question_reports = []
     quick_question_reports = []
     summary_question_reports = []
@@ -6481,7 +6481,7 @@ def stock_question_report_detail(request, report_id):
     summary_prompts = SummaryReport.objects.all()
     waiting_prompts = WaitingReport.objects.all()
 
-    # 공통리서치용 노다지 요약 (6개월 이내, 요약 있는 것만)
+    # 기업분석용 노다지 요약 (6개월 이내, 요약 있는 것만)
     nodaji_summaries = ''
     theme_category_name = ''
     theme_name = ''
@@ -6602,7 +6602,7 @@ def stock_question_report_detail(request, report_id):
         # 기술적 지표
         tech = _compute_technical_indicators(qr.stock)
 
-        # 공통리서치 결과 (질문명으로 매칭)
+        # 기업분석 결과 (질문명으로 매칭)
         _qr_reports = StockQuestionReport.objects.filter(stock=qr.stock)
         _qr_map = {r.question: r.report or '' for r in _qr_reports}
 
@@ -6625,7 +6625,7 @@ def stock_question_report_detail(request, report_id):
             'sell_reason': qr.stock.sell_reason or '',
             'future_events': _events_text,
             **tech,
-            **{f'공통리서치: {q}': r for q, r in _qr_map.items()},
+            **{f'기업분석: {q}': r for q, r in _qr_map.items()},
         }
 
     prompt_summary = SystemSetting.objects.filter(key='prompt_summary').values_list('value', flat=True).first() or ''

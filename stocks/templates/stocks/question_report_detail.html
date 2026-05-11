@@ -132,7 +132,7 @@
         {% if research_prompts %}
         <div class="common-research-box" style="margin-bottom:16px; padding:12px 14px; border-radius:var(--radius-sm); border:1px dashed var(--border-color);">
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
-                <span style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);">공통리서치</span>
+                <span style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);">기업분석</span>
                 <span style="font-size:0.7rem;color:var(--text-muted);">클릭 시 질문 입력 + 프롬프트 복사</span>
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:6px;">
@@ -298,14 +298,14 @@ document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
             '핵심브리핑': _v(tradeVars.key_briefing),
             '매수근거': _v(tradeVars.buy_reason),
             '매도근거': _v(tradeVars.sell_reason),
-            '공통리서치: 향후 이벤트': _v(tradeVars.future_events),
+            '기업분석: 향후 이벤트': _v(tradeVars.future_events),
         };
         for (const [k, v] of Object.entries(summaryMap)) {
             prompt = prompt.split('{' + k + '}').join(v);
         }
-        // 공통리서치 결과 동적 치환
+        // 기업분석 결과 동적 치환
         for (const [k, v] of Object.entries(tradeVars)) {
-            if (k.startsWith('공통리서치: ') && !summaryMap.hasOwnProperty(k)) {
+            if (k.startsWith('기업분석: ') && !summaryMap.hasOwnProperty(k)) {
                 const val = _v(v);
                 prompt = prompt.split('{' + k + '}').join(val || '없음');
             }
@@ -322,7 +322,7 @@ document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
     });
 });
 
-// 공통리서치 버튼 클릭
+// 기업분석 버튼 클릭
 const entityName = '{% if is_sector %}{{ qr.sector.name }}{% else %}{{ qr.stock.name }}{% endif %}';
 const nodajiData = "{{ nodaji_summaries|escapejs }}";
 const themeCategoryName = '{{ theme_category_name|escapejs }}';
@@ -359,7 +359,7 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
             '핵심브리핑': _orEmpty(tradeVars.key_briefing),
             '매수근거': _orEmpty(tradeVars.buy_reason),
             '매도근거': _orEmpty(tradeVars.sell_reason),
-            '공통리서치: 향후 이벤트': _orEmpty(tradeVars['공통리서치: 향후 이벤트']),
+            '기업분석: 향후 이벤트': _orEmpty(tradeVars['기업분석: 향후 이벤트']),
             // 이동평균
             'MA5': _orEmpty(tradeVars.MA5),
             'MA20': _orEmpty(tradeVars.MA20),
@@ -405,9 +405,9 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
         for (const [k, v] of Object.entries(tradeMap)) {
             prompt = prompt.split('{' + k + '}').join(v);
         }
-        // 공통리서치 결과 동적 치환
+        // 기업분석 결과 동적 치환
         for (const [k, v] of Object.entries(tradeVars)) {
-            if (k.startsWith('공통리서치: ')) {
+            if (k.startsWith('기업분석: ')) {
                 const val = (v && String(v).trim()) ? v : '';
                 if (val) {
                     prompt = prompt.split('{' + k + '}').join(val);
@@ -454,7 +454,7 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
             const sections = [];
             if (allData.key_briefing) sections.push(`## 핵심브리핑\n${allData.key_briefing}`);
             if (allData.common_reports && allData.common_reports.length) {
-                for (const r of allData.common_reports) sections.push(`## 공통리서치: ${r.question}\n${r.report}`);
+                for (const r of allData.common_reports) sections.push(`## 기업분석: ${r.question}\n${r.report}`);
             }
             if (allData.quick_reports && allData.quick_reports.length) {
                 for (const r of allData.quick_reports) sections.push(`## Quick: ${r.question}\n${r.report}`);
@@ -510,10 +510,10 @@ if (btnCopyAll) {
     btnCopyAll.addEventListener('click', async () => {
         const sections = [];
 
-        // 공통리서치
+        // 기업분석
         if (allData.common_reports && allData.common_reports.length) {
             for (const r of allData.common_reports) {
-                sections.push(`## 공통리서치: ${r.question}\n${r.report}`);
+                sections.push(`## 기업분석: ${r.question}\n${r.report}`);
             }
         }
 

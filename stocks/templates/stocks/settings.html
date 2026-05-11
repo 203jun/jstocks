@@ -670,7 +670,7 @@ small.text-muted {
             <button class="prompt-sub-tab tab-graph active" data-target="prompt-graph-panel" id="prompt-graph-tab">연결도</button>
             <button class="prompt-sub-tab" data-target="stock-classify-panel" id="stock-classify-tab">종목분류</button>
             <button class="prompt-sub-tab" data-target="data-loader-panel" id="data-loader-tab">핵심브리핑</button>
-            <button class="prompt-sub-tab" data-target="research-prompt-panel" id="research-prompt-tab">공통리서치</button>
+            <button class="prompt-sub-tab" data-target="research-prompt-panel" id="research-prompt-tab">기업분석</button>
             <button class="prompt-sub-tab" data-target="quick-report-panel" id="quick-report-tab">퀵리포트</button>
             <button class="prompt-sub-tab" data-target="summary-report-panel" id="summary-report-tab">정리리포트</button>
             <button class="prompt-sub-tab" data-target="waiting-report-panel" id="waiting-report-tab">대기</button>
@@ -712,7 +712,7 @@ small.text-muted {
             <div class="prompt-panel" id="research-prompt-panel" style="display:none;">
                 <div class="brief-card">
                     <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
-                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">공통리서치 프롬프트</span>
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">기업분석 프롬프트</span>
                         <button type="button" class="btn-refresh" id="btnAddResearchPrompt">+ 추가</button>
                     </div>
                     <div style="font-size:0.75rem;color:var(--up-color);margin-bottom:12px;">* 질문명은 종목 리서치와 연결되므로 변경하지 마세요. 변경 시 기존 리서치와의 연결이 끊어집니다.</div>
@@ -1969,7 +1969,7 @@ document.getElementById('btnLoadAllVars').addEventListener('click', async () => 
         }
     });
 
-    // 공통리서치 API
+    // 기업분석 API
     try {
         const res = await fetch('/api/research-prompt/');
         const data = await res.json();
@@ -1977,7 +1977,7 @@ document.getElementById('btnLoadAllVars').addEventListener('click', async () => 
             data.prompts.forEach(p => {
                 const vars = extractVars(p.prompt);
                 if (vars.length > 0) {
-                    results.push({ name: `공통리서치: ${p.question}`, vars });
+                    results.push({ name: `기업분석: ${p.question}`, vars });
                 }
             });
         }
@@ -2043,13 +2043,13 @@ document.getElementById('btnBuildGraph').addEventListener('click', async () => {
         allPrompts.push({ name: src.name, vars: extractVars(el.value) });
     });
 
-    // 공통리서치 API
+    // 기업분석 API
     try {
         const res = await fetch('/api/research-prompt/');
         const data = await res.json();
         if (data.success) {
             data.prompts.forEach(p => {
-                allPrompts.push({ name: `공통리서치: ${p.question}`, vars: extractVars(p.prompt) });
+                allPrompts.push({ name: `기업분석: ${p.question}`, vars: extractVars(p.prompt) });
             });
         }
     } catch(e) {}

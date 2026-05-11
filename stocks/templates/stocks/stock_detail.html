@@ -115,7 +115,7 @@
 [data-theme="dark"] .research-waiting-label { background:#2a1f47; color:#c4b5fd; }
 [data-theme="dark"] .research-custom-label { background:#22262f; color:var(--text-secondary); }
 
-/* 칩 (공통/Quick) */
+/* 칩 (기업분석/Quick) */
 .research-common-chip {
     display:inline-flex; align-items:center; gap:6px;
     padding:4px 10px; border-radius:14px;
@@ -662,7 +662,7 @@
     <div class="brief-card" style="padding:0; overflow:hidden;" id="researchList">
         {% if common_question_reports %}
         <div class="research-group">
-            <span class="research-common-label">공통</span>
+            <span class="research-common-label">기업분석</span>
             <div class="research-chips">
                 {% for qr in common_question_reports %}
                 <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="research-common-chip" data-question="{{ qr.question }}" title="{{ qr.question }}">
@@ -2445,10 +2445,10 @@ btnCopyBriefingPrompt.addEventListener('click', async () => {
     const analysisMap = {
         '{재무분석}': briefingData.financial_analysis,
         '{컨센서스분석}': briefingData.consensus_analysis,
-        '{공통리서치: 밸류에이션}': briefingData.valuation_analysis,
-        '{공통리서치: 업황/매크로}': briefingData.macro_analysis,
-        '{공통리서치: 향후 이벤트}': briefingData.event_analysis,
-        '{공통리서치: 경쟁사}': briefingData.competitor_analysis,
+        '{기업분석: 밸류에이션}': briefingData.valuation_analysis,
+        '{기업분석: 업황/매크로}': briefingData.macro_analysis,
+        '{기업분석: 향후 이벤트}': briefingData.event_analysis,
+        '{기업분석: 경쟁사}': briefingData.competitor_analysis,
     };
     for (const [placeholder, value] of Object.entries(analysisMap)) {
         if (value) {
@@ -2953,7 +2953,7 @@ document.getElementById('savedNewsList')?.addEventListener('click', async functi
         '핵심브리핑': newsPromptVars.key_briefing || '',
         '재무분석': newsPromptVars.financial_analysis || '',
         '컨센서스분석': newsPromptVars.consensus_analysis || '',
-        '공통리서치: 향후 이벤트': newsPromptVars.future_events || '',
+        '기업분석: 향후 이벤트': newsPromptVars.future_events || '',
     };
 
     let text = renderNewsPrompt(template, vars);
