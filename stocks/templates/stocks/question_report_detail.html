@@ -439,16 +439,12 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
         if (prompt.includes('{전체내용}')) {
             const allData = JSON.parse(document.getElementById('all-content-data').textContent || '{}');
             const sections = [];
-            if (allData.key_briefing) sections.push(`## 핵심브리핑\n${allData.key_briefing}`);
             if (allData.common_reports && allData.common_reports.length) {
                 for (const r of allData.common_reports) sections.push(`## 기업분석: ${r.question} (${r.updated_at})\n${r.report}`);
             }
             if (allData.quick_reports && allData.quick_reports.length) {
                 for (const r of allData.quick_reports) sections.push(`## 업데이트: ${r.question} (${r.updated_at})\n${r.report}`);
             }
-            if (allData.financial_analysis) sections.push(`## 재무분석\n${allData.financial_analysis}`);
-            if (allData.consensus_analysis) sections.push(`## 컨센서스분석\n${allData.consensus_analysis}`);
-            if (allData.nodaji_summaries) sections.push(`## 노다지요약\n${allData.nodaji_summaries}`);
             prompt = prompt.replace(/\{전체내용\}/g, sections.length ? sections.join('\n\n---\n\n') : '데이터 없음');
         }
         document.getElementById('questionInput').value = question;
