@@ -2391,6 +2391,13 @@ btnCopyBriefingPrompt.addEventListener('click', async () => {
     if (!promptTemplate) { alert('설정 → 프롬프트 → 핵심브리핑에서 프롬프트를 먼저 등록하세요.'); return; }
 
     let prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
+    prompt = prompt.replace(/\{종목코드\}/g, stockCode);
+    prompt = prompt.replace(/\{오늘날짜[^}]*\}/g, new Date().toISOString().slice(0, 10));
+
+    // {전체내용} 치환
+    if (prompt.includes('{전체내용}')) {
+        prompt = prompt.replace(/\{전체내용\}/g, briefingData.all_content || '데이터 없음');
+    }
 
     // 현재가, 3개월평균목표주가, 상승여력, 시가총액
     const currentPrice = (document.getElementById('currentPrice')?.textContent || '').trim();

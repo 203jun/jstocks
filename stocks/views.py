@@ -1234,7 +1234,7 @@ def stock_detail(request, code):
         'ma10_value': ma10_value,
         'ma20_value': ma20_value,
         'ma60_value': ma60_value,
-        'briefing_data': _build_briefing_data(stock, question_reports, nodaji_list, reports),
+        'briefing_data': _build_briefing_data(stock, question_reports, nodaji_list, reports, common_question_reports, update_question_reports),
         'avg_target_price_3m': avg_target_price_3m,
         'diary_trades_json': json.dumps([
             {'date': d.date.strftime('%Y-%m-%d'), 'is_buy': d.is_buy, 'is_sell': d.is_sell}
@@ -1244,12 +1244,24 @@ def stock_detail(request, code):
     return render(request, 'stocks/stock_detail.html', context)
 
 
-def _build_briefing_data(stock, question_reports, nodaji_list, reports):
+def _build_briefing_data(stock, question_reports, nodaji_list, reports, common_question_reports=None, update_question_reports=None):
     """핵심브리핑 프롬프트용 데이터 구성"""
     try:
         from .models import IncomeStatement
 
         data = {}
+
+        # {전체내용} 데이터: 기업분석 + 업데이트 리서치
+        all_content_sections = []
+        if common_question_reports:
+            for r in common_question_reports:
+                if r.report:
+                    all_content_sections.append(f"## 기업분석: {r.question} ({r.updated_at.strftime('%Y-%m-%d')})\n{r.report}")
+        if update_question_reports:
+            for r in update_question_reports:
+                if r.report:
+                    all_content_sections.append(f"## 업데이트: {r.question} ({r.updated_at.strftime('%Y-%m-%d')})\n{r.report}")
+        data['all_content'] = '\n\n---\n\n'.join(all_content_sections) if all_content_sections else ''
 
         # 기업분석기준분기: 포괄손익계산서 최신 비추정 분기
         latest_quarters = IncomeStatement.objects.filter(
