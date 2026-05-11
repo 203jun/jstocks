@@ -253,7 +253,7 @@
     cursor: pointer; transition: all 0.15s;
 }
 .range-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
-.range-btn.active { background: var(--text-primary); color: #fff; border-color: var(--text-primary); }
+.range-btn.active { background: var(--text-secondary); color: #fff; border-color: var(--text-secondary); }
 
 /* Markdown content */
 .markdown-content { font-size: 0.9rem; line-height: 1.7; color: #333; }
@@ -735,8 +735,8 @@
             <div class="d-flex align-items-center gap-2">
                 <div class="d-flex gap-1" id="dailyRangeBtns">
                     <button class="range-btn" data-days="20">20일</button>
-                    <button class="range-btn" data-days="60">60일</button>
-                    <button class="range-btn active" data-days="120">120일</button>
+                    <button class="range-btn active" data-days="60">60일</button>
+                    <button class="range-btn" data-days="120">120일</button>
                     <button class="range-btn" data-days="240">240일</button>
                 </div>
                 <div style="width:1px;height:16px;background:var(--border-color);"></div>
@@ -3182,15 +3182,19 @@ async function refreshDiaryTrades() {
     } catch(e) { console.error('diary trades refresh error', e); }
 }
 
-function initDailyChart(candleData, volumeData) {
+function initDailyChart(days) {
     const container = document.getElementById('dailyChart');
     container.innerHTML = '';
     dailyMaSeries = {};
 
-    if (!candleData.length) {
+    if (!fullDailyCandle.length) {
         container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">일봉 데이터가 없습니다.</div>';
         return;
     }
+
+    // MA 계산은 전체 데이터로 수행, 차트 표시 범위만 제한
+    const candleData = fullDailyCandle.slice(-days);
+    const volumeData = fullDailyVolume.slice(-days);
 
     const chart = LightweightCharts.createChart(container, {
         width: container.clientWidth, height: 400,
@@ -3214,7 +3218,11 @@ function initDailyChart(candleData, volumeData) {
 
     for (const [period, color] of Object.entries(maConfig)) {
         const s = chart.addLineSeries({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-        s.setData(calculateMA(candleData, parseInt(period)));
+        // 전체 데이터로 MA 계산 후 표시 범위만 슬라이스
+        const fullMa = calculateMA(fullDailyCandle, parseInt(period));
+        const startTime = candleData[0]?.time;
+        const visibleMa = startTime ? fullMa.filter(d => d.time >= startTime) : fullMa;
+        s.setData(visibleMa);
         dailyMaSeries[period] = s;
     }
 
@@ -3234,16 +3242,15 @@ function initDailyChart(candleData, volumeData) {
     });
 }
 
-// Init daily chart (120 days default)
-initDailyChart(fullDailyCandle.slice(-120), fullDailyVolume.slice(-120));
+// Init daily chart (60 days default)
+initDailyChart(60);
 
 // Range buttons
 document.getElementById('dailyRangeBtns').querySelectorAll('.range-btn').forEach(btn => {
     btn.addEventListener('click', function() {
         document.querySelectorAll('#dailyRangeBtns .range-btn').forEach(b => b.classList.remove('active'));
         this.classList.add('active');
-        const days = parseInt(this.dataset.days);
-        initDailyChart(fullDailyCandle.slice(-days), fullDailyVolume.slice(-days));
+        initDailyChart(parseInt(this.dataset.days));
     });
 });
 
