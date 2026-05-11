@@ -3217,11 +3217,7 @@ function initDailyChart(days, visibleDays) {
 
     for (const [period, color] of Object.entries(maConfig)) {
         const s = chart.addLineSeries({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-        // 전체 데이터로 MA 계산 후 표시 범위만 슬라이스
-        const fullMa = calculateMA(fullDailyCandle, parseInt(period));
-        const startTime = candleData[0]?.time;
-        const visibleMa = startTime ? fullMa.filter(d => d.time >= startTime) : fullMa;
-        s.setData(visibleMa);
+        s.setData(calculateMA(candleData, parseInt(period)));
         dailyMaSeries[period] = s;
     }
 
