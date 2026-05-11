@@ -6475,9 +6475,8 @@ def stock_question_report_detail(request, report_id):
     from .models import SummaryReport, WaitingReport
     summary_prompts = SummaryReport.objects.all()
     waiting_prompts = WaitingReport.objects.all()
-    # 업데이트 = 퀵 + 정리 통합
-    from itertools import chain
-    update_prompts = list(chain(quick_prompts, summary_prompts))
+    # 업데이트 프롬프트 버튼은 QuickReport만 표시 (SummaryReport는 설정에서 관리 불가하므로 제외)
+    update_prompts = quick_prompts
 
     # 기업분석용 노다지 요약 (6개월 이내, 요약 있는 것만)
     nodaji_summaries = ''
