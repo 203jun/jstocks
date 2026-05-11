@@ -142,27 +142,14 @@
             </div>
         </div>
         {% endif %}
-        {% if quick_prompts %}
+        {% if update_prompts %}
         <div class="common-research-box" style="margin-bottom:16px; padding:12px 14px; border-radius:var(--radius-sm); border:1px dashed var(--border-color);">
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
-                <span style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);">Quick</span>
+                <span style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);">업데이트</span>
                 <span style="font-size:0.7rem;color:var(--text-muted);">클릭 시 질문 입력 + 프롬프트 복사</span>
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                {% for rp in quick_prompts %}
-                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);">📎</span>{% endif %}</button>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        {% if summary_prompts %}
-        <div class="common-research-box" style="margin-bottom:16px; padding:12px 14px; border-radius:var(--radius-sm); border:1px dashed var(--border-color);">
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
-                <span style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);">정리리포트</span>
-                <span style="font-size:0.7rem;color:var(--text-muted);">클릭 시 질문 입력 + 프롬프트 복사</span>
-            </div>
-            <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                {% for rp in summary_prompts %}
+                {% for rp in update_prompts %}
                 <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);">📎</span>{% endif %}</button>
                 {% endfor %}
             </div>
@@ -457,7 +444,7 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
                 for (const r of allData.common_reports) sections.push(`## 기업분석: ${r.question}\n${r.report}`);
             }
             if (allData.quick_reports && allData.quick_reports.length) {
-                for (const r of allData.quick_reports) sections.push(`## Quick: ${r.question}\n${r.report}`);
+                for (const r of allData.quick_reports) sections.push(`## 업데이트: ${r.question}\n${r.report}`);
             }
             if (allData.financial_analysis) sections.push(`## 재무분석\n${allData.financial_analysis}`);
             if (allData.consensus_analysis) sections.push(`## 컨센서스분석\n${allData.consensus_analysis}`);
@@ -517,10 +504,10 @@ if (btnCopyAll) {
             }
         }
 
-        // 퀵리포트
+        // 업데이트
         if (allData.quick_reports && allData.quick_reports.length) {
             for (const r of allData.quick_reports) {
-                sections.push(`## Quick: ${r.question}\n${r.report}`);
+                sections.push(`## 업데이트: ${r.question}\n${r.report}`);
             }
         }
 

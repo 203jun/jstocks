@@ -1053,35 +1053,31 @@ def stock_detail(request, code):
     from .models import StockQuestionReport, ResearchPrompt, QuickReport, SummaryReport, WaitingReport
     question_reports = list(StockQuestionReport.objects.filter(stock=stock).order_by('-created_at'))
 
-    # 기업분석 / 퀵리포트 / 정리리포트 / 대기 프롬프트
+    # 기업분석 / 업데이트 / 대기 프롬프트
     research_prompts = ResearchPrompt.objects.all()
     quick_prompts = QuickReport.objects.all()
     summary_prompts = SummaryReport.objects.all()
     waiting_prompts = WaitingReport.objects.all()
     common_question_set = set(research_prompts.values_list('question', flat=True))
-    quick_question_set = set(quick_prompts.values_list('question', flat=True))
-    summary_question_set = set(summary_prompts.values_list('question', flat=True))
+    update_question_set = set(quick_prompts.values_list('question', flat=True)) | set(summary_prompts.values_list('question', flat=True))
     waiting_question_set = set(waiting_prompts.values_list('question', flat=True))
 
-    # 기업분석 / 퀵 / 정리 / 대기 / 개별 분리 (기업분석 우선)
+    # 기업분석 / 업데이트 / 대기 / 개별 분리 (기업분석 우선)
     common_question_reports = []
-    quick_question_reports = []
-    summary_question_reports = []
+    update_question_reports = []
     waiting_question_reports = []
     custom_question_reports = []
     for qr in question_reports:
         if qr.question in common_question_set:
             common_question_reports.append(qr)
-        elif qr.question in quick_question_set:
-            quick_question_reports.append(qr)
-        elif qr.question in summary_question_set:
-            summary_question_reports.append(qr)
+        elif qr.question in update_question_set:
+            update_question_reports.append(qr)
         elif qr.question in waiting_question_set:
             waiting_question_reports.append(qr)
         else:
             custom_question_reports.append(qr)
-    # '매매근거'를 Quick 리스트 맨 앞으로
-    quick_question_reports.sort(key=lambda q: (0 if '매매근거' in q.question else 1))
+    # '매매근거'를 업데이트 리스트 맨 앞으로
+    update_question_reports.sort(key=lambda q: (0 if '매매근거' in q.question else 1))
 
     # 업로드 리포트
     from .models import StockUploadedReport, SystemSetting
@@ -1223,8 +1219,7 @@ def stock_detail(request, code):
         'telegram_messages': telegram_messages,
         'question_reports': question_reports,
         'common_question_reports': common_question_reports,
-        'quick_question_reports': quick_question_reports,
-        'summary_question_reports': summary_question_reports,
+        'update_question_reports': update_question_reports,
         'waiting_question_reports': waiting_question_reports,
         'custom_question_reports': custom_question_reports,
         'research_prompts': research_prompts,
@@ -6480,6 +6475,9 @@ def stock_question_report_detail(request, report_id):
     from .models import SummaryReport, WaitingReport
     summary_prompts = SummaryReport.objects.all()
     waiting_prompts = WaitingReport.objects.all()
+    # 업데이트 = 퀵 + 정리 통합
+    from itertools import chain
+    update_prompts = list(chain(quick_prompts, summary_prompts))
 
     # 기업분석용 노다지 요약 (6개월 이내, 요약 있는 것만)
     nodaji_summaries = ''
@@ -6635,7 +6633,7 @@ def stock_question_report_detail(request, report_id):
     if qr.stock:
         _all_reports = StockQuestionReport.objects.filter(stock=qr.stock).exclude(id=qr.id)
         _common_set = set(research_prompts.values_list('question', flat=True))
-        _quick_set = set(quick_prompts.values_list('question', flat=True))
+        _quick_set = set(quick_prompts.values_list('question', flat=True)) | set(summary_prompts.values_list('question', flat=True))
         _common_reports = []
         _quick_reports = []
         for r in _all_reports:
@@ -6655,8 +6653,7 @@ def stock_question_report_detail(request, report_id):
     return render(request, 'stocks/question_report_detail.html', {
         'qr': qr,
         'research_prompts': research_prompts,
-        'quick_prompts': quick_prompts,
-        'summary_prompts': summary_prompts,
+        'update_prompts': update_prompts,
         'waiting_prompts': waiting_prompts,
         'nodaji_summaries': nodaji_summaries,
         'theme_category_name': theme_category_name,
