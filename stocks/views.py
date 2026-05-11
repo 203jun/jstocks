@@ -6638,9 +6638,9 @@ def stock_question_report_detail(request, report_id):
         _quick_reports = []
         for r in _all_reports:
             if r.question in _common_set and r.report:
-                _common_reports.append({'question': r.question, 'report': r.report})
+                _common_reports.append({'question': r.question, 'report': r.report, 'updated_at': r.updated_at.strftime('%Y-%m-%d')})
             elif r.question in _quick_set and r.report:
-                _quick_reports.append({'question': r.question, 'report': r.report})
+                _quick_reports.append({'question': r.question, 'report': r.report, 'updated_at': r.updated_at.strftime('%Y-%m-%d')})
         all_content_data = {
             'common_reports': _common_reports,
             'quick_reports': _quick_reports,
