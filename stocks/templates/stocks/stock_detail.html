@@ -735,9 +735,9 @@
             <div class="d-flex align-items-center gap-2">
                 <div class="d-flex gap-1" id="dailyRangeBtns">
                     <button class="range-btn" data-days="20">20일</button>
-                    <button class="range-btn active" data-days="60">60일</button>
+                    <button class="range-btn" data-days="60">60일</button>
                     <button class="range-btn" data-days="120">120일</button>
-                    <button class="range-btn" data-days="240">240일</button>
+                    <button class="range-btn active" data-days="240">240일</button>
                 </div>
                 <div style="width:1px;height:16px;background:var(--border-color);"></div>
                 <div class="d-flex gap-1">
@@ -3182,7 +3182,7 @@ async function refreshDiaryTrades() {
     } catch(e) { console.error('diary trades refresh error', e); }
 }
 
-function initDailyChart(days) {
+function initDailyChart(days, visibleDays) {
     const container = document.getElementById('dailyChart');
     container.innerHTML = '';
     dailyMaSeries = {};
@@ -3192,7 +3192,6 @@ function initDailyChart(days) {
         return;
     }
 
-    // MA 계산은 전체 데이터로 수행, 차트 표시 범위만 제한
     const candleData = fullDailyCandle.slice(-days);
     const volumeData = fullDailyVolume.slice(-days);
 
@@ -3231,7 +3230,15 @@ function initDailyChart(days) {
         priceScaleId: '', scaleMargins: { top: 0.8, bottom: 0 },
     });
     volumeSeries.setData(volumeData);
-    chart.timeScale().fitContent();
+
+    // visibleDays가 지정되면 최근 N봉만 보이도록 줌, 아니면 전체 fit
+    if (visibleDays && candleData.length > visibleDays) {
+        const fromTime = candleData[candleData.length - visibleDays].time;
+        const toTime = candleData[candleData.length - 1].time;
+        chart.timeScale().setVisibleRange({ from: fromTime, to: toTime });
+    } else {
+        chart.timeScale().fitContent();
+    }
     new ResizeObserver(entries => { if (entries.length) chart.applyOptions({ width: entries[0].contentRect.width }); }).observe(container);
     dailyChartInstance = chart;
 
@@ -3242,15 +3249,16 @@ function initDailyChart(days) {
     });
 }
 
-// Init daily chart (60 days default)
-initDailyChart(60);
+// Init daily chart (240일 데이터, 최근 60봉 줌)
+initDailyChart(240, 60);
 
 // Range buttons
 document.getElementById('dailyRangeBtns').querySelectorAll('.range-btn').forEach(btn => {
     btn.addEventListener('click', function() {
         document.querySelectorAll('#dailyRangeBtns .range-btn').forEach(b => b.classList.remove('active'));
         this.classList.add('active');
-        initDailyChart(parseInt(this.dataset.days));
+        const days = parseInt(this.dataset.days);
+        initDailyChart(days);
     });
 });
 
