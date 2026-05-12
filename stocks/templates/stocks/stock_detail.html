@@ -1459,9 +1459,7 @@
                 <div class="markdown-content" id="sdAnalysisMarkdown"></div>
                 <script type="text/plain" id="sdAnalysisRaw">{{ stock.supply_demand_analysis|default:""|safe }}</script>
             </div>
-            {% if stock.supply_demand_analysis_opinion %}<div class="opinion-popover" style="display:none;margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);"><div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div><script type="text/plain" class="opinion-raw">{{ stock.supply_demand_analysis_opinion|safe }}</script></div>{% endif %}
             <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;">
-                {% if stock.supply_demand_analysis_opinion %}<span class="btn-toggle-opinion" style="font-size:0.72rem;color:var(--accent-color);cursor:pointer;font-weight:600;">요약</span>{% endif %}
                 <span id="btnSdAnalysisEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
             </div>
         </div>
@@ -1472,13 +1470,6 @@
                 <span class="prompt-badge" role="button" id="btnCopySdAnalysisPrompt">프롬프트 복사</span>
             </div>
             <textarea class="form-control" id="sdAnalysisTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.supply_demand_analysis }}</textarea>
-            <div style="margin-top:16px;margin-bottom:8px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                    <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">요약</div>
-                    <span class="prompt-badge btn-copy-summary-prompt" role="button" data-source="sdAnalysisTextarea">프롬프트복사</span>
-                </div>
-                <textarea class="form-control" id="sdAnalysisOpinion" rows="3" style="font-family:monospace;font-size:0.85rem;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ stock.supply_demand_analysis_opinion }}</textarea>
-            </div>
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" id="btnSdAnalysisCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
                 <button type="button" id="btnSdAnalysisSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
@@ -2140,8 +2131,6 @@ document.getElementById('btnSdAnalysisSave').addEventListener('click', async () 
     try {
         const formData = new FormData();
         formData.append('supply_demand_analysis', text);
-        const opinionEl = document.getElementById('sdAnalysisOpinion');
-        if (opinionEl) formData.append('my_opinion', opinionEl.value);
         const resp = await fetch(`/api/stock/${stockCode}/supply-demand-analysis/`, {
             method: 'POST',
             headers: { 'X-CSRFToken': '{{ csrf_token }}' },
@@ -2161,40 +2150,6 @@ document.getElementById('btnSdAnalysisSave').addEventListener('click', async () 
                 span.style.cssText = 'font-size:0.68rem;font-weight:400;color:var(--text-muted);';
                 span.textContent = 'update: ' + data.updated_at;
                 heading.appendChild(span);
-            }
-            // 요약 영역 갱신
-            const sdViewMode = document.getElementById('sdAnalysisViewMode');
-            const sdOpinionVal = opinionEl ? opinionEl.value.trim() : '';
-            let sdOpBlock = sdViewMode.querySelector('.opinion-md');
-            const sdBtnBar = sdViewMode.querySelector('[style*="justify-content:flex-end"]');
-            let sdToggleBtn = sdBtnBar?.querySelector('.btn-toggle-opinion');
-            if (sdOpinionVal) {
-                if (!sdOpBlock) {
-                    const w = document.createElement('div');
-                    w.className = 'opinion-popover';
-                    w.style.cssText = 'display:none;margin-top:12px;padding:12px;background:var(--bg-secondary, #f8f9fa);border-radius:var(--radius-sm);border-left:3px solid var(--border-color);';
-                    w.innerHTML = '<div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">요약</div><div class="markdown-content opinion-md" style="font-size:0.85rem;color:var(--text-primary);line-height:1.7;"></div>';
-                    sdViewMode.querySelector('[style*="max-height"]').after(w);
-                    sdOpBlock = w.querySelector('.opinion-md');
-                }
-                sdOpBlock.innerHTML = marked.parse(sdOpinionVal.replace(/~/g, '&#126;'));
-                if (!sdToggleBtn && sdBtnBar) {
-                    sdToggleBtn = document.createElement('span');
-                    sdToggleBtn.className = 'btn-toggle-opinion';
-                    sdToggleBtn.style.cssText = 'font-size:0.72rem;color:var(--accent-color);cursor:pointer;font-weight:600;';
-                    sdToggleBtn.textContent = '요약';
-                    sdToggleBtn.addEventListener('click', () => {
-                        const pop = sdViewMode.querySelector('.opinion-popover');
-                        if (!pop) return;
-                        const vis = pop.style.display !== 'none';
-                        pop.style.display = vis ? 'none' : 'block';
-                        sdToggleBtn.textContent = vis ? '요약' : '요약 닫기';
-                    });
-                    sdBtnBar.prepend(sdToggleBtn);
-                }
-            } else if (sdOpBlock) {
-                sdOpBlock.closest('.opinion-popover')?.remove();
-                sdToggleBtn?.remove();
             }
             document.getElementById('sdAnalysisEditMode').classList.add('d-none');
             document.getElementById('sdAnalysisViewMode').classList.remove('d-none');
