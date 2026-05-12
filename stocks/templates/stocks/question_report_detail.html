@@ -129,17 +129,24 @@
             <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">질문</div>
             <textarea name="question" id="questionInput" rows="2" placeholder="질문을 입력하세요...">{{ qr.question }}</textarea>
         </div>
-        {% if research_prompts %}
+        {% if research_core or research_extra %}
         <div class="common-research-box" style="margin-bottom:16px; padding:12px 14px; border-radius:var(--radius-sm); border:1px dashed var(--border-color);">
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
                 <span style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);">기업분석</span>
                 <span style="font-size:0.7rem;color:var(--text-muted);">클릭 시 질문 입력 + 프롬프트 복사</span>
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                {% for rp in research_prompts %}
+                {% for rp in research_core %}
                 <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);">📎</span>{% endif %}</button>
                 {% endfor %}
             </div>
+            {% if research_extra %}
+            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
+                {% for rp in research_extra %}
+                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);">📎</span>{% endif %}</button>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
         {% endif %}
         {% if update_prompts %}

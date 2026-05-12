@@ -6498,6 +6498,11 @@ def stock_question_report_detail(request, report_id):
     waiting_prompts = WaitingReport.objects.all()
     # 업데이트 프롬프트 버튼은 QuickReport만 표시 (SummaryReport는 설정에서 관리 불가하므로 제외)
     update_prompts = quick_prompts
+    # 기업분석 core/extra 분리
+    _core_questions = {'사업모델', '수익구조', '경쟁', '중장기전망', '주주환원', '지배구조'}
+    _core_order = ['사업모델', '수익구조', '경쟁', '중장기전망', '주주환원', '지배구조']
+    research_core = sorted([p for p in research_prompts if p.question in _core_questions], key=lambda p: _core_order.index(p.question) if p.question in _core_order else 99)
+    research_extra = [p for p in research_prompts if p.question not in _core_questions]
 
     # 기업분석용 노다지 요약 (6개월 이내, 요약 있는 것만)
     nodaji_summaries = ''
@@ -6672,7 +6677,8 @@ def stock_question_report_detail(request, report_id):
 
     return render(request, 'stocks/question_report_detail.html', {
         'qr': qr,
-        'research_prompts': research_prompts,
+        'research_core': research_core,
+        'research_extra': research_extra,
         'update_prompts': update_prompts,
         'waiting_prompts': waiting_prompts,
         'nodaji_summaries': nodaji_summaries,
