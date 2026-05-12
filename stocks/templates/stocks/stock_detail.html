@@ -677,17 +677,32 @@
             {% endif %}
         </div>
         {% endif %}
-        {% if update_question_reports %}
-        <div class="research-group">
-            <span class="research-update-label">업데이트</span>
-            <div class="research-chips">
-                {% for qr in update_question_reports %}
-                <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="{% if '매매근거' in qr.question %}research-trade-chip{% else %}research-common-chip{% endif %}" data-question="{{ qr.question }}" title="{{ qr.question }}">
-                    <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
-                    <span class="chip-date">{{ qr.updated_at|date:"y.m.d" }}</span>
-                </a>
-                {% endfor %}
+        {% if update_core_reports or update_extra_reports %}
+        <div class="research-group" style="flex-direction:column;gap:6px;">
+            <div style="display:flex;align-items:flex-start;gap:8px;">
+                <span class="research-update-label">업데이트</span>
+                <div class="research-chips">
+                    {% for qr in update_core_reports %}
+                    <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="{% if '매매근거' in qr.question %}research-trade-chip{% else %}research-common-chip{% endif %}" data-question="{{ qr.question }}" title="{{ qr.question }}">
+                        <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
+                        <span class="chip-date">{{ qr.updated_at|date:"y.m.d" }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
             </div>
+            {% if update_extra_reports %}
+            <div style="display:flex;align-items:flex-start;gap:8px;">
+                <span class="research-update-label" style="visibility:hidden;">업데이트</span>
+                <div class="research-chips">
+                    {% for qr in update_extra_reports %}
+                    <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="research-common-chip" data-question="{{ qr.question }}" title="{{ qr.question }}">
+                        <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
+                        <span class="chip-date">{{ qr.updated_at|date:"y.m.d" }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
         {% endif %}
         {% if waiting_question_reports %}
@@ -716,7 +731,7 @@
             </div>
         </div>
         {% endif %}
-        {% if not common_core_reports and not common_extra_reports and not update_question_reports and not waiting_question_reports and not custom_question_reports %}
+        {% if not common_core_reports and not common_extra_reports and not update_core_reports and not update_extra_reports and not waiting_question_reports and not custom_question_reports %}
         <div style="text-align:center; color:var(--text-muted); padding:24px;">저장된 리서치가 없습니다.</div>
         {% endif %}
     </div>

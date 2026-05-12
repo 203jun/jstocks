@@ -1064,9 +1064,11 @@ def stock_detail(request, code):
 
     # 기업분석 / 업데이트 / 대기 / 개별 분리 (기업분석 우선)
     common_core_questions = {'사업모델', '수익구조', '경쟁', '중장기전망', '주주환원', '지배구조'}
+    update_extra_questions = {'투자포인트', '리스크', '일정매매'}
     common_core_reports = []
     common_extra_reports = []
-    update_question_reports = []
+    update_core_reports = []
+    update_extra_reports = []
     waiting_question_reports = []
     custom_question_reports = []
     for qr in question_reports:
@@ -1076,7 +1078,10 @@ def stock_detail(request, code):
             else:
                 common_extra_reports.append(qr)
         elif qr.question in update_question_set:
-            update_question_reports.append(qr)
+            if qr.question in update_extra_questions:
+                update_extra_reports.append(qr)
+            else:
+                update_core_reports.append(qr)
         elif qr.question in waiting_question_set:
             waiting_question_reports.append(qr)
         else:
@@ -1084,8 +1089,9 @@ def stock_detail(request, code):
     # core 질문 순서 고정
     core_order = ['사업모델', '수익구조', '경쟁', '중장기전망', '주주환원', '지배구조']
     common_core_reports.sort(key=lambda q: core_order.index(q.question) if q.question in core_order else 99)
-    # '매매근거'를 업데이트 리스트 맨 앞으로
-    update_question_reports.sort(key=lambda q: (0 if '매매근거' in q.question else 1))
+    # 업데이트 extra 순서 고정
+    update_extra_order = ['투자포인트', '리스크', '일정매매']
+    update_extra_reports.sort(key=lambda q: update_extra_order.index(q.question) if q.question in update_extra_order else 99)
 
     # 업로드 리포트
     from .models import StockUploadedReport, SystemSetting
@@ -1228,7 +1234,8 @@ def stock_detail(request, code):
         'question_reports': question_reports,
         'common_core_reports': common_core_reports,
         'common_extra_reports': common_extra_reports,
-        'update_question_reports': update_question_reports,
+        'update_core_reports': update_core_reports,
+        'update_extra_reports': update_extra_reports,
         'waiting_question_reports': waiting_question_reports,
         'custom_question_reports': custom_question_reports,
         'research_prompts': research_prompts,
@@ -1243,7 +1250,7 @@ def stock_detail(request, code):
         'ma10_value': ma10_value,
         'ma20_value': ma20_value,
         'ma60_value': ma60_value,
-        'briefing_data': _build_briefing_data(stock, question_reports, nodaji_list, reports, common_core_reports + common_extra_reports, update_question_reports),
+        'briefing_data': _build_briefing_data(stock, question_reports, nodaji_list, reports, common_core_reports + common_extra_reports, update_core_reports + update_extra_reports),
         'avg_target_price_3m': avg_target_price_3m,
         'diary_trades_json': json.dumps([
             {'date': d.date.strftime('%Y-%m-%d'), 'is_buy': d.is_buy, 'is_sell': d.is_sell}
@@ -6496,8 +6503,11 @@ def stock_question_report_detail(request, report_id):
     from .models import SummaryReport, WaitingReport
     summary_prompts = SummaryReport.objects.all()
     waiting_prompts = WaitingReport.objects.all()
-    # 업데이트 프롬프트 버튼은 QuickReport만 표시 (SummaryReport는 설정에서 관리 불가하므로 제외)
-    update_prompts = quick_prompts
+    # 업데이트 프롬프트 버튼 core/extra 분리
+    _update_extra_qs = {'투자포인트', '리스크', '일정매매'}
+    _update_extra_order = ['투자포인트', '리스크', '일정매매']
+    update_core_prompts = [p for p in quick_prompts if p.question not in _update_extra_qs]
+    update_extra_prompts = sorted([p for p in quick_prompts if p.question in _update_extra_qs], key=lambda p: _update_extra_order.index(p.question) if p.question in _update_extra_order else 99)
     # 기업분석 core/extra 분리
     _core_questions = {'사업모델', '수익구조', '경쟁', '중장기전망', '주주환원', '지배구조'}
     _core_order = ['사업모델', '수익구조', '경쟁', '중장기전망', '주주환원', '지배구조']
@@ -6679,7 +6689,8 @@ def stock_question_report_detail(request, report_id):
         'qr': qr,
         'research_core': research_core,
         'research_extra': research_extra,
-        'update_prompts': update_prompts,
+        'update_core_prompts': update_core_prompts,
+        'update_extra_prompts': update_extra_prompts,
         'waiting_prompts': waiting_prompts,
         'nodaji_summaries': nodaji_summaries,
         'theme_category_name': theme_category_name,
