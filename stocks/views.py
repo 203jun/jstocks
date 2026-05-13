@@ -3634,6 +3634,110 @@ def youtube_summary(request, video_id):
 
 
 @require_GET
+def fetch_dart_report(request, code):
+    """DART OpenAPI로 최신 정기공시(사업/반기/분기보고서) 조회"""
+    import requests
+    import zipfile
+    import xml.etree.ElementTree as ET
+    import io
+    import os
+
+    api_key = config('DART_API_KEY', default='')
+    if not api_key:
+        return JsonResponse({'error': 'DART_API_KEY가 설정되지 않았습니다.'}, status=500)
+
+    # 1) corp_code 조회: corpCode.xml 다운로드 후 stock_code로 매핑
+    cache_dir = os.path.join(django_settings.BASE_DIR, '.cache')
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_file = os.path.join(cache_dir, 'dart_corp_code.xml')
+
+    # 캐시가 1일 이내면 재사용
+    need_download = True
+    if os.path.exists(cache_file):
+        import time
+        age = time.time() - os.path.getmtime(cache_file)
+        if age < 86400:
+            need_download = False
+
+    if need_download:
+        resp = requests.get(
+            'https://opendart.fss.or.kr/api/corpCode.xml',
+            params={'crtfc_key': api_key},
+            timeout=30,
+        )
+        if resp.status_code != 200:
+            return JsonResponse({'error': f'corpCode 다운로드 실패: {resp.status_code}'}, status=500)
+        try:
+            zf = zipfile.ZipFile(io.BytesIO(resp.content))
+            xml_name = zf.namelist()[0]
+            with open(cache_file, 'wb') as f:
+                f.write(zf.read(xml_name))
+        except Exception as e:
+            return JsonResponse({'error': f'corpCode 압축 해제 실패: {e}'}, status=500)
+
+    # XML 파싱하여 stock_code → corp_code 매핑
+    tree = ET.parse(cache_file)
+    root = tree.getroot()
+    corp_code = None
+    for item in root.iter('list'):
+        sc = item.findtext('stock_code', '').strip()
+        if sc == code:
+            corp_code = item.findtext('corp_code', '').strip()
+            break
+
+    if not corp_code:
+        return JsonResponse({'error': f'종목코드 {code}에 해당하는 DART corp_code를 찾을 수 없습니다.'}, status=404)
+
+    # 2) 정기공시 조회 (사업보고서, 반기보고서, 분기보고서)
+    resp = requests.get(
+        'https://opendart.fss.or.kr/api/list.json',
+        params={
+            'crtfc_key': api_key,
+            'corp_code': corp_code,
+            'pblntf_ty': 'A',  # 정기공시
+            'page_count': 5,
+            'sort': 'date',
+            'sort_mth': 'desc',
+        },
+        timeout=15,
+    )
+    if resp.status_code != 200:
+        return JsonResponse({'error': f'공시 조회 실패: {resp.status_code}'}, status=500)
+
+    data = resp.json()
+    if data.get('status') != '000':
+        return JsonResponse({'error': data.get('message', '조회 실패')}, status=400)
+
+    reports = data.get('list', [])
+    if not reports:
+        return JsonResponse({'error': '정기공시가 없습니다.'}, status=404)
+
+    # 가장 최근 보고서 (첫 번째)
+    latest = reports[0]
+    result = {
+        'success': True,
+        'corp_code': corp_code,
+        'report': {
+            'corp_name': latest.get('corp_name', ''),
+            'report_nm': latest.get('report_nm', ''),
+            'rcept_no': latest.get('rcept_no', ''),
+            'rcept_dt': latest.get('rcept_dt', ''),
+            'flr_nm': latest.get('flr_nm', ''),
+            'link': f"https://dart.fss.or.kr/dsaf001/main.do?rcpNo={latest.get('rcept_no', '')}",
+        },
+        'all_reports': [
+            {
+                'report_nm': r.get('report_nm', ''),
+                'rcept_dt': r.get('rcept_dt', ''),
+                'link': f"https://dart.fss.or.kr/dsaf001/main.do?rcpNo={r.get('rcept_no', '')}",
+            }
+            for r in reports
+        ],
+    }
+    return JsonResponse(result)
+
+
+@require_GET
 def fetch_dart(request, code):
     """DART 공시 조회 API"""
     try:

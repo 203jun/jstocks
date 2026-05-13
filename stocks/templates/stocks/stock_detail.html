@@ -1846,6 +1846,21 @@ document.querySelectorAll('.sub-tab').forEach(tab => {
 });
 
 // ===== Research click handler =====
+// ===== 사업모델 클릭 → DART 정기공시 테스트 =====
+document.querySelectorAll('.research-common-chip[data-question="사업모델"]').forEach(chip => {
+    chip.addEventListener('click', async (e) => {
+        e.preventDefault();
+        console.log('[DART] 정기공시 조회 중...');
+        try {
+            const resp = await fetch(`/api/dart-report/${stockCode}/`);
+            const data = await resp.json();
+            console.log('[DART] 결과:', data);
+        } catch (err) {
+            console.error('[DART] 오류:', err);
+        }
+    });
+});
+
 // ===== 리서치 추가 =====
 document.getElementById('btnAddQuestionReport')?.addEventListener('click', async () => {
     const btn = document.getElementById('btnAddQuestionReport');
