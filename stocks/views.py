@@ -1063,7 +1063,7 @@ def stock_detail(request, code):
     waiting_question_set = set(waiting_prompts.values_list('question', flat=True))
 
     # 기업분석 / 업데이트 / 대기 / 개별 분리 (기업분석 우선)
-    common_core_questions = {'사업모델', '수익구조', '경쟁', '중장기전망', '주주환원', '지배구조'}
+    common_core_questions = {'사업모델', '수익구조', '중장기전망', '지배구조', '경쟁력', '경쟁사'}
     update_extra_questions = {'투자포인트', '리스크', '일정매매'}
     common_core_reports = []
     common_extra_reports = []
@@ -1087,7 +1087,7 @@ def stock_detail(request, code):
         else:
             custom_question_reports.append(qr)
     # core 질문 순서 고정
-    core_order = ['사업모델', '수익구조', '경쟁', '중장기전망', '주주환원', '지배구조']
+    core_order = ['사업모델', '수익구조', '경쟁력', '경쟁사', '중장기전망', '지배구조']
     common_core_reports.sort(key=lambda q: core_order.index(q.question) if q.question in core_order else 99)
     # 업데이트 extra 순서 고정
     update_extra_order = ['투자포인트', '리스크', '일정매매']
@@ -6509,8 +6509,8 @@ def stock_question_report_detail(request, report_id):
     update_core_prompts = [p for p in quick_prompts if p.question not in _update_extra_qs]
     update_extra_prompts = sorted([p for p in quick_prompts if p.question in _update_extra_qs], key=lambda p: _update_extra_order.index(p.question) if p.question in _update_extra_order else 99)
     # 기업분석 core/extra 분리
-    _core_questions = {'사업모델', '수익구조', '경쟁', '중장기전망', '주주환원', '지배구조'}
-    _core_order = ['사업모델', '수익구조', '경쟁', '중장기전망', '주주환원', '지배구조']
+    _core_questions = {'사업모델', '수익구조', '중장기전망', '지배구조', '경쟁력', '경쟁사'}
+    _core_order = ['사업모델', '수익구조', '경쟁력', '경쟁사', '중장기전망', '지배구조']
     research_core = sorted([p for p in research_prompts if p.question in _core_questions], key=lambda p: _core_order.index(p.question) if p.question in _core_order else 99)
     research_extra = [p for p in research_prompts if p.question not in _core_questions]
 
