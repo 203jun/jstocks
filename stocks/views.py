@@ -3689,11 +3689,14 @@ def fetch_dart_report(request, code):
         return JsonResponse({'error': f'종목코드 {code}에 해당하는 DART corp_code를 찾을 수 없습니다.'}, status=404)
 
     # 2) 정기공시 조회 (사업보고서, 반기보고서, 분기보고서)
+    from datetime import date as _date
+    bgn_de = str(_date.today().year - 2) + '0101'  # 2년 전부터
     resp = requests.get(
         'https://opendart.fss.or.kr/api/list.json',
         params={
             'crtfc_key': api_key,
             'corp_code': corp_code,
+            'bgn_de': bgn_de,
             'pblntf_ty': 'A',  # 정기공시
             'page_count': 5,
             'sort': 'date',
@@ -3702,11 +3705,11 @@ def fetch_dart_report(request, code):
         timeout=15,
     )
     if resp.status_code != 200:
-        return JsonResponse({'error': f'공시 조회 실패: {resp.status_code}'}, status=500)
+        return JsonResponse({'error': f'공시 조회 실패: {resp.status_code}', 'corp_code': corp_code}, status=500)
 
     data = resp.json()
     if data.get('status') != '000':
-        return JsonResponse({'error': data.get('message', '조회 실패')}, status=400)
+        return JsonResponse({'error': data.get('message', '조회 실패'), 'corp_code': corp_code, 'status': data.get('status')}, status=400)
 
     reports = data.get('list', [])
     if not reports:
