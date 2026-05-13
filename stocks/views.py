@@ -3756,7 +3756,7 @@ def fetch_dart_document(request, rcept_no):
     # document.xml 다운로드 (zip 파일 반환)
     resp = requests.get(
         'https://opendart.fss.or.kr/api/document.xml',
-        params={'crtfc_key': api_key, 'rcpt_no': rcept_no},
+        params={'crtfc_key': api_key, 'rcept_no': rcept_no},
         timeout=60,
     )
     if resp.status_code != 200:
