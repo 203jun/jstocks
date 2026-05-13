@@ -1850,11 +1850,17 @@ document.querySelectorAll('.sub-tab').forEach(tab => {
 document.querySelectorAll('.research-common-chip[data-question="사업모델"]').forEach(chip => {
     chip.addEventListener('click', async (e) => {
         e.preventDefault();
-        console.log('[DART] 정기공시 조회 중...');
+        console.log('[DART] 1단계: 정기공시 조회 중...');
         try {
             const resp = await fetch(`/api/dart-report/${stockCode}/`);
             const data = await resp.json();
-            console.log('[DART] 결과:', data);
+            console.log('[DART] 정기공시:', data);
+            if (data.success && data.report.rcept_no) {
+                console.log(`[DART] 2단계: "${data.report.report_nm}" 본문(사업의 내용) 조회 중...`);
+                const docResp = await fetch(`/api/dart-document/${data.report.rcept_no}/`);
+                const docData = await docResp.json();
+                console.log('[DART] 사업의 내용:', docData);
+            }
         } catch (err) {
             console.error('[DART] 오류:', err);
         }

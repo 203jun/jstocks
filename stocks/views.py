@@ -3741,6 +3741,100 @@ def fetch_dart_report(request, code):
 
 
 @require_GET
+def fetch_dart_document(request, rcept_no):
+    """DART OpenAPI로 보고서 본문(사업의 내용) 조회"""
+    import requests
+    import zipfile
+    import io
+    import re
+    from bs4 import BeautifulSoup
+
+    api_key = config('DART_API_KEY', default='')
+    if not api_key:
+        return JsonResponse({'error': 'DART_API_KEY가 설정되지 않았습니다.'}, status=500)
+
+    # document.xml 다운로드 (zip 파일 반환)
+    resp = requests.get(
+        'https://opendart.fss.or.kr/api/document.xml',
+        params={'crtfc_key': api_key, 'rcpt_no': rcept_no},
+        timeout=60,
+    )
+    if resp.status_code != 200:
+        return JsonResponse({'error': f'문서 다운로드 실패: {resp.status_code}'}, status=500)
+
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(resp.content))
+    except Exception as e:
+        return JsonResponse({'error': f'ZIP 파일 오류: {e}'}, status=500)
+
+    # ZIP 내 모든 XML 파일에서 "사업의 내용" 섹션 찾기
+    business_content = None
+    file_list = zf.namelist()
+
+    for fname in file_list:
+        raw = zf.read(fname)
+        # 인코딩 감지
+        text = None
+        for enc in ['utf-8', 'euc-kr', 'cp949']:
+            try:
+                text = raw.decode(enc)
+                break
+            except (UnicodeDecodeError, LookupError):
+                continue
+        if not text:
+            continue
+
+        # "사업의 내용"이 포함된 파일 찾기
+        if '사업의 내용' not in text:
+            continue
+
+        soup = BeautifulSoup(text, 'html.parser')
+
+        # 방법1: title 태그에 "사업의 내용"이 있는 경우 (전체 문서가 사업의 내용)
+        title_tag = soup.find('title')
+        if title_tag and '사업의 내용' in title_tag.get_text():
+            body = soup.find('body')
+            if body:
+                business_content = str(body)
+                break
+
+        # 방법2: 본문 내에서 "사업의 내용" 섹션 추출
+        for tag in soup.find_all(string=re.compile(r'사업의\s*내용')):
+            parent = tag.find_parent(['p', 'div', 'td', 'th', 'span', 'h1', 'h2', 'h3'])
+            if parent:
+                # 해당 섹션부터 끝까지 수집
+                content_parts = []
+                for sibling in parent.find_all_next():
+                    content_parts.append(str(sibling))
+                    if len(''.join(content_parts)) > 500000:  # 500KB 제한
+                        break
+                if content_parts:
+                    business_content = ''.join(content_parts)
+                    break
+        if business_content:
+            break
+
+    if not business_content:
+        return JsonResponse({
+            'error': '사업의 내용을 찾을 수 없습니다.',
+            'files': file_list,
+        }, status=404)
+
+    # HTML에서 텍스트만 추출 (콘솔 확인용)
+    text_soup = BeautifulSoup(business_content, 'html.parser')
+    plain_text = text_soup.get_text(separator='\n', strip=True)
+    # 연속 빈줄 정리
+    plain_text = re.sub(r'\n{3,}', '\n\n', plain_text)
+
+    return JsonResponse({
+        'success': True,
+        'rcept_no': rcept_no,
+        'content_length': len(plain_text),
+        'content': plain_text[:10000],  # 콘솔 테스트용 10000자 제한
+    })
+
+
+@require_GET
 def fetch_dart(request, code):
     """DART 공시 조회 API"""
     try:

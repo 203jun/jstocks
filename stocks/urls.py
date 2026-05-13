@@ -93,6 +93,7 @@ urlpatterns = [
     path('api/market/youtube/<int:video_id>/delete/', views.market_youtube_delete, name='market_youtube_delete'),
     path('api/dart/<str:code>/', views.fetch_dart, name='fetch_dart'),
     path('api/dart-report/<str:code>/', views.fetch_dart_report, name='fetch_dart_report'),
+    path('api/dart-document/<str:rcept_no>/', views.fetch_dart_document, name='fetch_dart_document'),
     path('api/sector/date/', views.sector_date_data, name='sector_date_data'),
     path('settings/', views.settings, name='settings'),
     path('api/category/add/', views.category_add, name='category_add'),
