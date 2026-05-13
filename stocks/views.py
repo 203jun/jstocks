@@ -3762,10 +3762,22 @@ def fetch_dart_document(request, rcept_no):
     if resp.status_code != 200:
         return JsonResponse({'error': f'문서 다운로드 실패: {resp.status_code}'}, status=500)
 
+    # ZIP이 아닌 경우 (에러 XML 응답)
+    content_type = resp.headers.get('Content-Type', '')
+    if 'xml' in content_type or 'text' in content_type:
+        return JsonResponse({
+            'error': 'DART API 에러 응답',
+            'response': resp.text[:2000],
+        }, status=500)
+
     try:
         zf = zipfile.ZipFile(io.BytesIO(resp.content))
     except Exception as e:
-        return JsonResponse({'error': f'ZIP 파일 오류: {e}'}, status=500)
+        return JsonResponse({
+            'error': f'ZIP 파일 오류: {e}',
+            'content_type': content_type,
+            'response_preview': resp.content[:500].decode('utf-8', errors='replace'),
+        }, status=500)
 
     # ZIP 내 모든 XML 파일에서 "사업의 내용" 섹션 찾기
     business_content = None
