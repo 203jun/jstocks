@@ -675,6 +675,7 @@ small.text-muted {
             <button class="prompt-sub-tab" data-target="waiting-report-panel" id="waiting-report-tab">대기</button>
             <button class="prompt-sub-tab" data-target="fin-analysis-prompt-panel" id="fin-analysis-prompt-tab">재무분석</button>
             <button class="prompt-sub-tab" data-target="consensus-analysis-prompt-panel" id="consensus-analysis-prompt-tab">컨센서스분석</button>
+            <button class="prompt-sub-tab" data-target="gongsi-prompt-panel" id="gongsi-prompt-tab">공시</button>
             <button class="prompt-sub-tab" data-target="report-prompt-panel" id="report-prompt-tab">리포트</button>
             <button class="prompt-sub-tab" data-target="nodaji-panel" id="nodaji-tab">노다지</button>
             <button class="prompt-sub-tab" data-target="youtube-prompt-panel" id="youtube-prompt-tab">유튜브</button>
@@ -796,6 +797,17 @@ small.text-muted {
                     </div>
                     <div class="d-flex flex-wrap gap-1 mb-2" id="consensusVarList"></div>
                     <textarea class="form-control" id="promptConsensusAnalysis" rows="10" placeholder="컨센서스분석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_consensus_analysis }}</textarea>
+                </div>
+            </div>
+            <!-- 공시 프롬프트 -->
+            <div class="prompt-panel" id="gongsi-prompt-panel" style="display:none;">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">공시 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="btnSaveGongsiPrompt">저장</button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1 mb-2" id="gongsiVarList"></div>
+                    <textarea class="form-control" id="promptGongsi" rows="10" placeholder="공시용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_gongsi }}</textarea>
                 </div>
             </div>
             <!-- 리포트 -->
@@ -1618,6 +1630,12 @@ document.getElementById('btnSaveConsensusAnalysisPrompt').addEventListener('clic
     savePrompt('prompt_consensus_analysis', value, this);
 });
 
+// 공시 프롬프트 저장
+document.getElementById('btnSaveGongsiPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptGongsi').value;
+    savePrompt('prompt_gongsi', value, this);
+});
+
 // 리포트 프롬프트 저장
 document.getElementById('btnSaveReportSummaryPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptReportSummary').value;
@@ -1664,6 +1682,7 @@ const varChipTargets = [
     ['promptBriefing', 'briefingVarList'],
     ['promptFinAnalysis', 'finAnalysisVarList'],
     ['promptConsensusAnalysis', 'consensusVarList'],
+    ['promptGongsi', 'gongsiVarList'],
     ['promptReportSummary', 'reportVarList'],
     ['promptNodaji', 'nodajiVarList'],
     ['promptYoutube', 'youtubeVarList'],
