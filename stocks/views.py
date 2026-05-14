@@ -465,12 +465,124 @@ def index(request):
     card_nodaji_stocks.sort(key=lambda x: x['change_rate'], reverse=True)
 
     # ============ 현황 테이블 ============
+    # --- 공시 분류 로직 ---
+    import unicodedata
+    import re as _re
+
+    def _normalize_gongsi(text):
+        if not text:
+            return ''
+        text = unicodedata.normalize('NFC', text)
+        for dot in ['ㆍ', '\u00b7', '\u2219', '\u2022', '\u0387', '\u30fb']:
+            text = text.replace(dot, '')
+        text = text.replace('\uff08', '(').replace('\uff09', ')')
+        text = _re.sub(r'\s+', '', text)
+        for dash in ['\u2212', '\u2013', '\u2014', '\u30fc', '\u2500']:
+            text = text.replace(dash, '-')
+        return text
+
+    _POSITIVE_KEYWORDS = [
+        '자기주식소각',
+        '기업가치제고계획',
+        '자기주식취득결과보고서',
+        '자기주식취득결정',
+        '주식배당결정',
+        '무상증자결정',
+        '특허권취득',
+        '현금현물배당결정',
+    ]
+    _NEGATIVE_KEYWORDS = [
+        '회생절차',
+        '법정관리',
+        '거래정지',
+        '관리종목지정',
+        '상장폐지',
+        '감사의견거절',
+        '감사의견한정',
+        '부도',
+        '횡령',
+        '배임',
+        '무상감자',
+        '공급계약해지',
+        '자기주식처분결정',
+        '유상증자결정',
+        '전환사채권발행',
+        '신주인수권부사채권발행',
+        '교환사채권발행',
+        '소송등의제기',
+        '영업정지',
+        '시정명령',
+        '불성실공시',
+    ]
+    _REVIEW_KEYWORDS = [
+        '영업(잠정)실적',
+        '매출액또는손익구조',
+        '임원주요주주특정증권',
+        '주식등의대량보유',
+        '타법인주식및출자증권취득',
+        '영업양수',
+        '영업양도',
+        '회사합병결정',
+        '회사분할결정',
+        '단일판매공급계약체결',
+        '특별관계자',
+        '최대주주변경',
+        '공개매수',
+    ]
+
+    def _classify_gongsi(title):
+        normalized = _normalize_gongsi(title)
+        if not normalized:
+            return None, ''
+        # 예외: 자기주식취득 + 신탁계약 → 검토
+        if '자기주식취득' in normalized and '신탁계약' in normalized:
+            return '검토', title
+        # 악재 우선
+        for kw in _NEGATIVE_KEYWORDS:
+            if _normalize_gongsi(kw) in normalized:
+                return '악재', title
+        for kw in _POSITIVE_KEYWORDS:
+            if _normalize_gongsi(kw) in normalized:
+                return '호재', title
+        for kw in _REVIEW_KEYWORDS:
+            if _normalize_gongsi(kw) in normalized:
+                return '검토', title
+        return None, ''
+
+    # 관심종목 공시 한번에 조회 (최근 날짜 기준, 3일 초과 리셋)
+    from datetime import date as _date_cls
+    from django.db.models import Max as _Max
+    _gongsi_latest = Gongsi.objects.filter(
+        stock__in=target_stocks
+    ).aggregate(_Max('date'))['date__max']
+
+    _gongsi_map = {}  # stock_code → (분류, 제목)
+    if _gongsi_latest and (_date_cls.today() - _gongsi_latest).days <= 3:
+        _gongsi_qs = Gongsi.objects.filter(stock__in=target_stocks, date=_gongsi_latest)
+        _gongsi_by_stock = {}
+        for g in _gongsi_qs:
+            _gongsi_by_stock.setdefault(g.stock_id, []).append(g)
+        for code, glist in _gongsi_by_stock.items():
+            result_cat, result_title = None, ''
+            for g in glist:
+                cat, title = _classify_gongsi(g.title)
+                if cat == '악재':
+                    result_cat, result_title = '악재', title
+                    break  # 악재 우선, 즉시 종료
+                elif cat == '호재' and result_cat != '호재':
+                    result_cat, result_title = '호재', title
+                elif cat == '검토' and result_cat is None:
+                    result_cat, result_title = '검토', title
+            if result_cat:
+                _gongsi_map[code] = (result_cat, result_title)
+
     card_d_codes = {item['stock'].code for item in card_d_stocks}
     status_stocks = []
     for stock in target_stocks:
         daily_data = list(DailyChart.objects.filter(stock=stock).order_by('-date')[:130])
         if not daily_data:
-            status_stocks.append({'stock': stock, 'level': stock.interest_level, 'vol_high_20': False, 'vol_high_60': False, 'ma_align': '', 'pullback': None, 'pullback_label': '', 'has_report': False, 'has_nodaji': False, 'inst_label': '', 'frgn_label': ''})
+            _gc = _gongsi_map.get(stock.code)
+            status_stocks.append({'stock': stock, 'level': stock.interest_level, 'vol_high_20': False, 'vol_high_60': False, 'ma_align': '', 'pullback': None, 'pullback_label': '', 'has_report': False, 'has_nodaji': False, 'inst_label': '', 'frgn_label': '', 'gongsi_cat': _gc[0] if _gc else '', 'gongsi_title': _gc[1] if _gc else ''})
             continue
 
         today = daily_data[0]
@@ -607,6 +719,7 @@ def index(request):
         if stock.current_price and stock.sell_price:
             in_sell_zone = stock.current_price >= stock.sell_price
 
+        _gc = _gongsi_map.get(stock.code)
         status_stocks.append({
             'stock': stock,
             'level': stock.interest_level,
@@ -623,6 +736,8 @@ def index(request):
             'sparkline': sparkline,
             'inst_label': inst_label,
             'frgn_label': frgn_label,
+            'gongsi_cat': _gc[0] if _gc else '',
+            'gongsi_title': _gc[1] if _gc else '',
             'in_buy_zone': in_buy_zone,
             'in_sell_zone': in_sell_zone,
         })
