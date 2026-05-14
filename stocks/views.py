@@ -3816,12 +3816,11 @@ def fetch_dart_document(request, rcept_no):
         return JsonResponse({'error': '문서 내용을 추출할 수 없습니다.'}, status=404)
 
     content = '\n\n---\n\n'.join(all_text)
-    # 프롬프트용으로 30000자 제한
     return JsonResponse({
         'success': True,
         'rcept_no': rcept_no,
         'content_length': len(content),
-        'content': content[:30000],
+        'content': content,
     })
 
 
