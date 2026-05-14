@@ -13,6 +13,90 @@ from telethon import TelegramClient
 from django.views.decorators.http import require_POST
 from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, IndexChart, MarketTrend, InvestorTrend, ShortSelling, MarketDiary, StockDiary, StockEvent, SectorEvent, ETFEvent
 
+import unicodedata
+import re as _re
+
+
+def _normalize_gongsi(text):
+    if not text:
+        return ''
+    text = unicodedata.normalize('NFC', text)
+    for dot in ['ㆍ', '\u00b7', '\u2219', '\u2022', '\u0387', '\u30fb']:
+        text = text.replace(dot, '')
+    text = text.replace('\uff08', '(').replace('\uff09', ')')
+    text = _re.sub(r'\s+', '', text)
+    for dash in ['\u2212', '\u2013', '\u2014', '\u30fc', '\u2500']:
+        text = text.replace(dash, '-')
+    return text
+
+
+_POSITIVE_KEYWORDS = [
+    '자기주식소각',
+    '기업가치제고계획',
+    '자기주식취득결과보고서',
+    '자기주식취득결정',
+    '주식배당결정',
+    '무상증자결정',
+    '특허권취득',
+    '현금현물배당결정',
+]
+_NEGATIVE_KEYWORDS = [
+    '회생절차',
+    '법정관리',
+    '거래정지',
+    '관리종목지정',
+    '상장폐지',
+    '감사의견거절',
+    '감사의견한정',
+    '부도',
+    '횡령',
+    '배임',
+    '무상감자',
+    '공급계약해지',
+    '자기주식처분결정',
+    '유상증자결정',
+    '전환사채권발행',
+    '신주인수권부사채권발행',
+    '교환사채권발행',
+    '소송등의제기',
+    '영업정지',
+    '시정명령',
+    '불성실공시',
+]
+_REVIEW_KEYWORDS = [
+    '영업(잠정)실적',
+    '매출액또는손익구조',
+    '임원주요주주특정증권',
+    '주식등의대량보유',
+    '타법인주식및출자증권취득',
+    '영업양수',
+    '영업양도',
+    '회사합병결정',
+    '회사분할결정',
+    '단일판매공급계약체결',
+    '특별관계자',
+    '최대주주변경',
+    '공개매수',
+]
+
+
+def _classify_gongsi(title):
+    normalized = _normalize_gongsi(title)
+    if not normalized:
+        return None
+    if '자기주식취득' in normalized and '신탁계약' in normalized:
+        return '검토'
+    for kw in _NEGATIVE_KEYWORDS:
+        if _normalize_gongsi(kw) in normalized:
+            return '악재'
+    for kw in _POSITIVE_KEYWORDS:
+        if _normalize_gongsi(kw) in normalized:
+            return '호재'
+    for kw in _REVIEW_KEYWORDS:
+        if _normalize_gongsi(kw) in normalized:
+            return '검토'
+    return None
+
 
 def index(request):
     """종목 대시보드 (관심종목)"""
@@ -466,89 +550,6 @@ def index(request):
 
     # ============ 현황 테이블 ============
     # --- 공시 분류 로직 ---
-    import unicodedata
-    import re as _re
-
-    def _normalize_gongsi(text):
-        if not text:
-            return ''
-        text = unicodedata.normalize('NFC', text)
-        for dot in ['ㆍ', '\u00b7', '\u2219', '\u2022', '\u0387', '\u30fb']:
-            text = text.replace(dot, '')
-        text = text.replace('\uff08', '(').replace('\uff09', ')')
-        text = _re.sub(r'\s+', '', text)
-        for dash in ['\u2212', '\u2013', '\u2014', '\u30fc', '\u2500']:
-            text = text.replace(dash, '-')
-        return text
-
-    _POSITIVE_KEYWORDS = [
-        '자기주식소각',
-        '기업가치제고계획',
-        '자기주식취득결과보고서',
-        '자기주식취득결정',
-        '주식배당결정',
-        '무상증자결정',
-        '특허권취득',
-        '현금현물배당결정',
-    ]
-    _NEGATIVE_KEYWORDS = [
-        '회생절차',
-        '법정관리',
-        '거래정지',
-        '관리종목지정',
-        '상장폐지',
-        '감사의견거절',
-        '감사의견한정',
-        '부도',
-        '횡령',
-        '배임',
-        '무상감자',
-        '공급계약해지',
-        '자기주식처분결정',
-        '유상증자결정',
-        '전환사채권발행',
-        '신주인수권부사채권발행',
-        '교환사채권발행',
-        '소송등의제기',
-        '영업정지',
-        '시정명령',
-        '불성실공시',
-    ]
-    _REVIEW_KEYWORDS = [
-        '영업(잠정)실적',
-        '매출액또는손익구조',
-        '임원주요주주특정증권',
-        '주식등의대량보유',
-        '타법인주식및출자증권취득',
-        '영업양수',
-        '영업양도',
-        '회사합병결정',
-        '회사분할결정',
-        '단일판매공급계약체결',
-        '특별관계자',
-        '최대주주변경',
-        '공개매수',
-    ]
-
-    def _classify_gongsi(title):
-        normalized = _normalize_gongsi(title)
-        if not normalized:
-            return None, ''
-        # 예외: 자기주식취득 + 신탁계약 → 검토
-        if '자기주식취득' in normalized and '신탁계약' in normalized:
-            return '검토', title
-        # 악재 우선
-        for kw in _NEGATIVE_KEYWORDS:
-            if _normalize_gongsi(kw) in normalized:
-                return '악재', title
-        for kw in _POSITIVE_KEYWORDS:
-            if _normalize_gongsi(kw) in normalized:
-                return '호재', title
-        for kw in _REVIEW_KEYWORDS:
-            if _normalize_gongsi(kw) in normalized:
-                return '검토', title
-        return None, ''
-
     # 관심종목 공시 한번에 조회 (최근 날짜 기준, 3일 초과 리셋)
     from datetime import date as _date_cls
     from django.db.models import Max as _Max
@@ -565,14 +566,14 @@ def index(request):
         for code, glist in _gongsi_by_stock.items():
             result_cat, result_title = None, ''
             for g in glist:
-                cat, title = _classify_gongsi(g.title)
+                cat = _classify_gongsi(g.title)
                 if cat == '악재':
-                    result_cat, result_title = '악재', title
+                    result_cat, result_title = '악재', g.title
                     break  # 악재 우선, 즉시 종료
                 elif cat == '호재' and result_cat != '호재':
-                    result_cat, result_title = '호재', title
+                    result_cat, result_title = '호재', g.title
                 elif cat == '검토' and result_cat is None:
-                    result_cat, result_title = '검토', title
+                    result_cat, result_title = '검토', g.title
             if result_cat:
                 _gongsi_map[code] = (result_cat, result_title)
 
@@ -971,8 +972,11 @@ def stock_detail(request, code):
     nodaji_list = list(nodaji_queryset[:20])
     nodaji_summary_count = sum(1 for n in nodaji_list if n.summary)
 
-    # 공시 (최근 20개)
-    gongsi_list = Gongsi.objects.filter(stock=stock).order_by('-date')[:20]
+    # 공시 (최근 20개) + 호재/악재/검토 분류
+    _raw_gongsi = list(Gongsi.objects.filter(stock=stock).order_by('-date')[:20])
+    for g in _raw_gongsi:
+        g.cat = _classify_gongsi(g.title)
+    gongsi_list = _raw_gongsi
 
     # 수급 (투자자별 매매동향, 최근 60일)
     investor_trends = list(InvestorTrend.objects.filter(stock=stock).order_by('-date')[:60])
@@ -1539,8 +1543,11 @@ def stock_edit(request, code):
     # 관심 단계 선택지
     interest_choices = Info._meta.get_field('interest_level').choices
 
-    # 공시 (최근 20개)
-    gongsi_list = Gongsi.objects.filter(stock=stock).order_by('-date')[:20]
+    # 공시 (최근 20개) + 호재/악재/검토 분류
+    _raw_gongsi2 = list(Gongsi.objects.filter(stock=stock).order_by('-date')[:20])
+    for g in _raw_gongsi2:
+        g.cat = _classify_gongsi(g.title)
+    gongsi_list = _raw_gongsi2
 
     # 수급 (투자자별 매매동향, 최근 60일)
     investor_trends = list(InvestorTrend.objects.filter(stock=stock).order_by('-date')[:60])
