@@ -194,8 +194,7 @@
                 <tr class="status-row" data-level="{{ item.level }}" onclick="if(!event.target.closest('.signal-chart-btn'))location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <td style="padding-left:16px;">
                         <strong>{{ item.stock.name }}</strong>
-                        {% if item.stock.is_holding %}<span title="보유중">💰</span>{% endif %}
-                        {% if item.stock.is_tracking %}<span title="추적중">👀</span>{% endif %}
+                        {% if item.has_alert %}<button type="button" class="btn-alert-prompt" data-name="{{ item.stock.name }}" data-code="{{ item.stock.code }}" data-price="{{ item.stock.current_price|default:'' }}" onclick="event.stopPropagation();" style="font-size:0.6rem;padding:1px 4px;border:1px solid var(--up-color);border-radius:3px;background:none;color:var(--up-color);cursor:pointer;margin-left:3px;vertical-align:middle;font-weight:600;">분석</button>{% endif %}
                     </td>
                     <td style="text-align:right;">
                         {% if item.stock.current_price %}{{ item.stock.current_price|intcomma }}{% else %}-{% endif %}
@@ -593,5 +592,70 @@ window.addEventListener('resize', function() {
         signalChart.applyOptions({ width: container.clientWidth });
     }
 });
+
+// ===== [분석] 버튼 → 단기이슈 프롬프트 복사 =====
+(async () => {
+    // 단기이슈 프롬프트 로드
+    let alertPromptTemplate = '';
+    try {
+        const res = await fetch('/api/quick-report/');
+        const data = await res.json();
+        if (data.success) {
+            const found = data.prompts.find(p => p.question === '단기이슈');
+            if (found) alertPromptTemplate = found.prompt;
+        }
+    } catch {}
+
+    function copyFallback(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text);
+        }
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        return Promise.resolve();
+    }
+
+    const today = new Date();
+    const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+
+    document.querySelectorAll('.btn-alert-prompt').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!alertPromptTemplate) {
+                alert('설정 → 프롬프트 → 업데이트에서 "단기이슈" 프롬프트를 먼저 등록하세요.');
+                return;
+            }
+            const name = btn.dataset.name;
+            const code = btn.dataset.code;
+            const price = btn.dataset.price ? Number(btn.dataset.price).toLocaleString() : '';
+
+            let prompt = alertPromptTemplate;
+            prompt = prompt.replace(/\{종목명\}/g, name);
+            prompt = prompt.replace(/\{종목코드\}/g, code);
+            prompt = prompt.replace(/\{현재가\}/g, price);
+            prompt = prompt.replace(/\{오늘날짜\}/g, todayStr);
+
+            try {
+                await copyFallback(prompt);
+                const orig = btn.textContent;
+                btn.textContent = '복사됨!';
+                btn.style.borderColor = '#28a745';
+                btn.style.color = '#28a745';
+                setTimeout(() => {
+                    btn.textContent = orig;
+                    btn.style.borderColor = '';
+                    btn.style.color = '';
+                }, 1500);
+            } catch (err) {
+                alert('복사 실패: ' + err.message);
+            }
+        });
+    });
+})();
 </script>
 {% endblock %}

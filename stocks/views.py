@@ -741,6 +741,14 @@ def index(request):
             'gongsi_title': _gc[1] if _gc else '',
             'in_buy_zone': in_buy_zone,
             'in_sell_zone': in_sell_zone,
+            'has_alert': (
+                (today_vol > 0 and (today_vol >= max_vol_20 or today_vol >= max_vol_60))
+                or pullback_label in ('얕은눌림', '깊은눌림')
+                or (inst_label.isdigit() and int(inst_label) >= 5)
+                or (frgn_label.isdigit() and int(frgn_label) >= 5)
+                or inst_label == '20일' or frgn_label == '20일'
+                or in_buy_zone or in_sell_zone
+            ),
         })
 
     # D-10 이내 이벤트 수집
