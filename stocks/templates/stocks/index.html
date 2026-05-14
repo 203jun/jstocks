@@ -191,7 +191,7 @@
             </thead>
             <tbody>
                 {% for item in status_stocks %}
-                <tr class="status-row{% if item.in_buy_zone or item.in_sell_zone %} price-hit{% endif %}" data-level="{{ item.level }}" onclick="if(!event.target.closest('.signal-chart-btn'))location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                <tr class="status-row" data-level="{{ item.level }}" onclick="if(!event.target.closest('.signal-chart-btn'))location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <td style="padding-left:16px;">
                         <strong>{{ item.stock.name }}</strong>
                         {% if item.stock.is_holding %}<span title="보유중">💰</span>{% endif %}
