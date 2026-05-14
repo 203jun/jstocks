@@ -1513,7 +1513,7 @@
                     <td>
                         <a href="{{ gongsi.link }}" target="_blank" style="text-decoration:none;color:var(--text-primary);">{{ gongsi.title }}</a>
                         {% if gongsi.cat %}<span style="display:inline-block;font-size:0.65rem;font-weight:600;padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle;{% if gongsi.cat == '악재' %}background:rgba(255,75,75,0.15);color:var(--down-color);{% elif gongsi.cat == '호재' %}background:rgba(46,204,113,0.15);color:var(--up-color);{% else %}background:var(--bg-hover);color:var(--text-secondary);{% endif %}">{{ gongsi.cat }}</span>{% endif %}
-                        <button type="button" class="btn-gongsi-prompt" data-link="{{ gongsi.link }}" data-title="{{ gongsi.title }}" data-date="{{ gongsi.date|date:'Y-m-d'|default:'' }}" data-cat="{{ gongsi.cat|default:'' }}" style="font-size:0.65rem;padding:1px 5px;border:1px solid var(--border-color);border-radius:3px;background:none;color:var(--text-muted);cursor:pointer;margin-left:4px;vertical-align:middle;">프롬프트</button>
+                        <button type="button" class="btn-gongsi-prompt" data-link="{{ gongsi.link }}" data-title="{{ gongsi.title }}" data-date="{{ gongsi.date|date:'Y-m-d'|default:'' }}" data-cat="{{ gongsi.cat|default:'' }}" style="font-size:0.65rem;padding:1px 5px;border:1px solid var(--border-color);border-radius:3px;background:none;color:var(--text-muted);cursor:pointer;margin-left:4px;vertical-align:middle;">프롬프트복사</button>
                     </td>
                     <td style="font-size:0.78rem;" class="d-none d-md-table-cell">{{ gongsi.submitter }}</td>
                 </tr>
@@ -5102,7 +5102,7 @@ document.querySelectorAll('.btn-gongsi-prompt').forEach(btn => {
             btn.style.borderColor = '#28a745';
             btn.style.color = '#28a745';
             setTimeout(() => {
-                btn.textContent = '프롬프트';
+                btn.textContent = '프롬프트복사';
                 btn.style.borderColor = '';
                 btn.style.color = '';
             }, 1500);
