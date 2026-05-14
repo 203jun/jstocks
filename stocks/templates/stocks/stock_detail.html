@@ -5094,6 +5094,7 @@ document.querySelectorAll('.btn-gongsi-prompt').forEach(btn => {
             prompt = prompt.replace(/\{공시분류\}/g, cat || '없음');
             prompt = prompt.replace(/\{공시내용\}/g, data.content);
             prompt = prompt.replace(/\{공시링크\}/g, link);
+            prompt = prompt.replace(/\{현재가\}/g, '{{ stock.current_price|default:""|escapejs }}');
 
             // 길이 체크 (10만자 초과 시 경고)
             if (prompt.length > 100000) {
