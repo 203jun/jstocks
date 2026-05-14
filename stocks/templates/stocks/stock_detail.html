@@ -5095,8 +5095,18 @@ document.querySelectorAll('.btn-gongsi-prompt').forEach(btn => {
             prompt = prompt.replace(/\{공시내용\}/g, data.content);
             prompt = prompt.replace(/\{공시링크\}/g, link);
 
+            // 클립보드 복사 (HTTPS fallback 포함)
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(prompt);
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = prompt;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
             }
             btn.textContent = '복사됨!';
             btn.style.borderColor = '#28a745';
