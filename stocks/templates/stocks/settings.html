@@ -696,6 +696,7 @@ small.text-muted {
         <div class="d-flex flex-wrap gap-2 mb-3" id="promptSubTabs">
             <button class="prompt-sub-tab tab-graph active" data-target="prompt-graph-panel" id="prompt-graph-tab">연결도</button>
             <button class="prompt-sub-tab" data-target="stock-classify-panel" id="stock-classify-tab">종목분류</button>
+            <button class="prompt-sub-tab" data-target="signal-analysis-prompt-panel" id="signal-analysis-prompt-tab">신호분석</button>
             <button class="prompt-sub-tab" data-target="data-loader-panel" id="data-loader-tab">핵심브리핑</button>
             <button class="prompt-sub-tab" data-target="research-prompt-panel" id="research-prompt-tab">기업분석</button>
             <button class="prompt-sub-tab" data-target="quick-report-panel" id="quick-report-tab">업데이트</button>
@@ -725,6 +726,17 @@ small.text-muted {
                 </div>
             </div>
             <!-- 핵심브리핑 -->
+            <!-- 신호분석 -->
+            <div class="prompt-panel" id="signal-analysis-prompt-panel" style="display:none;">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">신호분석 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="btnSaveSignalAnalysisPrompt">저장</button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1 mb-2" id="signalAnalysisVarList" style="min-height:24px;"></div>
+                    <textarea class="form-control" id="promptSignalAnalysis" rows="10" placeholder="신호분석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_signal_analysis }}</textarea>
+                </div>
+            </div>
             <div class="prompt-panel" id="data-loader-panel" style="display:none;">
                 <div class="brief-card">
                     <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
@@ -1680,6 +1692,12 @@ document.getElementById('btnSaveNewsContextPrompt').addEventListener('click', fu
     savePrompt('prompt_news_with_context', value, this);
 });
 
+// === 신호분석 탭 ===
+document.getElementById('btnSaveSignalAnalysisPrompt').addEventListener('click', function() {
+    const value = document.getElementById('promptSignalAnalysis').value;
+    savePrompt('prompt_signal_analysis', value, this);
+});
+
 // === 핵심브리핑 탭 ===
 document.getElementById('btnSaveBriefingPrompt').addEventListener('click', function() {
     const value = document.getElementById('promptBriefing').value;
@@ -1706,6 +1724,7 @@ function renderVarChips(textareaId, containerEl) {
 
 // 변수 칩 등록: [textareaId, containerId]
 const varChipTargets = [
+    ['promptSignalAnalysis', 'signalAnalysisVarList'],
     ['promptBriefing', 'briefingVarList'],
     ['promptFinAnalysis', 'finAnalysisVarList'],
     ['promptConsensusAnalysis', 'consensusVarList'],
