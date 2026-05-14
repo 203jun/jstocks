@@ -8924,7 +8924,6 @@ def fetch_short_selling(request, code):
     })
 
 
-@require_POST
 @require_GET
 def get_setting(request):
     """시스템 설정 조회"""
@@ -8939,6 +8938,7 @@ def get_setting(request):
         return JsonResponse({'success': True, 'value': ''})
 
 
+@require_POST
 def save_setting(request):
     """시스템 설정 저장"""
     from .models import SystemSetting
