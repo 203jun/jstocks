@@ -194,7 +194,7 @@
                 <tr class="status-row" data-level="{{ item.level }}" onclick="if(!event.target.closest('.signal-chart-btn'))location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <td style="padding-left:16px;">
                         <strong>{{ item.stock.name }}</strong>
-                        {% if item.has_alert %}<button type="button" class="btn-alert-prompt" data-name="{{ item.stock.name }}" data-code="{{ item.stock.code }}" data-price="{{ item.stock.current_price|default:'' }}" onclick="event.stopPropagation();" style="font-size:0.6rem;padding:1px 4px;border:1px solid var(--up-color);border-radius:3px;background:none;color:var(--up-color);cursor:pointer;margin-left:3px;vertical-align:middle;font-weight:600;">분석</button>{% endif %}
+                        {% if item.has_alert %}<button type="button" class="btn-alert-prompt" data-name="{{ item.stock.name }}" data-code="{{ item.stock.code }}" data-price="{{ item.stock.current_price|default:'' }}" data-conditions="{{ item.alert_conditions }}" onclick="event.stopPropagation();" style="font-size:0.6rem;padding:1px 4px;border:1px solid var(--up-color);border-radius:3px;background:none;color:var(--up-color);cursor:pointer;margin-left:3px;vertical-align:middle;font-weight:600;">분석</button>{% endif %}
                     </td>
                     <td style="text-align:right;">
                         {% if item.stock.current_price %}{{ item.stock.current_price|intcomma }}{% else %}-{% endif %}
@@ -593,17 +593,14 @@ window.addEventListener('resize', function() {
     }
 });
 
-// ===== [분석] 버튼 → 단기이슈 프롬프트 복사 =====
+// ===== [분석] 버튼 → 신호분석 프롬프트 복사 =====
 (async () => {
-    // 단기이슈 프롬프트 로드
+    // 신호분석 프롬프트 로드
     let alertPromptTemplate = '';
     try {
-        const res = await fetch('/api/quick-report/');
+        const res = await fetch('/api/setting/get/?key=prompt_signal_analysis');
         const data = await res.json();
-        if (data.success) {
-            const found = data.prompts.find(p => p.question === '단기이슈');
-            if (found) alertPromptTemplate = found.prompt;
-        }
+        if (data.success) alertPromptTemplate = data.value || '';
     } catch {}
 
     function copyFallback(text) {
@@ -627,18 +624,20 @@ window.addEventListener('resize', function() {
     document.querySelectorAll('.btn-alert-prompt').forEach(btn => {
         btn.addEventListener('click', async () => {
             if (!alertPromptTemplate) {
-                alert('설정 → 프롬프트 → 업데이트에서 "단기이슈" 프롬프트를 먼저 등록하세요.');
+                alert('설정 → 프롬프트 → 신호분석에서 프롬프트를 먼저 등록하세요.');
                 return;
             }
             const name = btn.dataset.name;
             const code = btn.dataset.code;
             const price = btn.dataset.price ? Number(btn.dataset.price).toLocaleString() : '';
+            const conditions = btn.dataset.conditions || '';
 
             let prompt = alertPromptTemplate;
             prompt = prompt.replace(/\{종목명\}/g, name);
             prompt = prompt.replace(/\{종목코드\}/g, code);
             prompt = prompt.replace(/\{현재가\}/g, price);
             prompt = prompt.replace(/\{오늘날짜\}/g, todayStr);
+            prompt = prompt.replace(/\{조건리스트\}/g, conditions);
 
             try {
                 await copyFallback(prompt);

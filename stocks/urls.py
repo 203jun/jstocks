@@ -173,6 +173,7 @@ urlpatterns = [
     path('api/stock/<str:code>/refresh/', views.refresh_stock, name='refresh_stock'),
     path('api/stock/<str:code>/investor-trend/', views.fetch_investor_trend, name='fetch_investor_trend'),
     path('api/stock/<str:code>/short-selling/', views.fetch_short_selling, name='fetch_short_selling'),
+    path('api/setting/get/', views.get_setting, name='get_setting'),
     path('api/setting/save/', views.save_setting, name='save_setting'),
     # 리서치 프롬프트
     path('api/research-prompt/', views.research_prompt_list, name='research_prompt_list'),

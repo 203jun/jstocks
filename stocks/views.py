@@ -583,7 +583,7 @@ def index(request):
         daily_data = list(DailyChart.objects.filter(stock=stock).order_by('-date')[:130])
         if not daily_data:
             _gc = _gongsi_map.get(stock.code)
-            status_stocks.append({'stock': stock, 'level': stock.interest_level, 'vol_high_20': False, 'vol_high_60': False, 'ma_align': '', 'pullback': None, 'pullback_label': '', 'has_report': False, 'has_nodaji': False, 'inst_label': '', 'frgn_label': '', 'gongsi_cat': _gc[0] if _gc else '', 'gongsi_title': _gc[1] if _gc else ''})
+            status_stocks.append({'stock': stock, 'level': stock.interest_level, 'vol_high_20': False, 'vol_high_60': False, 'ma_align': '', 'pullback': None, 'pullback_label': '', 'has_report': False, 'has_nodaji': False, 'inst_label': '', 'frgn_label': '', 'gongsi_cat': _gc[0] if _gc else '', 'gongsi_title': _gc[1] if _gc else '', 'has_alert': False, 'alert_conditions': ''})
             continue
 
         today = daily_data[0]
@@ -741,15 +741,31 @@ def index(request):
             'gongsi_title': _gc[1] if _gc else '',
             'in_buy_zone': in_buy_zone,
             'in_sell_zone': in_sell_zone,
-            'has_alert': (
-                (today_vol > 0 and (today_vol >= max_vol_20 or today_vol >= max_vol_60))
-                or pullback_label in ('얕은눌림', '깊은눌림')
-                or (inst_label.isdigit() and int(inst_label) >= 5)
-                or (frgn_label.isdigit() and int(frgn_label) >= 5)
-                or inst_label == '20일' or frgn_label == '20일'
-                or in_buy_zone or in_sell_zone
-            ),
         })
+        # 알림 조건 판단
+        _alerts = []
+        if today_vol > 0 and today_vol >= max_vol_60:
+            _alerts.append('거래량 60일 최대')
+        elif today_vol > 0 and today_vol >= max_vol_20:
+            _alerts.append('거래량 20일 최대')
+        if pullback_label == '얕은눌림':
+            _alerts.append(f'얕은눌림({pullback}%)')
+        elif pullback_label == '깊은눌림':
+            _alerts.append(f'깊은눌림({pullback}%)')
+        if inst_label == '20일':
+            _alerts.append('기관 20일 최대 매수')
+        elif inst_label.isdigit() and int(inst_label) >= 5:
+            _alerts.append(f'기관 {inst_label}일 연속 매수')
+        if frgn_label == '20일':
+            _alerts.append('외국인 20일 최대 매수')
+        elif frgn_label.isdigit() and int(frgn_label) >= 5:
+            _alerts.append(f'외국인 {frgn_label}일 연속 매수')
+        if in_buy_zone:
+            _alerts.append(f'매수 희망가 도달({stock.buy_price:,}원)')
+        if in_sell_zone:
+            _alerts.append(f'매도 희망가 도달({stock.sell_price:,}원)')
+        status_stocks[-1]['has_alert'] = bool(_alerts)
+        status_stocks[-1]['alert_conditions'] = ' / '.join(_alerts)
 
     # D-10 이내 이벤트 수집
     from datetime import date
@@ -8909,6 +8925,20 @@ def fetch_short_selling(request, code):
 
 
 @require_POST
+@require_GET
+def get_setting(request):
+    """시스템 설정 조회"""
+    from .models import SystemSetting
+    key = request.GET.get('key', '')
+    if not key:
+        return JsonResponse({'success': False, 'error': '키가 필요합니다.'})
+    try:
+        setting = SystemSetting.objects.get(key=key)
+        return JsonResponse({'success': True, 'value': setting.value})
+    except SystemSetting.DoesNotExist:
+        return JsonResponse({'success': True, 'value': ''})
+
+
 def save_setting(request):
     """시스템 설정 저장"""
     from .models import SystemSetting
