@@ -1513,6 +1513,7 @@
                     <td>
                         <a href="{{ gongsi.link }}" target="_blank" style="text-decoration:none;color:var(--text-primary);">{{ gongsi.title }}</a>
                         {% if gongsi.cat %}<span style="display:inline-block;font-size:0.65rem;font-weight:600;padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle;{% if gongsi.cat == '악재' %}background:rgba(255,75,75,0.15);color:var(--down-color);{% elif gongsi.cat == '호재' %}background:rgba(46,204,113,0.15);color:var(--up-color);{% else %}background:var(--bg-hover);color:var(--text-secondary);{% endif %}">{{ gongsi.cat }}</span>{% endif %}
+                        <button type="button" class="btn-gongsi-prompt" data-link="{{ gongsi.link }}" data-title="{{ gongsi.title }}" data-date="{{ gongsi.date|date:'Y-m-d'|default:'' }}" data-cat="{{ gongsi.cat|default:'' }}" style="font-size:0.65rem;padding:1px 5px;border:1px solid var(--border-color);border-radius:3px;background:none;color:var(--text-muted);cursor:pointer;margin-left:4px;vertical-align:middle;">프롬프트</button>
                     </td>
                     <td style="font-size:0.78rem;" class="d-none d-md-table-cell">{{ gongsi.submitter }}</td>
                 </tr>
@@ -5049,6 +5050,69 @@ function renderTable(tableId, rows, fields) {
     }
     window._loadConsensusData = loadConsensusData;
 })();
+
+// ===== 공시 프롬프트 버튼 =====
+document.querySelectorAll('.btn-gongsi-prompt').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const promptTemplate = `{{ saved_prompts.prompt_gongsi|default:""|escapejs }}`;
+        if (!promptTemplate) {
+            alert('설정 → 프롬프트 → 공시에서 프롬프트를 먼저 등록하세요.');
+            return;
+        }
+        const link = btn.dataset.link;
+        const title = btn.dataset.title;
+        const date = btn.dataset.date;
+        const cat = btn.dataset.cat;
+
+        // rcpNo 추출
+        let rcpNo = '';
+        try {
+            const url = new URL(link);
+            rcpNo = url.searchParams.get('rcpNo') || '';
+        } catch { rcpNo = ''; }
+
+        if (!rcpNo) {
+            alert('이 공시에서 접수번호를 추출할 수 없습니다.');
+            return;
+        }
+
+        btn.textContent = '로딩...';
+        btn.disabled = true;
+        try {
+            const resp = await fetch(`/api/dart-document/${rcpNo}/`);
+            const data = await resp.json();
+            if (!data.success) {
+                alert('공시 본문 조회 실패: ' + (data.error || ''));
+                return;
+            }
+            let prompt = promptTemplate;
+            prompt = prompt.replace(/\{종목명\}/g, '{{ stock.name|escapejs }}');
+            prompt = prompt.replace(/\{종목코드\}/g, '{{ stock.code|escapejs }}');
+            prompt = prompt.replace(/\{공시제목\}/g, title);
+            prompt = prompt.replace(/\{공시일자\}/g, date);
+            prompt = prompt.replace(/\{공시분류\}/g, cat || '없음');
+            prompt = prompt.replace(/\{공시내용\}/g, data.content);
+            prompt = prompt.replace(/\{공시링크\}/g, link);
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(prompt);
+            }
+            btn.textContent = '복사됨!';
+            btn.style.borderColor = '#28a745';
+            btn.style.color = '#28a745';
+            setTimeout(() => {
+                btn.textContent = '프롬프트';
+                btn.style.borderColor = '';
+                btn.style.color = '';
+            }, 1500);
+        } catch (err) {
+            alert('오류: ' + err.message);
+        } finally {
+            btn.disabled = false;
+        }
+    });
+});
 
 // 기업분석 탭 클릭 시 모든 데이터 로드
 document.querySelector('[data-target="analysis-content"]').addEventListener('click', () => {

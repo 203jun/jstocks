@@ -3756,6 +3756,76 @@ def youtube_summary(request, video_id):
 
 
 @require_GET
+def fetch_dart_document(request, rcept_no):
+    """DART OpenAPI로 공시 본문 조회"""
+    import requests
+    import zipfile
+    import io
+    from bs4 import BeautifulSoup
+
+    api_key = config('DART_API_KEY', default='')
+    if not api_key:
+        return JsonResponse({'error': 'DART_API_KEY가 설정되지 않았습니다.'}, status=500)
+
+    resp = requests.get(
+        'https://opendart.fss.or.kr/api/document.xml',
+        params={'crtfc_key': api_key, 'rcept_no': rcept_no},
+        timeout=60,
+    )
+    if resp.status_code != 200:
+        return JsonResponse({'error': f'문서 다운로드 실패: {resp.status_code}'}, status=500)
+
+    # ZIP이 아닌 경우 (에러 XML 응답)
+    content_type = resp.headers.get('Content-Type', '')
+    if 'xml' in content_type or 'text' in content_type:
+        return JsonResponse({'error': 'DART API 에러', 'detail': resp.text[:500]}, status=500)
+
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(resp.content))
+    except Exception as e:
+        return JsonResponse({'error': f'ZIP 오류: {e}'}, status=500)
+
+    # 모든 파일에서 텍스트 추출
+    all_text = []
+    for fname in zf.namelist():
+        raw = zf.read(fname)
+        text = None
+        for enc in ['utf-8', 'euc-kr', 'cp949']:
+            try:
+                text = raw.decode(enc)
+                break
+            except (UnicodeDecodeError, LookupError):
+                continue
+        if not text:
+            continue
+
+        soup = BeautifulSoup(text, 'html.parser')
+        body = soup.find('body')
+        if body:
+            plain = body.get_text(separator='\n', strip=True)
+        else:
+            plain = soup.get_text(separator='\n', strip=True)
+
+        if plain:
+            # 연속 빈줄 정리
+            import re as _re2
+            plain = _re2.sub(r'\n{3,}', '\n\n', plain)
+            all_text.append(plain)
+
+    if not all_text:
+        return JsonResponse({'error': '문서 내용을 추출할 수 없습니다.'}, status=404)
+
+    content = '\n\n---\n\n'.join(all_text)
+    # 프롬프트용으로 30000자 제한
+    return JsonResponse({
+        'success': True,
+        'rcept_no': rcept_no,
+        'content_length': len(content),
+        'content': content[:30000],
+    })
+
+
+@require_GET
 def fetch_dart(request, code):
     """DART 공시 조회 API"""
     try:
