@@ -331,11 +331,16 @@ const stockCurrentPrice = '{{ stock_current_price|escapejs }}';
 const consensusEps = '{{ consensus_eps|escapejs }}';
 const consensusOp = '{{ consensus_op|escapejs }}';
 const consensusQuarterOp = '{{ consensus_quarter_op|escapejs }}';
+const recentPerfReport = "{{ recent_perf_report|escapejs }}";
 const tradeVarsEl = document.getElementById('trade-prompt-vars');
 const tradeVars = tradeVarsEl ? JSON.parse(tradeVarsEl.textContent) : {};
 document.querySelectorAll('.common-research-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
         const question = btn.dataset.question;
+        // 단기이슈: 실적확인 데이터 없으면 경고
+        if (question === '단기이슈' && !recentPerfReport) {
+            alert('이 종목에 "실적확인" 리서치 데이터가 없습니다.\n리서치 → 업데이트에서 "실적확인"을 먼저 작성하세요.\n\n(실적확인 없이 복사됩니다)');
+        }
         let prompt = btn.dataset.prompt.replace(/\{종목명\}/g, entityName);
         // 매매근거(Quick) 변수 치환 — 빈 값은 '없음'으로 명시 (LLM 혼동 방지)
         const _orEmpty = (v) => (v && String(v).trim()) ? v : '없음';
@@ -460,6 +465,8 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
             }
             prompt = prompt.replace(/\{전체내용\}/g, sections.length ? sections.join('\n\n---\n\n') : '데이터 없음');
         }
+        // {최근실적} 치환
+        prompt = prompt.replace(/\{최근실적\}/g, recentPerfReport || '');
         document.getElementById('questionInput').value = question;
         try {
             await copyToClipboard(prompt);

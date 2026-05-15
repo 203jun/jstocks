@@ -553,7 +553,7 @@ def index(request):
     # 관심종목 최근실적 한번에 조회
     from .models import StockQuestionReport as _SQR
     _recent_perf_map = {}  # stock_code → report text
-    for sqr in _SQR.objects.filter(stock__in=target_stocks, question='최근실적').only('stock_id', 'report'):
+    for sqr in _SQR.objects.filter(stock__in=target_stocks, question='실적확인').only('stock_id', 'report'):
         _recent_perf_map[sqr.stock_id] = sqr.report
 
     # 관심종목 공시 한번에 조회 (최근 날짜 기준, 3일 초과 리셋)
@@ -6924,6 +6924,7 @@ def stock_question_report_detail(request, report_id):
         'trade_prompt_vars': trade_prompt_vars,
         'prompt_summary': prompt_summary,
         'all_content_data': all_content_data,
+        'recent_perf_report': StockQuestionReport.objects.filter(stock=qr.stock, question='실적확인').first().report if qr.stock and StockQuestionReport.objects.filter(stock=qr.stock, question='실적확인').exists() else '',
     })
 
 
