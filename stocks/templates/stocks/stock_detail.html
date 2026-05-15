@@ -450,6 +450,7 @@
 <!-- 메인 탭 -->
 <div class="market-tabs">
     <button class="market-tab active" data-target="info-content">기본정보</button>
+    <button class="market-tab" data-target="analysis-content">기업분석</button>
     <button class="market-tab" data-target="supply-content">수급</button>
     <button class="market-tab" data-target="disclosure-content">공시</button>
     <button class="market-tab" data-target="report-content">리포트{% with total=total_summary_count|add:total_attachment_count %}{% if total %}<span class="tab-count">{{ total }}</span>{% endif %}{% endwith %}</button>
@@ -818,8 +819,8 @@
     </div>
 </div>
 
-<!-- ========== 기업분석 탭 (삭제됨) ========== -->
-<!-- REMOVED_ANALYSIS_START
+<!-- ========== 기업분석 탭 ========== -->
+<div id="analysis-content" class="tab-panel" style="display:none;">
     <!-- 재무분석 -->
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;margin-top:0;">재무분석{% if stock.financial_analysis_v2_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="finAnalysisV2UpdatedAt">update: {{ stock.financial_analysis_v2_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
     <div class="brief-card">
@@ -1121,7 +1122,8 @@
         <div style="overflow-x:auto;">
             <table class="modern-table" id="consensusQuarterTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
         </div>
-REMOVED_ANALYSIS_END -->
+    </div>
+</div>
 
 <!-- ========== 수급 탭 ========== -->
 <div id="supply-content" class="tab-panel" style="display:none;">
@@ -4277,9 +4279,8 @@ document.getElementById('btnCopyDiaryPrompt').addEventListener('click', async ()
     }
 });
 
-// ===== 재무 테이블 공용 렌더링 (기업분석 탭 삭제됨, 아래 데이터 로드 함수는 유지) =====
-/* REMOVED: setupAnalysisEditor, 컨센서스분석/재무분석 프롬프트 복사 */
-if (false) {
+// ===== 기업분석 탭 - 재무분석/컨센서스분석 인라인 편집 =====
+function setupAnalysisEditor(prefix, apiPath) {
     const viewMode = document.getElementById(`${prefix}ViewMode`);
     const editMode = document.getElementById(`${prefix}EditMode`);
     const textarea = document.getElementById(`${prefix}Textarea`);
@@ -4565,7 +4566,7 @@ document.getElementById('btnCopyFinAnalysisPrompt').addEventListener('click', as
         alert('복사 실패: ' + err.message);
         btn.textContent = '프롬프트 복사';
     }
-}
+});
 
 // ===== 재무 테이블 공용 렌더링 =====
 function renderTable(tableId, rows, fields) {
@@ -5132,6 +5133,15 @@ document.querySelectorAll('.btn-gongsi-prompt').forEach(btn => {
     });
 });
 
-
+// 기업분석 탭 클릭 시 모든 데이터 로드
+document.querySelector('[data-target="analysis-content"]').addEventListener('click', () => {
+    window._loadIncomeData();
+    window._loadBalanceData();
+    window._loadCashFlowData();
+    window._loadProfitData();
+    window._loadProfitabilityData();
+    window._loadGrowthData();
+    window._loadConsensusData();
+});
 </script>
 {% endblock %}
