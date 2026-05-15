@@ -135,6 +135,18 @@
 }
 .research-trade-chip:hover { background:#fecaca; color:#b91c1c; }
 .research-trade-chip .chip-date { font-size:0.7rem; color:#dc2626; font-weight:400; }
+/* 실적확인 강조 칩 (인풋 데이터) */
+.research-input-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 10px; border-radius:14px;
+    background:#eff6ff; color:#1d4ed8; font-size:0.78rem; font-weight:600;
+    text-decoration:none; transition:background 0.15s;
+    border:1px solid #93c5fd;
+}
+.research-input-chip:hover { background:#dbeafe; color:#1d4ed8; }
+.research-input-chip .chip-date { font-size:0.7rem; color:#3b82f6; font-weight:400; }
+[data-theme="dark"] .research-input-chip { background:#1e2a3a; color:#60a5fa; border-color:#2563eb; }
+[data-theme="dark"] .research-input-chip:hover { background:#1e3a5f; }
 [data-theme="dark"] .research-trade-chip { background:#3b1318; color:#fca5a5; border-color:#7f1d1d; }
 [data-theme="dark"] .research-trade-chip:hover { background:#4c1820; }
 [data-theme="dark"] .research-trade-chip .chip-date { color:#f87171; }
@@ -683,7 +695,7 @@
                 <span class="research-update-label">업데이트</span>
                 <div class="research-chips">
                     {% for qr in update_core_reports %}
-                    <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="{% if '매매근거' in qr.question %}research-trade-chip{% else %}research-common-chip{% endif %}" data-question="{{ qr.question }}" title="{{ qr.question }}">
+                    <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="{% if '매매근거' in qr.question %}research-trade-chip{% elif qr.question == '실적확인' %}research-input-chip{% else %}research-common-chip{% endif %}" data-question="{{ qr.question }}" title="{{ qr.question }}">
                         <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
                         <span class="chip-date">{{ qr.updated_at|date:"y.m.d" }}</span>
                     </a>
@@ -695,7 +707,7 @@
                 <span class="research-update-label" style="visibility:hidden;">업데이트</span>
                 <div class="research-chips">
                     {% for qr in update_extra_reports %}
-                    <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="research-common-chip" data-question="{{ qr.question }}" title="{{ qr.question }}">
+                    <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="{% if qr.question == '실적확인' %}research-input-chip{% else %}research-common-chip{% endif %}" data-question="{{ qr.question }}" title="{{ qr.question }}">
                         <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
                         <span class="chip-date">{{ qr.updated_at|date:"y.m.d" }}</span>
                     </a>
