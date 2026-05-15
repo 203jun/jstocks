@@ -701,8 +701,6 @@ small.text-muted {
             <button class="prompt-sub-tab" data-target="research-prompt-panel" id="research-prompt-tab">기업분석</button>
             <button class="prompt-sub-tab" data-target="quick-report-panel" id="quick-report-tab">업데이트</button>
             <button class="prompt-sub-tab" data-target="waiting-report-panel" id="waiting-report-tab">대기</button>
-            <button class="prompt-sub-tab" data-target="fin-analysis-prompt-panel" id="fin-analysis-prompt-tab">재무분석</button>
-            <button class="prompt-sub-tab" data-target="consensus-analysis-prompt-panel" id="consensus-analysis-prompt-tab">컨센서스분석</button>
             <button class="prompt-sub-tab" data-target="gongsi-prompt-panel" id="gongsi-prompt-tab">공시</button>
             <button class="prompt-sub-tab" data-target="report-prompt-panel" id="report-prompt-tab">리포트</button>
             <button class="prompt-sub-tab" data-target="nodaji-panel" id="nodaji-tab">노다지</button>
@@ -784,16 +782,6 @@ small.text-muted {
                 </div>
             </div>
             <!-- 재무분석 프롬프트 -->
-            <div class="prompt-panel" id="fin-analysis-prompt-panel" style="display:none;">
-                <div class="brief-card">
-                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
-                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">재무분석 프롬프트</span>
-                        <button type="button" class="btn-refresh" id="btnSaveFinAnalysisPrompt">저장</button>
-                    </div>
-                    <div class="d-flex flex-wrap gap-1 mb-2" id="finAnalysisVarList"></div>
-                    <textarea class="form-control" id="promptFinAnalysis" rows="10" placeholder="재무분석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_fin_analysis }}</textarea>
-                </div>
-            </div>
             <!-- 수급분석 프롬프트 -->
             <div class="prompt-panel" id="supply-demand-analysis-prompt-panel" style="display:none;">
                 <div class="brief-card">
@@ -828,16 +816,6 @@ small.text-muted {
                 </div>
             </div>
             <!-- 컨센서스분석 프롬프트 -->
-            <div class="prompt-panel" id="consensus-analysis-prompt-panel" style="display:none;">
-                <div class="brief-card">
-                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
-                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">컨센서스분석 프롬프트</span>
-                        <button type="button" class="btn-refresh" id="btnSaveConsensusAnalysisPrompt">저장</button>
-                    </div>
-                    <div class="d-flex flex-wrap gap-1 mb-2" id="consensusVarList"></div>
-                    <textarea class="form-control" id="promptConsensusAnalysis" rows="10" placeholder="컨센서스분석용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_consensus_analysis }}</textarea>
-                </div>
-            </div>
             <!-- 공시 프롬프트 -->
             <div class="prompt-panel" id="gongsi-prompt-panel" style="display:none;">
                 <div class="brief-card">
@@ -1639,11 +1617,6 @@ document.getElementById('btnSaveYoutubePrompt').addEventListener('click', functi
     savePrompt('prompt_youtube', value, this);
 });
 
-// 재무분석 프롬프트 저장
-document.getElementById('btnSaveFinAnalysisPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptFinAnalysis').value;
-    savePrompt('prompt_fin_analysis', value, this);
-});
 
 // 수급분석 프롬프트 저장
 document.getElementById('btnSaveSupplyDemandAnalysisPrompt').addEventListener('click', function() {
@@ -1663,11 +1636,6 @@ document.getElementById('btnSaveDiaryPrompt').addEventListener('click', function
     savePrompt('prompt_diary', value, this);
 });
 
-// 컨센서스분석 프롬프트 저장
-document.getElementById('btnSaveConsensusAnalysisPrompt').addEventListener('click', function() {
-    const value = document.getElementById('promptConsensusAnalysis').value;
-    savePrompt('prompt_consensus_analysis', value, this);
-});
 
 // 공시 프롬프트 저장
 document.getElementById('btnSaveGongsiPrompt').addEventListener('click', function() {
@@ -1726,8 +1694,6 @@ function renderVarChips(textareaId, containerEl) {
 const varChipTargets = [
     ['promptSignalAnalysis', 'signalAnalysisVarList'],
     ['promptBriefing', 'briefingVarList'],
-    ['promptFinAnalysis', 'finAnalysisVarList'],
-    ['promptConsensusAnalysis', 'consensusVarList'],
     ['promptGongsi', 'gongsiVarList'],
     ['promptReportSummary', 'reportVarList'],
     ['promptNodaji', 'nodajiVarList'],
@@ -1861,8 +1827,6 @@ document.getElementById('btnLoadAllVars').addEventListener('click', async () => 
 
     const promptSources = [
         { name: '핵심브리핑', id: 'promptBriefing' },
-        { name: '재무분석', id: 'promptFinAnalysis' },
-        { name: '컨센서스분석', id: 'promptConsensusAnalysis' },
         { name: '리포트', id: 'promptReportSummary' },
         { name: '노다지', id: 'promptNodaji' },
         { name: '유튜브', id: 'promptYoutube' },
@@ -1938,8 +1902,6 @@ document.getElementById('btnBuildGraph').addEventListener('click', async () => {
     // 1. 모든 프롬프트와 변수 수집
     const promptSources = [
         { name: '핵심브리핑', id: 'promptBriefing' },
-        { name: '재무분석', id: 'promptFinAnalysis' },
-        { name: '컨센서스분석', id: 'promptConsensusAnalysis' },
         { name: '리포트', id: 'promptReportSummary' },
         { name: '노다지', id: 'promptNodaji' },
         { name: '유튜브', id: 'promptYoutube' },
