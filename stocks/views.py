@@ -550,6 +550,12 @@ def index(request):
 
     # ============ 현황 테이블 ============
     # --- 공시 분류 로직 ---
+    # 관심종목 최근실적 한번에 조회
+    from .models import StockQuestionReport as _SQR
+    _recent_perf_map = {}  # stock_code → report text
+    for sqr in _SQR.objects.filter(stock__in=target_stocks, question='최근실적').only('stock_id', 'report'):
+        _recent_perf_map[sqr.stock_id] = sqr.report
+
     # 관심종목 공시 한번에 조회 (최근 날짜 기준, 3일 초과 리셋)
     from datetime import date as _date_cls
     from django.db.models import Max as _Max
@@ -583,7 +589,7 @@ def index(request):
         daily_data = list(DailyChart.objects.filter(stock=stock).order_by('-date')[:130])
         if not daily_data:
             _gc = _gongsi_map.get(stock.code)
-            status_stocks.append({'stock': stock, 'level': stock.interest_level, 'vol_high_20': False, 'vol_high_60': False, 'ma_align': '', 'pullback': None, 'pullback_label': '', 'has_report': False, 'has_nodaji': False, 'inst_label': '', 'frgn_label': '', 'gongsi_cat': _gc[0] if _gc else '', 'gongsi_title': _gc[1] if _gc else '', 'has_alert': False, 'alert_conditions': ''})
+            status_stocks.append({'stock': stock, 'level': stock.interest_level, 'vol_high_20': False, 'vol_high_60': False, 'ma_align': '', 'pullback': None, 'pullback_label': '', 'has_report': False, 'has_nodaji': False, 'inst_label': '', 'frgn_label': '', 'gongsi_cat': _gc[0] if _gc else '', 'gongsi_title': _gc[1] if _gc else '', 'has_alert': False, 'alert_conditions': '', 'recent_perf': _recent_perf_map.get(stock.code, '')})
             continue
 
         today = daily_data[0]
@@ -766,6 +772,7 @@ def index(request):
             _alerts.append(f'매도 희망가 도달({stock.sell_price:,}원)')
         status_stocks[-1]['has_alert'] = bool(_alerts)
         status_stocks[-1]['alert_conditions'] = ' / '.join(_alerts)
+        status_stocks[-1]['recent_perf'] = _recent_perf_map.get(stock.code, '')
 
     # D-10 이내 이벤트 수집
     from datetime import date

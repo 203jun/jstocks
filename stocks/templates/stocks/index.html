@@ -194,7 +194,7 @@
                 <tr class="status-row" data-level="{{ item.level }}" onclick="if(!event.target.closest('.signal-chart-btn'))location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
                     <td style="padding-left:16px;">
                         <strong>{{ item.stock.name }}</strong>
-                        {% if item.has_alert %}<button type="button" class="btn-alert-prompt" data-name="{{ item.stock.name }}" data-code="{{ item.stock.code }}" data-price="{{ item.stock.current_price|default:'' }}" data-conditions="{{ item.alert_conditions }}" onclick="event.stopPropagation();" style="font-size:0.6rem;padding:1px 4px;border:1px solid var(--up-color);border-radius:3px;background:none;color:var(--up-color);cursor:pointer;margin-left:3px;vertical-align:middle;font-weight:600;">분석</button>{% endif %}
+                        {% if item.has_alert %}<button type="button" class="btn-alert-prompt" data-name="{{ item.stock.name }}" data-code="{{ item.stock.code }}" data-price="{{ item.stock.current_price|default:'' }}" data-conditions="{{ item.alert_conditions }}" data-has-perf="{% if item.recent_perf %}1{% endif %}" onclick="event.stopPropagation();" style="font-size:0.6rem;padding:1px 4px;border:1px solid var(--up-color);border-radius:3px;background:none;color:var(--up-color);cursor:pointer;margin-left:3px;vertical-align:middle;font-weight:600;">분석</button><script type="text/plain" class="recent-perf-data" data-code="{{ item.stock.code }}">{{ item.recent_perf }}</script>{% endif %}
                     </td>
                     <td style="text-align:right;">
                         {% if item.stock.current_price %}{{ item.stock.current_price|intcomma }}{% else %}-{% endif %}
@@ -631,6 +631,13 @@ window.addEventListener('resize', function() {
             const code = btn.dataset.code;
             const price = btn.dataset.price ? Number(btn.dataset.price).toLocaleString() : '';
             const conditions = btn.dataset.conditions || '';
+            const hasPerf = btn.dataset.hasPerf === '1';
+            const perfEl = document.querySelector(`.recent-perf-data[data-code="${code}"]`);
+            const recentPerf = perfEl ? perfEl.textContent.trim() : '';
+
+            if (!hasPerf && alertPromptTemplate.includes('{최근실적}')) {
+                alert('이 종목에 "최근실적" 리서치 데이터가 없습니다.\n종목 상세 → 리서치 → 업데이트에서 "최근실적"을 먼저 작성하세요.');
+            }
 
             let prompt = alertPromptTemplate;
             prompt = prompt.replace(/\{종목명\}/g, name);
@@ -638,6 +645,7 @@ window.addEventListener('resize', function() {
             prompt = prompt.replace(/\{현재가\}/g, price);
             prompt = prompt.replace(/\{오늘날짜\}/g, todayStr);
             prompt = prompt.replace(/\{조건리스트\}/g, conditions);
+            prompt = prompt.replace(/\{최근실적\}/g, recentPerf);
 
             try {
                 await copyFallback(prompt);
