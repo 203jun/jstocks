@@ -6766,8 +6766,10 @@ def stock_question_report_detail(request, report_id):
     consensus_eps = ''
     consensus_op = ''
     consensus_quarter_op = ''
+    recent_q_revenue = ''
+    recent_q_op = ''
     if qr.stock:
-        from .models import Consensus
+        from .models import Consensus, Financial
         from datetime import date
         today = date.today()
         current_year = today.year
@@ -6798,6 +6800,21 @@ def stock_question_report_detail(request, report_id):
             ).order_by('quarter').first()
         if quarter_cons and quarter_cons.operating_profit is not None:
             consensus_quarter_op = str(int(quarter_cons.operating_profit))
+
+        # 최근 5개 분기 실적 (실적 분기 그래프와 동일 소스: Financial, 추정 포함 / 억원 단위)
+        recent_q_fins = list(Financial.objects.filter(
+            stock=qr.stock, quarter__isnull=False
+        ).order_by('-year', '-quarter')[:5])
+        _rev_lines = []
+        _op_lines = []
+        for f in recent_q_fins:
+            label = f"{f.year} {f.quarter}" + ('(E)' if f.is_estimated else '')
+            if f.revenue is not None:
+                _rev_lines.append(f"{label}: {int(f.revenue / 100000000):,}억원")
+            if f.operating_profit is not None:
+                _op_lines.append(f"{label}: {int(f.operating_profit / 100000000):,}억원")
+        recent_q_revenue = '\n'.join(_rev_lines)
+        recent_q_op = '\n'.join(_op_lines)
 
     # === 매매근거(Quick) 프롬프트용 변수 ===
     trade_prompt_vars = {}
@@ -6921,6 +6938,8 @@ def stock_question_report_detail(request, report_id):
         'consensus_eps': consensus_eps,
         'consensus_op': consensus_op,
         'consensus_quarter_op': consensus_quarter_op,
+        'recent_q_revenue': recent_q_revenue,
+        'recent_q_op': recent_q_op,
         'trade_prompt_vars': trade_prompt_vars,
         'prompt_summary': prompt_summary,
         'all_content_data': all_content_data,

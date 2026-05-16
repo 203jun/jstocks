@@ -331,6 +331,8 @@ const stockCurrentPrice = '{{ stock_current_price|escapejs }}';
 const consensusEps = '{{ consensus_eps|escapejs }}';
 const consensusOp = '{{ consensus_op|escapejs }}';
 const consensusQuarterOp = '{{ consensus_quarter_op|escapejs }}';
+const recentQRevenue = '{{ recent_q_revenue|escapejs }}';
+const recentQOp = '{{ recent_q_op|escapejs }}';
 const recentPerfReport = "{{ recent_perf_report|escapejs }}";
 const tradeVarsEl = document.getElementById('trade-prompt-vars');
 const tradeVars = tradeVarsEl ? JSON.parse(tradeVarsEl.textContent) : {};
@@ -448,6 +450,9 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
         } else {
             prompt = prompt.replace(/.*\{분기컨센서스영업이익\}.*\n?/g, '');
         }
+        // 최근 5개 분기 실적 (실적 분기 그래프와 동일 소스, 억원 단위 / 분기 라벨 포함)
+        prompt = prompt.replace(/\{최근분기매출\}/g, recentQRevenue || '데이터 없음');
+        prompt = prompt.replace(/\{최근분기영업이익\}/g, recentQOp || '데이터 없음');
         if (nodajiData) {
             prompt = prompt.replace(/\{노다지\}/g, nodajiData);
         } else {
