@@ -635,7 +635,7 @@ window.addEventListener('resize', function() {
             const perfEl = document.querySelector(`.recent-perf-data[data-code="${code}"]`);
             const recentPerf = perfEl ? perfEl.textContent.trim() : '';
 
-            if (!hasPerf) {
+            if (!hasPerf && alertPromptTemplate.includes('{최근실적}')) {
                 alert('이 종목에 "최근실적" 리서치 데이터가 없습니다.\n종목 상세 → 리서치 → 업데이트에서 "최근실적"을 먼저 작성하세요.\n\n(최근실적 없이 복사됩니다)');
             }
 
