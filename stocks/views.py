@@ -6810,9 +6810,15 @@ def stock_question_report_detail(request, report_id):
         for f in recent_q_fins:
             label = f"{f.year} {f.quarter}" + ('(E)' if f.is_estimated else '')
             if f.revenue is not None:
-                _rev_lines.append(f"{label}: {int(f.revenue / 100000000):,}억원")
+                if f.is_estimated and f.revenue == 0:
+                    _rev_lines.append(f"{label}: 없음")
+                else:
+                    _rev_lines.append(f"{label}: {int(f.revenue / 100000000):,}억원")
             if f.operating_profit is not None:
-                _op_lines.append(f"{label}: {int(f.operating_profit / 100000000):,}억원")
+                if f.is_estimated and f.operating_profit == 0:
+                    _op_lines.append(f"{label}: 없음")
+                else:
+                    _op_lines.append(f"{label}: {int(f.operating_profit / 100000000):,}억원")
         recent_q_revenue = '\n'.join(_rev_lines)
         recent_q_op = '\n'.join(_op_lines)
 
