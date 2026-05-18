@@ -2898,6 +2898,7 @@ document.getElementById('savedNewsList')?.addEventListener('click', async functi
         '재무분석': newsPromptVars.financial_analysis || '',
         '컨센서스분석': newsPromptVars.consensus_analysis || '',
         '기업분석: 향후 이벤트': newsPromptVars.future_events || '',
+        '전체내용': newsPromptVars.all_content || '',
     };
 
     let text = renderNewsPrompt(template, vars);

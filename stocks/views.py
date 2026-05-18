@@ -1248,6 +1248,16 @@ def stock_detail(request, code):
     waiting_order = ['대기', '옥석가리기', '회사스냅샷', '매매매력도', '매매트래킹']
     waiting_question_reports.sort(key=lambda q: waiting_order.index(q.question) if q.question in waiting_order else 99)
 
+    # 뉴스 프롬프트용 {전체내용} 생성
+    all_content_sections = []
+    for r in common_core_reports + common_extra_reports:
+        if r.report:
+            all_content_sections.append(f"## 기업분석: {r.question} ({r.updated_at.strftime('%Y-%m-%d')})\n{r.report}")
+    for r in update_core_reports + update_extra_reports:
+        if r.report:
+            all_content_sections.append(f"## 업데이트: {r.question} ({r.updated_at.strftime('%Y-%m-%d')})\n{r.report}")
+    news_prompt_vars['all_content'] = '\n\n---\n\n'.join(all_content_sections) if all_content_sections else ''
+
     # 업로드 리포트
     from .models import StockUploadedReport, SystemSetting
     uploaded_reports = StockUploadedReport.objects.filter(stock=stock).order_by('-created_at')
