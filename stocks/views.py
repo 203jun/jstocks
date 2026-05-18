@@ -1236,12 +1236,17 @@ def stock_detail(request, code):
             waiting_question_reports.append(qr)
         else:
             custom_question_reports.append(qr)
-    # core 질문 순서 고정
-    core_order = ['사업모델', '수익구조', '경쟁력', '경쟁사', '중장기전망', '지배구조']
-    common_core_reports.sort(key=lambda q: core_order.index(q.question) if q.question in core_order else 99)
-    # 업데이트 extra 순서 고정
-    update_extra_order = ['투자포인트', '리스크', '일정매매']
-    update_extra_reports.sort(key=lambda q: update_extra_order.index(q.question) if q.question in update_extra_order else 99)
+    # 기업분석 순서 고정
+    common_order = ['사업모델', '수익구조', '경쟁력', '경쟁사', '중장기전망', '지배구조', '수주잔고', '파이프라인', 'R&D', '매장점포', '원자재공급망', '보유자산']
+    common_core_reports.sort(key=lambda q: common_order.index(q.question) if q.question in common_order else 99)
+    common_extra_reports.sort(key=lambda q: common_order.index(q.question) if q.question in common_order else 99)
+    # 업데이트 순서 고정
+    update_order = ['단기이슈', '중기이슈', '이벤트', '업황', '밸류확인', '실적확인', '투자포인트', '리스크', '일정매매']
+    update_core_reports.sort(key=lambda q: update_order.index(q.question) if q.question in update_order else 99)
+    update_extra_reports.sort(key=lambda q: update_order.index(q.question) if q.question in update_order else 99)
+    # 대기 순서 고정
+    waiting_order = ['대기', '옥석가리기', '회사스냅샷', '매매매력도', '매매트래킹']
+    waiting_question_reports.sort(key=lambda q: waiting_order.index(q.question) if q.question in waiting_order else 99)
 
     # 업로드 리포트
     from .models import StockUploadedReport, SystemSetting

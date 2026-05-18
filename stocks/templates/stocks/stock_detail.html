@@ -122,6 +122,7 @@
 }
 .research-common-chip:hover { background:#e5e7eb; color:var(--text-primary); }
 .research-common-chip .chip-date { font-size:0.7rem; color:var(--text-muted); }
+.chip-date.stale { color:#f59e0b !important; }
 [data-theme="dark"] .research-common-chip { background:#22262f; color:var(--text-primary); }
 [data-theme="dark"] .research-common-chip:hover { background:#2c313b; }
 
@@ -669,7 +670,7 @@
                     {% for qr in common_core_reports %}
                     <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="research-common-chip" data-question="{{ qr.question }}" title="{{ qr.question }}">
                         <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
-                        <span class="chip-date">{{ qr.updated_at|date:"y.m.d" }}</span>
+                        <span class="chip-date" data-date="{{ qr.updated_at|date:'Y-m-d' }}">{{ qr.updated_at|date:"y.m.d" }}</span>
                     </a>
                     {% endfor %}
                 </div>
@@ -681,7 +682,7 @@
                     {% for qr in common_extra_reports %}
                     <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="research-common-chip" data-question="{{ qr.question }}" title="{{ qr.question }}">
                         <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
-                        <span class="chip-date">{{ qr.updated_at|date:"y.m.d" }}</span>
+                        <span class="chip-date" data-date="{{ qr.updated_at|date:'Y-m-d' }}">{{ qr.updated_at|date:"y.m.d" }}</span>
                     </a>
                     {% endfor %}
                 </div>
@@ -697,7 +698,7 @@
                     {% for qr in update_core_reports %}
                     <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="{% if '매매근거' in qr.question %}research-trade-chip{% elif qr.question == '실적확인' %}research-input-chip{% else %}research-common-chip{% endif %}" data-question="{{ qr.question }}" title="{{ qr.question }}">
                         <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
-                        <span class="chip-date">{{ qr.updated_at|date:"y.m.d" }}</span>
+                        <span class="chip-date" data-date="{{ qr.updated_at|date:'Y-m-d' }}">{{ qr.updated_at|date:"y.m.d" }}</span>
                     </a>
                     {% endfor %}
                 </div>
@@ -709,7 +710,7 @@
                     {% for qr in update_extra_reports %}
                     <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="{% if qr.question == '실적확인' %}research-input-chip{% else %}research-common-chip{% endif %}" data-question="{{ qr.question }}" title="{{ qr.question }}">
                         <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
-                        <span class="chip-date">{{ qr.updated_at|date:"y.m.d" }}</span>
+                        <span class="chip-date" data-date="{{ qr.updated_at|date:'Y-m-d' }}">{{ qr.updated_at|date:"y.m.d" }}</span>
                     </a>
                     {% endfor %}
                 </div>
@@ -724,7 +725,7 @@
                 {% for qr in waiting_question_reports %}
                 <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="research-common-chip" data-question="{{ qr.question }}" title="{{ qr.question }}">
                     <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
-                    <span class="chip-date">{{ qr.updated_at|date:"y.m.d" }}</span>
+                    <span class="chip-date" data-date="{{ qr.updated_at|date:'Y-m-d' }}">{{ qr.updated_at|date:"y.m.d" }}</span>
                 </a>
                 {% endfor %}
             </div>
@@ -737,7 +738,7 @@
                 {% for qr in custom_question_reports %}
                 <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="research-custom-item" data-question="{{ qr.question }}">
                     <span class="research-custom-title">{{ qr.question|truncatechars:80 }}</span>
-                    <span class="research-custom-date">{{ qr.updated_at|date:"y.m.d" }}</span>
+                    <span class="research-custom-date chip-date" data-date="{{ qr.updated_at|date:'Y-m-d' }}">{{ qr.updated_at|date:"y.m.d" }}</span>
                 </a>
                 {% endfor %}
             </div>
@@ -747,6 +748,16 @@
         <div style="text-align:center; color:var(--text-muted); padding:24px;">저장된 리서치가 없습니다.</div>
         {% endif %}
     </div>
+    <script>
+    (function(){
+        const now = new Date();
+        const threshold = 30 * 24 * 60 * 60 * 1000;
+        document.querySelectorAll('#researchList .chip-date[data-date]').forEach(el => {
+            const d = new Date(el.dataset.date);
+            if (now - d > threshold) el.classList.add('stale');
+        });
+    })();
+    </script>
 
     <!-- 실적 -->
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">실적<button type="button" id="btnRecentPerf" class="btn-refresh" style="padding:4px 12px;font-weight:400;font-size:0.78rem;">최근실적</button></h5>
