@@ -2686,7 +2686,6 @@ function warnMissingVars(prompt) {
 }
 const savedPrompts = {
     prompt_news: `{{ saved_prompts.prompt_news|default:""|escapejs }}`,
-    prompt_news_with_context: `{{ saved_prompts.prompt_news_with_context|default:""|escapejs }}`,
     prompt_youtube: `{{ saved_prompts.prompt_youtube|default:""|escapejs }}`
 };
 const newsPromptVars = JSON.parse(document.getElementById('news-prompt-vars').textContent);
@@ -2887,10 +2886,7 @@ document.getElementById('savedNewsList')?.addEventListener('click', async functi
     const link = e.target.dataset.link || '';
     const content = e.target.dataset.content || '';
 
-    const hasContext = !!(newsPromptVars && (newsPromptVars.key_briefing || '').trim());
-    const template = hasContext
-        ? (savedPrompts.prompt_news_with_context || savedPrompts.prompt_news || '')
-        : (savedPrompts.prompt_news || '');
+    const template = savedPrompts.prompt_news || '';
 
     const vars = {
         '종목명': newsPromptVars.stock_name || stockName || '',
