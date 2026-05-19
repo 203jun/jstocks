@@ -11,6 +11,7 @@ class LoginRequiredMiddleware:
         self.open_urls = [
             f'/{self.login_url}/',
             '/admin/',
+            '/api/',
         ]
 
     def __call__(self, request):
