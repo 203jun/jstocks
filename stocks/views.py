@@ -787,6 +787,9 @@ def index(request):
         upcoming_events.append({'type': 'ETF', 'name': ev.etf.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days, 'level': 'all'})
     upcoming_events.sort(key=lambda x: x['date'])
 
+    from .models import SystemSetting
+    prompt_status = SystemSetting.objects.filter(key='prompt_status').values_list('value', flat=True).first() or ''
+
     context = {
         'super_stocks': super_stocks,
         'normal_stocks': normal_stocks,
@@ -801,6 +804,7 @@ def index(request):
         'card_nodaji_stocks': card_nodaji_stocks,
         'status_stocks': status_stocks,
         'upcoming_events': upcoming_events,
+        'prompt_status': prompt_status,
     }
     return render(request, 'stocks/index.html', context)
 

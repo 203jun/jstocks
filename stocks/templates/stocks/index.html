@@ -166,7 +166,7 @@
 {% endif %}
 
 <!-- 현황 -->
-<div class="section-heading">현황</div>
+<div class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">현황<span id="btnCopyStatusPrompt" style="font-size:0.6rem;font-weight:400;padding:2px 8px;border-radius:4px;background:#f3f4f6;color:var(--text-secondary);cursor:pointer;">프롬프트</span></div>
 <div class="brief-card" style="padding:0; overflow:hidden;">
     <div style="overflow-x:auto;">
         <table class="modern-table" id="statusTable">
@@ -664,5 +664,39 @@ window.addEventListener('resize', function() {
         });
     });
 })();
+
+// 현황 프롬프트 복사
+document.getElementById('btnCopyStatusPrompt')?.addEventListener('click', async function() {
+    const promptTemplate = `{{ prompt_status|escapejs }}`;
+    if (!promptTemplate) { alert('설정 → 프롬프트 → 현황에서 프롬프트를 먼저 등록하세요.'); return; }
+
+    // 현황 테이블 텍스트 추출
+    const table = document.getElementById('statusTable');
+    const rows = table.querySelectorAll('tbody tr.status-row');
+    const lines = ['종목명 | 가격 | 등락률 | 배열 | 눌림목 | 거래량 | 신호 | 기관 | 외국인 | 공시 | 리포트 | 괴리율 | 노다지 | 매수 | 매도'];
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const vals = Array.from(cells).map(td => td.textContent.replace(/\s+/g, ' ').trim());
+        lines.push(vals.join(' | '));
+    });
+    const tableText = lines.join('\n');
+
+    const today = new Date().toISOString().slice(0, 10);
+    let text = promptTemplate.replace(/\{현황테이블\}/g, tableText).replace(/\{오늘날짜\}/g, today);
+
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+        } else {
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); ta.remove();
+        }
+        const orig = this.textContent;
+        this.textContent = '복사됨!';
+        setTimeout(() => { this.textContent = orig; }, 1500);
+    } catch (err) { alert('복사 실패: ' + err.message); }
+});
 </script>
 {% endblock %}
