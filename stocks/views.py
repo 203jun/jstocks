@@ -790,6 +790,55 @@ def index(request):
     from .models import SystemSetting
     prompt_status = SystemSetting.objects.filter(key='prompt_status').values_list('value', flat=True).first() or ''
 
+    # 현황 데이터 블록 텍스트 생성
+    status_blocks = []
+    for item in status_stocks:
+        s = item['stock']
+        lines = [f"종목명: {s.name}"]
+        price_str = f"{s.current_price:,}" if s.current_price else '-'
+        rate_str = f"{'+' if s.change_rate and s.change_rate > 0 else ''}{s.change_rate}%" if s.change_rate else ''
+        lines.append(f"현재가: {price_str} ({rate_str})" if rate_str else f"현재가: {price_str}")
+        align_map = {'bull': '정배열(▲)', 'bear': '역배열(▼)', 'mixed': '혼조(▬)'}
+        lines.append(f"배열: {align_map.get(item['ma_align'], '-')}")
+        if item['pullback_label']:
+            lines.append(f"눌림목: {item['pullback_label']} (MA20 대비 {'+' if item['pullback'] > 0 else ''}{item['pullback']}%)")
+        vol_parts = []
+        if item.get('vol_high_60'):
+            vol_parts.append(f"60일 최대 ({'양봉' if item.get('is_bullish') else '음봉'})")
+        elif item.get('vol_high_20'):
+            vol_parts.append(f"20일 최대 ({'양봉' if item.get('is_bullish') else '음봉'})")
+        if vol_parts:
+            lines.append(f"거래량: {', '.join(vol_parts)}")
+        si = item.get('signal_info')
+        if si:
+            si_data = si if isinstance(si, dict) else {'signal_days_ago': si.get('signal_days_ago', 0), 'signal_price_change': si.get('signal_price_change', 0)} if hasattr(si, 'get') else None
+            if si_data:
+                days_ago = si_data.get('signal_days_ago', 0)
+                pct = si_data.get('signal_price_change', 0)
+                ago_str = f"{days_ago}일전 " if days_ago > 0 else ''
+                lines.append(f"신호: {ago_str}{'+' if pct > 0 else ''}{pct}%")
+        if item['inst_label']:
+            label = '20일 최대 순매수' if item['inst_label'] == '20일' else f"{item['inst_label']}일 연속 순매수"
+            lines.append(f"기관: {label}")
+        if item['frgn_label']:
+            label = '20일 최대 순매수' if item['frgn_label'] == '20일' else f"{item['frgn_label']}일 연속 순매수"
+            lines.append(f"외국인: {label}")
+        if item['gongsi_cat']:
+            lines.append(f"공시: {item['gongsi_cat']}")
+        if item['has_report']:
+            gap_str = f" (괴리율 {'+' if item['report_gap'] > 0 else ''}{item['report_gap']}%)" if item.get('report_gap') is not None else ''
+            lines.append(f"리포트: 있음{gap_str}")
+        elif item.get('report_gap') is not None:
+            lines.append(f"괴리율: {'+' if item['report_gap'] > 0 else ''}{item['report_gap']}%")
+        if item['has_nodaji']:
+            lines.append("노다지: 있음")
+        if item.get('in_buy_zone'):
+            lines.append("매수구간: 도달")
+        if item.get('in_sell_zone'):
+            lines.append("매도구간: 도달")
+        status_blocks.append('\n'.join(lines))
+    status_data_text = '\n\n---\n\n'.join(status_blocks)
+
     context = {
         'super_stocks': super_stocks,
         'normal_stocks': normal_stocks,
@@ -805,6 +854,7 @@ def index(request):
         'status_stocks': status_stocks,
         'upcoming_events': upcoming_events,
         'prompt_status': prompt_status,
+        'status_data_text': status_data_text,
     }
     return render(request, 'stocks/index.html', context)
 
