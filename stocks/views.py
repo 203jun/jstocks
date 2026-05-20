@@ -709,8 +709,10 @@ def index(request):
         # 리포트(3거래일)/노다지(5거래일) 최근 자료 확인
         from datetime import timedelta
         today_date = today.date
-        has_report = Report.objects.filter(stock=stock, date__gte=today_date - timedelta(days=5)).exists()
-        has_nodaji = Nodaji.objects.filter(stock=stock, title__contains=stock.name, date__gte=today_date - timedelta(days=9)).exists()
+        recent_reports = list(Report.objects.filter(stock=stock, date__gte=today_date - timedelta(days=5)).order_by('-date')[:3])
+        has_report = bool(recent_reports)
+        recent_nodajis = list(Nodaji.objects.filter(stock=stock, title__contains=stock.name, date__gte=today_date - timedelta(days=9)).order_by('-date')[:3])
+        has_nodaji = bool(recent_nodajis)
 
         # 괴리율 (최신 리포트 목표가 vs 현재가)
         report_gap = None
@@ -747,6 +749,8 @@ def index(request):
             'gongsi_title': _gc[1] if _gc else '',
             'in_buy_zone': in_buy_zone,
             'in_sell_zone': in_sell_zone,
+            'recent_reports': recent_reports,
+            'recent_nodajis': recent_nodajis,
         })
         # 알림 조건 판단
         _alerts = []
@@ -824,18 +828,23 @@ def index(request):
             label = '20일 최대 순매수' if item['frgn_label'] == '20일' else f"{item['frgn_label']}일 연속 순매수"
             lines.append(f"외국인: {label}")
         if item['gongsi_cat']:
-            lines.append(f"공시: {item['gongsi_cat']}")
-        if item['has_report']:
+            gongsi_str = f"공시: {item['gongsi_cat']}"
+            if item.get('gongsi_title'):
+                gongsi_str += f" — {item['gongsi_title']}"
+            lines.append(gongsi_str)
+        if item.get('recent_reports'):
             gap_str = f" (괴리율 {'+' if item['report_gap'] > 0 else ''}{item['report_gap']}%)" if item.get('report_gap') is not None else ''
-            lines.append(f"리포트: 있음{gap_str}")
+            titles = ', '.join(r.title for r in item['recent_reports'] if r.title)
+            lines.append(f"리포트: {titles}{gap_str}" if titles else f"리포트: 있음{gap_str}")
         elif item.get('report_gap') is not None:
             lines.append(f"괴리율: {'+' if item['report_gap'] > 0 else ''}{item['report_gap']}%")
-        if item['has_nodaji']:
-            lines.append("노다지: 있음")
+        if item.get('recent_nodajis'):
+            titles = ', '.join(n.title for n in item['recent_nodajis'] if n.title)
+            lines.append(f"노다지: {titles}" if titles else "노다지: 있음")
         if item.get('in_buy_zone'):
-            lines.append("매수구간: 도달")
+            lines.append(f"매수구간: 도달 (매수가 {s.buy_price:,})")
         if item.get('in_sell_zone'):
-            lines.append("매도구간: 도달")
+            lines.append(f"매도구간: 도달 (매도가 {s.sell_price:,})")
         level = item.get('level', 'normal')
         if level in status_blocks_by_level:
             status_blocks_by_level[level].append('\n'.join(lines))
