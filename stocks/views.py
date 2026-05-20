@@ -790,8 +790,8 @@ def index(request):
     from .models import SystemSetting
     prompt_status = SystemSetting.objects.filter(key='prompt_status').values_list('value', flat=True).first() or ''
 
-    # 현황 데이터 블록 텍스트 생성
-    status_blocks = []
+    # 현황 데이터 블록 텍스트 생성 (레벨별)
+    status_blocks_by_level = {'super': [], 'normal': [], 'waiting': []}
     for item in status_stocks:
         s = item['stock']
         lines = [f"종목명: {s.name}"]
@@ -836,8 +836,10 @@ def index(request):
             lines.append("매수구간: 도달")
         if item.get('in_sell_zone'):
             lines.append("매도구간: 도달")
-        status_blocks.append('\n'.join(lines))
-    status_data_text = '\n\n---\n\n'.join(status_blocks)
+        level = item.get('level', 'normal')
+        if level in status_blocks_by_level:
+            status_blocks_by_level[level].append('\n'.join(lines))
+    status_data_by_level = {k: '\n\n---\n\n'.join(v) for k, v in status_blocks_by_level.items()}
 
     context = {
         'super_stocks': super_stocks,
@@ -854,7 +856,7 @@ def index(request):
         'status_stocks': status_stocks,
         'upcoming_events': upcoming_events,
         'prompt_status': prompt_status,
-        'status_data_text': status_data_text,
+        'status_data_by_level': status_data_by_level,
     }
     return render(request, 'stocks/index.html', context)
 

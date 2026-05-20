@@ -670,7 +670,14 @@ document.getElementById('btnCopyStatusPrompt')?.addEventListener('click', async 
     const promptTemplate = `{{ prompt_status|escapejs }}`;
     if (!promptTemplate) { alert('설정 → 프롬프트 → 현황에서 프롬프트를 먼저 등록하세요.'); return; }
 
-    const statusData = `{{ status_data_text|escapejs }}`;
+    const statusDataByLevel = {
+        super: `{{ status_data_by_level.super|escapejs }}`,
+        normal: `{{ status_data_by_level.normal|escapejs }}`,
+        waiting: `{{ status_data_by_level.waiting|escapejs }}`
+    };
+    const activeFilter = document.querySelector('#dashboardTabs button.active')?.dataset.filter || 'super';
+    const statusData = statusDataByLevel[activeFilter] || '';
+    if (!statusData) { alert('현재 탭에 종목 데이터가 없습니다.'); return; }
     const today = new Date().toISOString().slice(0, 10);
     let text = promptTemplate.replace(/\{현황데이터\}/g, statusData).replace(/\{오늘날짜\}/g, today);
 
