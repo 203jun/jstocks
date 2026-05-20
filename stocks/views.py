@@ -751,6 +751,8 @@ def index(request):
             'in_sell_zone': in_sell_zone,
             'recent_reports': recent_reports,
             'recent_nodajis': recent_nodajis,
+            'inv_data': inv_data if signal_info else [],
+            'short_data': list(ShortSelling.objects.filter(stock=stock).order_by('-date')[:20]) if signal_info else [],
         })
         # 알림 조건 판단
         _alerts = []
@@ -845,6 +847,17 @@ def index(request):
             lines.append(f"매수구간: 도달 (매수가 {s.buy_price:,})")
         if item.get('in_sell_zone'):
             lines.append(f"매도구간: 도달 (매도가 {s.sell_price:,})")
+        # 신호 종목: 수급/공매도 20일 데이터
+        if item.get('inv_data'):
+            inv_lines = ['  날짜 | 외국인 | 기관']
+            for d in item['inv_data']:
+                inv_lines.append(f"  {d.date.strftime('%Y-%m-%d')} | {d.foreign:,} | {d.institution:,}")
+            lines.append("수급 20일:\n" + '\n'.join(inv_lines))
+        if item.get('short_data'):
+            short_lines = ['  날짜 | 공매도량 | 비중(%)']
+            for d in item['short_data']:
+                short_lines.append(f"  {d.date.strftime('%Y-%m-%d')} | {d.short_volume:,} | {d.trading_weight}%")
+            lines.append("공매도 20일:\n" + '\n'.join(short_lines))
         level = item.get('level', 'normal')
         if level in status_blocks_by_level:
             status_blocks_by_level[level].append('\n'.join(lines))
