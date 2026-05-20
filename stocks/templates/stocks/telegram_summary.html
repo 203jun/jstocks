@@ -7,11 +7,13 @@
 <style>
 #editor {
     height: 400px;
-    background: white;
+    background: var(--bg-card);
+    color: var(--text-primary);
 }
 .ql-toolbar {
-    background: #f8f9fa;
+    background: var(--bg-secondary);
 }
+.ql-editor.ql-blank::before { color: var(--text-muted) !important; }
 {% endblock %}
 
 {% block content %}

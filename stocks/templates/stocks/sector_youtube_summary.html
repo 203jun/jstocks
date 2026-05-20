@@ -17,6 +17,7 @@
     border-radius: var(--radius-sm);
     padding: 12px;
     color: var(--text-primary);
+    background: var(--bg-card);
     line-height: 1.7;
 }
 #summary:focus { border-color: #2962ff; outline: none; box-shadow: 0 0 0 2px rgba(41,98,255,0.1); }
@@ -50,7 +51,7 @@
 #preview a { color: var(--text-secondary); text-decoration: none; }
 #preview a:hover { text-decoration: underline; }
 #preview img { max-width: 100%; }
-.form-control { border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.85rem; color:var(--text-primary); }
+.form-control { border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.85rem; color:var(--text-primary); background:var(--bg-card); }
 .form-control:focus { border-color:#2962ff; box-shadow:0 0 0 2px rgba(41,98,255,0.1); }
 .prompt-badge { display:inline-block; padding:3px 10px; border-radius:4px; font-size:0.72rem; font-weight:500; cursor:pointer; background:#ecfdf5; color:#059669; transition:all 0.15s; }
 .prompt-badge:hover { background:#d1fae5; }
@@ -102,7 +103,7 @@
                 <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">요약</div>
                 <span class="prompt-badge btn-copy-summary-prompt" role="button" data-source="summary">프롬프트 복사</span>
             </div>
-            <textarea name="my_opinion" rows="5" style="width:100%;font-family:monospace;font-size:0.85rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;color:var(--text-primary);line-height:1.7;resize:vertical;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ video.my_opinion }}</textarea>
+            <textarea name="my_opinion" rows="5" style="width:100%;font-family:monospace;font-size:0.85rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;color:var(--text-primary);background:var(--bg-card);line-height:1.7;resize:vertical;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ video.my_opinion }}</textarea>
         </div>
     </div>
 </form>
