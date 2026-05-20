@@ -411,7 +411,7 @@
             <a href="https://finance.naver.com/item/board.naver?code={{ stock.code }}" target="_blank" class="tag-badge" style="background:#ecfdf5;color:#059669;font-size:0.6rem;vertical-align:middle;text-decoration:none;">종토방</a>
             <a href="https://comp.fnguide.com/SVO2/ASP/SVD_Main.asp?pGB=1&gicode=A{{ stock.code }}&cID=&MenuYn=Y&ReportGB=&NewMenuID=101&stkGb=701" target="_blank" class="tag-badge" style="background:#fffbeb;color:#d97706;font-size:0.6rem;vertical-align:middle;text-decoration:none;margin-left:2px;">fNG</a>
             <a href="https://stockeasy.intellio.kr/stock-analysis?tab=stock_info&code={{ stock.code }}&stockTab=info" target="_blank" class="tag-badge" style="background:#eff6ff;color:#2962ff;font-size:0.6rem;vertical-align:middle;text-decoration:none;margin-left:2px;">StockEasy</a>
-            <a href="https://comp.fnguide.com/SVO2/ASP/SVD_Comparison.asp?pGB=1&gicode=A{{ stock.code }}&cID=&MenuYn=Y&ReportGB=&NewMenuID=106&stkGb=701" target="_blank" class="tag-badge" style="background:#f3f4f6;color:var(--text-secondary);font-size:0.6rem;vertical-align:middle;text-decoration:none;margin-left:2px;">경쟁사</a>
+            <span class="tag-badge" id="btnCopyAllContent" style="background:#f3f4f6;color:var(--text-secondary);font-size:0.6rem;vertical-align:middle;cursor:pointer;margin-left:2px;">전체내용복사</span>
         </div>
     </div>
     <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;line-height:2;">
@@ -2339,8 +2339,8 @@ document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
 });
 
 // 핵심 브리핑 프롬프트 복사
-const btnCopyBriefingPrompt = document.getElementById('btnCopyBriefingPrompt');
 const briefingData = JSON.parse(document.getElementById('briefing-data-json').textContent);
+const btnCopyBriefingPrompt = document.getElementById('btnCopyBriefingPrompt');
 btnCopyBriefingPrompt.addEventListener('click', async () => {
     const btn = btnCopyBriefingPrompt;
     const promptTemplate = `{{ saved_prompts.prompt_briefing|default:""|escapejs }}`;
@@ -2684,6 +2684,16 @@ function warnMissingVars(prompt) {
         alert('다음 변수에 데이터가 없습니다:\n' + [...new Set(missing)].join(', '));
     }
 }
+// 전체내용복사
+document.getElementById('btnCopyAllContent')?.addEventListener('click', async function() {
+    const text = briefingData.all_content || '';
+    if (!text) { alert('복사할 내용이 없습니다.'); return; }
+    try {
+        await copyToClipboard(text);
+        this.textContent = '복사됨!';
+        setTimeout(() => { this.textContent = '전체내용복사'; }, 1500);
+    } catch (err) { alert('복사 실패: ' + err.message); }
+});
 const savedPrompts = {
     prompt_news: `{{ saved_prompts.prompt_news|default:""|escapejs }}`,
     prompt_youtube: `{{ saved_prompts.prompt_youtube|default:""|escapejs }}`
