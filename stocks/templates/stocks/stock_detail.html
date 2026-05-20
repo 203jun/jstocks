@@ -2684,9 +2684,15 @@ function warnMissingVars(prompt) {
         alert('다음 변수에 데이터가 없습니다:\n' + [...new Set(missing)].join(', '));
     }
 }
+const savedPrompts = {
+    prompt_news: `{{ saved_prompts.prompt_news|default:""|escapejs }}`,
+    prompt_youtube: `{{ saved_prompts.prompt_youtube|default:""|escapejs }}`
+};
+const newsPromptVars = JSON.parse(document.getElementById('news-prompt-vars').textContent);
+
 // 전체내용복사
 document.getElementById('btnCopyAllContent')?.addEventListener('click', async function() {
-    const text = briefingData.all_content || '';
+    const text = newsPromptVars.all_content || '';
     if (!text) { alert('복사할 내용이 없습니다.'); return; }
     try {
         await copyToClipboard(text);
@@ -2694,11 +2700,6 @@ document.getElementById('btnCopyAllContent')?.addEventListener('click', async fu
         setTimeout(() => { this.textContent = '전체내용복사'; }, 1500);
     } catch (err) { alert('복사 실패: ' + err.message); }
 });
-const savedPrompts = {
-    prompt_news: `{{ saved_prompts.prompt_news|default:""|escapejs }}`,
-    prompt_youtube: `{{ saved_prompts.prompt_youtube|default:""|escapejs }}`
-};
-const newsPromptVars = JSON.parse(document.getElementById('news-prompt-vars').textContent);
 
 // ===== 뉴스 저장/검색/삭제 =====
 let savedNewsLinks = new Set([
