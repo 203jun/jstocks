@@ -100,9 +100,6 @@
                 {% if is_sector %}{{ qr.sector.name }}{% else %}{{ qr.stock.name }}{% endif %} · {{ qr.created_at|date:"Y-m-d H:i" }}
             </div>
         </div>
-        {% if not is_sector %}
-        <button type="button" class="btn-refresh" id="btnCopyAllContent" style="flex-shrink:0;">전체내용복사</button>
-        {% endif %}
     </div>
 </div>
 
@@ -511,57 +508,5 @@ document.getElementById('btnDelete').addEventListener('click', async () => {
     }
 });
 
-// 전체내용복사
-const btnCopyAll = document.getElementById('btnCopyAllContent');
-if (btnCopyAll) {
-    const allData = JSON.parse(document.getElementById('all-content-data').textContent || '{}');
-    btnCopyAll.addEventListener('click', async () => {
-        const sections = [];
-
-        // 기업분석
-        if (allData.common_reports && allData.common_reports.length) {
-            for (const r of allData.common_reports) {
-                sections.push(`## 기업분석: ${r.question} (${r.updated_at})\n${r.report}`);
-            }
-        }
-
-        // 업데이트
-        if (allData.quick_reports && allData.quick_reports.length) {
-            for (const r of allData.quick_reports) {
-                sections.push(`## 업데이트: ${r.question} (${r.updated_at})\n${r.report}`);
-            }
-        }
-
-        // 핵심브리핑
-        if (allData.key_briefing) {
-            sections.push(`## 핵심브리핑\n${allData.key_briefing}`);
-        }
-
-        // 재무분석
-        if (allData.financial_analysis) {
-            sections.push(`## 재무분석\n${allData.financial_analysis}`);
-        }
-
-        // 컨센서스분석
-        if (allData.consensus_analysis) {
-            sections.push(`## 컨센서스분석\n${allData.consensus_analysis}`);
-        }
-
-        if (!sections.length) {
-            alert('복사할 내용이 없습니다.');
-            return;
-        }
-
-        const text = sections.join('\n\n---\n\n');
-        try {
-            await copyToClipboard(text);
-            const orig = btnCopyAll.textContent;
-            btnCopyAll.textContent = '복사됨!';
-            setTimeout(() => { btnCopyAll.textContent = orig; }, 1500);
-        } catch (err) {
-            alert('복사 실패: ' + err.message);
-        }
-    });
-}
 </script>
 {% endblock %}
