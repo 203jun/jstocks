@@ -1271,17 +1271,45 @@ def stock_detail(request, code):
     if stock.consensus_analysis:
         ca_date = stock.consensus_analysis_updated_at.strftime('%Y-%m-%d') if stock.consensus_analysis_updated_at else ''
         all_content_sections.append(f"## 컨센서스분석 ({ca_date})\n{stock.consensus_analysis}")
-    # 수급분석
+    # 수급 (날 데이터)
+    if investor_trends_daum:
+        sd_lines = ['날짜 | 외국인 | 기관 | 거래량']
+        for t in investor_trends_daum:
+            sd_lines.append(f"{t.date.strftime('%Y-%m-%d')} | {t.daum_foreign or 0} | {t.daum_institution or 0} | {t.trading_volume or 0}")
+        all_content_sections.append("## 수급 데이터\n" + '\n'.join(sd_lines))
+    # 수급분석 (AI 분석 결과)
     if stock.supply_demand_analysis:
         sd_date = stock.supply_demand_analysis_updated_at.strftime('%Y-%m-%d') if stock.supply_demand_analysis_updated_at else ''
         all_content_sections.append(f"## 수급분석 ({sd_date})\n{stock.supply_demand_analysis}")
+    # 공시
+    if gongsi_list:
+        gongsi_parts = []
+        for g in gongsi_list:
+            cat = getattr(g, 'cat', '')
+            cat_str = f" [{cat}]" if cat else ''
+            gongsi_parts.append(f"[{g.date.strftime('%Y-%m-%d') if g.date else ''}]{cat_str} {g.title}")
+        all_content_sections.append("## 공시\n" + '\n'.join(gongsi_parts))
+    # 리포트 (목표가 포함, 요약 있으면 요약도)
+    if reports:
+        report_parts = []
+        for r in reports:
+            date_str = r.date.strftime('%Y-%m-%d') if r.date else ''
+            price_str = f" 목표가:{r.target_price:,}" if r.target_price else ''
+            opinion_str = f" ({r.recommendation})" if r.recommendation else ''
+            line = f"[{date_str}] {r.provider} - {r.title}{price_str}{opinion_str}"
+            if r.summary:
+                line += f"\n{r.summary}"
+            report_parts.append(line)
+        all_content_sections.append("## 리포트\n" + '\n\n'.join(report_parts))
     # 뉴스 (요약이 있는 것만)
     news_parts = []
     for n in news_articles:
-        if n.my_opinion:
-            news_parts.append(f"[{n.published or ''}] {n.title or ''}\n{n.my_opinion}")
+        if n.summary or n.my_opinion:
+            title = f"[{n.published or ''}] {n.title or ''}"
+            content = n.my_opinion or n.summary
+            news_parts.append(f"{title}\n{content}")
     if news_parts:
-        all_content_sections.append("## 뉴스 요약\n" + '\n\n'.join(news_parts))
+        all_content_sections.append("## 뉴스\n" + '\n\n'.join(news_parts))
     # 노다지 (요약이 있는 것만)
     nodaji_parts = []
     for n in nodaji_list:
