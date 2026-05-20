@@ -1251,6 +1251,96 @@ def stock_detail(request, code):
     # 전체내용 생성 (DB에 있는 모든 분석 데이터)
     from .models import YoutubeVideo
     all_content_sections = []
+
+    # 주가 통계
+    if daily_charts:
+        closes = [d.closing_price for d in daily_charts]
+        volumes = [d.trading_volume for d in daily_charts]
+        cur = closes[-1]
+
+        # 52주(약 250일) 고저
+        high_52w = max(closes)
+        low_52w = min(closes)
+
+        # 이동평균 대비
+        def _ma_pct(ma_val):
+            if ma_val and ma_val > 0:
+                return f"{ma_val:,} ({'+' if cur >= ma_val else ''}{round((cur - ma_val) / ma_val * 100, 1)}%)"
+            return '-'
+
+        # MA120
+        ma120_value = round(sum(closes[-120:]) / min(120, len(closes))) if len(closes) >= 120 else None
+
+        # 거래량 분석
+        vol_20 = round(sum(volumes[-20:]) / min(20, len(volumes))) if len(volumes) >= 20 else None
+        vol_5 = round(sum(volumes[-5:]) / min(5, len(volumes))) if len(volumes) >= 5 else None
+        vol_ratio = f"{'+' if vol_5 >= vol_20 else ''}{round((vol_5 - vol_20) / vol_20 * 100, 1)}%" if vol_20 and vol_5 and vol_20 > 0 else '-'
+
+        # RSI(14)
+        rsi_val = None
+        if len(closes) >= 15:
+            gains, losses = [], []
+            for i in range(-14, 0):
+                diff = closes[i] - closes[i - 1]
+                gains.append(max(diff, 0))
+                losses.append(max(-diff, 0))
+            avg_gain = sum(gains) / 14
+            avg_loss = sum(losses) / 14
+            if avg_loss > 0:
+                rs = avg_gain / avg_loss
+                rsi_val = round(100 - (100 / (1 + rs)), 1)
+            else:
+                rsi_val = 100.0
+
+        # MACD (12, 26, 9)
+        macd_line = macd_signal = macd_hist = None
+        if len(closes) >= 35:
+            def _ema(data, period):
+                k = 2 / (period + 1)
+                ema = [data[0]]
+                for p in data[1:]:
+                    ema.append(p * k + ema[-1] * (1 - k))
+                return ema
+            ema12 = _ema(closes, 12)
+            ema26 = _ema(closes, 26)
+            macd_series = [e12 - e26 for e12, e26 in zip(ema12, ema26)]
+            signal_series = _ema(macd_series[25:], 9) if len(macd_series) > 25 else []
+            if signal_series:
+                macd_line = round(macd_series[-1])
+                macd_signal = round(signal_series[-1])
+                macd_hist = round(macd_line - macd_signal)
+
+        # 볼린저 밴드 (20일)
+        bb_upper = bb_lower = bb_width = None
+        if len(closes) >= 20:
+            import statistics
+            bb_mean = sum(closes[-20:]) / 20
+            bb_std = statistics.stdev(closes[-20:])
+            bb_upper = round(bb_mean + 2 * bb_std)
+            bb_lower = round(bb_mean - 2 * bb_std)
+            bb_width = round((bb_upper - bb_lower) / bb_mean * 100, 1)
+
+        # 최근 변동성 (20일 일간 수익률 표준편차)
+        volatility = None
+        if len(closes) >= 21:
+            daily_returns = [(closes[i] - closes[i-1]) / closes[i-1] for i in range(-20, 0)]
+            volatility = round(statistics.stdev(daily_returns) * 100, 2)
+
+        price_lines = [
+            f"현재가: {cur:,} | 52주 고가: {high_52w:,} (고점 대비 {round((cur - high_52w) / high_52w * 100, 1)}%) | 52주 저가: {low_52w:,} (저점 대비 +{round((cur - low_52w) / low_52w * 100, 1)}%)",
+            f"MA10: {_ma_pct(ma10_value)} | MA20: {_ma_pct(ma20_value)} | MA60: {_ma_pct(ma60_value)} | MA120: {_ma_pct(ma120_value)}",
+            f"거래량 20일평균: {vol_20:,} | 최근5일평균: {vol_5:,} (평균 대비 {vol_ratio})" if vol_20 and vol_5 else None,
+        ]
+        if rsi_val is not None:
+            price_lines.append(f"RSI(14): {rsi_val}")
+        if macd_line is not None:
+            price_lines.append(f"MACD: {macd_line:,} | Signal: {macd_signal:,} | Histogram: {'+' if macd_hist >= 0 else ''}{macd_hist:,}")
+        if bb_upper is not None:
+            price_lines.append(f"볼린저밴드(20): 상단 {bb_upper:,} | 하단 {bb_lower:,} | 밴드폭 {bb_width}%")
+        if volatility is not None:
+            price_lines.append(f"20일 변동성: {volatility}% (일간)")
+
+        all_content_sections.append("## 주가 통계\n" + '\n'.join(l for l in price_lines if l))
     # 기업분석
     for r in common_core_reports + common_extra_reports:
         if r.report:
@@ -1273,9 +1363,11 @@ def stock_detail(request, code):
         all_content_sections.append(f"## 컨센서스분석 ({ca_date})\n{stock.consensus_analysis}")
     # 수급 (날 데이터)
     if investor_trends_daum:
-        sd_lines = ['날짜 | 외국인 | 기관 | 거래량']
+        sd_lines = ['날짜 | 종가 | 등락률 | 외국인 | 기관 | 거래량']
         for t in investor_trends_daum:
-            sd_lines.append(f"{t.date.strftime('%Y-%m-%d')} | {t.daum_foreign or 0} | {t.daum_institution or 0} | {t.trading_volume or 0}")
+            price_str = f"{t.closing_price:,}" if t.closing_price else '-'
+            rate_str = f"{'+' if t.change_rate and t.change_rate > 0 else ''}{t.change_rate}%" if t.change_rate is not None else '-'
+            sd_lines.append(f"{t.date.strftime('%Y-%m-%d')} | {price_str} | {rate_str} | {t.daum_foreign or 0} | {t.daum_institution or 0} | {t.trading_volume or 0}")
         all_content_sections.append("## 수급 데이터\n" + '\n'.join(sd_lines))
     # 수급분석 (AI 분석 결과)
     if stock.supply_demand_analysis:
