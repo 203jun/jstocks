@@ -1248,14 +1248,58 @@ def stock_detail(request, code):
     waiting_order = ['대기', '옥석가리기', '회사스냅샷', '매매매력도', '매매트래킹']
     waiting_question_reports.sort(key=lambda q: waiting_order.index(q.question) if q.question in waiting_order else 99)
 
-    # 뉴스 프롬프트용 {전체내용} 생성
+    # 전체내용 생성 (DB에 있는 모든 분석 데이터)
+    from .models import YoutubeVideo
     all_content_sections = []
+    # 기업분석
     for r in common_core_reports + common_extra_reports:
         if r.report:
             all_content_sections.append(f"## 기업분석: {r.question} ({r.updated_at.strftime('%Y-%m-%d')})\n{r.report}")
+    # 업데이트
     for r in update_core_reports + update_extra_reports:
         if r.report:
             all_content_sections.append(f"## 업데이트: {r.question} ({r.updated_at.strftime('%Y-%m-%d')})\n{r.report}")
+    # 핵심브리핑
+    if stock.key_briefing:
+        kb_date = stock.key_briefing_updated_at.strftime('%Y-%m-%d') if stock.key_briefing_updated_at else ''
+        all_content_sections.append(f"## 핵심브리핑 ({kb_date})\n{stock.key_briefing}")
+    # 재무분석
+    if stock.financial_analysis_v2:
+        fa_date = stock.financial_analysis_v2_updated_at.strftime('%Y-%m-%d') if stock.financial_analysis_v2_updated_at else ''
+        all_content_sections.append(f"## 재무분석 ({fa_date})\n{stock.financial_analysis_v2}")
+    # 컨센서스분석
+    if stock.consensus_analysis:
+        ca_date = stock.consensus_analysis_updated_at.strftime('%Y-%m-%d') if stock.consensus_analysis_updated_at else ''
+        all_content_sections.append(f"## 컨센서스분석 ({ca_date})\n{stock.consensus_analysis}")
+    # 수급분석
+    if stock.supply_demand_analysis:
+        sd_date = stock.supply_demand_analysis_updated_at.strftime('%Y-%m-%d') if stock.supply_demand_analysis_updated_at else ''
+        all_content_sections.append(f"## 수급분석 ({sd_date})\n{stock.supply_demand_analysis}")
+    # 뉴스 (요약이 있는 것만)
+    news_parts = []
+    for n in news_articles:
+        if n.my_opinion:
+            news_parts.append(f"[{n.published or ''}] {n.title or ''}\n{n.my_opinion}")
+    if news_parts:
+        all_content_sections.append("## 뉴스 요약\n" + '\n\n'.join(news_parts))
+    # 노다지 (요약이 있는 것만)
+    nodaji_parts = []
+    for n in nodaji_list:
+        if n.summary:
+            nodaji_parts.append(f"[{n.date.strftime('%Y-%m-%d') if n.date else ''}] {n.title}\n{n.summary}")
+    if nodaji_parts:
+        all_content_sections.append("## 노다지\n" + '\n\n'.join(nodaji_parts))
+    # 유튜브 (요약이 있는 것만)
+    youtube_videos = YoutubeVideo.objects.filter(stock=stock).order_by('-id')
+    yt_parts = []
+    for v in youtube_videos:
+        if v.summary:
+            yt_parts.append(f"[{v.published or ''}] {v.channel} - {v.title}\n{v.summary}")
+    if yt_parts:
+        all_content_sections.append("## 유튜브\n" + '\n\n'.join(yt_parts))
+    # 향후 이벤트
+    if future_events_text:
+        all_content_sections.append(f"## 향후 이벤트\n{future_events_text}")
     news_prompt_vars['all_content'] = '\n\n---\n\n'.join(all_content_sections) if all_content_sections else ''
 
     # 업로드 리포트
