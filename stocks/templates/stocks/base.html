@@ -155,6 +155,13 @@
         [data-theme="dark"] .markdown-content code { background: #22262f !important; color: #f472b6 !important; }
         [data-theme="dark"] .markdown-content hr { border-top-color: var(--border-color) !important; }
         [data-theme="dark"] .markdown-content a { color: #5b8def !important; }
+        /* 다크모드: HTML 인라인 스타일 강제 제거 */
+        [data-theme="dark"] .markdown-content *:not(pre):not(code) { background-color: transparent !important; color: var(--text-primary) !important; }
+        [data-theme="dark"] .markdown-content a { color: #5b8def !important; }
+        [data-theme="dark"] .markdown-content th { background: var(--bg-secondary) !important; }
+        [data-theme="dark"] .markdown-content blockquote { background: var(--bg-secondary) !important; color: var(--text-secondary) !important; }
+        [data-theme="dark"] .markdown-content code { background: var(--bg-secondary) !important; color: #f472b6 !important; }
+        [data-theme="dark"] .markdown-content mark { background: #4a3d10 !important; }
 
         /* ==하이라이트== */
         mark { background: #fff3bf; color: inherit; padding: 1px 3px; border-radius: 3px; }
