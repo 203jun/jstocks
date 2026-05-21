@@ -1314,8 +1314,8 @@ def stock_detail(request, code):
             waiting_question_reports.append(qr)
         else:
             custom_question_reports.append(qr)
-    # 일반 질문: 트래킹 먼저, 그 안에서 최신순
-    custom_question_reports.sort(key=lambda q: (not q.is_tracking, -q.created_at.timestamp()))
+    # 일반 질문: 트래킹 먼저, 그 안에서 수정일 최신순
+    custom_question_reports.sort(key=lambda q: (not q.is_tracking, -q.updated_at.timestamp()))
     # 기업분석 순서 고정
     common_order = ['사업모델', '수익구조', '경쟁력', '경쟁사', '중장기전망', '지배구조', '수주잔고', '파이프라인', 'R&D', '매장점포', '원자재공급망', '보유자산']
     common_core_reports.sort(key=lambda q: common_order.index(q.question) if q.question in common_order else 99)

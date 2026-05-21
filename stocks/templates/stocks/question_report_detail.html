@@ -107,7 +107,7 @@
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
             <div style="font-size:0.9rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">
-                {% if qr.is_tracking %}<span style="font-size:0.7rem;padding:2px 6px;border-radius:3px;background:#dbeafe;color:#2563eb;font-weight:600;margin-right:4px;">트래킹</span>{% endif %}{{ qr.question }}
+{{ qr.question }}{% if qr.is_tracking %} 📌{% endif %}
             </div>
             <div style="font-size:0.82rem;color:var(--text-secondary);">
                 {% if is_sector %}{{ qr.sector.name }}{% else %}{{ qr.stock.name }}{% endif %} · {{ qr.created_at|date:"Y-m-d H:i" }}
