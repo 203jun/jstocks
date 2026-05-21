@@ -1561,6 +1561,17 @@ class StockQuestionReport(models.Model):
         verbose_name='내생각',
         help_text='이 리서치에 대한 나의 의견 (텍스트)'
     )
+    is_tracking = models.BooleanField(
+        default=False,
+        verbose_name='트래킹',
+        help_text='계속 업데이트할 질문 여부'
+    )
+    ai_question = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='AI질문',
+        help_text='실제 AI에게 한 질문 원문'
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='생성일시'

@@ -27,12 +27,25 @@
     font-size: 0.85rem;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    color: var(--text-primary);
+    background: var(--bg-card);
+    line-height: 1.5;
+}
+#questionInput:focus { border-color: #2962ff; outline: none; box-shadow: 0 0 0 2px rgba(41,98,255,0.1); }
+#aiQuestionInput {
+    width: 100%;
+    font-family: monospace;
+    font-size: 0.85rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
     padding: 12px;
     color: var(--text-primary);
+    background: var(--bg-card);
     line-height: 1.7;
     resize: vertical;
 }
-#questionInput:focus { border-color: #2962ff; outline: none; box-shadow: 0 0 0 2px rgba(41,98,255,0.1); }
+#aiQuestionInput:focus { border-color: #2962ff; outline: none; box-shadow: 0 0 0 2px rgba(41,98,255,0.1); }
 #preview {
     min-height: 100px;
     padding: 16px;
@@ -94,7 +107,7 @@
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
             <div style="font-size:0.9rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">
-                {{ qr.question }}
+                {% if qr.is_tracking %}<span style="font-size:0.7rem;padding:2px 6px;border-radius:3px;background:#dbeafe;color:#2563eb;font-weight:600;margin-right:4px;">트래킹</span>{% endif %}{{ qr.question }}
             </div>
             <div style="font-size:0.82rem;color:var(--text-secondary);">
                 {% if is_sector %}{{ qr.sector.name }}{% else %}{{ qr.stock.name }}{% endif %} · {{ qr.created_at|date:"Y-m-d H:i" }}
@@ -123,8 +136,17 @@
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">편집<span style="display:flex;gap:6px;font-weight:400;"><button type="submit" class="btn-refresh">저장</button></span></h5>
     <div class="brief-card">
         <div style="margin-bottom:16px;">
-            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">질문</div>
-            <textarea name="question" id="questionInput" rows="2" placeholder="질문을 입력하세요...">{{ qr.question }}</textarea>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">질문</span>
+                <label style="font-size:0.78rem;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;gap:4px;">
+                    <input type="checkbox" name="is_tracking" {% if qr.is_tracking %}checked{% endif %} style="margin:0;"> 트래킹
+                </label>
+            </div>
+            <input type="text" name="question" id="questionInput" value="{{ qr.question }}" placeholder="질문을 입력하세요...">
+        </div>
+        <div style="margin-bottom:16px;">
+            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">AI질문</div>
+            <textarea name="ai_question" id="aiQuestionInput" rows="4" placeholder="실제 AI에게 한 질문을 입력하세요...">{{ qr.ai_question }}</textarea>
         </div>
         {% if research_core or research_extra %}
         <div class="common-research-box" style="margin-bottom:16px; padding:12px 14px; border-radius:var(--radius-sm); border:1px dashed var(--border-color);">
