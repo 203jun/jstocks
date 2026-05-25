@@ -942,46 +942,28 @@ def stock_detail(request, code):
     quarterly_op = [int(f.operating_profit / 100000000) if f.operating_profit else 0 for f in quarterly_financials]
     quarterly_estimated = [f.is_estimated for f in quarterly_financials]
 
-    # 컨센서스 차트 데이터 (연간/분기 PER·PBR 이중축 + 헤더 텍스트)
+    # 컨센서스 테이블 데이터 (연간/분기: 매출액·영업이익·EPS·PER·PBR·ROE / 단위 억원)
     from .models import Consensus
-    from datetime import date as _cdate
-    _ctoday_year = _cdate.today().year
 
-    def _consensus_arrays(rows):
-        labels, per, pbr, est = [], [], [], []
+    def _consensus_rows(rows):
+        out = []
         for o in rows:
-            lbl = (str(o.year) if not o.quarter else f"{o.year} {o.quarter}") + ('(E)' if o.is_estimated else '')
-            labels.append(lbl)
-            per.append(float(o.per) if o.per is not None else None)
-            pbr.append(float(o.pbr) if o.pbr is not None else None)
-            est.append(o.is_estimated)
-        return labels, per, pbr, est
-
-    def _consensus_header(rows):
-        if not rows:
-            return None
-        _cur_year_rows = [r for r in rows if r.year == _ctoday_year]
-        cur = _cur_year_rows[-1] if _cur_year_rows else rows[-1]  # 현재값: 올해(분기는 올해 마지막), 없으면 최신
-        a_rows = [r for r in rows if not r.is_estimated]          # 평균: 과거 확정(A) 구간만
-        def _avg(field):
-            vals = [float(getattr(r, field)) for r in a_rows if getattr(r, field) is not None]
-            return round(sum(vals) / len(vals), 2) if vals else None
-        def _curv(field):
-            v = getattr(cur, field)
-            return float(v) if v is not None else None
-        def _s(v):
-            return f"{v:g}" if v is not None else 'N/A'
-        return {
-            'line1': f"PER {_s(_curv('per'))}배 (평균 {_s(_avg('per'))}) · PBR {_s(_curv('pbr'))}배 (평균 {_s(_avg('pbr'))})",
-            'line2': f"ROE {_s(_curv('roe'))}% · EV/EBITDA {_s(_curv('ev_ebitda'))}배",
-        }
+            out.append({
+                'period': str(o.year) if not o.quarter else f"{o.year} {o.quarter}",
+                'is_estimated': o.is_estimated,
+                'revenue': float(o.revenue) if o.revenue is not None else None,
+                'operating_profit': float(o.operating_profit) if o.operating_profit is not None else None,
+                'eps': o.eps,
+                'per': float(o.per) if o.per is not None else None,
+                'pbr': float(o.pbr) if o.pbr is not None else None,
+                'roe': float(o.roe) if o.roe is not None else None,
+            })
+        return out
 
     _cons_annual = list(Consensus.objects.filter(stock=stock, quarter__isnull=True).order_by('year'))
     _cons_quarter = list(Consensus.objects.filter(stock=stock, quarter__isnull=False).order_by('year', 'quarter'))
-    consensus_annual_labels, consensus_annual_per, consensus_annual_pbr, consensus_annual_est = _consensus_arrays(_cons_annual)
-    consensus_quarter_labels, consensus_quarter_per, consensus_quarter_pbr, consensus_quarter_est = _consensus_arrays(_cons_quarter)
-    consensus_annual_header = _consensus_header(_cons_annual)
-    consensus_quarter_header = _consensus_header(_cons_quarter)
+    consensus_annual_rows = _consensus_rows(_cons_annual)
+    consensus_quarter_rows = _consensus_rows(_cons_quarter)
     has_consensus = bool(_cons_annual or _cons_quarter)
 
     # 일봉 차트 데이터 (최근 240일 + 이평선 계산용 60일 = 300일)
@@ -1652,16 +1634,8 @@ def stock_detail(request, code):
         'quarterly_op': json.dumps(quarterly_op),
         'quarterly_estimated': json.dumps(quarterly_estimated),
         'has_consensus': has_consensus,
-        'consensus_annual_header': consensus_annual_header,
-        'consensus_quarter_header': consensus_quarter_header,
-        'consensus_annual_labels': json.dumps(consensus_annual_labels),
-        'consensus_annual_per': json.dumps(consensus_annual_per),
-        'consensus_annual_pbr': json.dumps(consensus_annual_pbr),
-        'consensus_annual_est': json.dumps(consensus_annual_est),
-        'consensus_quarter_labels': json.dumps(consensus_quarter_labels),
-        'consensus_quarter_per': json.dumps(consensus_quarter_per),
-        'consensus_quarter_pbr': json.dumps(consensus_quarter_pbr),
-        'consensus_quarter_est': json.dumps(consensus_quarter_est),
+        'consensus_annual_rows': json.dumps(consensus_annual_rows),
+        'consensus_quarter_rows': json.dumps(consensus_quarter_rows),
         'daily_candle_data': json.dumps(daily_candle_data),
         'daily_volume_data': json.dumps(daily_volume_data),
         'daily_ma20_data': json.dumps(daily_ma20_data),
