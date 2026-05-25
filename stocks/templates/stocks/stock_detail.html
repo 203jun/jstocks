@@ -364,8 +364,14 @@
 /* Performance chart layout */
 .perf-charts { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
 @media (max-width: 768px) { .perf-charts { grid-template-columns: 1fr; } }
-.consensus-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media (max-width: 768px) { .consensus-charts { grid-template-columns: 1fr; } }
+.consensus-charts { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.consensus-charts > .chart-card { min-width: 0; }
+.consensus-charts .modern-table { font-size: 0.74rem; white-space: nowrap; }
+.consensus-charts .modern-table th, .consensus-charts .modern-table td { padding: 6px 10px; }
+@media (max-width: 768px) {
+    .consensus-charts .modern-table { font-size: 0.7rem; }
+    .consensus-charts .modern-table th, .consensus-charts .modern-table td { padding: 4px 6px; }
+}
 
 /* Price + Memo layout */
 .price-memo-grid { margin-bottom: 12px; }
