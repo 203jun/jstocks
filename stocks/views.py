@@ -7191,6 +7191,30 @@ def stock_question_report_detail(request, report_id):
         _qr_reports = StockQuestionReport.objects.filter(stock=qr.stock)
         _qr_map = {r.question: r.report or '' for r in _qr_reports}
 
+        # 컨센서스 텍스트 표 (밸류확인 프롬프트용 {연간컨센}/{분기컨센})
+        from .models import Consensus as _Consensus
+        _cfields = [('revenue', '매출'), ('operating_profit', '영익'), ('eps', 'EPS'),
+                    ('per', 'PER'), ('pbr', 'PBR'), ('roe', 'ROE'), ('ev_ebitda', 'EV/EBITDA')]
+        def _fmt_c(field, v):
+            if v is None:
+                return 'N/A'
+            v = float(v)
+            if field in ('revenue', 'operating_profit'):
+                return f"{v:,.1f}"
+            if field == 'eps':
+                return f"{int(v):,}"
+            return f"{v:,.2f}"
+        def _consensus_text(rows):
+            if not rows:
+                return ''
+            lines = ['기간\t' + '\t'.join(lbl for _, lbl in _cfields)]
+            for o in rows:
+                period = (str(o.year) if not o.quarter else f"{o.year} {o.quarter}") + ('(E)' if o.is_estimated else '(A)')
+                lines.append('\t'.join([period] + [_fmt_c(f, getattr(o, f)) for f, _ in _cfields]))
+            return '\n'.join(lines)
+        _consensus_annual_text = _consensus_text(list(_Consensus.objects.filter(stock=qr.stock, quarter__isnull=True).order_by('year')))
+        _consensus_quarter_text = _consensus_text(list(_Consensus.objects.filter(stock=qr.stock, quarter__isnull=False).order_by('year', 'quarter')))
+
         trade_prompt_vars = {
             'stock_name': qr.stock.name,
             'stock_code': qr.stock.code,
@@ -7206,6 +7230,8 @@ def stock_question_report_detail(request, report_id):
             'avg_buy_price': _fmt_num(qr.stock.avg_buy_price),
             'supply_20d': _supply_text,
             'short_20d': _short_text,
+            'consensus_annual_text': _consensus_annual_text,
+            'consensus_quarter_text': _consensus_quarter_text,
             'key_briefing': qr.stock.key_briefing or '',
             'buy_reason': qr.stock.buy_reason or '',
             'sell_reason': qr.stock.sell_reason or '',
