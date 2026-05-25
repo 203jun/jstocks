@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stocks', '0123_add_waiting_report'),
+        ('stocks', '0124_stockquestionreport_ai_question_and_more'),
     ]
 
     operations = [
