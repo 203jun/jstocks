@@ -163,6 +163,11 @@ class Info(models.Model):
         verbose_name='보유중',
         help_text='현재 보유 중인 종목 여부'
     )
+    avg_buy_price = models.IntegerField(
+        null=True, blank=True,
+        verbose_name='평단가',
+        help_text='실제 매입 평균단가 (손익 계산용, 매매근거의 목표 매수가와 별개)'
+    )
     is_tracking = models.BooleanField(
         default=False,
         verbose_name='추적중',
