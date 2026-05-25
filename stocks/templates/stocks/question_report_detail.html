@@ -353,6 +353,7 @@ const consensusQuarterOp = '{{ consensus_quarter_op|escapejs }}';
 const recentQRevenue = '{{ recent_q_revenue|escapejs }}';
 const recentQOp = '{{ recent_q_op|escapejs }}';
 const recentPerfReport = "{{ recent_perf_report|escapejs }}";
+const prevTracker = "{{ prev_tracker_report|escapejs }}";
 const tradeVarsEl = document.getElementById('trade-prompt-vars');
 const tradeVars = tradeVarsEl ? JSON.parse(tradeVarsEl.textContent) : {};
 document.querySelectorAll('.common-research-btn').forEach(btn => {
@@ -491,6 +492,8 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
         }
         // {최근실적} 치환
         prompt = prompt.replace(/\{최근실적\}/g, recentPerfReport || '');
+        // {직전트래커} 치환 (트래커 리서치의 직전 저장본 / 처음이면 빈칸)
+        prompt = prompt.replace(/\{직전트래커\}/g, prevTracker || '');
         document.getElementById('questionInput').value = question;
         try {
             await copyToClipboard(prompt);

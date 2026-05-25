@@ -7212,6 +7212,7 @@ def stock_question_report_detail(request, report_id):
         'prompt_summary': prompt_summary,
         'all_content_data': all_content_data,
         'recent_perf_report': StockQuestionReport.objects.filter(stock=qr.stock, question='실적확인').first().report if qr.stock and StockQuestionReport.objects.filter(stock=qr.stock, question='실적확인').exists() else '',
+        'prev_tracker_report': StockQuestionReport.objects.filter(stock=qr.stock, question='트래커').first().report if qr.stock and StockQuestionReport.objects.filter(stock=qr.stock, question='트래커').exists() else '',
     })
 
 
