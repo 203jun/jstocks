@@ -1292,7 +1292,7 @@ def stock_detail(request, code):
 
     # 기업분석 / 업데이트 / 대기 / 개별 분리 (기업분석 우선)
     common_core_questions = {'사업모델', '수익구조', '중장기전망', '지배구조', '경쟁력', '경쟁사'}
-    update_extra_questions = {'투자포인트', '리스크', '일정매매'}
+    update_extra_questions = {'트래커', '매매대응'}
     common_core_reports = []
     common_extra_reports = []
     update_core_reports = []
@@ -1321,7 +1321,7 @@ def stock_detail(request, code):
     common_core_reports.sort(key=lambda q: common_order.index(q.question) if q.question in common_order else 99)
     common_extra_reports.sort(key=lambda q: common_order.index(q.question) if q.question in common_order else 99)
     # 업데이트 순서 고정
-    update_order = ['실적확인', '단기이슈', '중기이슈', '이벤트', '업황', '밸류확인', '투자포인트', '리스크', '일정매매']
+    update_order = ['실적확인', '단기이슈', '중기이슈', '이벤트', '업황', '밸류확인', '트래커', '매매대응']
     update_core_reports.sort(key=lambda q: update_order.index(q.question) if q.question in update_order else 99)
     update_extra_reports.sort(key=lambda q: update_order.index(q.question) if q.question in update_order else 99)
     # 대기 순서 고정
@@ -7005,9 +7005,9 @@ def stock_question_report_detail(request, report_id):
     summary_prompts = SummaryReport.objects.all()
     waiting_prompts = WaitingReport.objects.all()
     # 업데이트 프롬프트 버튼 core/extra 분리
-    _update_extra_qs = {'투자포인트', '리스크', '일정매매'}
+    _update_extra_qs = {'트래커', '매매대응'}
     _update_core_order = ['실적확인', '단기이슈', '중기이슈', '이벤트', '업황', '밸류확인']
-    _update_extra_order = ['투자포인트', '리스크', '일정매매']
+    _update_extra_order = ['트래커', '매매대응']
     update_core_prompts = sorted([p for p in quick_prompts if p.question not in _update_extra_qs], key=lambda p: _update_core_order.index(p.question) if p.question in _update_core_order else 99)
     update_extra_prompts = sorted([p for p in quick_prompts if p.question in _update_extra_qs], key=lambda p: _update_extra_order.index(p.question) if p.question in _update_extra_order else 99)
     # 기업분석 core/extra 분리
