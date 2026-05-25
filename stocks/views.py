@@ -7176,6 +7176,7 @@ def stock_question_report_detail(request, report_id):
             'pbr': str(qr.stock.pbr) if qr.stock.pbr is not None else '',
             'high_52w': _fmt_num(_high52),
             'low_52w': _fmt_num(_low52),
+            'avg_buy_price': _fmt_num(qr.stock.avg_buy_price),
             'supply_20d': _supply_text,
             'short_20d': _short_text,
             'key_briefing': qr.stock.key_briefing or '',
