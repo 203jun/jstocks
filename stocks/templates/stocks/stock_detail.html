@@ -364,6 +364,8 @@
 /* Performance chart layout */
 .perf-charts { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
 @media (max-width: 768px) { .perf-charts { grid-template-columns: 1fr; } }
+.consensus-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 768px) { .consensus-charts { grid-template-columns: 1fr; } }
 
 /* Price + Memo layout */
 .price-memo-grid { margin-bottom: 12px; }
@@ -780,6 +782,44 @@
             </div>
         </div>
     </div>
+
+    {% if has_consensus %}
+    <!-- 컨센 (PER·PBR 이중축, 연간/분기 5:5) -->
+    <h5 class="section-heading">컨센</h5>
+    <div class="consensus-charts">
+        <div class="chart-card" style="margin-bottom:0;">
+            <div class="chart-card-header" style="flex-direction:column;align-items:flex-start;gap:3px;">
+                <span style="font-size:0.82rem;color:var(--text-secondary);">연간</span>
+                {% if consensus_annual_header %}
+                <div style="font-size:0.74rem;color:var(--text-primary);line-height:1.5;">
+                    <div>{{ consensus_annual_header.line1 }}</div>
+                    <div>{{ consensus_annual_header.line2 }}</div>
+                </div>
+                {% endif %}
+            </div>
+            <div style="height:300px;">
+                <canvas id="consensusAnnualChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card" style="margin-bottom:0;">
+            <div class="chart-card-header" style="flex-direction:column;align-items:flex-start;gap:3px;">
+                <span style="font-size:0.82rem;color:var(--text-secondary);">분기</span>
+                {% if consensus_quarter_header %}
+                <div style="font-size:0.74rem;color:var(--text-primary);line-height:1.5;">
+                    <div>{{ consensus_quarter_header.line1 }}</div>
+                    <div>{{ consensus_quarter_header.line2 }}</div>
+                </div>
+                {% endif %}
+            </div>
+            <div style="height:300px;">
+                <canvas id="consensusQuarterChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div style="font-size:0.72rem;color:var(--text-muted);margin:8px 2px 0;line-height:1.6;">
+        실선=확정(A) · 점선=추정(E) · 왼축 PER / 오른축 PBR · 평균은 과거 확정연도 기준 · PER N/A(적자 등)는 선이 끊김
+    </div>
+    {% endif %}
 
     <!-- 차트 -->
     <h5 class="section-heading">차트</h5>
@@ -3483,6 +3523,46 @@ new Chart(document.getElementById('quarterlyChart'), {
     },
     options: chartOptions
 });
+
+{% if has_consensus %}
+// ===== 컨센 PER·PBR 이중축 차트 (연간/분기) =====
+function consensusPerPbrChart(canvasId, labels, perData, pbrData, est) {
+    const el = document.getElementById(canvasId);
+    if (!el) return;
+    new Chart(el, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'PER', data: perData, yAxisID: 'yPer',
+                    borderColor: '#2962ff', backgroundColor: 'transparent', borderWidth: 2,
+                    pointRadius: 3, pointBackgroundColor: '#2962ff', spanGaps: false,
+                    segment: { borderDash: ctx => est[ctx.p1DataIndex] ? [5, 5] : undefined }
+                },
+                {
+                    label: 'PBR', data: pbrData, yAxisID: 'yPbr',
+                    borderColor: '#e8590c', backgroundColor: 'transparent', borderWidth: 2,
+                    pointRadius: 3, pointBackgroundColor: '#e8590c', spanGaps: false,
+                    segment: { borderDash: ctx => est[ctx.p1DataIndex] ? [5, 5] : undefined }
+                }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+            scales: {
+                yPer: { type: 'linear', position: 'left', title: { display: true, text: 'PER(배)' }, grid: { color: 'rgba(128,128,128,0.12)' } },
+                yPbr: { type: 'linear', position: 'right', title: { display: true, text: 'PBR(배)' }, grid: { drawOnChartArea: false } },
+                x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+            }
+        }
+    });
+}
+consensusPerPbrChart('consensusAnnualChart', {{ consensus_annual_labels|safe }}, {{ consensus_annual_per|safe }}, {{ consensus_annual_pbr|safe }}, {{ consensus_annual_est|safe }});
+consensusPerPbrChart('consensusQuarterChart', {{ consensus_quarter_labels|safe }}, {{ consensus_quarter_per|safe }}, {{ consensus_quarter_pbr|safe }}, {{ consensus_quarter_est|safe }});
+{% endif %}
 
 // ===== Stock refresh =====
 const btnRefreshStock = document.getElementById('btnRefreshStock');
