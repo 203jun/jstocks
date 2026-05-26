@@ -572,7 +572,7 @@ document.getElementById('btnSecAddQR')?.addEventListener('click', async () => {
         formData.append('sector_id', sectorId);
         formData.append('question', '새 질문');
         formData.append('report', '');
-        formData.append('report_type', 'html');
+        formData.append('report_type', 'markdown');
         const response = await fetch('/api/sector/question-report/save/', {
             method: 'POST',
             headers: { 'X-CSRFToken': '{{ csrf_token }}' },
