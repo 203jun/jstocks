@@ -166,6 +166,10 @@
                     </label>
                 </div>
             </div>
+            <div style="border-top:1px solid var(--border-color); margin-top:12px; padding-top:12px;">
+                <button type="button" id="btnRefreshChart" class="btn-refresh" style="font-size:0.78rem; padding:4px 12px;">차트 새로 받기</button>
+                <span id="chartRefreshStatus" style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;"></span>
+            </div>
         </div>
 
         <h5 class="section-heading" style="display:flex; align-items:baseline; gap:8px;">
@@ -562,6 +566,36 @@ document.getElementById('selectedSectors')?.addEventListener('click', function(e
         msg.id = 'noSectorMsg';
         msg.textContent = '선택된 섹터가 없습니다.';
         document.getElementById('selectedSectors').appendChild(msg);
+    }
+});
+
+// 차트 새로 받기
+document.getElementById('btnRefreshChart').addEventListener('click', async function() {
+    if (!confirm('일봉/주봉/월봉 차트를 삭제 후 새로 받습니다. 진행하시겠습니까?')) return;
+    const btn = this;
+    const status = document.getElementById('chartRefreshStatus');
+    btn.disabled = true;
+    btn.textContent = '수집 중...';
+    status.textContent = '';
+    try {
+        const res = await fetch(`/api/stock/${stockCode}/refresh-chart/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCsrfToken()},
+        });
+        const data = await res.json();
+        if (data.success) {
+            status.style.color = '#16a34a';
+            status.textContent = data.message;
+        } else {
+            status.style.color = 'var(--up-color)';
+            status.textContent = data.error || '실패';
+        }
+    } catch(e) {
+        status.style.color = 'var(--up-color)';
+        status.textContent = '오류: ' + e.message;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '차트 새로 받기';
     }
 });
 </script>

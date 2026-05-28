@@ -190,11 +190,15 @@
             <input type="hidden" name="custom_sectors" value="{{ sector.id }}">
             {% endfor %}
             {% endif %}
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2" style="margin-bottom:10px;">
                 <button type="submit" class="btn-refresh" style="padding:4px 16px;">저장</button>
                 <button type="button" id="btnEditCancel" class="btn-refresh" style="padding:4px 16px;">취소</button>
             </div>
         </form>
+        <div style="border-top:1px solid var(--border-color); padding-top:10px;">
+            <button type="button" id="btnRefreshChart" class="btn-refresh" style="font-size:0.78rem; padding:4px 12px;">차트 새로 받기</button>
+            <span id="chartRefreshStatus" style="color:var(--text-muted); font-size:0.75rem; margin-left:8px;"></span>
+        </div>
     </div>
 </div>
 
@@ -247,6 +251,37 @@
         if (input) input.remove();
     });
 })();
+</script>
+
+<script>
+document.getElementById('btnRefreshChart').addEventListener('click', async function() {
+    if (!confirm('일봉/주봉/월봉 차트를 삭제 후 새로 받습니다. 진행하시겠습니까?')) return;
+    const btn = this;
+    const status = document.getElementById('chartRefreshStatus');
+    btn.disabled = true;
+    btn.textContent = '수집 중...';
+    status.textContent = '';
+    try {
+        const res = await fetch('/api/etf/{{ etf.code }}/refresh-chart/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'},
+        });
+        const data = await res.json();
+        if (data.success) {
+            status.style.color = '#16a34a';
+            status.textContent = data.message;
+        } else {
+            status.style.color = 'var(--up-color)';
+            status.textContent = data.error || '실패';
+        }
+    } catch(e) {
+        status.style.color = 'var(--up-color)';
+        status.textContent = '오류: ' + e.message;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '차트 새로 받기';
+    }
+});
 </script>
 
 <script>

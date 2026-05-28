@@ -10348,3 +10348,234 @@ def sector_uploaded_report_title(request, report_id):
         return JsonResponse({'success': True})
     except SectorUploadedReport.DoesNotExist:
         return JsonResponse({'success': False, 'error': '리포트를 찾을 수 없습니다.'})
+
+
+def refresh_stock_chart(request, code):
+    """종목 차트 재수집 API (일봉/주봉/월봉 삭제 후 전체 재수집)"""
+    import requests as http_requests
+    import time
+    from datetime import datetime, timedelta
+    from .models import Info, DailyChart, WeeklyChart, MonthlyChart
+    from .utils import get_valid_token
+
+    try:
+        stock = Info.objects.get(code=code)
+    except Info.DoesNotExist:
+        return JsonResponse({'error': '종목을 찾을 수 없습니다.'}, status=404)
+
+    token = get_valid_token()
+    if not token:
+        return JsonResponse({'error': '토큰 발급 실패. 키움 API 설정을 확인하세요.'}, status=400)
+
+    host = 'https://api.kiwoom.com'
+    endpoint = '/api/dostk/chart'
+    url = host + endpoint
+    today = datetime.now().strftime('%Y%m%d')
+
+    def parse_number(value):
+        if not value:
+            return 0
+        cleaned = str(value).strip().replace(',', '')
+        if cleaned.startswith('+'):
+            cleaned = cleaned[1:]
+        try:
+            return int(cleaned)
+        except (ValueError, TypeError):
+            return 0
+
+    def find_data_key(response_data):
+        for key in ['stk_dt_pole_chart_qry', 'stk_daly_chart', 'stk_wk_pole_chart',
+                     'stk_mon_pole_chart', 'chart', 'data', 'result', 'output']:
+            if key in response_data and isinstance(response_data[key], list):
+                return key
+        return None
+
+    def fetch_chart(api_id, cutoff_days):
+        cutoff_date = (datetime.now() - timedelta(days=cutoff_days)).strftime('%Y%m%d')
+        all_data = []
+        cont_yn = 'N'
+        next_key = ''
+
+        while True:
+            headers = {
+                'Content-Type': 'application/json;charset=UTF-8',
+                'authorization': f'Bearer {token}',
+                'cont-yn': cont_yn,
+                'next-key': next_key,
+                'api-id': api_id,
+            }
+            params = {
+                'stk_cd': code,
+                'base_dt': today,
+                'upd_stkpc_tp': '1',
+            }
+
+            try:
+                resp = http_requests.post(url, headers=headers, json=params)
+                if resp.status_code != 200:
+                    break
+                resp_data = resp.json()
+                resp_data['_headers'] = {
+                    k: resp.headers.get(k)
+                    for k in ['next-key', 'cont-yn', 'api-id']
+                }
+            except Exception:
+                break
+
+            data_key = find_data_key(resp_data)
+            if data_key:
+                batch = resp_data[data_key]
+                filtered = [item for item in batch if item.get('dt', '') >= cutoff_date]
+                all_data.extend(filtered)
+
+                if batch:
+                    old_dates = [item.get('dt', '') for item in batch if item.get('dt')]
+                    if old_dates and min(old_dates) < cutoff_date:
+                        break
+
+            header_info = resp_data.get('_headers', {})
+            if header_info.get('cont-yn') == 'Y' and header_info.get('next-key'):
+                cont_yn = 'Y'
+                next_key = header_info.get('next-key')
+            else:
+                break
+
+        return all_data
+
+    def save_chart_data(ChartModel, data_list):
+        created = 0
+        updated = 0
+        for item in data_list:
+            try:
+                date = datetime.strptime(item['dt'], '%Y%m%d').date()
+                _, is_created = ChartModel.objects.update_or_create(
+                    stock=stock,
+                    date=date,
+                    defaults={
+                        'opening_price': parse_number(item.get('open_pric')),
+                        'high_price': parse_number(item.get('high_pric')),
+                        'low_price': parse_number(item.get('low_pric')),
+                        'closing_price': parse_number(item.get('cur_prc')),
+                        'price_change': parse_number(item.get('pred_pre')),
+                        'trading_volume': parse_number(item.get('trde_qty')),
+                        'trading_value': parse_number(item.get('trde_prica')),
+                    }
+                )
+                if is_created:
+                    created += 1
+                else:
+                    updated += 1
+            except Exception:
+                pass
+        return created, updated
+
+    results = {}
+
+    # 기존 데이터 삭제
+    DailyChart.objects.filter(stock=stock).delete()
+    WeeklyChart.objects.filter(stock=stock).delete()
+    MonthlyChart.objects.filter(stock=stock).delete()
+
+    # 일봉 (ka10081, 2년)
+    daily_data = fetch_chart('ka10081', 730)
+    d_new, d_upd = save_chart_data(DailyChart, daily_data)
+    results['daily'] = f'신규 {d_new}'
+    time.sleep(0.1)
+
+    # 주봉 (ka10082, 4년)
+    weekly_data = fetch_chart('ka10082', 1460)
+    w_new, w_upd = save_chart_data(WeeklyChart, weekly_data)
+    results['weekly'] = f'신규 {w_new}'
+    time.sleep(0.1)
+
+    # 월봉 (ka10083, 6년)
+    monthly_data = fetch_chart('ka10083', 2190)
+    m_new, m_upd = save_chart_data(MonthlyChart, monthly_data)
+    results['monthly'] = f'신규 {m_new}'
+
+    return JsonResponse({
+        'success': True,
+        'message': f'일봉({results["daily"]}), 주봉({results["weekly"]}), 월봉({results["monthly"]})',
+    })
+
+
+def refresh_etf_chart(request, code):
+    """ETF 차트 재수집 API (일봉/주봉/월봉 삭제 후 전체 재수집)"""
+    import requests as http_requests
+    import json as json_module
+    from datetime import datetime, timedelta
+    from .models import InfoETF, DailyChartETF, WeeklyChartETF, MonthlyChartETF
+
+    try:
+        etf = InfoETF.objects.get(code=code)
+    except InfoETF.DoesNotExist:
+        return JsonResponse({'error': 'ETF를 찾을 수 없습니다.'}, status=404)
+
+    def fetch_naver_chart(timeframe, cutoff_days):
+        today = datetime.now()
+        start_date = today - timedelta(days=cutoff_days)
+        url = 'https://api.finance.naver.com/siseJson.naver'
+        params = {
+            'symbol': code,
+            'requestType': '1',
+            'startTime': start_date.strftime('%Y%m%d'),
+            'endTime': today.strftime('%Y%m%d'),
+            'timeframe': timeframe,
+        }
+        headers = {'User-Agent': 'Mozilla/5.0'}
+
+        try:
+            resp = http_requests.get(url, params=params, headers=headers, timeout=10)
+            resp.raise_for_status()
+            text = resp.text.strip().replace("'", '"').replace('\n', '').replace('\t', '').replace(',]', ']')
+            data = json_module.loads(text)
+            return data[1:] if data and len(data) >= 2 else []
+        except Exception:
+            return []
+
+    def save_etf_data(ChartModel, chart_data):
+        created = 0
+        updated = 0
+        for row in chart_data:
+            if len(row) < 6:
+                continue
+            try:
+                date = datetime.strptime(str(row[0]), '%Y%m%d').date()
+                _, is_created = ChartModel.objects.update_or_create(
+                    etf=etf,
+                    date=date,
+                    defaults={
+                        'opening_price': int(row[1]),
+                        'high_price': int(row[2]),
+                        'low_price': int(row[3]),
+                        'closing_price': int(row[4]),
+                        'trading_volume': int(row[5]),
+                    }
+                )
+                if is_created:
+                    created += 1
+                else:
+                    updated += 1
+            except Exception:
+                pass
+        return created, updated
+
+    # 기존 데이터 삭제
+    DailyChartETF.objects.filter(etf=etf).delete()
+    WeeklyChartETF.objects.filter(etf=etf).delete()
+    MonthlyChartETF.objects.filter(etf=etf).delete()
+
+    # 일봉 (2년), 주봉 (4년), 월봉 (6년)
+    d_data = fetch_naver_chart('day', 730)
+    d_new, _ = save_etf_data(DailyChartETF, d_data)
+
+    w_data = fetch_naver_chart('week', 1460)
+    w_new, _ = save_etf_data(WeeklyChartETF, w_data)
+
+    m_data = fetch_naver_chart('month', 2190)
+    m_new, _ = save_etf_data(MonthlyChartETF, m_data)
+
+    return JsonResponse({
+        'success': True,
+        'message': f'일봉(신규 {d_new}), 주봉(신규 {w_new}), 월봉(신규 {m_new})',
+    })
