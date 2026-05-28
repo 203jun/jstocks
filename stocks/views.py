@@ -1453,6 +1453,14 @@ def stock_detail(request, code):
     for r in update_core_reports + update_extra_reports:
         if r.report:
             all_content_sections.append(f"## 업데이트: {r.question} ({r.updated_at.strftime('%Y-%m-%d')})\n{r.report}")
+    # 대기
+    for r in waiting_question_reports:
+        if r.report:
+            all_content_sections.append(f"## 대기: {r.question} ({r.updated_at.strftime('%Y-%m-%d')})\n{r.report}")
+    # 일반 질문
+    for r in custom_question_reports:
+        if r.report:
+            all_content_sections.append(f"## 일반: {r.question} ({r.updated_at.strftime('%Y-%m-%d')})\n{r.report}")
     # 핵심브리핑
     if stock.key_briefing:
         kb_date = stock.key_briefing_updated_at.strftime('%Y-%m-%d') if stock.key_briefing_updated_at else ''
