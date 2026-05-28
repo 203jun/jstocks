@@ -505,6 +505,12 @@ function calculateMA(data, period) {
     return result;
 }
 
+const _isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+const chartBg = _isDarkTheme ? '#1a1d24' : '#ffffff';
+const chartText = _isDarkTheme ? '#9ca3af' : '#333';
+const chartGrid = _isDarkTheme ? '#2a2e38' : '#f0f0f0';
+const chartBorder = _isDarkTheme ? '#2a2e38' : '#ddd';
+
 function initDailyChart(candleData, volumeData) {
     const container = document.getElementById('dailyChart');
     container.innerHTML = '';
@@ -514,11 +520,11 @@ function initDailyChart(candleData, volumeData) {
 
     const chart = LightweightCharts.createChart(container, {
         width: container.clientWidth, height: 400,
-        layout: { backgroundColor:'#fff', textColor:'#333' },
-        grid: { vertLines:{color:'#f0f0f0'}, horzLines:{color:'#f0f0f0'} },
+        layout: { backgroundColor: chartBg, textColor: chartText },
+        grid: { vertLines:{color: chartGrid}, horzLines:{color: chartGrid} },
         crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-        rightPriceScale: { borderColor:'#ddd' },
-        timeScale: { borderColor:'#ddd', timeVisible:true, fixLeftEdge:true, fixRightEdge:true },
+        rightPriceScale: { borderColor: chartBorder },
+        timeScale: { borderColor: chartBorder, timeVisible:true, fixLeftEdge:true, fixRightEdge:true },
         handleScale: { axisPressedMouseMove:{price:false} },
     });
 
@@ -574,11 +580,11 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
 
     const chart = LightweightCharts.createChart(container, {
         width: container.clientWidth, height: 400,
-        layout: { backgroundColor:'#fff', textColor:'#333' },
-        grid: { vertLines:{color:'#f0f0f0'}, horzLines:{color:'#f0f0f0'} },
+        layout: { backgroundColor: chartBg, textColor: chartText },
+        grid: { vertLines:{color: chartGrid}, horzLines:{color: chartGrid} },
         crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-        rightPriceScale: { borderColor:'#ddd' },
-        timeScale: { borderColor:'#ddd', timeVisible:true, fixLeftEdge:true, fixRightEdge:true },
+        rightPriceScale: { borderColor: chartBorder },
+        timeScale: { borderColor: chartBorder, timeVisible:true, fixLeftEdge:true, fixRightEdge:true },
         handleScale: { axisPressedMouseMove:{price:false} },
     });
 
