@@ -1,12 +1,12 @@
 #!/bin/bash
 #
 # 주간 데이터 업데이트 스크립트
-# 주말에 실행 (토요일 10:00)
+# 주말 직전에 실행 (금요일 23:00)
 #
 # [주의] 로컬에서 실행 금지! 서버(/home/stock/jstocks)에서만 실행하세요.
 #
 # crontab 설정:
-#   0 10 * * 6 /home/stock/jstocks/weekly_update.sh >> /home/stock/jstocks/logs/weekly_update.log 2>&1
+#   0 23 * * 5 /home/stock/jstocks/weekly_update.sh >> /home/stock/jstocks/logs/weekly_update.log 2>&1
 #
 
 # 서버 경로 체크

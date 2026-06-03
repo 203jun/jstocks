@@ -1,12 +1,12 @@
 #!/bin/bash
 #
 # 일일 데이터 업데이트 스크립트
-# 장 마감 후 실행 (평일 18:00)
+# 장 마감 후 실행 (평일 15:40)
 #
 # [주의] 로컬에서 실행 금지! 서버(/home/stock/jstocks)에서만 실행하세요.
 #
 # crontab 설정:
-#   0 18 * * 1-5 /home/stock/jstocks/daily_update.sh >> /home/stock/jstocks/logs/daily_update.log 2>&1
+#   40 15 * * 1-5 /home/stock/jstocks/daily_update.sh >> /home/stock/jstocks/logs/daily_update.log 2>&1
 #
 
 # 서버 경로 체크
