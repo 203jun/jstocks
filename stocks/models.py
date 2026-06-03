@@ -3424,3 +3424,145 @@ class Holding(models.Model):
 
     def __str__(self):
         return f"{self.stk_nm}({self.stk_cd})"
+
+
+class DailyTradeDiary(models.Model):
+    """
+    매매일지 일별 요약 (키움 API ka10170 응답 최상위)
+
+    date를 unique 키로 시계열 누적. 거래가 없는 날도 diary는 생성
+    (총액 = 0으로). 종목별 매매 내역은 DailyTrade에서 FK로 연결.
+    """
+    date = models.DateField(
+        unique=True,
+        verbose_name='일자',
+        help_text='YYYYMMDD (요청 base_dt)',
+    )
+    total_sell_amount = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='총매도금액',
+        help_text='단위: 원 (API: tot_sell_amt)',
+    )
+    total_buy_amount = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='총매수금액',
+        help_text='단위: 원 (API: tot_buy_amt)',
+    )
+    total_commission_tax = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='총수수료/세금',
+        help_text='단위: 원 (API: tot_cmsn_tax)',
+    )
+    total_settlement_amount = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='총정산금액',
+        help_text='단위: 원 (API: tot_exct_amt)',
+    )
+    total_pl_amount = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='총손익금액',
+        help_text='단위: 원 (API: tot_pl_amt)',
+    )
+    profit_rate = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='총수익률',
+        help_text='단위: % (API: tot_prft_rt)',
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'daily_trade_diary'
+        verbose_name = '매매일지 일별 요약'
+        verbose_name_plural = '매매일지 일별 요약'
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.date} - 손익 {self.total_pl_amount or 0:,}원"
+
+
+class DailyTrade(models.Model):
+    """
+    매매일지 종목별 매매 내역 (키움 API ka10170 tdy_trde_diary 리스트 항목)
+
+    DailyTradeDiary FK로 묶임. 같은 (diary, 종목코드) 조합은 1개만 존재
+    (API가 일별·종목별로 집계해서 반환).
+    """
+    diary = models.ForeignKey(
+        DailyTradeDiary,
+        on_delete=models.CASCADE,
+        related_name='trades',
+        verbose_name='매매일지',
+    )
+    stk_cd = models.CharField(
+        max_length=10,
+        verbose_name='종목코드', help_text='API: stk_cd',
+    )
+    stk_nm = models.CharField(
+        max_length=100,
+        verbose_name='종목명', help_text='API: stk_nm',
+    )
+    buy_avg_price = models.IntegerField(
+        null=True, blank=True,
+        verbose_name='매수평균가', help_text='단위: 원 (API: buy_avg_pric)',
+    )
+    buy_qty = models.IntegerField(
+        null=True, blank=True,
+        verbose_name='매수수량', help_text='단위: 1주 (API: buy_qty)',
+    )
+    buy_amount = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='매수금액', help_text='단위: 원 (API: buy_amt)',
+    )
+    sell_avg_price = models.IntegerField(
+        null=True, blank=True,
+        verbose_name='매도평균가', help_text='단위: 원 (API: sel_avg_pric)',
+    )
+    sell_qty = models.IntegerField(
+        null=True, blank=True,
+        verbose_name='매도수량', help_text='단위: 1주 (API: sell_qty)',
+    )
+    sell_amount = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='매도금액', help_text='단위: 원 (API: sell_amt)',
+    )
+    commission_tax = models.IntegerField(
+        null=True, blank=True,
+        verbose_name='수수료/세금', help_text='단위: 원 (API: cmsn_alm_tax)',
+    )
+    pl_amount = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='손익금액', help_text='단위: 원 (API: pl_amt)',
+    )
+    profit_rate = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='수익률', help_text='단위: % (API: prft_rt)',
+    )
+
+    info = models.ForeignKey(
+        'Info', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='trade_record', db_constraint=False,
+        verbose_name='연동 종목',
+    )
+    info_etf = models.ForeignKey(
+        'InfoETF', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='trade_record', db_constraint=False,
+        verbose_name='연동 ETF',
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+
+    class Meta:
+        db_table = 'daily_trade'
+        verbose_name = '매매일지 종목별 내역'
+        verbose_name_plural = '매매일지 종목별 내역'
+        ordering = ['-diary__date', 'stk_cd']
+        unique_together = [('diary', 'stk_cd')]
+
+    def __str__(self):
+        return f"{self.diary.date} {self.stk_nm}({self.stk_cd})"

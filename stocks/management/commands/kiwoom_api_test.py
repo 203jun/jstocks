@@ -96,6 +96,15 @@ API_DEFINITIONS = {
             'qry_dt': {'desc': '조회일자 (YYYYMMDD)', 'required': True, 'example': '20250825'},
         },
     },
+    'ka10170': {
+        'name': '당일매매일지',
+        'endpoint': '/api/dostk/acnt',
+        'params': {
+            'base_dt': {'desc': '기준일자 (YYYYMMDD, 공백시 금일, 최근 2개월까지)', 'required': False, 'example': '20260601'},
+            'ottks_tp': {'desc': '단주구분 (1:당일매수에 대한 당일매도, 2:당일매도 전체)', 'required': True, 'default': '2'},
+            'ch_crd_tp': {'desc': '현금신용구분 (0:전체, 1:현금매매만, 2:신용매매만)', 'required': True, 'default': '0'},
+        },
+    },
 }
 
 
@@ -165,7 +174,7 @@ class Command(BaseCommand):
             '차트': ['ka10081', 'ka10082', 'ka10083'],
             '투자자': ['ka10059', 'ka10051'],
             '업종': ['ka20002'],
-            '계좌': ['ka01690'],
+            '계좌': ['ka01690', 'ka10170'],
             '기타': ['ka10014'],
         }
 
