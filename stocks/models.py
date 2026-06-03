@@ -3283,3 +3283,66 @@ class Consensus(models.Model):
     def __str__(self):
         period = f"{self.year} {self.quarter}" if self.quarter else f"{self.year}"
         return f"{self.stock.name} - {period}"
+
+
+class DailyAccountSnapshot(models.Model):
+    """
+    계좌 일별 자산 스냅샷
+
+    키움 API ka01690 (일별잔고수익률) 응답의 최상위 요약 데이터를
+    일자별로 누적 저장합니다. 종목별 보유 정보는 별도 처리.
+    """
+    date = models.DateField(
+        unique=True,
+        verbose_name='일자',
+        help_text='YYYYMMDD (API: dt)',
+    )
+    total_buy_amount = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='총 매입가',
+        help_text='단위: 원 (API: tot_buy_amt)',
+    )
+    total_eval_amount = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='총 평가금액',
+        help_text='단위: 원 (API: tot_evlt_amt)',
+    )
+    total_eval_profit = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='총 평가손익',
+        help_text='단위: 원 (API: tot_evltv_prft)',
+    )
+    profit_rate = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='수익률',
+        help_text='단위: % (API: tot_prft_rt)',
+    )
+    deposit_balance = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='예수금',
+        help_text='단위: 원 (API: dbst_bal)',
+    )
+    estimated_asset = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='추정자산',
+        help_text='단위: 원 (API: day_stk_asst)',
+    )
+    cash_weight = models.DecimalField(
+        max_digits=6, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='현금비중',
+        help_text='단위: % (API: buy_wght)',
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'daily_account_snapshot'
+        verbose_name = '계좌 일별 스냅샷'
+        verbose_name_plural = '계좌 일별 스냅샷'
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.date} - 추정자산 {self.estimated_asset or 0:,}원"
