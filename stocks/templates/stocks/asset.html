@@ -228,6 +228,36 @@
     color: var(--bg-card);
     border-color: var(--text-primary);
 }
+
+/* Trade detail panel */
+.trade-detail-date {
+    font-size: 1.0rem;
+    font-weight: 700;
+    margin: 0 0 10px;
+}
+.trade-detail-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    font-size: 0.85rem;
+    color: var(--text-muted, #6b7280);
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+.trade-detail-summary strong {
+    color: var(--text-primary);
+    margin-left: 4px;
+}
+.trade-detail-body {
+    margin-top: 14px;
+    overflow-x: auto;
+}
+.trade-detail-empty {
+    padding: 18px 0;
+    text-align: center;
+    color: var(--text-muted, #6b7280);
+    font-size: 0.88rem;
+}
 {% endblock %}
 
 {% block content %}
@@ -373,12 +403,35 @@
     <div class="asset-empty">실현손익 데이터가 없습니다.</div>
     {% endif %}
 </div>
+
+<!-- 선택일 매매 내역 -->
+{% if has_realized_data %}
+<h5 class="section-heading">선택일 매매 내역</h5>
+<div class="asset-card">
+    <div class="trade-detail-date" id="tradeDetailDate">-</div>
+    <div class="trade-detail-summary">
+        <span>총 매수 <strong id="tdBuy">-</strong></span>
+        <span>총 매도 <strong id="tdSell">-</strong></span>
+        <span>정산 <strong id="tdSettle">-</strong></span>
+        <span>총 손익 <strong id="tdPl">-</strong></span>
+        <span>수익률 <strong id="tdRate">-</strong></span>
+        <span>수수료/세금 <strong id="tdComm">-</strong></span>
+    </div>
+    <div class="trade-detail-body" id="tradeDetailBody">
+        <div class="trade-detail-empty">차트의 막대를 클릭해 그날의 매매 내역을 확인하세요.</div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
 const assetChartData = {{ asset_chart_data|safe }};
 const realizedChartData = {{ realized_chart_data|safe }};
+const realizedDetailsData = {{ realized_details_data|safe }};
+const realizedInitialDate = "{{ realized_initial_date|escapejs }}";
+let selectedRealizedDate = realizedInitialDate || null;
+let currentRealizedDays = 60;
 
 const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
 const chartBgColor = isDarkTheme ? '#1a1d24' : '#ffffff';
@@ -516,6 +569,14 @@ function renderRealizedChart(data) {
     }
     if (!data || data.length === 0) return;
 
+    // 선택된 막대는 앰버색으로 강조
+    const renderData = data.map(d => {
+        if (d.time === selectedRealizedDate) {
+            return { ...d, color: '#f59e0b' };
+        }
+        return d;
+    });
+
     const chart = LightweightCharts.createChart(container, {
         ...chartOptions,
         height: 240,
@@ -526,7 +587,7 @@ function renderRealizedChart(data) {
         priceLineVisible: false,
         base: 0,
     });
-    series.setData(data);
+    series.setData(renderData);
 
     series.createPriceLine({
         price: 0,
@@ -534,6 +595,16 @@ function renderRealizedChart(data) {
         lineWidth: 1,
         lineStyle: 2,
         axisLabelVisible: false,
+    });
+
+    chart.subscribeClick(param => {
+        if (!param.time) return;
+        const timeStr = (typeof param.time === 'string')
+            ? param.time
+            : `${param.time.year}-${String(param.time.month).padStart(2,'0')}-${String(param.time.day).padStart(2,'0')}`;
+        if (realizedDetailsData[timeStr] !== undefined) {
+            showTradeDetail(timeStr);
+        }
     });
 
     chart.timeScale().fitContent();
@@ -583,6 +654,7 @@ function updateRealizedSummary(data) {
 }
 
 function applyRealizedRange(days) {
+    currentRealizedDays = days;
     const sliced = realizedChartData.slice(-days);
     renderRealizedChart(sliced);
     updateRealizedSummary(sliced);
@@ -590,8 +662,107 @@ function applyRealizedRange(days) {
     if (label) label.textContent = '최근 ' + days + '일';
 }
 
-// 초기 (60일)
+// ===== 일자별 매매 내역 상세 =====
+function fmtWon(n) {
+    if (n === null || n === undefined) return '-';
+    return Math.round(Number(n)).toLocaleString('ko-KR') + '원';
+}
+function fmtPct(n) {
+    if (n === null || n === undefined) return '-';
+    return Number(n).toFixed(2) + '%';
+}
+function plClass(n) {
+    if (n === null || n === undefined) return '';
+    return n > 0 ? 'text-up' : (n < 0 ? 'text-down' : '');
+}
+function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function showTradeDetail(dateStr) {
+    if (!dateStr) return;
+    selectedRealizedDate = dateStr;
+    const data = realizedDetailsData[dateStr];
+
+    document.getElementById('tradeDetailDate').textContent = dateStr;
+
+    const setSummary = (id, val, isPct=false, colorize=false) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = isPct ? fmtPct(val) : fmtWon(val);
+        el.className = colorize ? plClass(val) : '';
+    };
+
+    if (data) {
+        setSummary('tdBuy', data.total_buy_amount);
+        setSummary('tdSell', data.total_sell_amount);
+        setSummary('tdSettle', data.total_settlement_amount, false, true);
+        setSummary('tdPl', data.total_pl_amount, false, true);
+        setSummary('tdRate', data.profit_rate, true, true);
+        setSummary('tdComm', data.total_commission_tax);
+    } else {
+        ['tdBuy','tdSell','tdSettle','tdPl','tdRate','tdComm'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.textContent = '-'; el.className = ''; }
+        });
+    }
+
+    const body = document.getElementById('tradeDetailBody');
+    const trades = data && data.trades ? data.trades : [];
+    if (!trades.length) {
+        body.innerHTML = '<div class="trade-detail-empty">이 날은 매매가 없습니다.</div>';
+    } else {
+        const rows = trades.map(t => {
+            const nm = escapeHtml(t.stk_nm);
+            const cd = escapeHtml(t.stk_cd);
+            const nameCell = t.is_etf
+                ? `<span class="holdings-name">${nm}</span>`
+                : `<span class="holdings-name"><a href="/stocks/${cd}/">${nm}</a></span>`;
+            const fmtInt = (n) => (n === null || n === undefined) ? '-' : Number(n).toLocaleString('ko-KR');
+            return `<tr>
+                <td>${nameCell} <span class="holdings-code">${cd}</span></td>
+                <td>${fmtInt(t.buy_qty)}</td>
+                <td>${fmtInt(t.buy_avg_price)}</td>
+                <td>${fmtWon(t.buy_amount)}</td>
+                <td>${fmtInt(t.sell_qty)}</td>
+                <td>${fmtInt(t.sell_avg_price)}</td>
+                <td>${fmtWon(t.sell_amount)}</td>
+                <td class="${plClass(t.pl_amount)}">${fmtWon(t.pl_amount)}</td>
+                <td class="${plClass(t.profit_rate)}">${fmtPct(t.profit_rate)}</td>
+            </tr>`;
+        }).join('');
+        body.innerHTML = `
+            <table class="holdings-table">
+                <thead>
+                    <tr>
+                        <th>종목명</th>
+                        <th>매수수량</th>
+                        <th>매수평균가</th>
+                        <th>매수금액</th>
+                        <th>매도수량</th>
+                        <th>매도평균가</th>
+                        <th>매도금액</th>
+                        <th>손익</th>
+                        <th>수익률</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        `;
+    }
+
+    // 막대 강조를 위해 현재 범위로 재렌더
+    applyRealizedRange(currentRealizedDays);
+}
+
+// 초기 (60일 + 최근 매매일 자동 선택)
 applyRealizedRange(60);
+if (realizedInitialDate) {
+    showTradeDetail(realizedInitialDate);
+}
 
 // 범위 버튼
 document.querySelectorAll('.realized-range-btns .range-btn').forEach(btn => {

@@ -2389,7 +2389,7 @@ def _annotate_holdings(holdings):
 
 def asset(request):
     """자산 페이지 (총자산 시계열 + 보유 종목 + 실현손익)"""
-    from .models import DailyAccountSnapshot, Holding, DailyTradeDiary
+    from .models import DailyAccountSnapshot, Holding, DailyTradeDiary, InfoETF
 
     asset_snapshots = list(DailyAccountSnapshot.objects.order_by('-date')[:60])
     asset_snapshots.reverse()
@@ -2432,7 +2432,9 @@ def asset(request):
         }
 
     # 실현손익 차트 데이터 (최근 60일 DailyTradeDiary, 합산은 JS에서 범위별 재계산)
-    diaries = list(DailyTradeDiary.objects.order_by('-date')[:60])
+    diaries = list(
+        DailyTradeDiary.objects.prefetch_related('trades').order_by('-date')[:60]
+    )
     diaries.reverse()
     realized_chart_data = [
         {
@@ -2443,6 +2445,43 @@ def asset(request):
         for d in diaries
     ]
 
+    # 일자별 상세 (클릭 시 표시할 매매 내역)
+    etf_codes = set(InfoETF.objects.values_list('code', flat=True))
+    realized_details = {}
+    for d in diaries:
+        date_str = d.date.strftime('%Y-%m-%d')
+        trades_list = []
+        for t in d.trades.all().order_by('stk_cd'):
+            trades_list.append({
+                'stk_cd': t.stk_cd,
+                'stk_nm': t.stk_nm,
+                'buy_qty': t.buy_qty,
+                'buy_avg_price': t.buy_avg_price,
+                'buy_amount': t.buy_amount,
+                'sell_qty': t.sell_qty,
+                'sell_avg_price': t.sell_avg_price,
+                'sell_amount': t.sell_amount,
+                'pl_amount': t.pl_amount,
+                'profit_rate': float(t.profit_rate) if t.profit_rate is not None else None,
+                'is_etf': t.stk_cd in etf_codes,
+            })
+        realized_details[date_str] = {
+            'total_buy_amount': d.total_buy_amount,
+            'total_sell_amount': d.total_sell_amount,
+            'total_settlement_amount': d.total_settlement_amount,
+            'total_pl_amount': d.total_pl_amount,
+            'profit_rate': float(d.profit_rate) if d.profit_rate is not None else None,
+            'total_commission_tax': d.total_commission_tax,
+            'trades': trades_list,
+        }
+
+    # 초기 선택일: 가장 최근에 매매가 있던 날
+    realized_initial_date = ''
+    for d in reversed(diaries):
+        if d.trades.all():
+            realized_initial_date = d.date.strftime('%Y-%m-%d')
+            break
+
     context = {
         'asset_chart_data': json.dumps(asset_chart_data),
         'asset_latest': asset_latest,
@@ -2450,6 +2489,8 @@ def asset(request):
         'holdings': _annotate_holdings(list(Holding.objects.select_related('info', 'info_etf').all())),
         'realized_chart_data': json.dumps(realized_chart_data),
         'has_realized_data': bool(realized_chart_data),
+        'realized_details_data': json.dumps(realized_details),
+        'realized_initial_date': realized_initial_date,
     }
     return render(request, 'stocks/asset.html', context)
 
