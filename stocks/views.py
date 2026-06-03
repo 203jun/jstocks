@@ -2363,6 +2363,16 @@ def search_disclosure(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+def _annotate_holdings(holdings):
+    """템플릿에서 쓸 원금(평가금액 - 평가손익) 추가"""
+    for h in holdings:
+        if h.eval_amount is not None and h.eval_profit is not None:
+            h.principal = h.eval_amount - h.eval_profit
+        else:
+            h.principal = None
+    return holdings
+
+
 def market(request):
     """시황 페이지"""
     from django.db.models import Max, Min
@@ -2573,7 +2583,7 @@ def market(request):
         'asset_chart_data': json.dumps(asset_chart_data),
         'asset_latest': asset_latest,
         'asset_changes': asset_changes,
-        'holdings': list(Holding.objects.all()),
+        'holdings': _annotate_holdings(list(Holding.objects.all())),
     }
     return render(request, 'stocks/market.html', context)
 

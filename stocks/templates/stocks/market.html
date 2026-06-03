@@ -524,6 +524,17 @@
     font-size: 0.75rem;
     margin-left: 4px;
 }
+.holdings-stack {
+    line-height: 1.3;
+}
+.holdings-stack-main {
+    font-weight: 500;
+}
+.holdings-stack-sub {
+    color: var(--text-muted, #6b7280);
+    font-size: 0.75rem;
+    margin-top: 1px;
+}
 {% endblock %}
 
 {% block content %}
@@ -595,12 +606,11 @@
         <thead>
             <tr>
                 <th>종목명</th>
-                <th>현재가</th>
-                <th>보유수량</th>
-                <th>매입단가</th>
-                <th>평가금액</th>
-                <th>평가손익</th>
+                <th>현재가<br><span style="font-weight:400;">매입단가</span></th>
                 <th>수익률</th>
+                <th>평가금액<br><span style="font-weight:400;">원금</span></th>
+                <th>평가손익</th>
+                <th>보유수량</th>
                 <th>평가비중</th>
             </tr>
         </thead>
@@ -611,16 +621,23 @@
                     <span class="holdings-name">{{ h.stk_nm }}</span>
                     <span class="holdings-code">{{ h.stk_cd }}</span>
                 </td>
-                <td>{{ h.cur_prc|default_if_none:0|intcomma }}</td>
-                <td>{{ h.rmnd_qty|default_if_none:0|intcomma }}</td>
-                <td>{{ h.buy_uv|default_if_none:0|intcomma }}</td>
-                <td>{{ h.eval_amount|default_if_none:0|intcomma }}</td>
-                <td class="{% if h.eval_profit > 0 %}text-up{% elif h.eval_profit < 0 %}text-down{% endif %}">
-                    {{ h.eval_profit|default_if_none:0|intcomma }}
+                <td class="holdings-stack">
+                    <div class="holdings-stack-main {% if h.cur_prc and h.buy_uv %}{% if h.cur_prc > h.buy_uv %}text-up{% elif h.cur_prc < h.buy_uv %}text-down{% endif %}{% endif %}">
+                        {{ h.cur_prc|default_if_none:0|intcomma }}
+                    </div>
+                    <div class="holdings-stack-sub">{{ h.buy_uv|default_if_none:0|intcomma }}</div>
                 </td>
                 <td class="{% if h.profit_rate > 0 %}text-up{% elif h.profit_rate < 0 %}text-down{% endif %}">
                     {{ h.profit_rate|default_if_none:0 }}%
                 </td>
+                <td class="holdings-stack">
+                    <div class="holdings-stack-main">{{ h.eval_amount|default_if_none:0|intcomma }}</div>
+                    <div class="holdings-stack-sub">{{ h.principal|default_if_none:0|intcomma }}</div>
+                </td>
+                <td class="{% if h.eval_profit > 0 %}text-up{% elif h.eval_profit < 0 %}text-down{% endif %}">
+                    {{ h.eval_profit|default_if_none:0|intcomma }}
+                </td>
+                <td>{{ h.rmnd_qty|default_if_none:0|intcomma }}</td>
                 <td>{{ h.eval_weight|default_if_none:0 }}%</td>
             </tr>
             {% endfor %}
