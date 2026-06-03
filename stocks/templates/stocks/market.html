@@ -629,7 +629,7 @@
                     <div class="holdings-stack-main {% if h.profit_rate > 0 %}text-up{% elif h.profit_rate < 0 %}text-down{% endif %}">
                         {{ h.profit_rate|default_if_none:0 }}%
                     </div>
-                    <div class="holdings-stack-sub {% if h.eval_profit > 0 %}text-up{% elif h.eval_profit < 0 %}text-down{% endif %}">
+                    <div class="holdings-stack-sub" style="color: var(--text-primary);">
                         {{ h.eval_profit|default_if_none:0|intcomma }}
                     </div>
                 </td>
