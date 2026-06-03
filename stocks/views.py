@@ -2366,7 +2366,7 @@ def search_disclosure(request):
 def market(request):
     """시황 페이지"""
     from django.db.models import Max, Min
-    from .models import SystemSetting, CustomSector, DailyAccountSnapshot
+    from .models import SystemSetting, CustomSector, DailyAccountSnapshot, Holding
 
     # KOSPI 차트 데이터 (최근 240일)
     kospi_charts = list(IndexChart.objects.filter(code='KOSPI').order_by('-date')[:240])
@@ -2573,6 +2573,7 @@ def market(request):
         'asset_chart_data': json.dumps(asset_chart_data),
         'asset_latest': asset_latest,
         'asset_changes': asset_changes,
+        'holdings': list(Holding.objects.all()),
     }
     return render(request, 'stocks/market.html', context)
 

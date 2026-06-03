@@ -3,7 +3,8 @@ import requests
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from django.core.management.base import BaseCommand
-from stocks.models import DailyAccountSnapshot
+from django.db import transaction
+from stocks.models import DailyAccountSnapshot, Holding, Info, InfoETF
 from stocks.utils import get_valid_token, send_telegram_error
 from stocks.logger import StockLogger
 
@@ -54,6 +55,7 @@ class Command(BaseCommand):
             return
 
         self.save_to_db(response_data, fallback_date=qry_dt)
+        self.save_holdings(response_data.get('day_bal_rt') or [])
 
     def call_api(self, token, qry_dt):
         """ka01690 일별잔고수익률 API 호출"""
@@ -120,6 +122,52 @@ class Command(BaseCommand):
             f'추정자산 {snapshot.estimated_asset or 0:,}원 | '
             f'평가손익 {snapshot.total_eval_profit or 0:,}원 | '
             f'수익률 {snapshot.profit_rate or 0}%',
+            success=True,
+        )
+
+    def save_holdings(self, items):
+        """day_bal_rt 리스트를 Holding 테이블에 전체 갱신"""
+        parsed = []
+        for item in items:
+            stk_cd = (item.get('stk_cd') or '').strip()
+            if not stk_cd:
+                continue
+            parsed.append({
+                'stk_cd': stk_cd,
+                'stk_nm': (item.get('stk_nm') or '').strip(),
+                'rmnd_qty': self._parse_int(item.get('rmnd_qty')),
+                'buy_uv': self._parse_int(item.get('buy_uv')),
+                'cur_prc': self._parse_int(item.get('cur_prc')),
+                'eval_amount': self._parse_int(item.get('evlt_amt')),
+                'eval_profit': self._parse_int(item.get('evltv_prft')),
+                'profit_rate': self._parse_decimal(item.get('prft_rt')),
+                'eval_weight': self._parse_decimal(item.get('evlt_wght')),
+                'buy_weight': self._parse_decimal(item.get('buy_wght')),
+            })
+
+        # Info / InfoETF 매칭 룩업
+        info_codes = set(Info.objects.values_list('code', flat=True))
+        etf_codes = set(InfoETF.objects.values_list('code', flat=True))
+
+        try:
+            with transaction.atomic():
+                Holding.objects.all().delete()
+                Holding.objects.bulk_create([
+                    Holding(
+                        info_id=h['stk_cd'] if h['stk_cd'] in info_codes else None,
+                        info_etf_id=h['stk_cd'] if h['stk_cd'] in etf_codes else None,
+                        **h,
+                    )
+                    for h in parsed
+                ])
+        except Exception as e:
+            self.log.error(f'Holding 저장 실패: {str(e)}')
+            send_telegram_error('save_daily_account', f'Holding 저장 실패: {str(e)}')
+            return
+
+        matched = sum(1 for h in parsed if h['stk_cd'] in info_codes or h['stk_cd'] in etf_codes)
+        self.log.info(
+            f'보유 종목 갱신 | 총 {len(parsed)}개 (Info/ETF 매칭 {matched}개)',
             success=True,
         )
 

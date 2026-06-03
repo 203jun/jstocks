@@ -480,6 +480,50 @@
     .asset-info-row { grid-template-columns: repeat(2, 1fr); }
     .asset-chart { height: 220px; }
 }
+
+/* Holdings table */
+.holdings-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 14px 16px 16px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+}
+.holdings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+.holdings-table th,
+.holdings-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-color);
+    text-align: right;
+    white-space: nowrap;
+}
+.holdings-table th {
+    font-weight: 600;
+    color: var(--text-muted, #6b7280);
+    background: var(--bg-body, transparent);
+    position: sticky;
+    top: 0;
+}
+.holdings-table th:first-child,
+.holdings-table td:first-child {
+    text-align: left;
+}
+.holdings-table tbody tr:hover {
+    background: var(--bg-hover, rgba(0,0,0,0.03));
+}
+.holdings-name {
+    font-weight: 600;
+}
+.holdings-code {
+    color: var(--text-muted, #6b7280);
+    font-size: 0.75rem;
+    margin-left: 4px;
+}
 {% endblock %}
 
 {% block content %}
@@ -540,6 +584,50 @@
     </div>
     {% else %}
     <div class="asset-empty">자산 데이터가 없습니다. 키움 API를 통해 데이터를 받아오세요.</div>
+    {% endif %}
+</div>
+
+<!-- 보유 종목 -->
+<h5 class="section-heading">보유 종목</h5>
+<div class="holdings-card">
+    {% if holdings %}
+    <table class="holdings-table">
+        <thead>
+            <tr>
+                <th>종목명</th>
+                <th>현재가</th>
+                <th>보유수량</th>
+                <th>매입단가</th>
+                <th>평가금액</th>
+                <th>평가손익</th>
+                <th>수익률</th>
+                <th>평가비중</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for h in holdings %}
+            <tr>
+                <td>
+                    <span class="holdings-name">{{ h.stk_nm }}</span>
+                    <span class="holdings-code">{{ h.stk_cd }}</span>
+                </td>
+                <td>{{ h.cur_prc|default_if_none:0|intcomma }}</td>
+                <td>{{ h.rmnd_qty|default_if_none:0|intcomma }}</td>
+                <td>{{ h.buy_uv|default_if_none:0|intcomma }}</td>
+                <td>{{ h.eval_amount|default_if_none:0|intcomma }}</td>
+                <td class="{% if h.eval_profit > 0 %}text-up{% elif h.eval_profit < 0 %}text-down{% endif %}">
+                    {{ h.eval_profit|default_if_none:0|intcomma }}
+                </td>
+                <td class="{% if h.profit_rate > 0 %}text-up{% elif h.profit_rate < 0 %}text-down{% endif %}">
+                    {{ h.profit_rate|default_if_none:0 }}%
+                </td>
+                <td>{{ h.eval_weight|default_if_none:0 }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="asset-empty">보유 종목 데이터가 없습니다.</div>
     {% endif %}
 </div>
 

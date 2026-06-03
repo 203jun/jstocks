@@ -3346,3 +3346,81 @@ class DailyAccountSnapshot(models.Model):
 
     def __str__(self):
         return f"{self.date} - 추정자산 {self.estimated_asset or 0:,}원"
+
+
+class Holding(models.Model):
+    """
+    현재 보유 종목 (키움 API ka01690 day_bal_rt 리스트)
+
+    매일 cron에서 전체 삭제 후 다시 생성하여 최신 상태만 유지한다.
+    Info/InfoETF에 매칭되는 종목이면 nullable FK로 연결, 매칭 안 되면
+    stk_cd / stk_nm 만으로 자체 식별. ETF·비관심 종목 모두 수용 가능.
+    """
+    stk_cd = models.CharField(
+        max_length=10, unique=True,
+        verbose_name='종목코드', help_text='API: stk_cd',
+    )
+    stk_nm = models.CharField(
+        max_length=100,
+        verbose_name='종목명', help_text='API: stk_nm',
+    )
+    rmnd_qty = models.IntegerField(
+        null=True, blank=True,
+        verbose_name='보유수량', help_text='단위: 1주 (API: rmnd_qty)',
+    )
+    buy_uv = models.IntegerField(
+        null=True, blank=True,
+        verbose_name='매입단가', help_text='단위: 원 (API: buy_uv)',
+    )
+    cur_prc = models.IntegerField(
+        null=True, blank=True,
+        verbose_name='현재가', help_text='단위: 원 (API: cur_prc)',
+    )
+    eval_amount = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='평가금액', help_text='단위: 원 (API: evlt_amt)',
+    )
+    eval_profit = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='평가손익', help_text='단위: 원 (API: evltv_prft)',
+    )
+    profit_rate = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='수익률', help_text='단위: % (API: prft_rt)',
+    )
+    eval_weight = models.DecimalField(
+        max_digits=6, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='평가비중', help_text='단위: % (API: evlt_wght)',
+    )
+    buy_weight = models.DecimalField(
+        max_digits=6, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='매수비중', help_text='단위: % (API: buy_wght)',
+    )
+
+    info = models.ForeignKey(
+        'Info', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='holding_record', db_constraint=False,
+        verbose_name='연동 종목',
+    )
+    info_etf = models.ForeignKey(
+        'InfoETF', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='holding_record', db_constraint=False,
+        verbose_name='연동 ETF',
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'holding'
+        verbose_name = '보유 종목'
+        verbose_name_plural = '보유 종목'
+        ordering = ['-eval_weight']
+
+    def __str__(self):
+        return f"{self.stk_nm}({self.stk_cd})"
