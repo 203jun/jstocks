@@ -443,6 +443,37 @@
             <span><span style="color:var(--text-muted);">외인소진률</span> {% if stock.foreign_exhaustion %}{{ stock.foreign_exhaustion }}%{% else %}-{% endif %}</span>
         </div>
     </div>
+    <div style="border-top:1px solid var(--border-color);padding-top:8px;margin-top:8px;">
+        <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;line-height:2;">
+            {% if holding %}
+            <span><span style="color:var(--text-muted);">매입단가</span> {{ holding.buy_uv|default_if_none:0|intcomma }}원</span>
+            <span><span style="color:var(--text-muted);">수익률</span>
+                <span class="{% if holding.profit_rate > 0 %}text-up{% elif holding.profit_rate < 0 %}text-down{% endif %}">{{ holding.profit_rate|default_if_none:0 }}%</span>
+                {% if holding.diff_profit_rate is not None %}
+                <small class="{% if holding.diff_profit_rate > 0 %}text-up{% elif holding.diff_profit_rate < 0 %}text-down{% endif %}">({% if holding.diff_profit_rate > 0 %}+{% endif %}{{ holding.diff_profit_rate|floatformat:2 }}%p)</small>
+                {% endif %}
+            </span>
+            <span><span style="color:var(--text-muted);">평가손익</span>
+                <span class="{% if holding.eval_profit > 0 %}text-up{% elif holding.eval_profit < 0 %}text-down{% endif %}">{{ holding.eval_profit|default_if_none:0|intcomma }}원</span>
+                {% if holding.diff_eval_profit is not None %}
+                <small class="{% if holding.diff_eval_profit > 0 %}text-up{% elif holding.diff_eval_profit < 0 %}text-down{% endif %}">({% if holding.diff_eval_profit > 0 %}+{% endif %}{{ holding.diff_eval_profit|floatformat:0|intcomma }})</small>
+                {% endif %}
+            </span>
+            <span><span style="color:var(--text-muted);">평가금액</span>
+                {{ holding.eval_amount|default_if_none:0|intcomma }}원
+                {% if holding.diff_eval_amount is not None %}
+                <small class="{% if holding.diff_eval_amount > 0 %}text-up{% elif holding.diff_eval_amount < 0 %}text-down{% endif %}">({% if holding.diff_eval_amount > 0 %}+{% endif %}{{ holding.diff_eval_amount|floatformat:0|intcomma }})</small>
+                {% endif %}
+            </span>
+            <span><span style="color:var(--text-muted);">원금</span> {{ holding.principal|default_if_none:0|intcomma }}원</span>
+            <span><span style="color:var(--text-muted);">평가비중</span> {{ holding.eval_weight|default_if_none:0 }}%</span>
+            <span><span style="color:var(--text-muted);">원금비중</span> {{ holding.buy_weight|default_if_none:0 }}%</span>
+            <span><span style="color:var(--text-muted);">개수</span> {{ holding.rmnd_qty|default_if_none:0|intcomma }}</span>
+            {% else %}
+            <span style="color:var(--text-muted);">보유 안함</span>
+            {% endif %}
+        </div>
+    </div>
     {% if stock.themes.all or sectors or stock.custom_sectors.all %}
     <div style="border-top:1px solid var(--border-color);padding-top:8px;margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
         {% if stock.custom_sectors.all %}

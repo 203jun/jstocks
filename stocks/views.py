@@ -1621,9 +1621,41 @@ def stock_detail(request, code):
     if stock.avg_buy_price and stock.current_price:
         holding_return = round((stock.current_price - stock.avg_buy_price) / stock.avg_buy_price * 100, 1)
 
+    # 키움 ka01690 보유 현황 (Holding) + 어제 대비 diff 계산
+    holding = stock.holding_record.first()
+    if holding:
+        # 원금 = 평가금액 - 평가손익
+        if holding.eval_amount is not None and holding.eval_profit is not None:
+            holding.principal = holding.eval_amount - holding.eval_profit
+        else:
+            holding.principal = None
+
+        # 어제 대비: 이전 거래일 종가 기준으로 평가금액/평가손익/수익률만 재계산
+        holding.diff_eval_amount = None
+        holding.diff_eval_profit = None
+        holding.diff_profit_rate = None
+        from datetime import date as _date
+        prev_chart = DailyChart.objects.filter(
+            stock=stock, date__lt=_date.today()
+        ).order_by('-date').first()
+        if prev_chart and holding.rmnd_qty and holding.buy_uv:
+            prev_close = int(prev_chart.closing_price)
+            qty = holding.rmnd_qty
+            buy_uv = holding.buy_uv
+            y_eval_amount = prev_close * qty
+            y_eval_profit = (prev_close - buy_uv) * qty
+            y_profit_rate = ((prev_close - buy_uv) / buy_uv * 100) if buy_uv else 0
+            if holding.eval_amount is not None:
+                holding.diff_eval_amount = holding.eval_amount - y_eval_amount
+            if holding.eval_profit is not None:
+                holding.diff_eval_profit = holding.eval_profit - y_eval_profit
+            if holding.profit_rate is not None:
+                holding.diff_profit_rate = round(float(holding.profit_rate) - y_profit_rate, 2)
+
     context = {
         'stock': stock,
         'holding_return': holding_return,
+        'holding': holding,
         'sectors': sectors,
         'volume_change_rate': volume_change_rate,
         'has_recent_report': has_recent_report,
