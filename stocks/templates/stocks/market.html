@@ -1223,12 +1223,16 @@ function initAssetChart(containerId, data) {
         rightPriceScale: { visible: true, borderColor: chartBorderColor },
     });
 
-    // 총평가금액 (막대)
-    const amountSeries = chart.addHistogramSeries({
-        color: '#3b82f6',
+    // 총평가금액 (영역 차트, 자동 줌으로 변동 가시화)
+    const amountSeries = chart.addAreaSeries({
+        lineColor: '#3b82f6',
+        topColor: 'rgba(59, 130, 246, 0.35)',
+        bottomColor: 'rgba(59, 130, 246, 0.03)',
+        lineWidth: 2,
         priceScaleId: 'right',
         priceFormat: { type: 'volume' },
         priceLineVisible: false,
+        lastValueVisible: true,
     });
     amountSeries.setData(data.map(d => ({ time: d.time, value: d.total_eval_amount })));
 
