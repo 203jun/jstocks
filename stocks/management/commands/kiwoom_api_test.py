@@ -89,6 +89,13 @@ API_DEFINITIONS = {
             'stex_tp': {'desc': '거래소구분 (1:KRX, 2:NXT, 3:통합)', 'required': True, 'default': '1'},
         },
     },
+    'ka01690': {
+        'name': '일별잔고수익률',
+        'endpoint': '/api/dostk/acnt',
+        'params': {
+            'qry_dt': {'desc': '조회일자 (YYYYMMDD)', 'required': True, 'example': '20250825'},
+        },
+    },
 }
 
 
@@ -158,6 +165,7 @@ class Command(BaseCommand):
             '차트': ['ka10081', 'ka10082', 'ka10083'],
             '투자자': ['ka10059', 'ka10051'],
             '업종': ['ka20002'],
+            '계좌': ['ka01690'],
             '기타': ['ka10014'],
         }
 
@@ -285,22 +293,27 @@ class Command(BaseCommand):
         self.stdout.write(self.style.MIGRATE_HEADING('\n응답 구조:'))
         self.stdout.write(f'최상위 키: {list(data.keys())}')
 
-        # 데이터 배열 찾기
-        data_key = None
-        for key in data.keys():
-            if isinstance(data[key], list) and len(data[key]) > 0:
-                data_key = key
-                break
+        # 최상위 스칼라 필드 출력 (리스트/딕셔너리 제외)
+        scalar_fields = {
+            k: v for k, v in data.items()
+            if not isinstance(v, (list, dict))
+        }
+        if scalar_fields:
+            self.stdout.write(self.style.MIGRATE_HEADING('\n최상위 필드:'))
+            self.stdout.write(json.dumps(scalar_fields, indent=2, ensure_ascii=False))
 
-        if data_key:
-            items = data[data_key]
-            self.stdout.write(f'\n데이터 키: {data_key}')
-            self.stdout.write(f'데이터 수: {len(items)}개')
-
-            if len(items) > 0:
+        # 리스트 필드들 출력 (모든 항목)
+        list_fields = {
+            k: v for k, v in data.items()
+            if isinstance(v, list)
+        }
+        for key, items in list_fields.items():
+            self.stdout.write(self.style.MIGRATE_HEADING(f'\n[{key}] {len(items)}개'))
+            if items:
                 self.stdout.write(f'필드 목록: {list(items[0].keys())}')
-                self.stdout.write(self.style.MIGRATE_HEADING('\n샘플 데이터 (처음 3개):'))
-                self.stdout.write(json.dumps(items[:3], indent=2, ensure_ascii=False))
-        else:
+                self.stdout.write(json.dumps(items, indent=2, ensure_ascii=False))
+
+        # 리스트도 스칼라도 아닌 경우 (대부분 아닐 것)
+        if not scalar_fields and not list_fields:
             self.stdout.write(self.style.MIGRATE_HEADING('\n응답 데이터:'))
             self.stdout.write(json.dumps(data, indent=2, ensure_ascii=False))
