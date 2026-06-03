@@ -61,9 +61,6 @@
 .badge-gray { background:#9ca3af; }
 .badge-sector { background:#22c55e; text-decoration:none; color:#fff; font-size:0.7em; padding:2px 6px; border-radius:4px; cursor:pointer; }
 
-/* 매수/매도 도달 행 하이라이트 */
-.modern-table tbody tr.price-hit { background: #fffbeb; }
-.modern-table tbody tr.price-hit:hover { background: #fef3c7; }
 
 /* Event chips */
 .event-chip { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:6px; font-size:0.78rem; background:#f3f4f6; border:1px solid var(--border-color); }
@@ -89,8 +86,6 @@
     }
     #statusTable thead th:first-child { z-index: 3; }
     #statusTable tbody tr:hover td:first-child { background: #f9fafb; }
-    #statusTable tbody tr.price-hit td:first-child { background: #fffbeb; }
-    #statusTable tbody tr.price-hit:hover td:first-child { background: #fef3c7; }
 }
 
 /* Empty stock list */
@@ -184,8 +179,6 @@
                     <th style="text-align:center;">리포트</th>
                     <th style="text-align:right;">괴리율</th>
                     <th style="text-align:center;">노다지</th>
-                    <th style="text-align:center;">매수</th>
-                    <th style="text-align:center;">매도</th>
                     <th style="text-align:center;">10일</th>
                 </tr>
             </thead>
@@ -220,8 +213,6 @@
                         {% if item.report_gap is not None %}<span class="{% if item.report_gap > 0 %}text-up{% elif item.report_gap < 0 %}text-down{% endif %}">{% if item.report_gap > 0 %}+{% endif %}{{ item.report_gap }}%</span>{% endif %}
                     </td>
                     <td style="text-align:center;">{% if item.has_nodaji %}&#10003;{% endif %}</td>
-                    <td style="text-align:center;">{% if item.in_buy_zone %}<span style="color:var(--up-color);font-weight:600;">&#10003;</span>{% endif %}</td>
-                    <td style="text-align:center;">{% if item.in_sell_zone %}<span style="color:var(--down-color);font-weight:600;">&#10003;</span>{% endif %}</td>
                     <td style="text-align:center;"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
                 </tr>
                 {% endfor %}
@@ -239,7 +230,6 @@
     <span style="margin-right:12px;"><strong>리포트</strong> 3거래일 내</span>
     <span style="margin-right:12px;"><strong>괴리율</strong> 최신 리포트 목표가 vs 현재가</span>
     <span style="margin-right:12px;"><strong>노다지</strong> 5거래일 내</span>
-    <span style="margin-right:12px;"><strong>매수/매도</strong> 현재가가 설정한 매수가 이하 또는 매도가 이상일 때 체크</span>
     <span><strong>10일</strong> 10일 종가 추이, <span style="color:#ef5350;">상승</span>/<span style="color:#2196f3;">하락</span></span>
 </div>
 

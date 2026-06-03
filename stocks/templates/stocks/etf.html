@@ -124,8 +124,6 @@
                     <th style="text-align:center;">배열</th>
                     <th style="text-align:center;">눌림목</th>
                     <th style="text-align:center;">오늘거래량</th>
-                    <th style="text-align:center;">매수</th>
-                    <th style="text-align:center;">매도</th>
                 </tr>
             </thead>
             <tbody>
@@ -151,8 +149,6 @@
                     <td style="text-align:center;">
                         {% if item.vol_high_60 %}<span style="color:{% if item.is_bullish %}var(--up-color){% else %}var(--down-color){% endif %};font-size:0.78rem;font-weight:600;">60일</span>{% elif item.vol_high_20 %}<span style="color:{% if item.is_bullish %}var(--up-color){% else %}var(--down-color){% endif %};font-size:0.78rem;font-weight:600;">20일</span>{% endif %}
                     </td>
-                    <td style="text-align:center;">{% if item.in_buy_zone %}<span style="color:var(--up-color);font-weight:600;">&#10003;</span>{% endif %}</td>
-                    <td style="text-align:center;">{% if item.in_sell_zone %}<span style="color:var(--down-color);font-weight:600;">&#10003;</span>{% endif %}</td>
                 </tr>
                 {% endfor %}
             </tbody>

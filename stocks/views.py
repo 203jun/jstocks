@@ -720,14 +720,6 @@ def index(request):
         if latest_report and latest_report.target_price and stock.current_price:
             report_gap = round((latest_report.target_price / stock.current_price - 1) * 100, 1)
 
-        # 매수/매도 범위 판단
-        in_buy_zone = False
-        in_sell_zone = False
-        if stock.current_price and stock.buy_price:
-            in_buy_zone = stock.current_price <= stock.buy_price
-        if stock.current_price and stock.sell_price:
-            in_sell_zone = stock.current_price >= stock.sell_price
-
         _gc = _gongsi_map.get(stock.code)
         status_stocks.append({
             'stock': stock,
@@ -747,8 +739,6 @@ def index(request):
             'frgn_label': frgn_label,
             'gongsi_cat': _gc[0] if _gc else '',
             'gongsi_title': _gc[1] if _gc else '',
-            'in_buy_zone': in_buy_zone,
-            'in_sell_zone': in_sell_zone,
             'recent_reports': recent_reports,
             'recent_nodajis': recent_nodajis,
             'inv_data': inv_data if signal_info else [],
@@ -772,10 +762,6 @@ def index(request):
             _alerts.append('외국인 20일 최대 매수')
         elif frgn_label.isdigit() and int(frgn_label) >= 5:
             _alerts.append(f'외국인 {frgn_label}일 연속 매수')
-        if in_buy_zone:
-            _alerts.append(f'매수 희망가 도달({stock.buy_price:,}원)')
-        if in_sell_zone:
-            _alerts.append(f'매도 희망가 도달({stock.sell_price:,}원)')
         status_stocks[-1]['has_alert'] = bool(_alerts)
         status_stocks[-1]['alert_conditions'] = ' / '.join(_alerts)
         status_stocks[-1]['recent_perf'] = _recent_perf_map.get(stock.code, '')
@@ -843,10 +829,6 @@ def index(request):
         if item.get('recent_nodajis'):
             titles = ', '.join(n.title for n in item['recent_nodajis'] if n.title)
             lines.append(f"노다지: {titles}" if titles else "노다지: 있음")
-        if item.get('in_buy_zone'):
-            lines.append(f"매수구간: 도달 (매수가 {s.buy_price:,})")
-        if item.get('in_sell_zone'):
-            lines.append(f"매도구간: 도달 (매도가 {s.sell_price:,})")
         # 신호 종목: 수급/공매도 20일 데이터
         if item.get('inv_data'):
             inv_lines = ['  날짜 | 외국인 | 기관']
@@ -4813,10 +4795,6 @@ def etf(request):
             else:
                 pullback_label = '이탈'
 
-        # 매수/매도 범위 판단
-        in_buy_zone = etf_item.current_price and etf_item.buy_price and etf_item.current_price <= etf_item.buy_price
-        in_sell_zone = etf_item.current_price and etf_item.sell_price and etf_item.current_price >= etf_item.sell_price
-
         status_etfs.append({
             'etf': etf_item,
             'ma_align': ma_align,
@@ -4825,8 +4803,6 @@ def etf(request):
             'is_bullish': today.closing_price >= today.opening_price if today.opening_price else True,
             'pullback': pullback,
             'pullback_label': pullback_label,
-            'in_buy_zone': in_buy_zone,
-            'in_sell_zone': in_sell_zone,
         })
 
     context = {
