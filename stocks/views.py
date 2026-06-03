@@ -2387,10 +2387,63 @@ def _annotate_holdings(holdings):
     return holdings
 
 
+def asset(request):
+    """자산 페이지 (총자산 시계열 차트 + 보유 종목)"""
+    from .models import DailyAccountSnapshot, Holding
+
+    asset_snapshots = list(DailyAccountSnapshot.objects.order_by('-date')[:60])
+    asset_snapshots.reverse()
+
+    asset_chart_data = [
+        {
+            'time': s.date.strftime('%Y-%m-%d'),
+            'total_eval_amount': s.total_eval_amount or 0,
+            'profit_rate': float(s.profit_rate) if s.profit_rate is not None else 0,
+            'total_eval_profit': s.total_eval_profit,
+            'deposit_balance': s.deposit_balance,
+            'cash_weight': float(s.cash_weight) if s.cash_weight is not None else None,
+        }
+        for s in asset_snapshots
+    ]
+
+    asset_latest = asset_snapshots[-1] if asset_snapshots else None
+    asset_prev = asset_snapshots[-2] if len(asset_snapshots) >= 2 else None
+
+    def _delta(curr, prev):
+        if curr is None or prev is None:
+            return None
+        diff = float(curr) - float(prev)
+        pct = (diff / float(prev) * 100) if float(prev) != 0 else None
+        return {
+            'diff': diff,
+            'pct': round(pct, 2) if pct is not None else None,
+        }
+
+    asset_changes = {}
+    if asset_latest and asset_prev:
+        asset_changes = {
+            'estimated_asset': _delta(asset_latest.estimated_asset, asset_prev.estimated_asset),
+            'total_eval_amount': _delta(asset_latest.total_eval_amount, asset_prev.total_eval_amount),
+            'total_eval_profit': _delta(asset_latest.total_eval_profit, asset_prev.total_eval_profit),
+            'profit_rate': _delta(asset_latest.profit_rate, asset_prev.profit_rate),
+            'total_buy_amount': _delta(asset_latest.total_buy_amount, asset_prev.total_buy_amount),
+            'deposit_balance': _delta(asset_latest.deposit_balance, asset_prev.deposit_balance),
+            'cash_weight': _delta(asset_latest.cash_weight, asset_prev.cash_weight),
+        }
+
+    context = {
+        'asset_chart_data': json.dumps(asset_chart_data),
+        'asset_latest': asset_latest,
+        'asset_changes': asset_changes,
+        'holdings': _annotate_holdings(list(Holding.objects.select_related('info', 'info_etf').all())),
+    }
+    return render(request, 'stocks/asset.html', context)
+
+
 def market(request):
     """시황 페이지"""
     from django.db.models import Max, Min
-    from .models import SystemSetting, CustomSector, DailyAccountSnapshot, Holding
+    from .models import SystemSetting, CustomSector
 
     # KOSPI 차트 데이터 (최근 240일)
     kospi_charts = list(IndexChart.objects.filter(code='KOSPI').order_by('-date')[:240])
@@ -2518,47 +2571,6 @@ def market(request):
     kosdaq_raw_trends = get_raw_trend_data('KOSDAQ')
     futures_raw_trends = get_raw_trend_data('FUTURES')
 
-    # 자산 스냅샷 (최근 60일치, 차트는 오름차순)
-    asset_snapshots = list(DailyAccountSnapshot.objects.order_by('-date')[:60])
-    asset_snapshots.reverse()
-
-    asset_chart_data = [
-        {
-            'time': s.date.strftime('%Y-%m-%d'),
-            'total_eval_amount': s.total_eval_amount or 0,
-            'profit_rate': float(s.profit_rate) if s.profit_rate is not None else 0,
-            'total_eval_profit': s.total_eval_profit,
-            'deposit_balance': s.deposit_balance,
-            'cash_weight': float(s.cash_weight) if s.cash_weight is not None else None,
-        }
-        for s in asset_snapshots
-    ]
-
-    asset_latest = asset_snapshots[-1] if asset_snapshots else None
-    asset_prev = asset_snapshots[-2] if len(asset_snapshots) >= 2 else None
-
-    def _delta(curr, prev):
-        if curr is None or prev is None:
-            return None
-        diff = float(curr) - float(prev)
-        pct = (diff / float(prev) * 100) if float(prev) != 0 else None
-        return {
-            'diff': diff,
-            'pct': round(pct, 2) if pct is not None else None,
-        }
-
-    asset_changes = {}
-    if asset_latest and asset_prev:
-        asset_changes = {
-            'estimated_asset': _delta(asset_latest.estimated_asset, asset_prev.estimated_asset),
-            'total_eval_amount': _delta(asset_latest.total_eval_amount, asset_prev.total_eval_amount),
-            'total_eval_profit': _delta(asset_latest.total_eval_profit, asset_prev.total_eval_profit),
-            'profit_rate': _delta(asset_latest.profit_rate, asset_prev.profit_rate),
-            'total_buy_amount': _delta(asset_latest.total_buy_amount, asset_prev.total_buy_amount),
-            'deposit_balance': _delta(asset_latest.deposit_balance, asset_prev.deposit_balance),
-            'cash_weight': _delta(asset_latest.cash_weight, asset_prev.cash_weight),
-        }
-
     context = {
         'kospi_candle_data': json.dumps(kospi_candle_data),
         'kospi_volume_data': json.dumps(kospi_volume_data),
@@ -2594,10 +2606,6 @@ def market(request):
             {'id': s.id, 'name': s.name}
             for s in CustomSector.objects.all().order_by('name')
         ]),
-        'asset_chart_data': json.dumps(asset_chart_data),
-        'asset_latest': asset_latest,
-        'asset_changes': asset_changes,
-        'holdings': _annotate_holdings(list(Holding.objects.select_related('info', 'info_etf').all())),
     }
     return render(request, 'stocks/market.html', context)
 

@@ -31,6 +31,7 @@ urlpatterns = [
     path('stocks/<str:code>/insight/summary/', views.stock_insight_summary_html, name='stock_insight_summary_html'),
     path('stocks/<str:code>/insight/report/', views.stock_insight_report_html, name='stock_insight_report_html'),
     path('api/stock/<str:code>/signal-chart/', views.signal_chart_data, name='signal_chart_data'),
+    path('asset/', views.asset, name='asset'),
     path('market/', views.market, name='market'),
     path('sector/', views.sector, name='sector'),
     path('sector/<int:sector_id>/', views.sector_detail, name='sector_detail'),
