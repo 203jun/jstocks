@@ -1615,12 +1615,6 @@ def stock_detail(request, code):
                     gap = round((r.target_price - closing) / closing * 100, 1)
                     gap_chart_data.append({'x': date_str, 'y': gap})
 
-    # 보유 손익률 (평단가 대비 현재가) - 렌더링 시점 즉석 계산, DB 저장 안 함
-    # current_price는 데일리 배치(save_stock_info)가 매일 갱신하므로 별도 재계산 불필요
-    holding_return = None
-    if stock.avg_buy_price and stock.current_price:
-        holding_return = round((stock.current_price - stock.avg_buy_price) / stock.avg_buy_price * 100, 1)
-
     # 키움 ka01690 보유 현황 (Holding) + 어제 대비 diff 계산
     holding = stock.holding_record.first()
     if holding:
@@ -1654,7 +1648,6 @@ def stock_detail(request, code):
 
     context = {
         'stock': stock,
-        'holding_return': holding_return,
         'holding': holding,
         'sectors': sectors,
         'volume_change_rate': volume_change_rate,
@@ -1873,17 +1866,6 @@ def stock_edit(request, code):
         stock.interest_level = new_interest_level
         stock.is_holding = request.POST.get('is_holding') == 'on'
         stock.is_tracking = request.POST.get('is_tracking') == 'on'
-
-        # 매수가(평단가): 입력되면 보유중 자동 체크, 비우면 해제
-        _avg_buy_raw = request.POST.get('avg_buy_price', '').replace(',', '').strip()
-        if _avg_buy_raw:
-            try:
-                stock.avg_buy_price = int(float(_avg_buy_raw))
-                stock.is_holding = True
-            except ValueError:
-                pass
-        else:
-            stock.avg_buy_price = None
 
         stock.save()
 

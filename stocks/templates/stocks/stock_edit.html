@@ -160,10 +160,6 @@
                             <span style="color:var(--text-muted); font-size:0.78rem; margin-left:4px;">단기 매매를 위해 추적 중</span>
                         </span>
                     </label>
-                    <label style="display:flex; flex-direction:column; gap:4px; margin-top:4px;">
-                        <span><strong>매수가</strong> <span style="color:var(--text-muted); font-size:0.78rem;">입력 시 보유중 자동 체크 · 현재가 대비 손익 계산용</span></span>
-                        <input type="number" id="avg_buy_price" name="avg_buy_price" value="{{ stock.avg_buy_price|default_if_none:'' }}" placeholder="예: 52000" style="width:160px; padding:6px 10px; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.85rem; color:var(--text-primary); background:var(--bg-card);">
-                    </label>
                 </div>
             </div>
             <div style="border-top:1px solid var(--border-color); margin-top:12px; padding-top:12px;">

@@ -422,7 +422,7 @@
         <div>
             <span class="stat-item-value" id="currentPrice">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</span>
             <span style="font-size:1.1rem;font-weight:700;margin-left:8px;" class="{% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}" id="changeRate">{% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}</span>
-            {% if stock.avg_buy_price %}<span style="font-size:0.82rem;margin-left:12px;color:var(--text-muted);">매수가 {{ stock.avg_buy_price|intcomma }}</span>{% if holding_return is not None %} <span style="font-size:0.95rem;font-weight:700;margin-left:4px;" class="{% if holding_return > 0 %}text-up{% elif holding_return < 0 %}text-down{% endif %}">{% if holding_return > 0 %}+{% endif %}{{ holding_return }}%</span>{% endif %}{% endif %}
+            {% if holding %}<span style="font-size:0.82rem;margin-left:12px;color:var(--text-muted);">매수가 {{ holding.buy_uv|intcomma }}</span>{% if holding.profit_rate is not None %} <span style="font-size:0.95rem;font-weight:700;margin-left:4px;" class="{% if holding.profit_rate > 0 %}text-up{% elif holding.profit_rate < 0 %}text-down{% endif %}">{% if holding.profit_rate > 0 %}+{% endif %}{{ holding.profit_rate }}%</span>{% endif %}{% endif %}
         </div>
         <div>
             <a href="https://finance.naver.com/item/board.naver?code={{ stock.code }}" target="_blank" class="tag-badge" style="background:#ecfdf5;color:#059669;font-size:0.6rem;vertical-align:middle;text-decoration:none;">종토방</a>
