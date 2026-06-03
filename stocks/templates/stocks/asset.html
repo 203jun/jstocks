@@ -417,7 +417,10 @@
 {% if has_realized_data %}
 <h5 class="section-heading">선택일 매매 내역</h5>
 <div class="asset-card">
-    <div class="trade-detail-date" id="tradeDetailDate">-</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span class="trade-detail-date" id="tradeDetailDate" style="margin:0;">-</span>
+        <input type="date" id="tradeDetailDatePicker" style="background:var(--bg-body,#1a1a2e);color:var(--text-primary);border:1px solid var(--border-color);border-radius:4px;padding:4px 8px;font-size:0.85rem;">
+    </div>
     <div class="trade-detail-summary">
         <span>총 매수 <strong id="tdBuy">-</strong></span>
         <span>총 매도 <strong id="tdSell">-</strong></span>
@@ -427,7 +430,7 @@
         <span>수수료/세금 <strong id="tdComm">-</strong></span>
     </div>
     <div class="trade-detail-body" id="tradeDetailBody">
-        <div class="trade-detail-empty">차트의 막대를 클릭해 그날의 매매 내역을 확인하세요.</div>
+        <div class="trade-detail-empty">차트의 막대를 클릭하거나 날짜를 선택해 매매 내역을 확인하세요.</div>
     </div>
 </div>
 {% endif %}
@@ -619,25 +622,14 @@ function renderRealizedChart(data) {
         if (realizedDetailsData[timeStr] !== undefined) showTradeDetail(timeStr);
     });
 
-    // 모바일 터치 지원: crosshairMove에서 마지막 시간 추적 후 touchend로 클릭 처리
-    let lastCrosshairTime = null;
-    container.addEventListener('touchend', () => {
-        if (lastCrosshairTime) {
-            const timeStr = _timeToStr(lastCrosshairTime);
-            if (realizedDetailsData[timeStr] !== undefined) showTradeDetail(timeStr);
-        }
-    });
-
     const tooltip = document.getElementById('realizedTooltip');
     if (tooltip) {
         const dataByTime = {};
         data.forEach(d => { dataByTime[d.time] = d; });
         chart.subscribeCrosshairMove(param => {
             if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
-                lastCrosshairTime = null;
                 tooltip.style.display = 'none'; return;
             }
-            lastCrosshairTime = param.time;
             const timeStr = _timeToStr(param.time);
             const d = dataByTime[timeStr];
             if (!d) { tooltip.style.display = 'none'; return; }
@@ -719,25 +711,14 @@ function renderBuySellChart(data) {
         if (realizedDetailsData[timeStr] !== undefined) showTradeDetail(timeStr);
     });
 
-    // 모바일 터치 지원
-    let lastBSCrosshairTime = null;
-    container.addEventListener('touchend', () => {
-        if (lastBSCrosshairTime) {
-            const timeStr = _timeToStr(lastBSCrosshairTime);
-            if (realizedDetailsData[timeStr] !== undefined) showTradeDetail(timeStr);
-        }
-    });
-
     const tooltip = document.getElementById('buySellTooltip');
     if (tooltip) {
         const dataByTime = {};
         data.forEach(d => { dataByTime[d.time] = d; });
         chart.subscribeCrosshairMove(param => {
             if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
-                lastBSCrosshairTime = null;
                 tooltip.style.display = 'none'; return;
             }
-            lastBSCrosshairTime = param.time;
             const timeStr = _timeToStr(param.time);
             const d = dataByTime[timeStr];
             if (!d) { tooltip.style.display = 'none'; return; }
@@ -839,6 +820,8 @@ function showTradeDetail(dateStr) {
     const data = realizedDetailsData[dateStr];
 
     document.getElementById('tradeDetailDate').textContent = dateStr;
+    const picker = document.getElementById('tradeDetailDatePicker');
+    if (picker) picker.value = dateStr;
 
     const setSummary = (id, val, isPct=false, colorize=false) => {
         const el = document.getElementById(id);
@@ -913,6 +896,21 @@ function showTradeDetail(dateStr) {
 applyRealizedRange(60);
 if (realizedInitialDate) {
     showTradeDetail(realizedInitialDate);
+}
+
+// 날짜 직접 선택
+const datePicker = document.getElementById('tradeDetailDatePicker');
+if (datePicker) {
+    // min/max를 실현손익 데이터 범위로 설정
+    const allDates = Object.keys(realizedDetailsData).sort();
+    if (allDates.length) {
+        datePicker.min = allDates[0];
+        datePicker.max = allDates[allDates.length - 1];
+    }
+    datePicker.addEventListener('change', () => {
+        const val = datePicker.value;
+        if (val) showTradeDetail(val);
+    });
 }
 
 // 범위 버튼
