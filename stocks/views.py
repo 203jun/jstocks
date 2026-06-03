@@ -2439,8 +2439,9 @@ def asset(request):
     realized_chart_data = [
         {
             'time': d.date.strftime('%Y-%m-%d'),
-            'value': d.total_pl_amount or 0,
-            'color': '#1d4ed8' if (d.total_pl_amount or 0) < 0 else '#ef5350',
+            'buy': d.total_buy_amount or 0,
+            'sell': d.total_sell_amount or 0,
+            'pl': d.total_pl_amount or 0,
         }
         for d in diaries
     ]

@@ -391,6 +391,13 @@
     </div>
     <div class="asset-chart-wrap">
         <div id="realizedChart" class="asset-chart"></div>
+        <div id="realizedTooltip" class="asset-tooltip"></div>
+    </div>
+    <div style="display:flex;gap:14px;font-size:0.72rem;color:var(--text-muted);margin-top:6px;">
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(22,163,74,0.55);vertical-align:middle;margin-right:4px;border-radius:2px;"></span>매수</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(234,88,12,0.55);vertical-align:middle;margin-right:4px;border-radius:2px;"></span>매도</span>
+        <span><span style="display:inline-block;width:14px;height:2px;background:rgb(239,83,80);vertical-align:middle;margin-right:4px;"></span>손익 (양수)</span>
+        <span><span style="display:inline-block;width:14px;height:2px;background:rgb(41,98,255);vertical-align:middle;margin-right:4px;"></span>손익 (음수)</span>
     </div>
     <div class="realized-summary">
         <span>합계 <strong id="realizedTotalEl"></strong></span>
@@ -569,33 +576,58 @@ function renderRealizedChart(data) {
     }
     if (!data || data.length === 0) return;
 
-    // 선택된 막대는 앰버색으로 강조
-    const renderData = data.map(d => {
-        if (d.time === selectedRealizedDate) {
-            return { ...d, color: '#f59e0b' };
-        }
-        return d;
-    });
-
     const chart = LightweightCharts.createChart(container, {
         ...chartOptions,
         height: 240,
+        leftPriceScale: { visible: true, borderColor: chartBorderColor },
+        rightPriceScale: { visible: true, borderColor: chartBorderColor },
     });
 
-    const series = chart.addHistogramSeries({
+    const COLOR_BUY = 'rgba(22, 163, 74, 0.55)';
+    const COLOR_SELL = 'rgba(234, 88, 12, 0.55)';
+    const COLOR_SEL = 'rgba(245, 158, 11, 0.85)';
+
+    // 매수 막대 (좌측 축)
+    const buySeries = chart.addHistogramSeries({
         priceFormat: { type: 'volume' },
+        priceScaleId: 'left',
         priceLineVisible: false,
         base: 0,
     });
-    series.setData(renderData);
+    buySeries.setData(data.map(d => ({
+        time: d.time,
+        value: d.buy,
+        color: d.time === selectedRealizedDate ? COLOR_SEL : COLOR_BUY,
+    })));
 
-    series.createPriceLine({
-        price: 0,
-        color: '#9ca3af',
-        lineWidth: 1,
-        lineStyle: 2,
-        axisLabelVisible: false,
+    // 매도 막대 (좌측 축, 매수 위에 그려져 겹침 표현)
+    const sellSeries = chart.addHistogramSeries({
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'left',
+        priceLineVisible: false,
+        base: 0,
     });
+    sellSeries.setData(data.map(d => ({
+        time: d.time,
+        value: d.sell,
+        color: d.time === selectedRealizedDate ? COLOR_SEL : COLOR_SELL,
+    })));
+
+    // 손익 baseline 라인 (우측 축, 양수=빨강 / 음수=파랑)
+    const plSeries = chart.addBaselineSeries({
+        baseValue: { type: 'price', price: 0 },
+        topLineColor: 'rgba(239, 83, 80, 1)',
+        topFillColor1: 'rgba(239, 83, 80, 0)',
+        topFillColor2: 'rgba(239, 83, 80, 0)',
+        bottomLineColor: 'rgba(41, 98, 255, 1)',
+        bottomFillColor1: 'rgba(41, 98, 255, 0)',
+        bottomFillColor2: 'rgba(41, 98, 255, 0)',
+        lineWidth: 2,
+        priceScaleId: 'right',
+        priceLineVisible: false,
+        lastValueVisible: true,
+    });
+    plSeries.setData(data.map(d => ({ time: d.time, value: d.pl })));
 
     chart.subscribeClick(param => {
         if (!param.time) return;
@@ -607,6 +639,62 @@ function renderRealizedChart(data) {
         }
     });
 
+    // 호버 툴팁 (매수/매도/손익 3개 값)
+    const tooltip = document.getElementById('realizedTooltip');
+    if (tooltip) {
+        const dataByTime = {};
+        data.forEach(d => { dataByTime[d.time] = d; });
+
+        chart.subscribeCrosshairMove(param => {
+            if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
+                tooltip.style.display = 'none';
+                return;
+            }
+            const timeStr = (typeof param.time === 'string')
+                ? param.time
+                : `${param.time.year}-${String(param.time.month).padStart(2,'0')}-${String(param.time.day).padStart(2,'0')}`;
+            const d = dataByTime[timeStr];
+            if (!d) {
+                tooltip.style.display = 'none';
+                return;
+            }
+
+            let plClass = 'highlight-rate-zero';
+            if (d.pl > 0) plClass = 'highlight-rate-up';
+            else if (d.pl < 0) plClass = 'highlight-rate-down';
+
+            tooltip.innerHTML = `
+                <div class="asset-tooltip-date">${timeStr}</div>
+                <div class="asset-tooltip-row">
+                    <span class="asset-tooltip-label">매수</span>
+                    <span class="asset-tooltip-value" style="color:#16a34a;font-weight:700;">${fmtWon(d.buy)}</span>
+                </div>
+                <div class="asset-tooltip-row">
+                    <span class="asset-tooltip-label">매도</span>
+                    <span class="asset-tooltip-value" style="color:#ea580c;font-weight:700;">${fmtWon(d.sell)}</span>
+                </div>
+                <div class="asset-tooltip-row">
+                    <span class="asset-tooltip-label">손익</span>
+                    <span class="asset-tooltip-value ${plClass}">${fmtWon(d.pl)}</span>
+                </div>
+            `;
+
+            const wrap = container.parentElement;
+            const wrapRect = wrap.getBoundingClientRect();
+            const tipW = tooltip.offsetWidth || 180;
+            const tipH = tooltip.offsetHeight || 100;
+            let left = param.point.x + 15;
+            let top = param.point.y + 15;
+            if (left + tipW > wrapRect.width) left = param.point.x - tipW - 15;
+            if (top + tipH > wrapRect.height) top = param.point.y - tipH - 15;
+            if (left < 0) left = 0;
+            if (top < 0) top = 0;
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+            tooltip.style.display = 'block';
+        });
+    }
+
     chart.timeScale().fitContent();
     realizedChartInstance = chart;
 }
@@ -616,7 +704,7 @@ function updateRealizedSummary(data) {
     let profitDays = 0, lossDays = 0;
 
     (data || []).forEach(d => {
-        const v = Number(d.value) || 0;
+        const v = Number(d.pl) || 0;
         total += v;
         if (v > 0) { profitTotal += v; profitDays++; }
         else if (v < 0) { lossTotal += v; lossDays++; }
