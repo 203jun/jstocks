@@ -2583,7 +2583,7 @@ def market(request):
         'asset_chart_data': json.dumps(asset_chart_data),
         'asset_latest': asset_latest,
         'asset_changes': asset_changes,
-        'holdings': _annotate_holdings(list(Holding.objects.all())),
+        'holdings': _annotate_holdings(list(Holding.objects.select_related('info', 'info_etf').all())),
     }
     return render(request, 'stocks/market.html', context)
 
