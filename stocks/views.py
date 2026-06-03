@@ -2503,6 +2503,9 @@ def market(request):
             'time': s.date.strftime('%Y-%m-%d'),
             'total_eval_amount': s.total_eval_amount or 0,
             'profit_rate': float(s.profit_rate) if s.profit_rate is not None else 0,
+            'total_eval_profit': s.total_eval_profit,
+            'deposit_balance': s.deposit_balance,
+            'cash_weight': float(s.cash_weight) if s.cash_weight is not None else None,
         }
         for s in asset_snapshots
     ]

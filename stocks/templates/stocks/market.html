@@ -439,6 +439,43 @@
     text-align: center;
     font-size: 0.9rem;
 }
+.asset-chart-wrap {
+    position: relative;
+}
+.asset-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.76rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    z-index: 10;
+    display: none;
+    min-width: 190px;
+}
+.asset-tooltip-date {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: var(--text-muted, #6b7280);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 4px;
+}
+.asset-tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 2px 0;
+}
+.asset-tooltip-label {
+    color: var(--text-muted, #6b7280);
+}
+.asset-tooltip-value { font-weight: 500; }
+.asset-tooltip-value.highlight-amount { color: #3b82f6; font-weight: 700; }
+.asset-tooltip-value.highlight-rate-up { color: rgb(34,197,94); font-weight: 700; }
+.asset-tooltip-value.highlight-rate-down { color: rgb(239,68,68); font-weight: 700; }
+.asset-tooltip-value.highlight-rate-zero { color: var(--text-muted, #6b7280); font-weight: 700; }
 @media (max-width: 768px) {
     .asset-info-row { grid-template-columns: repeat(2, 1fr); }
     .asset-chart { height: 220px; }
@@ -450,7 +487,10 @@
 <h5 class="section-heading" style="margin-top: 0;">자산</h5>
 <div class="asset-card">
     {% if asset_latest %}
-    <div id="assetChart" class="asset-chart"></div>
+    <div class="asset-chart-wrap">
+        <div id="assetChart" class="asset-chart"></div>
+        <div id="assetTooltip" class="asset-tooltip"></div>
+    </div>
     <div class="asset-info-row">
         <div class="asset-info-item">
             <div class="asset-info-label">총 평가금액</div>
@@ -1253,6 +1293,74 @@ function initAssetChart(containerId, data) {
     rateSeries.setData(data.map(d => ({ time: d.time, value: d.profit_rate })));
 
     chart.timeScale().fitContent();
+
+    // ===== Tooltip on hover =====
+    const tooltip = document.getElementById('assetTooltip');
+    if (tooltip) {
+        const dataByTime = {};
+        data.forEach(d => { dataByTime[d.time] = d; });
+
+        const fmtWon = (n) => (n === null || n === undefined) ? '-' : Math.round(n).toLocaleString('ko-KR') + '원';
+        const fmtPct = (n) => (n === null || n === undefined) ? '-' : Number(n).toFixed(2) + '%';
+
+        chart.subscribeCrosshairMove(param => {
+            if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
+                tooltip.style.display = 'none';
+                return;
+            }
+            const timeStr = (typeof param.time === 'string')
+                ? param.time
+                : `${param.time.year}-${String(param.time.month).padStart(2,'0')}-${String(param.time.day).padStart(2,'0')}`;
+            const d = dataByTime[timeStr];
+            if (!d) {
+                tooltip.style.display = 'none';
+                return;
+            }
+
+            let rateClass = 'highlight-rate-zero';
+            if (d.profit_rate > 0) rateClass = 'highlight-rate-up';
+            else if (d.profit_rate < 0) rateClass = 'highlight-rate-down';
+
+            tooltip.innerHTML = `
+                <div class="asset-tooltip-date">${timeStr}</div>
+                <div class="asset-tooltip-row">
+                    <span class="asset-tooltip-label">총 평가금액</span>
+                    <span class="asset-tooltip-value highlight-amount">${fmtWon(d.total_eval_amount)}</span>
+                </div>
+                <div class="asset-tooltip-row">
+                    <span class="asset-tooltip-label">총 평가손익</span>
+                    <span class="asset-tooltip-value">${fmtWon(d.total_eval_profit)}</span>
+                </div>
+                <div class="asset-tooltip-row">
+                    <span class="asset-tooltip-label">수익률</span>
+                    <span class="asset-tooltip-value ${rateClass}">${fmtPct(d.profit_rate)}</span>
+                </div>
+                <div class="asset-tooltip-row">
+                    <span class="asset-tooltip-label">예수금</span>
+                    <span class="asset-tooltip-value">${fmtWon(d.deposit_balance)}</span>
+                </div>
+                <div class="asset-tooltip-row">
+                    <span class="asset-tooltip-label">현금비중</span>
+                    <span class="asset-tooltip-value">${fmtPct(d.cash_weight)}</span>
+                </div>
+            `;
+
+            const wrap = container.parentElement;
+            const wrapRect = wrap.getBoundingClientRect();
+            const tipW = tooltip.offsetWidth || 200;
+            const tipH = tooltip.offsetHeight || 160;
+            let left = param.point.x + 15;
+            let top = param.point.y + 15;
+            if (left + tipW > wrapRect.width) left = param.point.x - tipW - 15;
+            if (top + tipH > wrapRect.height) top = param.point.y - tipH - 15;
+            if (left < 0) left = 0;
+            if (top < 0) top = 0;
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+            tooltip.style.display = 'block';
+        });
+    }
+
     return chart;
 }
 initAssetChart('assetChart', assetChartData);
