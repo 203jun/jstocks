@@ -519,6 +519,13 @@
 .holdings-name {
     font-weight: 600;
 }
+.holdings-name a {
+    color: inherit;
+    text-decoration: none;
+}
+.holdings-name a:hover {
+    text-decoration: underline;
+}
 .holdings-code {
     color: var(--text-muted, #6b7280);
     font-size: 0.75rem;
@@ -616,7 +623,9 @@
             {% for h in holdings %}
             <tr>
                 <td>
-                    <span class="holdings-name">{{ h.stk_nm }}</span>
+                    <span class="holdings-name">
+                        {% if h.info_etf %}{{ h.stk_nm }}{% else %}<a href="{% url 'stock_detail' h.stk_cd %}">{{ h.stk_nm }}</a>{% endif %}
+                    </span>
                     <span class="holdings-code">{{ h.stk_cd }}</span>
                 </td>
                 <td class="holdings-stack">
