@@ -614,9 +614,10 @@
             <tr>
                 <th>종목명</th>
                 <th>현재가<br><span style="font-weight:400;">매입단가</span></th>
+                <th>보유수량</th>
                 <th>수익률<br><span style="font-weight:400;">평가손익</span></th>
                 <th>평가금액<br><span style="font-weight:400;">원금</span></th>
-                <th>평가비중<br><span style="font-weight:400;">보유수량</span></th>
+                <th>평가비중<br><span style="font-weight:400;">원금비중</span></th>
             </tr>
         </thead>
         <tbody>
@@ -634,6 +635,7 @@
                     </div>
                     <div class="holdings-stack-sub">{{ h.buy_uv|default_if_none:0|intcomma }}</div>
                 </td>
+                <td>{{ h.rmnd_qty|default_if_none:0|intcomma }}</td>
                 <td class="holdings-stack">
                     <div class="holdings-stack-main {% if h.profit_rate > 0 %}text-up{% elif h.profit_rate < 0 %}text-down{% endif %}">
                         {{ h.profit_rate|default_if_none:0 }}%
@@ -650,7 +652,7 @@
                 </td>
                 <td class="holdings-stack">
                     <div class="holdings-stack-main">{{ h.eval_weight|default_if_none:0 }}%</div>
-                    <div class="holdings-stack-sub">{{ h.rmnd_qty|default_if_none:0|intcomma }}</div>
+                    <div class="holdings-stack-sub">{{ h.buy_weight|default_if_none:0 }}%</div>
                 </td>
             </tr>
             {% endfor %}
