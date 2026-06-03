@@ -183,9 +183,26 @@
 }
 .realized-summary > span { color: var(--text-muted, #6b7280); }
 .realized-summary strong { color: var(--text-primary); margin-left: 4px; }
-.range-btn {
-    padding: 3px 10px;
-    background: none;
+.realized-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.realized-header-label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 24px;
+}
+.realized-range-btns {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.realized-range-btns .range-btn {
+    margin: 0;
+    padding: 0 10px;
+    background: transparent;
     border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 0.7rem;
@@ -193,20 +210,20 @@
     color: var(--text-muted);
     cursor: pointer;
     transition: all 0.15s;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
     height: 24px;
+    line-height: 22px;
     box-sizing: border-box;
     font-family: inherit;
-    margin: 0;
+    display: inline-block;
+    vertical-align: middle;
+    appearance: none;
+    -webkit-appearance: none;
 }
-.range-btn:hover {
+.realized-range-btns .range-btn:hover {
     color: var(--text-primary);
     border-color: var(--text-secondary);
 }
-.range-btn.active {
+.realized-range-btns .range-btn.active {
     background: var(--text-primary);
     color: var(--bg-card);
     border-color: var(--text-primary);
@@ -334,9 +351,9 @@
 <h5 class="section-heading">실현손익</h5>
 <div class="asset-card">
     {% if has_realized_data %}
-    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:8px;">
-        <span id="realizedRangeLabel" style="font-size:0.78rem;color:var(--text-muted);">최근 60일</span>
-        <div class="d-flex gap-1 realized-range-btns">
+    <div class="realized-header">
+        <span id="realizedRangeLabel" class="realized-header-label">최근 60일</span>
+        <div class="realized-range-btns">
             <button class="range-btn" data-days="10">10일</button>
             <button class="range-btn" data-days="30">30일</button>
             <button class="range-btn active" data-days="60">60일</button>
