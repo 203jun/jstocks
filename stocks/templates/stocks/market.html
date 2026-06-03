@@ -624,7 +624,7 @@
             <tr>
                 <td>
                     <span class="holdings-name">
-                        {% if h.info_etf %}{{ h.stk_nm }}{% else %}<a href="{% url 'stock_detail' h.stk_cd %}">{{ h.stk_nm }}</a>{% endif %}
+                        {% if h.info_etf %}{{ h.stk_nm }}{% else %}<a href="{% url 'stocks:stock_detail' h.stk_cd %}">{{ h.stk_nm }}</a>{% endif %}
                     </span>
                     <span class="holdings-code">{{ h.stk_cd }}</span>
                 </td>
