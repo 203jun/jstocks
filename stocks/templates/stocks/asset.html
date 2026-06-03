@@ -660,12 +660,25 @@ function renderBuySellChart(data) {
 
     const chart = LightweightCharts.createChart(container, { ...chartOptions, height: 180 });
 
-    const COLOR_BUY = 'rgba(22, 163, 74, 0.6)';
-    const COLOR_SELL = 'rgba(234, 88, 12, 0.6)';
-    const COLOR_SEL = 'rgba(245, 158, 11, 0.85)';
+    const COLOR_BUY = 'rgba(22, 163, 74, 0.7)';
+    const COLOR_SELL = 'rgba(234, 88, 12, 0.7)';
+    const COLOR_SEL = 'rgba(245, 158, 11, 0.9)';
 
+    // 축 라벨은 항상 절대값으로 표시 (mirror로 인한 음수 위치 감춤)
+    const absFormat = {
+        type: 'custom',
+        formatter: (price) => {
+            const abs = Math.abs(price);
+            if (abs >= 1e8) return (abs / 1e8).toFixed(abs >= 1e9 ? 0 : 1) + '억';
+            if (abs >= 1e4) return Math.round(abs / 1e4).toLocaleString('ko-KR') + '만';
+            return Math.round(abs).toLocaleString('ko-KR');
+        },
+        minMove: 1,
+    };
+
+    // 매수 (0 위로)
     const buySeries = chart.addHistogramSeries({
-        priceFormat: { type: 'volume' },
+        priceFormat: absFormat,
         priceLineVisible: false,
         base: 0,
     });
@@ -675,16 +688,22 @@ function renderBuySellChart(data) {
         color: d.time === selectedRealizedDate ? COLOR_SEL : COLOR_BUY,
     })));
 
+    // 매도 (0 아래로, mirror)
     const sellSeries = chart.addHistogramSeries({
-        priceFormat: { type: 'volume' },
+        priceFormat: absFormat,
         priceLineVisible: false,
         base: 0,
     });
     sellSeries.setData(data.map(d => ({
         time: d.time,
-        value: d.sell,
+        value: -(d.sell || 0),
         color: d.time === selectedRealizedDate ? COLOR_SEL : COLOR_SELL,
     })));
+
+    // 0 기준선
+    buySeries.createPriceLine({
+        price: 0, color: '#9ca3af', lineWidth: 1, lineStyle: 2, axisLabelVisible: false,
+    });
 
     chart.subscribeClick(param => {
         if (!param.time) return;
