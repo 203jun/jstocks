@@ -619,14 +619,25 @@ function renderRealizedChart(data) {
         if (realizedDetailsData[timeStr] !== undefined) showTradeDetail(timeStr);
     });
 
+    // 모바일 터치 지원: crosshairMove에서 마지막 시간 추적 후 touchend로 클릭 처리
+    let lastCrosshairTime = null;
+    container.addEventListener('touchend', () => {
+        if (lastCrosshairTime) {
+            const timeStr = _timeToStr(lastCrosshairTime);
+            if (realizedDetailsData[timeStr] !== undefined) showTradeDetail(timeStr);
+        }
+    });
+
     const tooltip = document.getElementById('realizedTooltip');
     if (tooltip) {
         const dataByTime = {};
         data.forEach(d => { dataByTime[d.time] = d; });
         chart.subscribeCrosshairMove(param => {
             if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
+                lastCrosshairTime = null;
                 tooltip.style.display = 'none'; return;
             }
+            lastCrosshairTime = param.time;
             const timeStr = _timeToStr(param.time);
             const d = dataByTime[timeStr];
             if (!d) { tooltip.style.display = 'none'; return; }
@@ -708,14 +719,25 @@ function renderBuySellChart(data) {
         if (realizedDetailsData[timeStr] !== undefined) showTradeDetail(timeStr);
     });
 
+    // 모바일 터치 지원
+    let lastBSCrosshairTime = null;
+    container.addEventListener('touchend', () => {
+        if (lastBSCrosshairTime) {
+            const timeStr = _timeToStr(lastBSCrosshairTime);
+            if (realizedDetailsData[timeStr] !== undefined) showTradeDetail(timeStr);
+        }
+    });
+
     const tooltip = document.getElementById('buySellTooltip');
     if (tooltip) {
         const dataByTime = {};
         data.forEach(d => { dataByTime[d.time] = d; });
         chart.subscribeCrosshairMove(param => {
             if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
+                lastBSCrosshairTime = null;
                 tooltip.style.display = 'none'; return;
             }
+            lastBSCrosshairTime = param.time;
             const timeStr = _timeToStr(param.time);
             const d = dataByTime[timeStr];
             if (!d) { tooltip.style.display = 'none'; return; }
