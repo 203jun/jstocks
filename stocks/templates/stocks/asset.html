@@ -183,6 +183,26 @@
 }
 .realized-summary > span { color: var(--text-muted, #6b7280); }
 .realized-summary strong { color: var(--text-primary); margin-left: 4px; }
+.range-btn {
+    padding: 3px 10px;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.range-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+.range-btn.active {
+    background: var(--text-primary);
+    color: var(--bg-card);
+    border-color: var(--text-primary);
+}
 {% endblock %}
 
 {% block content %}
@@ -306,23 +326,23 @@
 <h5 class="section-heading">실현손익</h5>
 <div class="asset-card">
     {% if has_realized_data %}
+    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:8px;">
+        <span id="realizedRangeLabel" style="font-size:0.78rem;color:var(--text-muted);">최근 60일</span>
+        <div class="d-flex gap-1 realized-range-btns">
+            <button class="range-btn" data-days="10">10일</button>
+            <button class="range-btn" data-days="30">30일</button>
+            <button class="range-btn active" data-days="60">60일</button>
+        </div>
+    </div>
     <div class="asset-chart-wrap">
         <div id="realizedChart" class="asset-chart"></div>
     </div>
     <div class="realized-summary">
-        <span>최근 60일 합계
-            <strong class="{% if realized_total > 0 %}text-up{% elif realized_total < 0 %}text-down{% endif %}">
-                {% if realized_total > 0 %}+{% endif %}{{ realized_total|intcomma }}원
-            </strong>
-        </span>
-        <span>이익일 <strong class="text-up">{{ realized_profit_days }}일</strong></span>
-        <span>손실일 <strong class="text-down">{{ realized_loss_days }}일</strong></span>
-        {% if realized_profit_total %}
-        <span>이익 합계 <strong class="text-up">+{{ realized_profit_total|intcomma }}원</strong></span>
-        {% endif %}
-        {% if realized_loss_total %}
-        <span>손실 합계 <strong class="text-down">{{ realized_loss_total|intcomma }}원</strong></span>
-        {% endif %}
+        <span>합계 <strong id="realizedTotalEl"></strong></span>
+        <span>이익일 <strong id="realizedProfitDaysEl" class="text-up"></strong></span>
+        <span>손실일 <strong id="realizedLossDaysEl" class="text-down"></strong></span>
+        <span id="realizedProfitTotalRow">이익 합계 <strong id="realizedProfitTotalEl" class="text-up"></strong></span>
+        <span id="realizedLossTotalRow">손실 합계 <strong id="realizedLossTotalEl" class="text-down"></strong></span>
     </div>
     {% else %}
     <div class="asset-empty">실현손익 데이터가 없습니다.</div>
@@ -459,9 +479,17 @@ function initAssetChart(containerId, data) {
 }
 initAssetChart('assetChart', assetChartData);
 
-function initRealizedChart(containerId, data) {
-    const container = document.getElementById(containerId);
-    if (!container || !data || data.length === 0) return null;
+let realizedChartInstance = null;
+
+function renderRealizedChart(data) {
+    const container = document.getElementById('realizedChart');
+    if (!container) return;
+
+    if (realizedChartInstance) {
+        realizedChartInstance.remove();
+        realizedChartInstance = null;
+    }
+    if (!data || data.length === 0) return;
 
     const chart = LightweightCharts.createChart(container, {
         ...chartOptions,
@@ -475,7 +503,6 @@ function initRealizedChart(containerId, data) {
     });
     series.setData(data);
 
-    // 0 기준선 (점선)
     series.createPriceLine({
         price: 0,
         color: '#9ca3af',
@@ -485,8 +512,69 @@ function initRealizedChart(containerId, data) {
     });
 
     chart.timeScale().fitContent();
-    return chart;
+    realizedChartInstance = chart;
 }
-initRealizedChart('realizedChart', realizedChartData);
+
+function updateRealizedSummary(data) {
+    let total = 0, profitTotal = 0, lossTotal = 0;
+    let profitDays = 0, lossDays = 0;
+
+    (data || []).forEach(d => {
+        const v = Number(d.value) || 0;
+        total += v;
+        if (v > 0) { profitTotal += v; profitDays++; }
+        else if (v < 0) { lossTotal += v; lossDays++; }
+    });
+
+    const fmt = (n) => Math.round(n).toLocaleString('ko-KR') + '원';
+    const totalEl = document.getElementById('realizedTotalEl');
+    if (totalEl) {
+        totalEl.textContent = (total > 0 ? '+' : '') + fmt(total);
+        totalEl.className = total > 0 ? 'text-up' : (total < 0 ? 'text-down' : '');
+    }
+
+    const profitDaysEl = document.getElementById('realizedProfitDaysEl');
+    const lossDaysEl = document.getElementById('realizedLossDaysEl');
+    if (profitDaysEl) profitDaysEl.textContent = profitDays + '일';
+    if (lossDaysEl) lossDaysEl.textContent = lossDays + '일';
+
+    const profitRow = document.getElementById('realizedProfitTotalRow');
+    const profitEl = document.getElementById('realizedProfitTotalEl');
+    if (profitTotal > 0 && profitRow && profitEl) {
+        profitRow.style.display = '';
+        profitEl.textContent = '+' + fmt(profitTotal);
+    } else if (profitRow) {
+        profitRow.style.display = 'none';
+    }
+
+    const lossRow = document.getElementById('realizedLossTotalRow');
+    const lossEl = document.getElementById('realizedLossTotalEl');
+    if (lossTotal < 0 && lossRow && lossEl) {
+        lossRow.style.display = '';
+        lossEl.textContent = fmt(lossTotal);
+    } else if (lossRow) {
+        lossRow.style.display = 'none';
+    }
+}
+
+function applyRealizedRange(days) {
+    const sliced = realizedChartData.slice(-days);
+    renderRealizedChart(sliced);
+    updateRealizedSummary(sliced);
+    const label = document.getElementById('realizedRangeLabel');
+    if (label) label.textContent = '최근 ' + days + '일';
+}
+
+// 초기 (60일)
+applyRealizedRange(60);
+
+// 범위 버튼
+document.querySelectorAll('.realized-range-btns .range-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.realized-range-btns .range-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyRealizedRange(parseInt(btn.dataset.days));
+    });
+});
 </script>
 {% endblock %}

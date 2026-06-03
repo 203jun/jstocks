@@ -2431,31 +2431,17 @@ def asset(request):
             'cash_weight': _delta(asset_latest.cash_weight, asset_prev.cash_weight),
         }
 
-    # 실현손익 (최근 60일 DailyTradeDiary)
+    # 실현손익 차트 데이터 (최근 60일 DailyTradeDiary, 합산은 JS에서 범위별 재계산)
     diaries = list(DailyTradeDiary.objects.order_by('-date')[:60])
     diaries.reverse()
-
-    realized_chart_data = []
-    realized_total = 0
-    realized_profit_total = 0
-    realized_loss_total = 0
-    realized_profit_days = 0
-    realized_loss_days = 0
-    for d in diaries:
-        pl = d.total_pl_amount or 0
-        realized_chart_data.append({
+    realized_chart_data = [
+        {
             'time': d.date.strftime('%Y-%m-%d'),
-            'value': pl,
-            # 이익=빨강(상승), 손실=짙은 파랑(눈에 더 띄도록)
-            'color': '#1d4ed8' if pl < 0 else '#ef5350',
-        })
-        realized_total += pl
-        if pl > 0:
-            realized_profit_total += pl
-            realized_profit_days += 1
-        elif pl < 0:
-            realized_loss_total += pl
-            realized_loss_days += 1
+            'value': d.total_pl_amount or 0,
+            'color': '#1d4ed8' if (d.total_pl_amount or 0) < 0 else '#ef5350',
+        }
+        for d in diaries
+    ]
 
     context = {
         'asset_chart_data': json.dumps(asset_chart_data),
@@ -2464,11 +2450,6 @@ def asset(request):
         'holdings': _annotate_holdings(list(Holding.objects.select_related('info', 'info_etf').all())),
         'realized_chart_data': json.dumps(realized_chart_data),
         'has_realized_data': bool(realized_chart_data),
-        'realized_total': realized_total,
-        'realized_profit_total': realized_profit_total,
-        'realized_loss_total': realized_loss_total,
-        'realized_profit_days': realized_profit_days,
-        'realized_loss_days': realized_loss_days,
     }
     return render(request, 'stocks/asset.html', context)
 
