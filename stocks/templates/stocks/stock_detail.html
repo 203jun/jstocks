@@ -623,72 +623,6 @@
         <div id="eventEmpty" style="color:var(--text-muted);font-size:0.85rem;">등록된 이벤트가 없습니다.</div>
     </div>
 
-    <!-- 매매근거 -->
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">매매근거{% if stock.trade_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="tradeUpdatedAt">update: {{ stock.trade_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
-    <div class="brief-card">
-        <!-- 보기 모드 -->
-        <div id="tradeViewMode">
-            <!-- 매수/매도가 -->
-            <div class="d-flex flex-wrap gap-3" style="font-size:0.88rem;margin-bottom:12px;">
-                <span><span style="color:var(--text-muted);font-size:0.82rem;">매수가</span> <strong class="text-up">{% if stock.buy_price %}{{ stock.buy_price|intcomma }}{% else %}-{% endif %}</strong></span>
-                <span><span style="color:var(--text-muted);font-size:0.82rem;">매도가</span> <strong class="text-down">{% if stock.sell_price %}{{ stock.sell_price|intcomma }}{% else %}-{% endif %}</strong></span>
-            </div>
-            <!-- 매수근거 -->
-            {% if stock.buy_reason %}
-            <div style="margin-bottom:12px;">
-                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">매수근거</div>
-                <div class="markdown-content" style="font-size:0.85rem;" id="buyReasonMarkdown"></div>
-                <script type="text/plain" id="buyReasonRaw">{{ stock.buy_reason|safe }}</script>
-            </div>
-            {% endif %}
-            <!-- 매도근거 -->
-            {% if stock.sell_reason %}
-            <div style="margin-bottom:8px;">
-                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">매도근거</div>
-                <div class="markdown-content" style="font-size:0.85rem;" id="sellReasonMarkdown"></div>
-                <script type="text/plain" id="sellReasonRaw">{{ stock.sell_reason|safe }}</script>
-            </div>
-            {% endif %}
-            <div style="display:flex;justify-content:flex-end;margin-top:8px;">
-                <span id="btnTradeEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
-            </div>
-        </div>
-        <!-- 편집 모드 -->
-        <div id="tradeEditMode" class="d-none">
-            <div class="d-flex flex-wrap gap-3" style="margin-bottom:12px;align-items:flex-end;">
-                <div>
-                    <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">매수가</label>
-                    <div style="display:flex;gap:4px;align-items:center;">
-                        <input type="number" id="buyPriceInput" class="form-control" value="{{ stock.buy_price|default:'' }}" placeholder="매수가" style="width:120px;font-size:0.85rem;padding:4px 8px;">
-                        <button type="button" class="btn-refresh btn-ma" data-target="buyPriceInput" data-value="{{ ma10_value|default:'' }}" style="padding:2px 6px;font-size:0.7rem;">10일</button>
-                        <button type="button" class="btn-refresh btn-ma" data-target="buyPriceInput" data-value="{{ ma20_value|default:'' }}" style="padding:2px 6px;font-size:0.7rem;">20일</button>
-                        <button type="button" class="btn-refresh btn-ma" data-target="buyPriceInput" data-value="{{ ma60_value|default:'' }}" style="padding:2px 6px;font-size:0.7rem;">60일</button>
-                    </div>
-                </div>
-                <div>
-                    <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">범위(%)</label>
-                    <input type="number" id="buyRangeInput" class="form-control" value="{{ stock.buy_price_range|default:5 }}" min="1" max="30" style="width:70px;font-size:0.85rem;padding:4px 8px;">
-                </div>
-                <div>
-                    <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">매도가</label>
-                    <input type="number" id="sellPriceInput" class="form-control" value="{{ stock.sell_price|default:'' }}" placeholder="매도가" style="width:120px;font-size:0.85rem;padding:4px 8px;">
-                </div>
-            </div>
-            <div style="margin-bottom:12px;">
-                <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">매수근거 (마크다운)</label>
-                <textarea class="form-control" id="buyReasonTextarea" rows="4" style="font-family:monospace;font-size:0.85rem;" placeholder="매수근거를 입력하세요...">{{ stock.buy_reason }}</textarea>
-            </div>
-            <div style="margin-bottom:12px;">
-                <label style="font-size:0.78rem;color:var(--text-muted);display:block;margin-bottom:4px;">매도근거 (마크다운)</label>
-                <textarea class="form-control" id="sellReasonTextarea" rows="4" style="font-family:monospace;font-size:0.85rem;" placeholder="매도근거를 입력하세요...">{{ stock.sell_reason }}</textarea>
-            </div>
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" id="btnTradeCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
-                <button type="button" id="btnTradeSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
-            </div>
-        </div>
-    </div>
-
     <!-- 핵심 브리핑 -->
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">핵심 브리핑{% if stock.key_briefing_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="briefingUpdatedAt">update: {{ stock.key_briefing_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
     <div class="brief-card">
@@ -1918,9 +1852,6 @@ const chartBorder = _isDarkTheme ? '#2a2e38' : '#ddd';
 const stockCode = "{{ stock.code }}";
 const themeName = "{{ stock.themes.first.name|default:""|escapejs }}";
 const themeCategoryName = "{{ stock.themes.first.category.name|default:""|escapejs }}";
-const tradeBuyPrice = {{ stock.buy_price|default:"null" }};
-const tradeSellPrice = {{ stock.sell_price|default:"null" }};
-const tradeBuyRange = {{ stock.buy_price_range|default:"5" }};
 
 // ===== Tab switching =====
 document.querySelectorAll('.market-tab').forEach(tab => {
@@ -2057,8 +1988,6 @@ function renderContent(rawId, markdownId) {
 }
 
 renderContent('memoRaw', 'memoMarkdown');
-if (document.getElementById('buyReasonRaw')) renderContent('buyReasonRaw', 'buyReasonMarkdown');
-if (document.getElementById('sellReasonRaw')) renderContent('sellReasonRaw', 'sellReasonMarkdown');
 renderContent('keyBriefingRaw', 'keyBriefingMarkdown');
 renderContent('analysisRaw', 'analysisMarkdown');
 renderContent('finAnalysisV2Raw', 'finAnalysisV2Markdown');
@@ -2129,56 +2058,6 @@ document.getElementById('btnMemoSave').addEventListener('click', async () => {
             }
             document.getElementById('memoEditMode').classList.add('d-none');
             document.getElementById('memoViewMode').classList.remove('d-none');
-        } else {
-            alert('저장 실패');
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '저장';
-    }
-});
-
-// ===== 매매근거 인라인 편집 =====
-document.getElementById('btnTradeEdit').addEventListener('click', () => {
-    document.getElementById('tradeViewMode').classList.add('d-none');
-    document.getElementById('tradeEditMode').classList.remove('d-none');
-});
-document.getElementById('btnTradeCancel').addEventListener('click', () => {
-    document.getElementById('tradeEditMode').classList.add('d-none');
-    document.getElementById('tradeViewMode').classList.remove('d-none');
-});
-
-// 이평선 버튼
-document.querySelectorAll('.btn-ma').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const target = document.getElementById(btn.dataset.target);
-        const value = btn.dataset.value;
-        if (value) target.value = value;
-    });
-});
-
-// 저장
-document.getElementById('btnTradeSave').addEventListener('click', async () => {
-    const btn = document.getElementById('btnTradeSave');
-    btn.disabled = true;
-    btn.textContent = '저장 중...';
-    try {
-        const formData = new FormData();
-        formData.append('buy_reason', document.getElementById('buyReasonTextarea').value);
-        formData.append('sell_reason', document.getElementById('sellReasonTextarea').value);
-        formData.append('buy_price', document.getElementById('buyPriceInput').value);
-        formData.append('sell_price', document.getElementById('sellPriceInput').value);
-        formData.append('buy_price_range', document.getElementById('buyRangeInput').value);
-        const resp = await fetch(`/api/stock/${stockCode}/trade/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-            body: formData
-        });
-        const data = await resp.json();
-        if (data.success) {
-            location.reload();
         } else {
             alert('저장 실패');
         }
@@ -3212,16 +3091,6 @@ btnYtSave.addEventListener('click', async () => {
 loadYtTimeline(true);
 
 // ===== MA calculation =====
-function addTradePriceBand(chart, candleData, candleSeries) {
-    if (!tradeBuyPrice || !candleData.length) return;
-    const pct = tradeBuyRange / 100;
-    const upper = Math.round(tradeBuyPrice * (1 + pct / 2));
-    const lower = Math.round(tradeBuyPrice * (1 - pct / 2));
-    const opts = { color: 'rgba(239,83,80,0.5)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: false };
-    candleSeries.createPriceLine({ ...opts, price: upper });
-    candleSeries.createPriceLine({ ...opts, price: lower });
-}
-
 function calculateMA(data, period) {
     const result = [];
     for (let i = period - 1; i < data.length; i++) {
@@ -3301,7 +3170,7 @@ function initDailyChart(days, visibleDays) {
     candleSeries.setData(candleData);
     dailyCandleSeries = candleSeries;
     candleSeries.setMarkers(buildDiaryMarkers(diaryTrades));
-    addTradePriceBand(chart, candleData, candleSeries);
+
 
     for (const [period, color] of Object.entries(maConfig)) {
         const s = chart.addLineSeries({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
@@ -3408,7 +3277,7 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
     });
     const candleSeries = chart.addCandlestickSeries({ upColor:'#ef5350', downColor:'#26a69a', borderUpColor:'#ef5350', borderDownColor:'#26a69a', wickUpColor:'#ef5350', wickDownColor:'#26a69a' });
     candleSeries.setData(candleData);
-    addTradePriceBand(chart, candleData, candleSeries);
+
 
     const weeklyMaConfig = { 5:'#ff9800', 10:'#2196f3', 20:'#4caf50' };
     const weeklyMaSeries = {};
@@ -3448,7 +3317,7 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
     });
     const candleSeries = chart.addCandlestickSeries({ upColor:'#ef5350', downColor:'#26a69a', borderUpColor:'#ef5350', borderDownColor:'#26a69a', wickUpColor:'#ef5350', wickDownColor:'#26a69a' });
     candleSeries.setData(candleData);
-    addTradePriceBand(chart, candleData, candleSeries);
+
 
     const monthlyMaConfig = { 5:'#ff9800', 10:'#2196f3', 20:'#4caf50' };
     const monthlyMaSeries = {};
