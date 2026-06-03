@@ -170,6 +170,19 @@
         background: var(--bg-hover, rgba(0,0,0,0.03));
     }
 }
+
+/* Realized P&L summary */
+.realized-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.85rem;
+}
+.realized-summary > span { color: var(--text-muted, #6b7280); }
+.realized-summary strong { color: var(--text-primary); margin-left: 4px; }
 {% endblock %}
 
 {% block content %}
@@ -288,11 +301,39 @@
     <div class="asset-empty">보유 종목 데이터가 없습니다.</div>
     {% endif %}
 </div>
+
+<!-- 실현손익 -->
+<h5 class="section-heading">실현손익</h5>
+<div class="asset-card">
+    {% if has_realized_data %}
+    <div class="asset-chart-wrap">
+        <div id="realizedChart" class="asset-chart"></div>
+    </div>
+    <div class="realized-summary">
+        <span>최근 60일 합계
+            <strong class="{% if realized_total > 0 %}text-up{% elif realized_total < 0 %}text-down{% endif %}">
+                {% if realized_total > 0 %}+{% endif %}{{ realized_total|intcomma }}원
+            </strong>
+        </span>
+        <span>이익일 <strong class="text-up">{{ realized_profit_days }}일</strong></span>
+        <span>손실일 <strong class="text-down">{{ realized_loss_days }}일</strong></span>
+        {% if realized_profit_total %}
+        <span>이익 합계 <strong class="text-up">+{{ realized_profit_total|intcomma }}원</strong></span>
+        {% endif %}
+        {% if realized_loss_total %}
+        <span>손실 합계 <strong class="text-down">{{ realized_loss_total|intcomma }}원</strong></span>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="asset-empty">실현손익 데이터가 없습니다.</div>
+    {% endif %}
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 const assetChartData = {{ asset_chart_data|safe }};
+const realizedChartData = {{ realized_chart_data|safe }};
 
 const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
 const chartBgColor = isDarkTheme ? '#1a1d24' : '#ffffff';
@@ -417,5 +458,35 @@ function initAssetChart(containerId, data) {
     return chart;
 }
 initAssetChart('assetChart', assetChartData);
+
+function initRealizedChart(containerId, data) {
+    const container = document.getElementById(containerId);
+    if (!container || !data || data.length === 0) return null;
+
+    const chart = LightweightCharts.createChart(container, {
+        ...chartOptions,
+        height: 240,
+    });
+
+    const series = chart.addHistogramSeries({
+        priceFormat: { type: 'volume' },
+        priceLineVisible: false,
+        base: 0,
+    });
+    series.setData(data);
+
+    // 0 기준선 (점선)
+    series.createPriceLine({
+        price: 0,
+        color: '#9ca3af',
+        lineWidth: 1,
+        lineStyle: 2,
+        axisLabelVisible: false,
+    });
+
+    chart.timeScale().fitContent();
+    return chart;
+}
+initRealizedChart('realizedChart', realizedChartData);
 </script>
 {% endblock %}

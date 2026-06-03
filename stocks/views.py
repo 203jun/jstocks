@@ -2388,8 +2388,8 @@ def _annotate_holdings(holdings):
 
 
 def asset(request):
-    """자산 페이지 (총자산 시계열 차트 + 보유 종목)"""
-    from .models import DailyAccountSnapshot, Holding
+    """자산 페이지 (총자산 시계열 + 보유 종목 + 실현손익)"""
+    from .models import DailyAccountSnapshot, Holding, DailyTradeDiary
 
     asset_snapshots = list(DailyAccountSnapshot.objects.order_by('-date')[:60])
     asset_snapshots.reverse()
@@ -2431,11 +2431,44 @@ def asset(request):
             'cash_weight': _delta(asset_latest.cash_weight, asset_prev.cash_weight),
         }
 
+    # 실현손익 (최근 60일 DailyTradeDiary)
+    diaries = list(DailyTradeDiary.objects.order_by('-date')[:60])
+    diaries.reverse()
+
+    realized_chart_data = []
+    realized_total = 0
+    realized_profit_total = 0
+    realized_loss_total = 0
+    realized_profit_days = 0
+    realized_loss_days = 0
+    for d in diaries:
+        pl = d.total_pl_amount or 0
+        realized_chart_data.append({
+            'time': d.date.strftime('%Y-%m-%d'),
+            'value': pl,
+            # 이익=빨강(상승), 손실=짙은 파랑(눈에 더 띄도록)
+            'color': '#1d4ed8' if pl < 0 else '#ef5350',
+        })
+        realized_total += pl
+        if pl > 0:
+            realized_profit_total += pl
+            realized_profit_days += 1
+        elif pl < 0:
+            realized_loss_total += pl
+            realized_loss_days += 1
+
     context = {
         'asset_chart_data': json.dumps(asset_chart_data),
         'asset_latest': asset_latest,
         'asset_changes': asset_changes,
         'holdings': _annotate_holdings(list(Holding.objects.select_related('info', 'info_etf').all())),
+        'realized_chart_data': json.dumps(realized_chart_data),
+        'has_realized_data': bool(realized_chart_data),
+        'realized_total': realized_total,
+        'realized_profit_total': realized_profit_total,
+        'realized_loss_total': realized_loss_total,
+        'realized_profit_days': realized_profit_days,
+        'realized_loss_days': realized_loss_days,
     }
     return render(request, 'stocks/asset.html', context)
 
