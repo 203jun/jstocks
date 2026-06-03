@@ -453,11 +453,20 @@
     <div id="assetChart" class="asset-chart"></div>
     <div class="asset-info-row">
         <div class="asset-info-item">
-            <div class="asset-info-label">추정자산</div>
-            <div class="asset-info-value">{{ asset_latest.estimated_asset|default_if_none:0|intcomma }}원</div>
-            {% with d=asset_changes.estimated_asset %}{% if d %}
+            <div class="asset-info-label">총 평가금액</div>
+            <div class="asset-info-value">{{ asset_latest.total_eval_amount|default_if_none:0|intcomma }}원</div>
+            {% with d=asset_changes.total_eval_amount %}{% if d %}
             <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
                 {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}원{% if d.pct is not None %} ({% if d.pct > 0 %}+{% endif %}{{ d.pct }}%){% endif %}
+            </div>
+            {% endif %}{% endwith %}
+        </div>
+        <div class="asset-info-item">
+            <div class="asset-info-label">수익률</div>
+            <div class="asset-info-value">{{ asset_latest.profit_rate|default_if_none:0 }}%</div>
+            {% with d=asset_changes.profit_rate %}{% if d %}
+            <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
+                {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:2 }}%p
             </div>
             {% endif %}{% endwith %}
         </div>
@@ -467,15 +476,6 @@
             {% with d=asset_changes.total_eval_profit %}{% if d %}
             <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
                 {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}원
-            </div>
-            {% endif %}{% endwith %}
-        </div>
-        <div class="asset-info-item">
-            <div class="asset-info-label">총 매입가</div>
-            <div class="asset-info-value">{{ asset_latest.total_buy_amount|default_if_none:0|intcomma }}원</div>
-            {% with d=asset_changes.total_buy_amount %}{% if d %}
-            <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
-                {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}원{% if d.pct is not None %} ({% if d.pct > 0 %}+{% endif %}{{ d.pct }}%){% endif %}
             </div>
             {% endif %}{% endwith %}
         </div>
