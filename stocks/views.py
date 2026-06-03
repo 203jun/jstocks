@@ -2494,8 +2494,8 @@ def market(request):
     kosdaq_raw_trends = get_raw_trend_data('KOSDAQ')
     futures_raw_trends = get_raw_trend_data('FUTURES')
 
-    # 자산 스냅샷 (최근 30일치, 차트는 오름차순)
-    asset_snapshots = list(DailyAccountSnapshot.objects.order_by('-date')[:30])
+    # 자산 스냅샷 (최근 60일치, 차트는 오름차순)
+    asset_snapshots = list(DailyAccountSnapshot.objects.order_by('-date')[:60])
     asset_snapshots.reverse()
 
     asset_chart_data = [
