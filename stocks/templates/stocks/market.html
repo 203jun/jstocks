@@ -393,11 +393,115 @@
     .price-main { font-size: 1.1rem; }
     .hero-chart { padding: 10px 12px 14px; }
 }
+
+/* Asset section */
+.asset-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 14px 16px 16px;
+    margin-bottom: 24px;
+}
+.asset-chart {
+    width: 100%;
+    height: 280px;
+}
+.asset-info-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-top: 14px;
+}
+.asset-info-item {
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px 12px;
+    background: var(--bg-body, transparent);
+}
+.asset-info-label {
+    font-size: 0.78rem;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: 4px;
+}
+.asset-info-value {
+    font-size: 1.0rem;
+    font-weight: 600;
+}
+.asset-info-diff {
+    font-size: 0.78rem;
+    margin-top: 3px;
+}
+.asset-info-diff.up { color: #ef5350; }
+.asset-info-diff.down { color: #26a69a; }
+.asset-empty {
+    color: var(--text-muted, #6b7280);
+    padding: 24px 0;
+    text-align: center;
+    font-size: 0.9rem;
+}
+@media (max-width: 768px) {
+    .asset-info-row { grid-template-columns: repeat(2, 1fr); }
+    .asset-chart { height: 220px; }
+}
 {% endblock %}
 
 {% block content %}
 <!-- 자산 -->
 <h5 class="section-heading" style="margin-top: 0;">자산</h5>
+<div class="asset-card">
+    {% if asset_latest %}
+    <div id="assetChart" class="asset-chart"></div>
+    <div class="asset-info-row">
+        <div class="asset-info-item">
+            <div class="asset-info-label">추정자산</div>
+            <div class="asset-info-value">{{ asset_latest.estimated_asset|default_if_none:0|intcomma }}원</div>
+            {% with d=asset_changes.estimated_asset %}{% if d %}
+            <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
+                {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}원{% if d.pct is not None %} ({% if d.pct > 0 %}+{% endif %}{{ d.pct }}%){% endif %}
+            </div>
+            {% endif %}{% endwith %}
+        </div>
+        <div class="asset-info-item">
+            <div class="asset-info-label">총 평가손익</div>
+            <div class="asset-info-value">{{ asset_latest.total_eval_profit|default_if_none:0|intcomma }}원</div>
+            {% with d=asset_changes.total_eval_profit %}{% if d %}
+            <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
+                {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}원
+            </div>
+            {% endif %}{% endwith %}
+        </div>
+        <div class="asset-info-item">
+            <div class="asset-info-label">총 매입가</div>
+            <div class="asset-info-value">{{ asset_latest.total_buy_amount|default_if_none:0|intcomma }}원</div>
+            {% with d=asset_changes.total_buy_amount %}{% if d %}
+            <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
+                {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}원{% if d.pct is not None %} ({% if d.pct > 0 %}+{% endif %}{{ d.pct }}%){% endif %}
+            </div>
+            {% endif %}{% endwith %}
+        </div>
+        <div class="asset-info-item">
+            <div class="asset-info-label">예수금</div>
+            <div class="asset-info-value">{{ asset_latest.deposit_balance|default_if_none:0|intcomma }}원</div>
+            {% with d=asset_changes.deposit_balance %}{% if d %}
+            <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
+                {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}원{% if d.pct is not None %} ({% if d.pct > 0 %}+{% endif %}{{ d.pct }}%){% endif %}
+            </div>
+            {% endif %}{% endwith %}
+        </div>
+        <div class="asset-info-item">
+            <div class="asset-info-label">현금비중</div>
+            <div class="asset-info-value">{{ asset_latest.cash_weight|default_if_none:0 }}%</div>
+            {% with d=asset_changes.cash_weight %}{% if d %}
+            <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
+                {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:2 }}%p
+            </div>
+            {% endif %}{% endwith %}
+        </div>
+    </div>
+    {% else %}
+    <div class="asset-empty">자산 데이터가 없습니다. 키움 API를 통해 데이터를 받아오세요.</div>
+    {% endif %}
+</div>
 
 <!-- 차트 -->
 <h5 class="section-heading">차트</h5>
@@ -784,6 +888,7 @@ const kosdaqVolumeData = {{ kosdaq_volume_data|safe }};
 const kospiRawTrends = {{ kospi_raw_trends|safe }};
 const kosdaqRawTrends = {{ kosdaq_raw_trends|safe }};
 const futuresRawTrends = {{ futures_raw_trends|safe }};
+const assetChartData = {{ asset_chart_data|safe }};
 
 // ===== Youtube grid (공통) =====
 const savedPrompts = {
@@ -1105,6 +1210,42 @@ const fullData = {
 chartInstances.kospi = initCandleChart('kospiChart', kospiCandleData.slice(-120), kospiVolumeData.slice(-120), 'kospi');
 chartInstances.kosdaq = initCandleChart('kosdaqChart', kosdaqCandleData.slice(-120), kosdaqVolumeData.slice(-120), 'kosdaq');
 initCumulativeChart('kospiCumulativeChart', buildCumulative(kospiRawTrends, 120));
+
+// ===== Asset Chart (bar: 총평가금액, line: 수익률) =====
+function initAssetChart(containerId, data) {
+    const container = document.getElementById(containerId);
+    if (!container || !data || data.length === 0) return null;
+
+    const chart = LightweightCharts.createChart(container, {
+        ...chartOptions,
+        height: 280,
+        leftPriceScale: { visible: true, borderColor: chartBorderColor },
+        rightPriceScale: { visible: true, borderColor: chartBorderColor },
+    });
+
+    // 총평가금액 (막대)
+    const amountSeries = chart.addHistogramSeries({
+        color: '#3b82f6',
+        priceScaleId: 'right',
+        priceFormat: { type: 'volume' },
+        priceLineVisible: false,
+    });
+    amountSeries.setData(data.map(d => ({ time: d.time, value: d.total_eval_amount })));
+
+    // 수익률 (라인)
+    const rateSeries = chart.addLineSeries({
+        color: '#f59e0b',
+        lineWidth: 2,
+        priceScaleId: 'left',
+        priceLineVisible: false,
+        lastValueVisible: true,
+    });
+    rateSeries.setData(data.map(d => ({ time: d.time, value: d.profit_rate })));
+
+    chart.timeScale().fitContent();
+    return chart;
+}
+initAssetChart('assetChart', assetChartData);
 
 // ===== Range Buttons =====
 document.querySelectorAll('.range-btns').forEach(group => {
