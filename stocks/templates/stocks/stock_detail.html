@@ -342,6 +342,10 @@
 [data-theme="dark"] .trade-badge.sell { background:#13243a; color:#93c5fd; }
 .sd-label { display:block; font-size:0.72rem; color:var(--text-muted); margin-bottom:3px; }
 .sd-input { border:1px solid var(--border-color); border-radius:6px; padding:4px 8px; font-size:0.82rem; color:var(--text-body); background:var(--bg-card); }
+.pending-item { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border:1px dashed var(--border-color); border-radius:6px; margin-bottom:6px; font-size:0.82rem; background:var(--bg-body, transparent); }
+.pending-item:hover { background:var(--bg-hover, rgba(0,0,0,0.03)); }
+.pending-btn { padding:4px 12px; font-size:0.75rem; cursor:pointer; border:1px solid var(--border-color); border-radius:4px; background:var(--bg-card); color:var(--text-body); }
+.pending-btn:hover { background:var(--bg-hover); }
 
 /* YouTube timeline */
 .timeline { position:relative; padding-left:24px; }
@@ -543,6 +547,8 @@
                 <button type="button" id="btnStockDiaryNewSell" class="btn-refresh" style="padding:6px 14px;font-size:0.8rem;">매도 일지</button>
             </div>
         </div>
+        <!-- 미작성 건 -->
+        <div id="pendingTradesArea"></div>
         <!-- 매수 일지 폼 -->
         <div id="stockDiaryBuyForm" class="d-none" style="margin-bottom:16px;padding:16px;background:var(--bg-secondary, #f9fafb);border-radius:8px;border-left:3px solid var(--up-color, #ef5350);">
             <div style="font-weight:600;font-size:0.88rem;margin-bottom:12px;color:var(--up-color, #ef5350);">매수 일지 작성</div>
@@ -4206,6 +4212,51 @@ btnEvSave.addEventListener('click', async () => {
 });
 
 // ===== 종목 투자일지 =====
+const pendingTrades = {{ pending_trades_json|safe }};
+const pendingArea = document.getElementById('pendingTradesArea');
+
+function renderPending() {
+    if (!pendingTrades.length) { pendingArea.innerHTML = ''; return; }
+    let html = `<div style="margin-bottom:14px;"><div style="font-size:0.78rem;font-weight:600;color:#f59e0b;margin-bottom:6px;">📝 작성 대기 (${pendingTrades.length}건)</div>`;
+    pendingTrades.forEach(t => {
+        const isBuy = t.type === 'buy';
+        const badge = `<span class="trade-badge ${isBuy?'buy':'sell'}">${isBuy?'매수':'매도'}</span>`;
+        let info = '';
+        if (isBuy && t.buy_qty) info = `${fmtN(t.buy_qty)}주 × ${fmtN(t.buy_avg_price)}원`;
+        if (!isBuy && t.sell_qty) {
+            info = `${fmtN(t.sell_qty)}주 × ${fmtN(t.sell_avg_price)}원`;
+            if (t.pl_amount != null) info += ` (손익 ${t.pl_amount>0?'+':''}${fmtN(t.pl_amount)}원)`;
+        }
+        html += `<div class="pending-item">
+            <div style="display:flex;align-items:center;gap:8px;">
+                ${badge} <span>${t.date}</span> <span style="color:var(--text-muted);font-size:0.78rem;">${info}</span>
+            </div>
+            <button class="pending-btn" data-trade-id="${t.id}" data-type="${t.type}" data-date="${t.date}">작성</button>
+        </div>`;
+    });
+    html += '</div>';
+    pendingArea.innerHTML = html;
+
+    pendingArea.querySelectorAll('.pending-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tradeId = this.dataset.tradeId;
+            const type = this.dataset.type;
+            const date = this.dataset.date;
+            const t = pendingTrades.find(p => p.id == tradeId && p.type === type);
+            if (type === 'buy') {
+                openBuyForm(null);
+                document.getElementById('sdBuyDate').value = date;
+                document.getElementById('sdBuyTradeId').value = tradeId;
+            } else {
+                openSellForm(null);
+                document.getElementById('sdSellDate').value = date;
+                document.getElementById('sdSellTradeId').value = tradeId;
+            }
+        });
+    });
+}
+renderPending();
+
 const sdTimeline = document.getElementById('stockDiaryTimeline');
 const sdEmpty = document.getElementById('stockDiaryEmpty');
 const sdMore = document.getElementById('stockDiaryMore');

@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET
 from decouple import config
 from telethon import TelegramClient
 from django.views.decorators.http import require_POST
-from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, IndexChart, MarketTrend, InvestorTrend, ShortSelling, MarketDiary, StockDiary, StockEvent, SectorEvent, ETFEvent
+from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, IndexChart, MarketTrend, InvestorTrend, ShortSelling, MarketDiary, StockDiary, StockEvent, SectorEvent, ETFEvent, DailyTrade
 
 import unicodedata
 import re as _re
@@ -893,6 +893,23 @@ def stock_list(request):
     return render(request, 'stocks/stock_list.html', context)
 
 
+def _build_pending_trades(stock):
+    """StockDiary가 아직 작성되지 않은 DailyTrade 건을 매수/매도 별로 분리"""
+    pending = []
+    for t in DailyTrade.objects.filter(info=stock, stock_diary__isnull=True).select_related('diary').order_by('-diary__date'):
+        base = {
+            'id': t.id, 'date': t.diary.date.strftime('%Y-%m-%d'), 'stk_nm': t.stk_nm,
+            'buy_qty': t.buy_qty, 'buy_avg_price': t.buy_avg_price, 'buy_amount': t.buy_amount,
+            'sell_qty': t.sell_qty, 'sell_avg_price': t.sell_avg_price, 'sell_amount': t.sell_amount,
+            'pl_amount': t.pl_amount, 'profit_rate': str(t.profit_rate) if t.profit_rate else None,
+        }
+        if (t.buy_qty or 0) > 0:
+            pending.append({**base, 'type': 'buy'})
+        if (t.sell_qty or 0) > 0:
+            pending.append({**base, 'type': 'sell'})
+    return pending
+
+
 def stock_detail(request, code):
     """종목 상세 페이지"""
     from django.db.models import Q
@@ -1714,6 +1731,7 @@ def stock_detail(request, code):
             {'date': d.date.strftime('%Y-%m-%d'), 'is_buy': d.trade_type == 'buy', 'is_sell': d.trade_type == 'sell'}
             for d in StockDiary.objects.filter(stock=stock).only('date', 'trade_type')
         ]),
+        'pending_trades_json': json.dumps(_build_pending_trades(stock)),
     }
     return render(request, 'stocks/stock_detail.html', context)
 
