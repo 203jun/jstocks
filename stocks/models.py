@@ -2459,48 +2459,108 @@ class MarketDiary(models.Model):
 
 
 class StockDiary(models.Model):
-    """종목별 투자일지"""
+    """종목별 투자일지 (매수/매도 건별)"""
+
+    TRADE_TYPE_CHOICES = [('buy', '매수'), ('sell', '매도')]
+
+    # 매수 전용 choices
+    SETUP_TYPE_CHOICES = [
+        ('pullback', '정배열눌림목'), ('breakout', '돌파'),
+        ('bounce', '낙폭과대반등'), ('event', '이벤트베팅'), ('impulse', '뇌동(계획없음)'),
+    ]
+    CONFIDENCE_CHOICES = [(i, str(i)) for i in range(1, 6)]
+    POSITION_SIZE_CHOICES = [
+        ('planned', '계획대로'), ('over', '과도하게 실음'), ('under', '적게 실음'),
+    ]
+    ENTRY_EMOTION_CHOICES = [
+        ('calm', '차분'), ('rush', '조급'), ('fomo', 'FOMO'), ('overconfident', '확신과다'),
+    ]
+
+    # 매도 전용 choices
+    SELL_REASON_CHOICES = [
+        ('target', '목표달성'), ('stop', '룰대로손절'), ('invalidated', '무효화조건충족'),
+        ('time_stop', '시간손절'), ('panic', '공포·뇌동'), ('early_profit', '조기익절'),
+    ]
+    STOP_COMPLIANCE_CHOICES = [
+        ('kept', '지킴'), ('delayed', '미룸'), ('na', '해당없음'),
+    ]
+    ENTRY_VALIDITY_CHOICES = [
+        ('correct', '맞았음'), ('wrong', '틀렸음'), ('lucky', '운(과정틀림·결과좋음)'),
+    ]
+    PLAN_COMPLIANCE_CHOICES = [
+        ('planned', '계획대로'), ('chased', '추격매수함'), ('averaged', '물타기함'), ('early_exit', '조기이탈'),
+    ]
+    EXIT_EMOTION_CHOICES = [
+        ('calm', '차분'), ('fear', '공포'), ('regret', '미련'), ('relief', '안도'),
+    ]
+    PROCESS_EVAL_CHOICES = [
+        ('good', '잘한 매매'), ('bad', '못한 매매'),
+    ]
 
     stock = models.ForeignKey(
-        'Info',
-        on_delete=models.CASCADE,
-        related_name='diaries',
-        verbose_name='종목'
+        'Info', on_delete=models.CASCADE, related_name='diaries', verbose_name='종목'
     )
-    date = models.DateField(
-        verbose_name='날짜'
+    trade = models.OneToOneField(
+        'DailyTrade', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='stock_diary', verbose_name='매매 데이터',
+        help_text='DailyTrade 자동 연결 (매수/매도 수량·가격·손익)'
     )
-    content = models.TextField(
-        verbose_name='내용'
+    date = models.DateField(verbose_name='날짜')
+    trade_type = models.CharField(
+        max_length=4, choices=TRADE_TYPE_CHOICES, default='buy', verbose_name='매매 구분'
     )
-    is_buy = models.BooleanField(
-        default=False,
-        verbose_name='매수',
-        help_text='해당 일자에 매수 발생 여부'
+
+    # === 매수 전용 필드 ===
+    setup_type = models.CharField(
+        max_length=20, choices=SETUP_TYPE_CHOICES, blank=True, default='', verbose_name='셋업 유형'
     )
-    is_sell = models.BooleanField(
-        default=False,
-        verbose_name='매도',
-        help_text='해당 일자에 매도 발생 여부'
+    entry_reason = models.TextField(blank=True, default='', verbose_name='진입 근거')
+    planned_stop_price = models.IntegerField(null=True, blank=True, verbose_name='계획 손절가')
+    invalidation_condition = models.TextField(blank=True, default='', verbose_name='무효화 조건')
+    target_price_1 = models.IntegerField(null=True, blank=True, verbose_name='1차 목표가')
+    entry_confidence = models.IntegerField(
+        null=True, blank=True, choices=CONFIDENCE_CHOICES, verbose_name='진입 확신도'
     )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='생성일시'
+    position_size = models.CharField(
+        max_length=10, choices=POSITION_SIZE_CHOICES, blank=True, default='', verbose_name='비중(계획 대비)'
     )
-    updated_at = models.DateTimeField(
-        auto_now=True,
-        verbose_name='수정일시'
+    entry_emotion = models.CharField(
+        max_length=15, choices=ENTRY_EMOTION_CHOICES, blank=True, default='', verbose_name='진입 시 심리'
     )
+    is_planned = models.BooleanField(default=True, verbose_name='계획매매 여부')
+
+    # === 매도 전용 필드 ===
+    sell_reason_type = models.CharField(
+        max_length=15, choices=SELL_REASON_CHOICES, blank=True, default='', verbose_name='매도 사유'
+    )
+    stop_compliance = models.CharField(
+        max_length=10, choices=STOP_COMPLIANCE_CHOICES, blank=True, default='', verbose_name='손절 준수 여부'
+    )
+    entry_validity = models.CharField(
+        max_length=10, choices=ENTRY_VALIDITY_CHOICES, blank=True, default='', verbose_name='진입 근거 유효성'
+    )
+    plan_compliance = models.CharField(
+        max_length=15, choices=PLAN_COMPLIANCE_CHOICES, blank=True, default='', verbose_name='계획 대비 행동'
+    )
+    exit_emotion = models.CharField(
+        max_length=15, choices=EXIT_EMOTION_CHOICES, blank=True, default='', verbose_name='매도 시 심리'
+    )
+    process_evaluation = models.CharField(
+        max_length=5, choices=PROCESS_EVAL_CHOICES, blank=True, default='', verbose_name='과정 평가'
+    )
+    lesson = models.TextField(blank=True, default='', verbose_name='한 줄 교훈')
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
 
     class Meta:
         db_table = 'stock_diary'
         verbose_name = '종목 투자일지'
         verbose_name_plural = '종목 투자일지'
-        ordering = ['-date']
-        unique_together = [('stock', 'date')]
+        ordering = ['-date', '-created_at']
 
     def __str__(self):
-        return f"{self.stock.name} {self.date}"
+        return f"{self.stock.name} {self.date} {self.get_trade_type_display()}"
 
 
 class StockEvent(models.Model):
