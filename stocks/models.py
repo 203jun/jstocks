@@ -341,13 +341,6 @@ class Info(models.Model):
         help_text='메모 마지막 수정일'
     )
 
-    # === 매매근거 ===
-    buy_reason = models.TextField(blank=True, default='', verbose_name='매수근거')
-    sell_reason = models.TextField(blank=True, default='', verbose_name='매도근거')
-    buy_price = models.IntegerField(null=True, blank=True, verbose_name='매수가')
-    sell_price = models.IntegerField(null=True, blank=True, verbose_name='매도가')
-    buy_price_range = models.IntegerField(default=5, verbose_name='매수가 범위(%)')
-    trade_updated_at = models.DateField(null=True, blank=True, verbose_name='매매근거 업데이트일')
     recent_trade_judgment = models.TextField(
         blank=True, default='', verbose_name='최근매매판별',
         help_text='AI 매매 판단 결과 저장'
@@ -452,14 +445,9 @@ class InfoETF(models.Model):
         help_text='현재 보유 중인 ETF 여부'
     )
 
-    # === 메모/매매근거 ===
+    # === 메모 ===
     memo = models.TextField(blank=True, default='', verbose_name='메모')
     memo_updated_at = models.DateField(null=True, blank=True, verbose_name='메모 수정일')
-    buy_reason = models.TextField(blank=True, default='', verbose_name='매수근거')
-    sell_reason = models.TextField(blank=True, default='', verbose_name='매도근거')
-    buy_price = models.IntegerField(null=True, blank=True, verbose_name='매수가')
-    sell_price = models.IntegerField(null=True, blank=True, verbose_name='매도가')
-    trade_updated_at = models.DateField(null=True, blank=True, verbose_name='매매근거 수정일')
 
     # === 메타 정보 ===
     created_at = models.DateTimeField(
@@ -1405,9 +1393,6 @@ class CustomSector(models.Model):
         verbose_name='기초리포트',
         help_text='기초리포트 (HTML 형식)'
     )
-    buy_reason = models.TextField(blank=True, default='', verbose_name='매수근거')
-    sell_reason = models.TextField(blank=True, default='', verbose_name='매도근거')
-    trade_updated_at = models.DateField(null=True, blank=True, verbose_name='매매근거 업데이트일')
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='생성일시'
