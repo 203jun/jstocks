@@ -340,6 +340,8 @@
 .trade-badge.sell { background:#dcedc8; color:#1976d2; }
 [data-theme="dark"] .trade-badge.buy { background:#3a1f1f; color:#fca5a5; }
 [data-theme="dark"] .trade-badge.sell { background:#13243a; color:#93c5fd; }
+.sd-label { display:block; font-size:0.72rem; color:var(--text-muted); margin-bottom:3px; }
+.sd-input { border:1px solid var(--border-color); border-radius:6px; padding:4px 8px; font-size:0.82rem; color:var(--text-body); background:var(--bg-card); }
 
 /* YouTube timeline */
 .timeline { position:relative; padding-left:24px; }
@@ -534,28 +536,140 @@
     <!-- 투자일지 -->
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">투자일지</h5>
     <div class="brief-card">
-        <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
             <span style="font-size:0.82rem;color:var(--text-muted);">종목 투자 기록</span>
-            <button type="button" id="btnStockDiaryNew" class="btn-refresh" style="padding:6px 16px;">추가</button>
-        </div>
-        <!-- 작성 폼 -->
-        <div id="stockDiaryForm" class="d-none" style="margin-bottom:16px;padding:16px;background:var(--bg-secondary, #f9fafb);border-radius:8px;">
-            <div class="d-flex justify-content-between align-items-center mb-2" style="gap:8px;flex-wrap:wrap;">
-                <div class="d-flex align-items-center" style="gap:10px;flex-wrap:wrap;">
-                    <input type="date" id="stockDiaryDate" style="border:1px solid var(--border-color);border-radius:6px;padding:4px 10px;font-size:0.82rem;color:var(--text-body);background:var(--bg-card);">
-                    <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.78rem;color:var(--text-secondary);cursor:pointer;">
-                        <input type="checkbox" id="stockDiaryIsBuy" style="cursor:pointer;"> 매수
-                    </label>
-                    <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.78rem;color:var(--text-secondary);cursor:pointer;">
-                        <input type="checkbox" id="stockDiaryIsSell" style="cursor:pointer;"> 매도
-                    </label>
-                </div>
-                <span class="prompt-badge" role="button" id="btnCopyDiaryPrompt">프롬프트 복사</span>
+            <div style="display:flex;gap:6px;">
+                <button type="button" id="btnStockDiaryNewBuy" class="btn-refresh" style="padding:6px 14px;font-size:0.8rem;">매수 일지</button>
+                <button type="button" id="btnStockDiaryNewSell" class="btn-refresh" style="padding:6px 14px;font-size:0.8rem;">매도 일지</button>
             </div>
-            <textarea id="stockDiaryContent" rows="5" placeholder="투자 기록을 남겨보세요... (마크다운 지원: **굵게**)" style="width:100%;border:1px solid var(--border-color);border-radius:8px;padding:12px;font-size:0.85rem;line-height:1.7;resize:vertical;font-family:inherit;background:var(--bg-card);color:var(--text-body);"></textarea>
-            <div class="d-flex justify-content-end gap-2 mt-2">
-                <button type="button" id="btnStockDiaryCancel" class="btn-refresh" style="padding:6px 16px;">취소</button>
-                <button type="button" id="btnStockDiarySave" class="btn-refresh" style="padding:6px 16px;">저장</button>
+        </div>
+        <!-- 매수 일지 폼 -->
+        <div id="stockDiaryBuyForm" class="d-none" style="margin-bottom:16px;padding:16px;background:var(--bg-secondary, #f9fafb);border-radius:8px;border-left:3px solid var(--up-color, #ef5350);">
+            <div style="font-weight:600;font-size:0.88rem;margin-bottom:12px;color:var(--up-color, #ef5350);">매수 일지 작성</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+                <div><label class="sd-label">날짜</label><input type="date" id="sdBuyDate" class="sd-input" style="width:150px;"></div>
+                <div><label class="sd-label">셋업 유형</label>
+                    <select id="sdBuySetup" class="sd-input" style="width:150px;">
+                        <option value="">선택</option>
+                        <option value="pullback">정배열눌림목</option>
+                        <option value="breakout">돌파</option>
+                        <option value="bounce">낙폭과대반등</option>
+                        <option value="event">이벤트베팅</option>
+                        <option value="impulse">뇌동(계획없음)</option>
+                    </select>
+                </div>
+                <div><label class="sd-label">확신도</label>
+                    <select id="sdBuyConfidence" class="sd-input" style="width:80px;">
+                        <option value="">선택</option>
+                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-bottom:10px;"><label class="sd-label">진입 근거</label><input type="text" id="sdBuyReason" class="sd-input" placeholder="왜 지금 샀나, 한두 줄" style="width:100%;"></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+                <div><label class="sd-label">계획 손절가</label><input type="number" id="sdBuyStopPrice" class="sd-input" style="width:120px;"></div>
+                <div><label class="sd-label">1차 목표가</label><input type="number" id="sdBuyTargetPrice" class="sd-input" style="width:120px;" placeholder="선택"></div>
+            </div>
+            <div style="margin-bottom:10px;"><label class="sd-label">무효화 조건</label><input type="text" id="sdBuyInvalidation" class="sd-input" placeholder="뭘 보면 내 판단이 틀린 거냐" style="width:100%;"></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+                <div><label class="sd-label">비중(계획 대비)</label>
+                    <select id="sdBuyPositionSize" class="sd-input" style="width:140px;">
+                        <option value="">선택</option>
+                        <option value="planned">계획대로</option>
+                        <option value="over">과도하게 실음</option>
+                        <option value="under">적게 실음</option>
+                    </select>
+                </div>
+                <div><label class="sd-label">진입 시 심리</label>
+                    <select id="sdBuyEmotion" class="sd-input" style="width:120px;">
+                        <option value="">선택</option>
+                        <option value="calm">차분</option>
+                        <option value="rush">조급</option>
+                        <option value="fomo">FOMO</option>
+                        <option value="overconfident">확신과다</option>
+                    </select>
+                </div>
+                <div><label class="sd-label">매매 성격</label>
+                    <div style="display:flex;gap:12px;padding-top:4px;">
+                        <label style="font-size:0.8rem;cursor:pointer;"><input type="radio" name="sdBuyPlanned" value="true" checked> 계획매매</label>
+                        <label style="font-size:0.8rem;cursor:pointer;"><input type="radio" name="sdBuyPlanned" value="false"> 뇌동매매</label>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" id="sdBuyTradeId" value="">
+            <input type="hidden" id="sdBuyEditId" value="">
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+                <button type="button" id="btnSdBuyCancel" class="btn-refresh" style="padding:6px 16px;">취소</button>
+                <button type="button" id="btnSdBuySave" class="btn-refresh" style="padding:6px 16px;">저장</button>
+            </div>
+        </div>
+        <!-- 매도 일지 폼 -->
+        <div id="stockDiarySellForm" class="d-none" style="margin-bottom:16px;padding:16px;background:var(--bg-secondary, #f9fafb);border-radius:8px;border-left:3px solid #2196f3;">
+            <div style="font-weight:600;font-size:0.88rem;margin-bottom:12px;color:#2196f3;">매도 일지 작성</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+                <div><label class="sd-label">날짜</label><input type="date" id="sdSellDate" class="sd-input" style="width:150px;"></div>
+                <div><label class="sd-label">매도 사유</label>
+                    <select id="sdSellReasonType" class="sd-input" style="width:160px;">
+                        <option value="">선택</option>
+                        <option value="target">목표달성</option>
+                        <option value="stop">룰대로손절</option>
+                        <option value="invalidated">무효화조건충족</option>
+                        <option value="time_stop">시간손절</option>
+                        <option value="panic">공포·뇌동</option>
+                        <option value="early_profit">조기익절</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+                <div><label class="sd-label">손절 준수 여부</label>
+                    <select id="sdSellStopCompliance" class="sd-input" style="width:120px;">
+                        <option value="">선택</option>
+                        <option value="kept">지킴</option>
+                        <option value="delayed">미룸</option>
+                        <option value="na">해당없음</option>
+                    </select>
+                </div>
+                <div><label class="sd-label">진입 근거 유효성</label>
+                    <select id="sdSellEntryValidity" class="sd-input" style="width:180px;">
+                        <option value="">선택</option>
+                        <option value="correct">맞았음</option>
+                        <option value="wrong">틀렸음</option>
+                        <option value="lucky">운(과정틀림·결과좋음)</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+                <div><label class="sd-label">계획 대비 행동</label>
+                    <select id="sdSellPlanCompliance" class="sd-input" style="width:140px;">
+                        <option value="">선택</option>
+                        <option value="planned">계획대로</option>
+                        <option value="chased">추격매수함</option>
+                        <option value="averaged">물타기함</option>
+                        <option value="early_exit">조기이탈</option>
+                    </select>
+                </div>
+                <div><label class="sd-label">매도 시 심리</label>
+                    <select id="sdSellEmotion" class="sd-input" style="width:120px;">
+                        <option value="">선택</option>
+                        <option value="calm">차분</option>
+                        <option value="fear">공포</option>
+                        <option value="regret">미련</option>
+                        <option value="relief">안도</option>
+                    </select>
+                </div>
+                <div><label class="sd-label">과정 평가</label>
+                    <div style="display:flex;gap:12px;padding-top:4px;">
+                        <label style="font-size:0.8rem;cursor:pointer;"><input type="radio" name="sdSellProcessEval" value="good"> 잘한 매매</label>
+                        <label style="font-size:0.8rem;cursor:pointer;"><input type="radio" name="sdSellProcessEval" value="bad"> 못한 매매</label>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-bottom:10px;"><label class="sd-label">한 줄 교훈</label><input type="text" id="sdSellLesson" class="sd-input" placeholder="다음에 고칠 점 딱 하나" style="width:100%;"></div>
+            <input type="hidden" id="sdSellTradeId" value="">
+            <input type="hidden" id="sdSellEditId" value="">
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+                <button type="button" id="btnSdSellCancel" class="btn-refresh" style="padding:6px 16px;">취소</button>
+                <button type="button" id="btnSdSellSave" class="btn-refresh" style="padding:6px 16px;">저장</button>
             </div>
         </div>
         <!-- 타임라인 -->
@@ -4095,81 +4209,91 @@ btnEvSave.addEventListener('click', async () => {
 const sdTimeline = document.getElementById('stockDiaryTimeline');
 const sdEmpty = document.getElementById('stockDiaryEmpty');
 const sdMore = document.getElementById('stockDiaryMore');
-const sdForm = document.getElementById('stockDiaryForm');
-const sdDate = document.getElementById('stockDiaryDate');
-const sdContent = document.getElementById('stockDiaryContent');
-const btnSdNew = document.getElementById('btnStockDiaryNew');
-const btnSdSave = document.getElementById('btnStockDiarySave');
-const btnSdCancel = document.getElementById('btnStockDiaryCancel');
 const btnSdMore = document.getElementById('btnStockDiaryMore');
+const sdBuyForm = document.getElementById('stockDiaryBuyForm');
+const sdSellForm = document.getElementById('stockDiarySellForm');
+const sdBtns = document.querySelectorAll('#btnStockDiaryNewBuy, #btnStockDiaryNewSell');
 
 let sdOffset = 0;
 const sdLimit = 20;
-let sdEditId = null;
 let allSdResults = [];
 
-sdDate.value = new Date().toISOString().split('T')[0];
+const todayStr = new Date().toISOString().split('T')[0];
 
 function formatSdDate(dateStr) {
-    const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-    if (dateStr === today) return '오늘';
+    if (dateStr === todayStr) return '오늘';
     if (dateStr === yesterday) return '어제';
     return dateStr;
 }
 
-function sdParseMd(text) {
-    let html = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
-    html = html.replace(/\n/g, '<br>');
-    return html;
-}
+function sdEsc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+const LABEL_MAP = {
+    setup_type: {pullback:'정배열눌림목',breakout:'돌파',bounce:'낙폭과대반등',event:'이벤트베팅',impulse:'뇌동'},
+    position_size: {planned:'계획대로',over:'과도하게 실음',under:'적게 실음'},
+    entry_emotion: {calm:'차분',rush:'조급',fomo:'FOMO',overconfident:'확신과다'},
+    sell_reason_type: {target:'목표달성',stop:'룰대로손절',invalidated:'무효화조건충족',time_stop:'시간손절',panic:'공포·뇌동',early_profit:'조기익절'},
+    stop_compliance: {kept:'지킴',delayed:'미룸',na:'해당없음'},
+    entry_validity: {correct:'맞았음',wrong:'틀렸음',lucky:'운'},
+    plan_compliance: {planned:'계획대로',chased:'추격매수함',averaged:'물타기함',early_exit:'조기이탈'},
+    exit_emotion: {calm:'차분',fear:'공포',regret:'미련',relief:'안도'},
+    process_evaluation: {good:'잘한 매매',bad:'못한 매매'},
+};
+function _l(field, val) { return (LABEL_MAP[field]||{})[val] || val || ''; }
+function fmtN(n) { return n != null ? Number(n).toLocaleString('ko-KR') : ''; }
 
 function renderSdTimeline(results) {
-    if (!results || results.length === 0) {
-        sdTimeline.innerHTML = '';
-        sdEmpty.style.display = '';
-        return;
-    }
+    if (!results || results.length === 0) { sdTimeline.innerHTML = ''; sdEmpty.style.display = ''; return; }
     sdEmpty.style.display = 'none';
-
     const groups = {};
-    results.forEach(item => {
-        if (!groups[item.date]) groups[item.date] = [];
-        groups[item.date].push(item);
-    });
+    results.forEach(item => { if (!groups[item.date]) groups[item.date] = []; groups[item.date].push(item); });
 
     let html = '';
-    Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(date => {
-        html += `<div class="timeline-group">`;
-        html += `<div class="timeline-date">${formatSdDate(date)}</div>`;
+    Object.keys(groups).sort((a,b) => b.localeCompare(a)).forEach(date => {
+        html += `<div class="timeline-group"><div class="timeline-date">${formatSdDate(date)}</div>`;
         groups[date].forEach(item => {
-            const tradeBadges = (item.is_buy ? '<span class="trade-badge buy">매수</span>' : '')
-                + (item.is_sell ? '<span class="trade-badge sell">매도</span>' : '');
-            html += `<div class="timeline-item" data-id="${item.id}" style="margin-bottom:4px;">
-                ${tradeBadges ? `<div style="margin-bottom:2px;display:flex;gap:4px;">${tradeBadges}</div>` : ''}
-                <div class="sd-text morning-md" style="font-size:0.82rem;color:var(--text-secondary);line-height:1.7;max-height:3.2em;overflow:hidden;transition:max-height 0.3s ease;" data-id="${item.id}">${sdParseMd(item.content)}</div>
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;">
-                    <span class="sd-toggle" data-id="${item.id}" style="font-size:0.72rem;color:#4f46e5;cursor:pointer;">더보기</span>
+            const isBuy = item.trade_type === 'buy';
+            const badge = `<span class="trade-badge ${isBuy?'buy':'sell'}">${isBuy?'매수':'매도'}</span>`;
+            let detail = '';
+            if (isBuy) {
+                const tags = [_l('setup_type', item.setup_type), item.entry_confidence ? `확신도 ${item.entry_confidence}` : '', item.is_planned === false ? '뇌동매매' : ''].filter(Boolean);
+                detail = `<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">${tags.join(' | ')}</div>`;
+                if (item.entry_reason) detail += `<div style="font-size:0.82rem;color:var(--text-secondary);margin-top:3px;">${sdEsc(item.entry_reason)}</div>`;
+                if (item.planned_stop_price) detail += `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">손절가 ${fmtN(item.planned_stop_price)}</div>`;
+            } else {
+                const tags = [_l('sell_reason_type', item.sell_reason_type), _l('stop_compliance', item.stop_compliance) ? `손절: ${_l('stop_compliance', item.stop_compliance)}` : '', _l('process_evaluation', item.process_evaluation)].filter(Boolean);
+                detail = `<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">${tags.join(' | ')}</div>`;
+                if (item.lesson) detail += `<div style="font-size:0.82rem;color:var(--text-secondary);margin-top:3px;">${sdEsc(item.lesson)}</div>`;
+            }
+            // 매매 데이터
+            if (item.trade_data) {
+                const t = item.trade_data;
+                let tradeInfo = '';
+                if (isBuy && t.buy_qty) tradeInfo = `${fmtN(t.buy_qty)}주 × ${fmtN(t.buy_avg_price)}원 = ${fmtN(t.buy_amount)}원`;
+                if (!isBuy && t.sell_qty) {
+                    tradeInfo = `${fmtN(t.sell_qty)}주 × ${fmtN(t.sell_avg_price)}원`;
+                    if (t.pl_amount != null) {
+                        const plClass = t.pl_amount > 0 ? 'text-up' : t.pl_amount < 0 ? 'text-down' : '';
+                        tradeInfo += ` | <span class="${plClass}">손익 ${t.pl_amount > 0 ? '+' : ''}${fmtN(t.pl_amount)}원${t.profit_rate ? ` (${t.profit_rate}%)` : ''}</span>`;
+                    }
+                }
+                if (tradeInfo) detail = `<div style="font-size:0.78rem;color:var(--text-secondary);margin-top:2px;">${tradeInfo}</div>` + detail;
+            }
+            html += `<div class="timeline-item" data-id="${item.id}" style="margin-bottom:6px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="display:flex;gap:4px;">${badge}</div>
                     <div style="display:flex;gap:10px;">
-                        <span class="sd-edit" data-id="${item.id}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
+                        <span class="sd-edit" data-id="${item.id}" data-type="${item.trade_type}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
                         <span class="sd-delete" data-id="${item.id}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">삭제</span>
                     </div>
                 </div>
+                ${detail}
             </div>`;
         });
         html += `</div>`;
     });
     sdTimeline.innerHTML = html;
-
-    sdTimeline.querySelectorAll('.sd-toggle').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const el = sdTimeline.querySelector(`.sd-text[data-id="${this.dataset.id}"]`);
-            if (el.style.maxHeight === 'none') { el.style.maxHeight = '3.2em'; this.textContent = '더보기'; }
-            else { el.style.maxHeight = 'none'; this.textContent = '접기'; }
-        });
-    });
 
     sdTimeline.querySelectorAll('.sd-delete').forEach(btn => {
         btn.addEventListener('click', async function() {
@@ -4186,23 +4310,58 @@ function renderSdTimeline(results) {
     sdTimeline.querySelectorAll('.sd-edit').forEach(btn => {
         btn.addEventListener('click', async function() {
             const id = this.dataset.id;
+            const type = this.dataset.type;
             try {
                 const res = await fetch(`/api/stock/${stockCode}/diary/?limit=100&offset=0`);
                 const data = await res.json();
                 const entry = data.results.find(r => r.id == id);
-                if (entry) {
-                    sdEditId = id;
-                    sdDate.value = entry.date;
-                    sdContent.value = entry.content;
-                    document.getElementById('stockDiaryIsBuy').checked = !!entry.is_buy;
-                    document.getElementById('stockDiaryIsSell').checked = !!entry.is_sell;
-                    sdForm.classList.remove('d-none');
-                    btnSdNew.classList.add('d-none');
-                    sdContent.focus();
+                if (!entry) return;
+                if (type === 'buy') {
+                    openBuyForm(entry);
+                } else {
+                    openSellForm(entry);
                 }
             } catch(e) {}
         });
     });
+}
+
+function hideAllForms() { sdBuyForm.classList.add('d-none'); sdSellForm.classList.add('d-none'); }
+
+function openBuyForm(entry) {
+    hideAllForms();
+    document.getElementById('sdBuyDate').value = entry ? entry.date : todayStr;
+    document.getElementById('sdBuySetup').value = entry ? (entry.setup_type_key || entry.setup_type_value || '') : '';
+    document.getElementById('sdBuyConfidence').value = entry ? (entry.entry_confidence || '') : '';
+    document.getElementById('sdBuyReason').value = entry ? (entry.entry_reason || '') : '';
+    document.getElementById('sdBuyStopPrice').value = entry ? (entry.planned_stop_price || '') : '';
+    document.getElementById('sdBuyTargetPrice').value = entry ? (entry.target_price_1 || '') : '';
+    document.getElementById('sdBuyInvalidation').value = entry ? (entry.invalidation_condition || '') : '';
+    document.getElementById('sdBuyPositionSize').value = entry ? (entry.position_size_key || entry.position_size || '') : '';
+    document.getElementById('sdBuyEmotion').value = entry ? (entry.entry_emotion_key || entry.entry_emotion || '') : '';
+    const planned = entry ? entry.is_planned !== false : true;
+    document.querySelector(`input[name="sdBuyPlanned"][value="${planned}"]`).checked = true;
+    document.getElementById('sdBuyTradeId').value = entry ? (entry.trade_id || '') : '';
+    document.getElementById('sdBuyEditId').value = entry ? (entry.id || '') : '';
+    sdBuyForm.classList.remove('d-none');
+}
+
+function openSellForm(entry) {
+    hideAllForms();
+    document.getElementById('sdSellDate').value = entry ? entry.date : todayStr;
+    document.getElementById('sdSellReasonType').value = entry ? (entry.sell_reason_type_key || entry.sell_reason_type || '') : '';
+    document.getElementById('sdSellStopCompliance').value = entry ? (entry.stop_compliance_key || entry.stop_compliance || '') : '';
+    document.getElementById('sdSellEntryValidity').value = entry ? (entry.entry_validity_key || entry.entry_validity || '') : '';
+    document.getElementById('sdSellPlanCompliance').value = entry ? (entry.plan_compliance_key || entry.plan_compliance || '') : '';
+    document.getElementById('sdSellEmotion').value = entry ? (entry.exit_emotion_key || entry.exit_emotion || '') : '';
+    const pe = entry ? (entry.process_evaluation_key || entry.process_evaluation || '') : '';
+    const peRadio = document.querySelector(`input[name="sdSellProcessEval"][value="${pe}"]`);
+    if (peRadio) peRadio.checked = true;
+    else document.querySelectorAll('input[name="sdSellProcessEval"]').forEach(r => r.checked = false);
+    document.getElementById('sdSellLesson').value = entry ? (entry.lesson || '') : '';
+    document.getElementById('sdSellTradeId').value = entry ? (entry.trade_id || '') : '';
+    document.getElementById('sdSellEditId').value = entry ? (entry.id || '') : '';
+    sdSellForm.classList.remove('d-none');
 }
 
 async function loadSd(reset) {
@@ -4222,96 +4381,64 @@ async function loadSd(reset) {
 try { loadSd(true); } catch(e) { console.error('stock diary init error', e); }
 btnSdMore.addEventListener('click', () => loadSd(false));
 
-btnSdNew.addEventListener('click', () => {
-    sdEditId = null;
-    sdDate.value = new Date().toISOString().split('T')[0];
-    sdContent.value = '';
-    document.getElementById('stockDiaryIsBuy').checked = false;
-    document.getElementById('stockDiaryIsSell').checked = false;
-    sdForm.classList.remove('d-none');
-    btnSdNew.classList.add('d-none');
-    sdContent.focus();
-});
+document.getElementById('btnStockDiaryNewBuy').addEventListener('click', () => openBuyForm(null));
+document.getElementById('btnStockDiaryNewSell').addEventListener('click', () => openSellForm(null));
+document.getElementById('btnSdBuyCancel').addEventListener('click', hideAllForms);
+document.getElementById('btnSdSellCancel').addEventListener('click', hideAllForms);
 
-btnSdCancel.addEventListener('click', () => {
-    sdForm.classList.add('d-none');
-    btnSdNew.classList.remove('d-none');
-    sdEditId = null;
-});
-
-btnSdSave.addEventListener('click', async () => {
-    const content = sdContent.value.trim();
-    if (!content) return alert('내용을 입력하세요.');
-    btnSdSave.disabled = true; btnSdSave.textContent = '저장 중...';
+document.getElementById('btnSdBuySave').addEventListener('click', async () => {
+    const btn = document.getElementById('btnSdBuySave');
+    btn.disabled = true; btn.textContent = '저장 중...';
     try {
         const fd = new FormData();
-        fd.append('date', sdDate.value);
-        fd.append('content', content);
-        fd.append('is_buy', document.getElementById('stockDiaryIsBuy').checked ? '1' : '0');
-        fd.append('is_sell', document.getElementById('stockDiaryIsSell').checked ? '1' : '0');
-        const url = sdEditId ? `/api/stock/${stockCode}/diary/${sdEditId}/update/` : `/api/stock/${stockCode}/diary/save/`;
+        const editId = document.getElementById('sdBuyEditId').value;
+        fd.append('trade_type', 'buy');
+        fd.append('date', document.getElementById('sdBuyDate').value);
+        fd.append('setup_type', document.getElementById('sdBuySetup').value);
+        fd.append('entry_confidence', document.getElementById('sdBuyConfidence').value);
+        fd.append('entry_reason', document.getElementById('sdBuyReason').value);
+        fd.append('planned_stop_price', document.getElementById('sdBuyStopPrice').value);
+        fd.append('target_price_1', document.getElementById('sdBuyTargetPrice').value);
+        fd.append('invalidation_condition', document.getElementById('sdBuyInvalidation').value);
+        fd.append('position_size', document.getElementById('sdBuyPositionSize').value);
+        fd.append('entry_emotion', document.getElementById('sdBuyEmotion').value);
+        fd.append('is_planned', document.querySelector('input[name="sdBuyPlanned"]:checked').value);
+        const tradeId = document.getElementById('sdBuyTradeId').value;
+        if (tradeId) fd.append('trade_id', tradeId);
+        const url = editId ? `/api/stock/${stockCode}/diary/${editId}/update/` : `/api/stock/${stockCode}/diary/save/`;
         const res = await fetch(url, { method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}, body:fd });
         const data = await res.json();
         if (data.error) alert(data.error);
-        else {
-            sdForm.classList.add('d-none'); btnSdNew.classList.remove('d-none'); sdEditId = null;
-            loadSd(true);
-            await refreshDiaryTrades();
-        }
+        else { hideAllForms(); loadSd(true); refreshDiaryTrades(); }
     } catch(e) { alert('오류: ' + e.message); }
-    finally { btnSdSave.disabled = false; btnSdSave.textContent = '저장'; }
+    finally { btn.disabled = false; btn.textContent = '저장'; }
 });
 
-// 투자일지 프롬프트 복사
-document.getElementById('btnCopyDiaryPrompt').addEventListener('click', async () => {
-    const btn = document.getElementById('btnCopyDiaryPrompt');
-    const promptTemplate = `{{ saved_prompts.prompt_diary|default:""|escapejs }}`;
-    if (!promptTemplate) { alert('설정 → 프롬프트 → 투자일지에서 프롬프트를 먼저 등록하세요.'); return; }
-
-    btn.textContent = '데이터 조회 중...';
+document.getElementById('btnSdSellSave').addEventListener('click', async () => {
+    const btn = document.getElementById('btnSdSellSave');
+    btn.disabled = true; btn.textContent = '저장 중...';
     try {
-        // 최신 데이터 가져오기
-        const resp = await fetch(`/api/stock/${stockCode}/refresh/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-        });
-        const result = await resp.json();
-
-        let price = '', rate = '';
-        if (result.success && result.data) {
-            const d = result.data;
-            price = d.current_price ? Number(d.current_price).toLocaleString('ko-KR') : '';
-            rate = d.change_rate !== null ? `${d.change_rate > 0 ? '+' : ''}${d.change_rate}` : '';
-            // DOM도 갱신
-            document.getElementById('currentPrice').textContent = price || '-';
-            const crEl = document.getElementById('changeRate');
-            if (d.change_rate !== null) {
-                crEl.textContent = `${rate}%`;
-                crEl.className = d.change_rate > 0 ? 'text-up' : d.change_rate < 0 ? 'text-down' : '';
-            }
-        } else {
-            price = (document.getElementById('currentPrice')?.textContent || '').trim();
-            rate = (document.getElementById('changeRate')?.textContent || '').replace('%','').trim();
-        }
-
-        const now = new Date();
-        const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-        let prompt = promptTemplate.replace(/\{종목명\}/g, stockName);
-        prompt = prompt.replace(/\{종목코드\}/g, stockCode);
-        prompt = prompt.replace(/\{티커\}/g, stockCode);
-        prompt = prompt.replace(/\{오늘날짜\}/g, now.toISOString().split('T')[0]);
-        prompt = prompt.replace(/\{현재시간\}/g, timeStr);
-        prompt = prompt.replace(/\{현재가\}/g, price);
-        prompt = prompt.replace(/\{변동률\}/g, rate);
-
-        warnMissingVars(prompt);
-        await copyToClipboard(prompt);
-        btn.textContent = '복사됨!';
-        setTimeout(() => { btn.textContent = '프롬프트 복사'; }, 1500);
-    } catch (err) {
-        alert('복사 실패: ' + err.message);
-        btn.textContent = '프롬프트 복사';
-    }
+        const fd = new FormData();
+        const editId = document.getElementById('sdSellEditId').value;
+        fd.append('trade_type', 'sell');
+        fd.append('date', document.getElementById('sdSellDate').value);
+        fd.append('sell_reason_type', document.getElementById('sdSellReasonType').value);
+        fd.append('stop_compliance', document.getElementById('sdSellStopCompliance').value);
+        fd.append('entry_validity', document.getElementById('sdSellEntryValidity').value);
+        fd.append('plan_compliance', document.getElementById('sdSellPlanCompliance').value);
+        fd.append('exit_emotion', document.getElementById('sdSellEmotion').value);
+        const peRadio = document.querySelector('input[name="sdSellProcessEval"]:checked');
+        fd.append('process_evaluation', peRadio ? peRadio.value : '');
+        fd.append('lesson', document.getElementById('sdSellLesson').value);
+        const tradeId = document.getElementById('sdSellTradeId').value;
+        if (tradeId) fd.append('trade_id', tradeId);
+        const url = editId ? `/api/stock/${stockCode}/diary/${editId}/update/` : `/api/stock/${stockCode}/diary/save/`;
+        const res = await fetch(url, { method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}, body:fd });
+        const data = await res.json();
+        if (data.error) alert(data.error);
+        else { hideAllForms(); loadSd(true); refreshDiaryTrades(); }
+    } catch(e) { alert('오류: ' + e.message); }
+    finally { btn.disabled = false; btn.textContent = '저장'; }
 });
 
 // ===== 기업분석 탭 - 재무분석/컨센서스분석 인라인 편집 =====

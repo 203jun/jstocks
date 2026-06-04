@@ -2863,15 +2863,32 @@ def stock_diary_list(request, code):
         if entry.trade_type == 'buy':
             result.update({
                 'setup_type': entry.get_setup_type_display() if entry.setup_type else '',
+                'setup_type_key': entry.setup_type,
                 'entry_reason': entry.entry_reason,
                 'planned_stop_price': entry.planned_stop_price,
+                'target_price_1': entry.target_price_1,
+                'invalidation_condition': entry.invalidation_condition,
                 'entry_confidence': entry.entry_confidence,
+                'position_size': entry.get_position_size_display() if entry.position_size else '',
+                'position_size_key': entry.position_size,
+                'entry_emotion': entry.get_entry_emotion_display() if entry.entry_emotion else '',
+                'entry_emotion_key': entry.entry_emotion,
                 'is_planned': entry.is_planned,
             })
         else:
             result.update({
                 'sell_reason_type': entry.get_sell_reason_type_display() if entry.sell_reason_type else '',
+                'sell_reason_type_key': entry.sell_reason_type,
+                'stop_compliance': entry.get_stop_compliance_display() if entry.stop_compliance else '',
+                'stop_compliance_key': entry.stop_compliance,
+                'entry_validity': entry.get_entry_validity_display() if entry.entry_validity else '',
+                'entry_validity_key': entry.entry_validity,
+                'plan_compliance': entry.get_plan_compliance_display() if entry.plan_compliance else '',
+                'plan_compliance_key': entry.plan_compliance,
+                'exit_emotion': entry.get_exit_emotion_display() if entry.exit_emotion else '',
+                'exit_emotion_key': entry.exit_emotion,
                 'process_evaluation': entry.get_process_evaluation_display() if entry.process_evaluation else '',
+                'process_evaluation_key': entry.process_evaluation,
                 'lesson': entry.lesson,
             })
         if entry.trade:
