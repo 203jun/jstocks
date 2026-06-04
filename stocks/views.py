@@ -4951,43 +4951,6 @@ def etf_memo_save(request, code):
     return JsonResponse({'success': True, 'updated_at': etf.memo_updated_at.strftime('%Y-%m-%d') if etf.memo_updated_at else ''})
 
 
-@require_POST
-def etf_trade_save(request, code):
-    """ETF 매매근거 저장 API"""
-    from datetime import date
-    from .models import InfoETF
-    etf = get_object_or_404(InfoETF, code=code)
-    changed = False
-
-    buy_reason = request.POST.get('buy_reason')
-    if buy_reason is not None and buy_reason.strip() != (etf.buy_reason or '').strip():
-        etf.buy_reason = buy_reason.strip()
-        changed = True
-
-    sell_reason = request.POST.get('sell_reason')
-    if sell_reason is not None and sell_reason.strip() != (etf.sell_reason or '').strip():
-        etf.sell_reason = sell_reason.strip()
-        changed = True
-
-    buy_price = request.POST.get('buy_price', '').strip()
-    new_buy = int(buy_price) if buy_price else None
-    if new_buy != etf.buy_price:
-        etf.buy_price = new_buy
-        changed = True
-
-    sell_price = request.POST.get('sell_price', '').strip()
-    new_sell = int(sell_price) if sell_price else None
-    if new_sell != etf.sell_price:
-        etf.sell_price = new_sell
-        changed = True
-
-    if changed:
-        etf.trade_updated_at = date.today()
-        etf.save(update_fields=['buy_reason', 'sell_reason', 'buy_price', 'sell_price', 'trade_updated_at'])
-
-    return JsonResponse({'success': True, 'updated_at': etf.trade_updated_at.strftime('%Y-%m-%d') if etf.trade_updated_at else ''})
-
-
 @require_GET
 def etf_diary_list(request, code):
     """ETF 투자일지 목록 API"""
@@ -5796,26 +5759,6 @@ def sector_memo_save(request, sector_id):
     sector.save(update_fields=['memo'])
     return JsonResponse({'success': True})
 
-
-@require_POST
-def sector_trade_save(request, sector_id):
-    """섹터 매매근거 저장 API"""
-    from .models import CustomSector
-    from datetime import date
-    sector = get_object_or_404(CustomSector, id=sector_id)
-    changed = False
-    buy_reason = request.POST.get('buy_reason')
-    if buy_reason is not None and buy_reason.strip() != (sector.buy_reason or '').strip():
-        sector.buy_reason = buy_reason.strip()
-        changed = True
-    sell_reason = request.POST.get('sell_reason')
-    if sell_reason is not None and sell_reason.strip() != (sector.sell_reason or '').strip():
-        sector.sell_reason = sell_reason.strip()
-        changed = True
-    if changed:
-        sector.trade_updated_at = date.today()
-        sector.save(update_fields=['buy_reason', 'sell_reason', 'trade_updated_at'])
-    return JsonResponse({'success': True, 'updated_at': sector.trade_updated_at.strftime('%Y-%m-%d') if sector.trade_updated_at else ''})
 
 
 # ===== 섹터 이벤트 =====
@@ -7350,8 +7293,6 @@ def stock_question_report_detail(request, report_id):
             'consensus_annual_text': _consensus_annual_text,
             'consensus_quarter_text': _consensus_quarter_text,
             'key_briefing': qr.stock.key_briefing or '',
-            'buy_reason': qr.stock.buy_reason or '',
-            'sell_reason': qr.stock.sell_reason or '',
             'future_events': _events_text,
             **tech,
             **{f'기업분석: {q}': r for q, r in _qr_map.items()},
@@ -8285,48 +8226,6 @@ def stock_supply_demand_analysis_save(request, code):
     if update_fields:
         stock.save(update_fields=update_fields)
     return JsonResponse({'success': True, 'updated_at': stock.supply_demand_analysis_updated_at.strftime('%Y-%m-%d') if stock.supply_demand_analysis_updated_at else ''})
-
-
-@require_POST
-def stock_trade_save(request, code):
-    """종목 매매근거 저장 API"""
-    from datetime import date
-    stock = get_object_or_404(Info, code=code)
-    changed = False
-
-    buy_reason = request.POST.get('buy_reason')
-    if buy_reason is not None and buy_reason.strip() != (stock.buy_reason or '').strip():
-        stock.buy_reason = buy_reason.strip()
-        changed = True
-
-    sell_reason = request.POST.get('sell_reason')
-    if sell_reason is not None and sell_reason.strip() != (stock.sell_reason or '').strip():
-        stock.sell_reason = sell_reason.strip()
-        changed = True
-
-    buy_price = request.POST.get('buy_price', '').strip()
-    new_buy = int(buy_price) if buy_price else None
-    if new_buy != stock.buy_price:
-        stock.buy_price = new_buy
-        changed = True
-
-    sell_price = request.POST.get('sell_price', '').strip()
-    new_sell = int(sell_price) if sell_price else None
-    if new_sell != stock.sell_price:
-        stock.sell_price = new_sell
-        changed = True
-
-    buy_price_range = request.POST.get('buy_price_range', '').strip()
-    new_range = int(buy_price_range) if buy_price_range else 5
-    if new_range != stock.buy_price_range:
-        stock.buy_price_range = new_range
-        changed = True
-
-    if changed:
-        stock.trade_updated_at = date.today()
-        stock.save(update_fields=['buy_reason', 'sell_reason', 'buy_price', 'sell_price', 'buy_price_range', 'trade_updated_at'])
-
-    return JsonResponse({'success': True, 'updated_at': stock.trade_updated_at.strftime('%Y-%m-%d') if stock.trade_updated_at else ''})
 
 
 @require_POST
