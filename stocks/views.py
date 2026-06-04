@@ -1711,8 +1711,8 @@ def stock_detail(request, code):
         'briefing_data': _build_briefing_data(stock, question_reports, nodaji_list, reports, common_core_reports + common_extra_reports, update_core_reports + update_extra_reports),
         'avg_target_price_3m': avg_target_price_3m,
         'diary_trades_json': json.dumps([
-            {'date': d.date.strftime('%Y-%m-%d'), 'is_buy': d.is_buy, 'is_sell': d.is_sell}
-            for d in StockDiary.objects.filter(stock=stock).filter(Q(is_buy=True) | Q(is_sell=True)).only('date', 'is_buy', 'is_sell')
+            {'date': d.date.strftime('%Y-%m-%d'), 'is_buy': d.trade_type == 'buy', 'is_sell': d.trade_type == 'sell'}
+            for d in StockDiary.objects.filter(stock=stock).only('date', 'trade_type')
         ]),
     }
     return render(request, 'stocks/stock_detail.html', context)
@@ -2854,14 +2854,34 @@ def stock_diary_list(request, code):
 
     results = []
     for entry in entries:
-        results.append({
+        result = {
             'id': entry.id,
             'date': entry.date.strftime('%Y-%m-%d'),
-            'content': entry.content,
-            'is_buy': entry.is_buy,
-            'is_sell': entry.is_sell,
+            'trade_type': entry.trade_type,
             'updated_at': entry.updated_at.strftime('%Y-%m-%d %H:%M'),
-        })
+        }
+        if entry.trade_type == 'buy':
+            result.update({
+                'setup_type': entry.get_setup_type_display() if entry.setup_type else '',
+                'entry_reason': entry.entry_reason,
+                'planned_stop_price': entry.planned_stop_price,
+                'entry_confidence': entry.entry_confidence,
+                'is_planned': entry.is_planned,
+            })
+        else:
+            result.update({
+                'sell_reason_type': entry.get_sell_reason_type_display() if entry.sell_reason_type else '',
+                'process_evaluation': entry.get_process_evaluation_display() if entry.process_evaluation else '',
+                'lesson': entry.lesson,
+            })
+        if entry.trade:
+            t = entry.trade
+            result['trade_data'] = {
+                'buy_qty': t.buy_qty, 'buy_avg_price': t.buy_avg_price, 'buy_amount': t.buy_amount,
+                'sell_qty': t.sell_qty, 'sell_avg_price': t.sell_avg_price, 'sell_amount': t.sell_amount,
+                'pl_amount': t.pl_amount, 'profit_rate': str(t.profit_rate) if t.profit_rate else None,
+            }
+        results.append(result)
 
     return JsonResponse({
         'success': True,
@@ -2879,12 +2899,10 @@ def _parse_bool(val):
 def stock_diary_save(request, code):
     """종목별 투자일지 저장 API"""
     date_str = request.POST.get('date', '').strip()
-    content = request.POST.get('content', '').strip()
-    is_buy = _parse_bool(request.POST.get('is_buy', ''))
-    is_sell = _parse_bool(request.POST.get('is_sell', ''))
+    trade_type = request.POST.get('trade_type', '').strip()
 
-    if not date_str or not content:
-        return JsonResponse({'error': '날짜와 내용을 입력하세요.'}, status=400)
+    if not date_str or trade_type not in ('buy', 'sell'):
+        return JsonResponse({'error': '날짜와 매매 구분을 입력하세요.'}, status=400)
 
     try:
         date_val = datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -2893,16 +2911,39 @@ def stock_diary_save(request, code):
 
     stock = get_object_or_404(Info, code=code)
 
-    if StockDiary.objects.filter(stock=stock, date=date_val).exists():
-        return JsonResponse({'error': '해당 날짜에 이미 일지가 있습니다.'}, status=400)
+    # DailyTrade 자동 연결 시도
+    trade = None
+    trade_id = request.POST.get('trade_id', '').strip()
+    if trade_id:
+        from .models import DailyTrade
+        trade = DailyTrade.objects.filter(id=trade_id).first()
 
-    entry = StockDiary.objects.create(
-        stock=stock, date=date_val, content=content,
-        is_buy=is_buy, is_sell=is_sell,
-    )
-    if is_buy and not stock.is_holding:
-        stock.is_holding = True
-        stock.save(update_fields=['is_holding'])
+    fields = {'stock': stock, 'date': date_val, 'trade_type': trade_type, 'trade': trade}
+
+    if trade_type == 'buy':
+        fields.update({
+            'setup_type': request.POST.get('setup_type', ''),
+            'entry_reason': request.POST.get('entry_reason', ''),
+            'planned_stop_price': int(request.POST['planned_stop_price']) if request.POST.get('planned_stop_price', '').strip() else None,
+            'invalidation_condition': request.POST.get('invalidation_condition', ''),
+            'target_price_1': int(request.POST['target_price_1']) if request.POST.get('target_price_1', '').strip() else None,
+            'entry_confidence': int(request.POST['entry_confidence']) if request.POST.get('entry_confidence', '').strip() else None,
+            'position_size': request.POST.get('position_size', ''),
+            'entry_emotion': request.POST.get('entry_emotion', ''),
+            'is_planned': request.POST.get('is_planned', 'true').lower() in ('true', '1', 'on'),
+        })
+    else:
+        fields.update({
+            'sell_reason_type': request.POST.get('sell_reason_type', ''),
+            'stop_compliance': request.POST.get('stop_compliance', ''),
+            'entry_validity': request.POST.get('entry_validity', ''),
+            'plan_compliance': request.POST.get('plan_compliance', ''),
+            'exit_emotion': request.POST.get('exit_emotion', ''),
+            'process_evaluation': request.POST.get('process_evaluation', ''),
+            'lesson': request.POST.get('lesson', ''),
+        })
+
+    entry = StockDiary.objects.create(**fields)
     return JsonResponse({'success': True, 'id': entry.id})
 
 
@@ -2910,33 +2951,28 @@ def stock_diary_save(request, code):
 def stock_diary_update(request, code, diary_id):
     """종목별 투자일지 수정 API"""
     entry = get_object_or_404(StockDiary, id=diary_id, stock_id=code)
-    content = request.POST.get('content', '').strip()
-    date_str = request.POST.get('date', '').strip()
 
-    if not content:
-        return JsonResponse({'error': '내용을 입력하세요.'}, status=400)
+    if entry.trade_type == 'buy':
+        for field in ['setup_type', 'entry_reason', 'invalidation_condition', 'position_size', 'entry_emotion']:
+            if field in request.POST:
+                setattr(entry, field, request.POST.get(field, ''))
+        if 'planned_stop_price' in request.POST:
+            val = request.POST['planned_stop_price'].strip()
+            entry.planned_stop_price = int(val) if val else None
+        if 'target_price_1' in request.POST:
+            val = request.POST['target_price_1'].strip()
+            entry.target_price_1 = int(val) if val else None
+        if 'entry_confidence' in request.POST:
+            val = request.POST['entry_confidence'].strip()
+            entry.entry_confidence = int(val) if val else None
+        if 'is_planned' in request.POST:
+            entry.is_planned = request.POST['is_planned'].lower() in ('true', '1', 'on')
+    else:
+        for field in ['sell_reason_type', 'stop_compliance', 'entry_validity', 'plan_compliance', 'exit_emotion', 'process_evaluation', 'lesson']:
+            if field in request.POST:
+                setattr(entry, field, request.POST.get(field, ''))
 
-    if date_str:
-        try:
-            new_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-            if new_date != entry.date and StockDiary.objects.filter(stock_id=code, date=new_date).exists():
-                return JsonResponse({'error': '해당 날짜에 이미 일지가 있습니다.'}, status=400)
-            entry.date = new_date
-        except ValueError:
-            pass
-
-    if 'is_buy' in request.POST:
-        entry.is_buy = _parse_bool(request.POST.get('is_buy'))
-    if 'is_sell' in request.POST:
-        entry.is_sell = _parse_bool(request.POST.get('is_sell'))
-
-    entry.content = content
     entry.save()
-
-    if entry.is_buy and not entry.stock.is_holding:
-        entry.stock.is_holding = True
-        entry.stock.save(update_fields=['is_holding'])
-
     return JsonResponse({'success': True})
 
 
