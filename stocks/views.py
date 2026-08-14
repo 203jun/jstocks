@@ -882,7 +882,7 @@ def stock_list(request):
     if market:
         stocks = stocks.filter(market=market)
 
-    stocks = stocks.order_by(sort)[:100]  # 상위 100개만
+    stocks = stocks.order_by(sort)[:500]  # 상위 500개만
 
     context = {
         'stocks': stocks,
