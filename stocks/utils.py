@@ -28,36 +28,113 @@ def _get_file_logger():
     return logger
 
 
-def get_token():
+DEFAULT_ACCOUNT_KEY = 'main'
+
+
+def get_token_file(account_key=DEFAULT_ACCOUNT_KEY):
+    """
+    계좌별 토큰 파일 경로를 반환합니다.
+
+    주계좌(main)는 기존 token.json을 그대로 쓰고, 추가 계좌만
+    token_<account_key>.json 을 사용합니다.
+
+    Args:
+        account_key: 계좌 키 (예: 'main', 'sub1')
+
+    Returns:
+        Path: 토큰 파일 경로
+    """
+    root = Path(__file__).resolve().parent.parent
+    if account_key == DEFAULT_ACCOUNT_KEY:
+        return root / 'token.json'
+    return root / f'token_{account_key}.json'
+
+
+def get_api_credentials(account_key=DEFAULT_ACCOUNT_KEY):
+    """
+    계좌별 APPKEY / SECRETKEY를 .env에서 조회합니다.
+
+    주계좌(main)는 기존 APPKEY / SECRETKEY를 그대로 쓰고, 추가 계좌는
+    APPKEY_<KEY> / SECRETKEY_<KEY> (대문자)를 사용합니다.
+
+    Args:
+        account_key: 계좌 키 (예: 'main', 'sub1')
+
+    Returns:
+        tuple: (appkey, secretkey). 설정이 없으면 (None, None)
+    """
+    if account_key == DEFAULT_ACCOUNT_KEY:
+        appkey_name, secretkey_name = 'APPKEY', 'SECRETKEY'
+    else:
+        suffix = account_key.upper()
+        appkey_name, secretkey_name = f'APPKEY_{suffix}', f'SECRETKEY_{suffix}'
+
+    appkey = config(appkey_name, default='')
+    secretkey = config(secretkey_name, default='')
+
+    if not appkey or not secretkey:
+        _get_file_logger().error(
+            f'utils: {account_key} 계좌 API 키 없음 ({appkey_name} / {secretkey_name})'
+        )
+        return None, None
+
+    return appkey, secretkey
+
+
+def get_active_account_keys():
+    """
+    활성 계좌 키 목록을 반환합니다.
+
+    Account 테이블이 아직 비어 있으면(마이그레이션 직후 등) 기본 계좌만
+    반환하여 기존 동작을 유지합니다.
+
+    Returns:
+        list[str]: 계좌 키 목록
+    """
+    from stocks.models import Account
+
+    keys = list(
+        Account.objects.filter(is_active=True).values_list('key', flat=True)
+    )
+    return keys or [DEFAULT_ACCOUNT_KEY]
+
+
+def get_token(account_key=DEFAULT_ACCOUNT_KEY):
     """
     저장된 API 토큰을 조회합니다.
+
+    Args:
+        account_key: 계좌 키 (예: 'main', 'sub1')
 
     Returns:
         dict: 토큰 정보 {'token': str, 'expires_dt': str, 'token_type': str}
         None: 토큰 파일이 없거나 오류 발생 시
     """
-    token_file = Path(__file__).resolve().parent.parent / 'token.json'
+    token_file = get_token_file(account_key)
 
     try:
         with open(token_file, 'r', encoding='utf-8') as f:
             token_data = json.load(f)
         return token_data
     except FileNotFoundError:
-        _get_file_logger().error('utils: 토큰 파일이 없습니다')
+        _get_file_logger().error(f'utils: {account_key} 토큰 파일이 없습니다 ({token_file.name})')
         return None
     except Exception as e:
-        _get_file_logger().error(f'utils: 토큰 조회 실패 - {str(e)}')
+        _get_file_logger().error(f'utils: {account_key} 토큰 조회 실패 - {str(e)}')
         return None
 
 
-def is_token_valid():
+def is_token_valid(account_key=DEFAULT_ACCOUNT_KEY):
     """
     토큰이 유효한지 확인합니다.
+
+    Args:
+        account_key: 계좌 키 (예: 'main', 'sub1')
 
     Returns:
         bool: 토큰이 유효하면 True, 아니면 False
     """
-    token_data = get_token()
+    token_data = get_token(account_key)
 
     if not token_data:
         return False
@@ -74,19 +151,22 @@ def is_token_valid():
 
         # 만료 시간과 현재 시간 비교
         if current_time >= expire_time:
-            _get_file_logger().error(f'utils: 토큰 만료 (만료 시간: {expires_dt})')
+            _get_file_logger().error(f'utils: {account_key} 토큰 만료 (만료 시간: {expires_dt})')
             return False
 
         return True
 
     except Exception as e:
-        _get_file_logger().error(f'utils: 토큰 유효성 확인 실패 - {str(e)}')
+        _get_file_logger().error(f'utils: {account_key} 토큰 유효성 확인 실패 - {str(e)}')
         return False
 
 
-def issue_token():
+def issue_token(account_key=DEFAULT_ACCOUNT_KEY):
     """
     API에서 새 토큰을 발급받습니다.
+
+    Args:
+        account_key: 계좌 키 (예: 'main', 'sub1')
 
     Returns:
         dict: 토큰 정보 {'token': str, 'expires_dt': str, 'token_type': str}
@@ -102,10 +182,14 @@ def issue_token():
         'Content-Type': 'application/json;charset=UTF-8',
     }
 
+    appkey, secretkey = get_api_credentials(account_key)
+    if not appkey:
+        return None
+
     params = {
         'grant_type': 'client_credentials',
-        'appkey': config('APPKEY'),
-        'secretkey': config('SECRETKEY'),
+        'appkey': appkey,
+        'secretkey': secretkey,
     }
 
     try:
@@ -119,74 +203,81 @@ def issue_token():
                     'expires_dt': data['expires_dt'],
                     'token_type': data['token_type'],
                 }
-                logger.info(f'utils: 토큰 발급 완료 (만료: {data["expires_dt"]})')
+                logger.info(f'utils: {account_key} 토큰 발급 완료 (만료: {data["expires_dt"]})')
                 return token_data
             else:
-                logger.error(f'utils: 토큰 발급 API 에러 - {data.get("return_msg")}')
+                logger.error(f'utils: {account_key} 토큰 발급 API 에러 - {data.get("return_msg")}')
         else:
-            logger.error(f'utils: 토큰 발급 HTTP 에러 - {response.status_code}')
+            logger.error(f'utils: {account_key} 토큰 발급 HTTP 에러 - {response.status_code}')
 
     except Exception as e:
-        logger.error(f'utils: 토큰 발급 실패 - {str(e)}')
+        logger.error(f'utils: {account_key} 토큰 발급 실패 - {str(e)}')
 
     return None
 
 
-def save_token(token_data):
+def save_token(token_data, account_key=DEFAULT_ACCOUNT_KEY):
     """
     토큰을 JSON 파일로 저장합니다.
 
     Args:
         token_data: 토큰 정보 dict
+        account_key: 계좌 키 (예: 'main', 'sub1')
 
     Returns:
         bool: 저장 성공 여부
     """
-    token_file = Path(__file__).resolve().parent.parent / 'token.json'
+    token_file = get_token_file(account_key)
 
     try:
         with open(token_file, 'w', encoding='utf-8') as f:
             json.dump(token_data, f, ensure_ascii=False, indent=4)
         return True
     except Exception as e:
-        _get_file_logger().error(f'utils: 토큰 저장 실패 - {str(e)}')
+        _get_file_logger().error(f'utils: {account_key} 토큰 저장 실패 - {str(e)}')
         return False
 
 
-def refresh_token():
+def refresh_token(account_key=DEFAULT_ACCOUNT_KEY):
     """
     토큰을 갱신합니다. (발급 + 저장)
+
+    Args:
+        account_key: 계좌 키 (예: 'main', 'sub1')
 
     Returns:
         str: 새 토큰 문자열
         None: 갱신 실패 시
     """
-    token_data = issue_token()
+    token_data = issue_token(account_key)
 
     if token_data:
-        if save_token(token_data):
+        if save_token(token_data, account_key):
             return token_data.get('token')
 
     return None
 
 
-def get_valid_token():
+def get_valid_token(account_key=DEFAULT_ACCOUNT_KEY):
     """
     유효한 토큰을 반환합니다.
     토큰이 없거나 만료된 경우 자동으로 갱신합니다.
+
+    Args:
+        account_key: 계좌 키 (예: 'main', 'sub1')
 
     Returns:
         str: 유효한 토큰 문자열
         None: 토큰 발급 실패 시
     """
     # 1. 기존 토큰이 유효하면 그대로 반환
-    if is_token_valid():
-        token_data = get_token()
+    if is_token_valid(account_key):
+        token_data = get_token(account_key)
         return token_data.get('token') if token_data else None
 
     # 2. 토큰이 없거나 만료되었으면 자동 갱신
-    _get_file_logger().info('utils: 토큰 만료/없음 - 자동 갱신 시도')
-    return refresh_token()
+    _get_file_logger().info(f'utils: {account_key} 토큰 만료/없음 - 자동 갱신 시도')
+    return refresh_token(account_key)
 
 
 def get_last_trading_date():

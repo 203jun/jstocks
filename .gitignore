@@ -24,8 +24,9 @@ db.sqlite3-journal
 .env
 .env.local
 
-# API Token
+# API Token (계좌별: token.json, token_sub1.json ...)
 token.json
+token_*.json
 *.token.json
 
 # Telegram Session

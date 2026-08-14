@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from stocks.models import DailyAccountSnapshot, Holding, Info, InfoETF
+from stocks.models import Account, DailyAccountSnapshot, Holding, Info, InfoETF
 from stocks.utils import get_valid_token, send_telegram_error
 from stocks.logger import StockLogger
 
@@ -15,11 +15,13 @@ class Command(BaseCommand):
 
 옵션:
   --date      (선택) 조회일자 YYYYMMDD (기본값: 오늘)
+  --account   (선택) 계좌 키. 생략 시 활성 계좌 전체
   --log-level (선택) debug / info / warning / error (기본값: info)
 
 예시:
   python manage.py save_daily_account
   python manage.py save_daily_account --date 20260603
+  python manage.py save_daily_account --account sub1
 '''
 
     def add_arguments(self, parser):
@@ -29,6 +31,12 @@ class Command(BaseCommand):
             default=None,
             help='조회일자 YYYYMMDD (기본값: 오늘)',
         )
+        parser.add_argument(
+            '--account',
+            type=str,
+            default=None,
+            help='계좌 키 (생략 시 활성 계좌 전체)',
+        )
         StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
@@ -37,25 +45,44 @@ class Command(BaseCommand):
         qry_dt = options.get('date') or datetime.now().strftime('%Y%m%d')
         self.log.info(f'조회일자: {qry_dt}')
 
-        token = get_valid_token()
+        accounts = Account.objects.filter(is_active=True)
+        account_key = options.get('account')
+        if account_key:
+            accounts = accounts.filter(key=account_key)
+
+        accounts = list(accounts)
+        if not accounts:
+            msg = f'대상 계좌 없음 (--account {account_key})' if account_key else '활성 계좌가 없습니다'
+            self.log.error(msg)
+            send_telegram_error('save_daily_account', msg)
+            return
+
+        for account in accounts:
+            self.process_account(account, qry_dt)
+
+    def process_account(self, account, qry_dt):
+        """계좌 1개분 스냅샷 + 보유 종목 수집"""
+        self.log.info(f'[{account.key}] {account.name} 수집 시작')
+
+        token = get_valid_token(account.key)
         if not token:
-            self.log.error('토큰이 없습니다. python manage.py get_token을 먼저 실행하세요.')
-            send_telegram_error('save_daily_account', '토큰 없음')
+            self.log.error(f'[{account.key}] 토큰이 없습니다. python manage.py get_token을 먼저 실행하세요.')
+            send_telegram_error('save_daily_account', f'[{account.key}] 토큰 없음')
             return
 
         response_data = self.call_api(token, qry_dt)
         if not response_data:
-            send_telegram_error('save_daily_account', 'API 호출 실패')
+            send_telegram_error('save_daily_account', f'[{account.key}] API 호출 실패')
             return
 
         if response_data.get('return_code') != 0:
             msg = response_data.get('return_msg', 'unknown')
-            self.log.error(f'API 에러: {msg}')
-            send_telegram_error('save_daily_account', f'API 에러: {msg}')
+            self.log.error(f'[{account.key}] API 에러: {msg}')
+            send_telegram_error('save_daily_account', f'[{account.key}] API 에러: {msg}')
             return
 
-        self.save_to_db(response_data, fallback_date=qry_dt)
-        self.save_holdings(response_data.get('day_bal_rt') or [])
+        self.save_to_db(account, response_data, fallback_date=qry_dt)
+        self.save_holdings(account, response_data.get('day_bal_rt') or [])
 
     def call_api(self, token, qry_dt):
         """ka01690 일별잔고수익률 API 호출"""
@@ -86,14 +113,14 @@ class Command(BaseCommand):
             self.log.error(f'API 호출 실패: {str(e)}')
             return None
 
-    def save_to_db(self, data, fallback_date):
+    def save_to_db(self, account, data, fallback_date):
         """응답 최상위 필드를 DailyAccountSnapshot에 저장"""
         dt_str = data.get('dt') or fallback_date
         try:
             snapshot_date = datetime.strptime(dt_str, '%Y%m%d').date()
         except ValueError:
-            self.log.error(f'잘못된 일자 형식: {dt_str}')
-            send_telegram_error('save_daily_account', f'잘못된 일자 형식: {dt_str}')
+            self.log.error(f'[{account.key}] 잘못된 일자 형식: {dt_str}')
+            send_telegram_error('save_daily_account', f'[{account.key}] 잘못된 일자 형식: {dt_str}')
             return
 
         defaults = {
@@ -108,25 +135,26 @@ class Command(BaseCommand):
 
         try:
             snapshot, created = DailyAccountSnapshot.objects.update_or_create(
+                account=account,
                 date=snapshot_date,
                 defaults=defaults,
             )
         except Exception as e:
-            self.log.error(f'DB 저장 실패: {str(e)}')
-            send_telegram_error('save_daily_account', f'DB 저장 실패: {str(e)}')
+            self.log.error(f'[{account.key}] DB 저장 실패: {str(e)}')
+            send_telegram_error('save_daily_account', f'[{account.key}] DB 저장 실패: {str(e)}')
             return
 
         action = '생성' if created else '갱신'
         self.log.info(
-            f'{action} 완료 | {snapshot_date} | '
+            f'[{account.key}] {action} 완료 | {snapshot_date} | '
             f'추정자산 {snapshot.estimated_asset or 0:,}원 | '
             f'평가손익 {snapshot.total_eval_profit or 0:,}원 | '
             f'수익률 {snapshot.profit_rate or 0}%',
             success=True,
         )
 
-    def save_holdings(self, items):
-        """day_bal_rt 리스트를 Holding 테이블에 전체 갱신"""
+    def save_holdings(self, account, items):
+        """day_bal_rt 리스트를 해당 계좌의 Holding으로 전체 갱신"""
         parsed = []
         for item in items:
             stk_cd = (item.get('stk_cd') or '').strip()
@@ -151,9 +179,11 @@ class Command(BaseCommand):
 
         try:
             with transaction.atomic():
-                Holding.objects.all().delete()
+                # 다른 계좌 보유 종목이 지워지지 않도록 반드시 계좌로 좁힌다
+                Holding.objects.filter(account=account).delete()
                 Holding.objects.bulk_create([
                     Holding(
+                        account=account,
                         info_id=h['stk_cd'] if h['stk_cd'] in info_codes else None,
                         info_etf_id=h['stk_cd'] if h['stk_cd'] in etf_codes else None,
                         **h,
@@ -161,13 +191,13 @@ class Command(BaseCommand):
                     for h in parsed
                 ])
         except Exception as e:
-            self.log.error(f'Holding 저장 실패: {str(e)}')
-            send_telegram_error('save_daily_account', f'Holding 저장 실패: {str(e)}')
+            self.log.error(f'[{account.key}] Holding 저장 실패: {str(e)}')
+            send_telegram_error('save_daily_account', f'[{account.key}] Holding 저장 실패: {str(e)}')
             return
 
         matched = sum(1 for h in parsed if h['stk_cd'] in info_codes or h['stk_cd'] in etf_codes)
         self.log.info(
-            f'보유 종목 갱신 | 총 {len(parsed)}개 (Info/ETF 매칭 {matched}개)',
+            f'[{account.key}] 보유 종목 갱신 | 총 {len(parsed)}개 (Info/ETF 매칭 {matched}개)',
             success=True,
         )
 

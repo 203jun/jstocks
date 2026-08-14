@@ -1615,7 +1615,8 @@ def stock_detail(request, code):
                     gap_chart_data.append({'x': date_str, 'y': gap})
 
     # 키움 ka01690 보유 현황 (Holding) + 어제 대비 diff 계산
-    holding = stock.holding_record.first()
+    # 보조 계좌는 자산 페이지 전용이므로 여기서는 주계좌 보유분만 본다
+    holding = stock.holding_record.filter(account__is_primary=True).first()
     if holding:
         # 원금 = 평가금액 - 평가손익
         if holding.eval_amount is not None and holding.eval_profit is not None:
@@ -2377,61 +2378,205 @@ def search_disclosure(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-def _annotate_holdings(holdings):
-    """템플릿에서 쓸 원금(평가금액 - 평가손익) 추가"""
-    for h in holdings:
-        if h.eval_amount is not None and h.eval_profit is not None:
-            h.principal = h.eval_amount - h.eval_profit
-        else:
-            h.principal = None
-    return holdings
+SNAPSHOT_FIELDS = (
+    'total_buy_amount', 'total_eval_amount', 'total_eval_profit',
+    'profit_rate', 'deposit_balance', 'estimated_asset', 'cash_weight',
+)
 
 
-def asset(request):
-    """자산 페이지 (총자산 시계열 + 보유 종목 + 실현손익)"""
-    from .models import DailyAccountSnapshot, Holding, DailyTradeDiary, InfoETF
+def _snapshot_to_dict(snapshot):
+    """DailyAccountSnapshot을 합산 결과와 동일한 형태의 dict로 변환"""
+    return {
+        'date': snapshot.date,
+        'total_buy_amount': snapshot.total_buy_amount,
+        'total_eval_amount': snapshot.total_eval_amount,
+        'total_eval_profit': snapshot.total_eval_profit,
+        'profit_rate': float(snapshot.profit_rate) if snapshot.profit_rate is not None else None,
+        'deposit_balance': snapshot.deposit_balance,
+        'estimated_asset': snapshot.estimated_asset,
+        'cash_weight': float(snapshot.cash_weight) if snapshot.cash_weight is not None else None,
+    }
 
-    asset_snapshots = list(DailyAccountSnapshot.objects.order_by('-date')[:60])
-    asset_snapshots.reverse()
 
-    asset_chart_data = [
-        {
-            'time': s.date.strftime('%Y-%m-%d'),
-            'total_eval_amount': s.total_eval_amount or 0,
-            'profit_rate': float(s.profit_rate) if s.profit_rate is not None else 0,
-            'total_eval_profit': s.total_eval_profit,
-            'deposit_balance': s.deposit_balance,
-            'cash_weight': float(s.cash_weight) if s.cash_weight is not None else None,
-        }
-        for s in asset_snapshots
+def _merge_snapshots(snapshots):
+    """
+    같은 날짜의 여러 계좌 스냅샷을 1건으로 합산한다.
+
+    금액은 단순 합, 수익률은 평가손익/매입가로 재계산, 현금비중은
+    추정자산 가중평균. 그날 데이터가 없는 계좌는 그냥 빠지므로,
+    계좌를 도중에 추가하면 그 시점부터 합계가 올라간다.
+    """
+    merged = {f: None for f in SNAPSHOT_FIELDS}
+    merged['date'] = snapshots[0].date
+
+    for field in ('total_buy_amount', 'total_eval_amount', 'total_eval_profit',
+                  'deposit_balance', 'estimated_asset'):
+        values = [getattr(s, field) for s in snapshots if getattr(s, field) is not None]
+        merged[field] = sum(values) if values else None
+
+    buy = merged['total_buy_amount']
+    profit = merged['total_eval_profit']
+    merged['profit_rate'] = round(profit / buy * 100, 2) if buy and profit is not None else None
+
+    weighted = [
+        (float(s.cash_weight), s.estimated_asset)
+        for s in snapshots
+        if s.cash_weight is not None and s.estimated_asset
     ]
+    total_weight = sum(w for _, w in weighted)
+    if total_weight:
+        merged['cash_weight'] = round(
+            sum(v * w for v, w in weighted) / total_weight, 2
+        )
 
-    asset_latest = asset_snapshots[-1] if asset_snapshots else None
-    asset_prev = asset_snapshots[-2] if len(asset_snapshots) >= 2 else None
+    return merged
 
-    def _delta(curr, prev):
-        if curr is None or prev is None:
+
+def _chart_point(row):
+    """합산/단일 스냅샷 dict를 차트 데이터 포인트로 변환"""
+    return {
+        'time': row['date'].strftime('%Y-%m-%d'),
+        'total_eval_amount': row['total_eval_amount'] or 0,
+        'profit_rate': row['profit_rate'] if row['profit_rate'] is not None else 0,
+        'total_eval_profit': row['total_eval_profit'],
+        'deposit_balance': row['deposit_balance'],
+        'cash_weight': row['cash_weight'],
+    }
+
+
+def _snapshot_changes(latest, prev):
+    """직전 스냅샷 대비 증감 (금액은 절대값+%, 비율은 %p)"""
+    if not latest or not prev:
+        return {}
+
+    def _delta(curr, before):
+        if curr is None or before is None:
             return None
-        diff = float(curr) - float(prev)
-        pct = (diff / float(prev) * 100) if float(prev) != 0 else None
+        diff = float(curr) - float(before)
+        pct = (diff / float(before) * 100) if float(before) != 0 else None
         return {
             'diff': diff,
             'pct': round(pct, 2) if pct is not None else None,
         }
 
-    asset_changes = {}
-    if asset_latest and asset_prev:
-        asset_changes = {
-            'estimated_asset': _delta(asset_latest.estimated_asset, asset_prev.estimated_asset),
-            'total_eval_amount': _delta(asset_latest.total_eval_amount, asset_prev.total_eval_amount),
-            'total_eval_profit': _delta(asset_latest.total_eval_profit, asset_prev.total_eval_profit),
-            'profit_rate': _delta(asset_latest.profit_rate, asset_prev.profit_rate),
-            'total_buy_amount': _delta(asset_latest.total_buy_amount, asset_prev.total_buy_amount),
-            'deposit_balance': _delta(asset_latest.deposit_balance, asset_prev.deposit_balance),
-            'cash_weight': _delta(asset_latest.cash_weight, asset_prev.cash_weight),
+    return {f: _delta(latest[f], prev[f]) for f in SNAPSHOT_FIELDS}
+
+
+def _holding_to_dict(h):
+    """Holding을 합산 결과와 동일한 형태의 dict로 변환 (원금 = 평가금액 - 평가손익)"""
+    principal = (
+        h.eval_amount - h.eval_profit
+        if h.eval_amount is not None and h.eval_profit is not None
+        else None
+    )
+    return {
+        'stk_cd': h.stk_cd,
+        'stk_nm': h.stk_nm,
+        'rmnd_qty': h.rmnd_qty,
+        'buy_uv': h.buy_uv,
+        'cur_prc': h.cur_prc,
+        'eval_amount': h.eval_amount,
+        'eval_profit': h.eval_profit,
+        'principal': principal,
+        'profit_rate': float(h.profit_rate) if h.profit_rate is not None else None,
+        'eval_weight': float(h.eval_weight) if h.eval_weight is not None else None,
+        'buy_weight': float(h.buy_weight) if h.buy_weight is not None else None,
+        'is_etf': h.info_etf_id is not None,
+    }
+
+
+def _merge_holdings(holdings):
+    """
+    여러 계좌의 보유 종목을 종목코드 기준으로 합친다.
+
+    수량·금액은 합산하고 매입단가/수익률/비중은 합산값으로 재계산한다.
+    (계좌별 비중을 그대로 더하면 100%를 넘어가므로 반드시 다시 구해야 한다)
+    """
+    by_code = {}
+    for h in holdings:
+        row = by_code.get(h.stk_cd)
+        if row is None:
+            by_code[h.stk_cd] = {
+                'stk_cd': h.stk_cd,
+                'stk_nm': h.stk_nm,
+                'rmnd_qty': h.rmnd_qty or 0,
+                'cur_prc': h.cur_prc,
+                'eval_amount': h.eval_amount or 0,
+                'eval_profit': h.eval_profit or 0,
+                'is_etf': h.info_etf_id is not None,
+            }
+        else:
+            row['rmnd_qty'] += h.rmnd_qty or 0
+            row['eval_amount'] += h.eval_amount or 0
+            row['eval_profit'] += h.eval_profit or 0
+            if row['cur_prc'] is None:
+                row['cur_prc'] = h.cur_prc
+            row['is_etf'] = row['is_etf'] or h.info_etf_id is not None
+
+    merged = list(by_code.values())
+    total_eval = sum(r['eval_amount'] for r in merged)
+    total_principal = sum(r['eval_amount'] - r['eval_profit'] for r in merged)
+
+    for r in merged:
+        principal = r['eval_amount'] - r['eval_profit']
+        r['principal'] = principal
+        r['buy_uv'] = round(principal / r['rmnd_qty']) if r['rmnd_qty'] else None
+        r['profit_rate'] = round(r['eval_profit'] / principal * 100, 2) if principal else None
+        r['eval_weight'] = round(r['eval_amount'] / total_eval * 100, 2) if total_eval else None
+        r['buy_weight'] = round(principal / total_principal * 100, 2) if total_principal else None
+
+    merged.sort(key=lambda r: r['eval_weight'] or 0, reverse=True)
+    return merged
+
+
+def asset(request):
+    """자산 페이지 (계좌별/합산 총자산 시계열 + 보유 종목 + 실현손익)"""
+    from .models import Account, DailyAccountSnapshot, Holding, DailyTradeDiary, InfoETF
+
+    accounts = list(Account.objects.filter(is_active=True))
+
+    # 계좌별 최근 60영업일 스냅샷
+    snapshots_by_account = {a.id: [] for a in accounts}
+    for account in accounts:
+        rows = list(account.snapshots.order_by('-date')[:60])
+        rows.reverse()
+        snapshots_by_account[account.id] = rows
+
+    # 합산: 같은 날짜끼리 묶어서 계좌 수만큼 합침
+    by_date = {}
+    for rows in snapshots_by_account.values():
+        for s in rows:
+            by_date.setdefault(s.date, []).append(s)
+    merged_rows = [_merge_snapshots(by_date[d]) for d in sorted(by_date)][-60:]
+
+    holdings_by_account = {a.id: list(a.holdings.select_related('info', 'info_etf')) for a in accounts}
+    all_holdings = [h for hs in holdings_by_account.values() for h in hs]
+
+    def _build_tab(key, name, rows, holdings):
+        latest = rows[-1] if rows else None
+        prev = rows[-2] if len(rows) >= 2 else None
+        return {
+            'key': key,
+            'name': name,
+            'latest': latest,
+            'changes': _snapshot_changes(latest, prev),
+            'holdings': holdings,
+            'chart_data': [_chart_point(r) for r in rows],
         }
 
+    asset_tabs = []
+    if len(accounts) > 1:
+        asset_tabs.append(_build_tab('all', '전체', merged_rows, _merge_holdings(all_holdings)))
+    for account in accounts:
+        rows = [_snapshot_to_dict(s) for s in snapshots_by_account[account.id]]
+        holdings = [_holding_to_dict(h) for h in holdings_by_account[account.id]]
+        asset_tabs.append(_build_tab(account.key, account.name, rows, holdings))
+
+    chart_data_by_tab = {t['key']: t['chart_data'] for t in asset_tabs}
+    active_tab = asset_tabs[0]['key'] if asset_tabs else ''
+
     # 실현손익 차트 데이터 (최근 60일 DailyTradeDiary, 합산은 JS에서 범위별 재계산)
+    # 매매일지(ka10170)는 주계좌만 수집하므로 계좌 탭과 무관하게 항상 주계좌 기준이다.
     diaries = list(
         DailyTradeDiary.objects.prefetch_related('trades').order_by('-date')[:60]
     )
@@ -2484,10 +2629,11 @@ def asset(request):
             break
 
     context = {
-        'asset_chart_data': json.dumps(asset_chart_data),
-        'asset_latest': asset_latest,
-        'asset_changes': asset_changes,
-        'holdings': _annotate_holdings(list(Holding.objects.select_related('info', 'info_etf').all())),
+        'asset_tabs': asset_tabs,
+        'active_tab': active_tab,
+        'show_tabs': len(asset_tabs) > 1,
+        'primary_account_name': next((a.name for a in accounts if a.is_primary), ''),
+        'chart_data_by_tab': json.dumps(chart_data_by_tab),
         'realized_chart_data': json.dumps(realized_chart_data),
         'has_realized_data': bool(realized_chart_data),
         'realized_details_data': json.dumps(realized_details),

@@ -6,6 +6,30 @@
 {% block extra_style %}
 .section-heading { font-size:1.05rem; font-weight:700; color:var(--text-primary); margin:28px 0 16px; padding-bottom:10px; border-bottom:1px solid var(--border-color); }
 
+/* Account tabs */
+.account-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+.account-tab {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-muted, #6b7280);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 6px 14px;
+}
+.account-tab:hover { color: var(--text-primary); }
+.account-tab.active {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: #3b82f6;
+    color: #3b82f6;
+    font-weight: 600;
+}
+
 /* Asset section */
 .asset-card {
     background: var(--bg-card);
@@ -259,123 +283,135 @@
 {% endblock %}
 
 {% block content %}
-<!-- 자산 -->
-<h5 class="section-heading" style="margin-top: 0;">자산</h5>
-<div class="asset-card">
-    {% if asset_latest %}
-    <div class="asset-chart-wrap">
-        <div id="assetChart" class="asset-chart"></div>
-        <div id="assetTooltip" class="asset-tooltip"></div>
-    </div>
-    <div class="asset-info-row">
-        <div class="asset-info-item">
-            <div class="asset-info-label">총 평가금액</div>
-            <div class="asset-info-value">{{ asset_latest.total_eval_amount|default_if_none:0|intcomma }}원</div>
-            {% with d=asset_changes.total_eval_amount %}{% if d %}
-            <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
-                {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}원{% if d.pct is not None %} ({% if d.pct > 0 %}+{% endif %}{{ d.pct }}%){% endif %}
-            </div>
-            {% endif %}{% endwith %}
-        </div>
-        <div class="asset-info-item">
-            <div class="asset-info-label">총 평가손익</div>
-            <div class="asset-info-value">{{ asset_latest.total_eval_profit|default_if_none:0|intcomma }}원</div>
-            {% with d=asset_changes.total_eval_profit %}{% if d %}
-            <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
-                {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}원
-            </div>
-            {% endif %}{% endwith %}
-        </div>
-        <div class="asset-info-item">
-            <div class="asset-info-label">수익률</div>
-            <div class="asset-info-value">{{ asset_latest.profit_rate|default_if_none:0 }}%</div>
-            {% with d=asset_changes.profit_rate %}{% if d %}
-            <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
-                {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:2 }}%p
-            </div>
-            {% endif %}{% endwith %}
-        </div>
-        <div class="asset-info-item">
-            <div class="asset-info-label">예수금</div>
-            <div class="asset-info-value">{{ asset_latest.deposit_balance|default_if_none:0|intcomma }}원</div>
-            {% with d=asset_changes.deposit_balance %}{% if d %}
-            <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
-                {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}원{% if d.pct is not None %} ({% if d.pct > 0 %}+{% endif %}{{ d.pct }}%){% endif %}
-            </div>
-            {% endif %}{% endwith %}
-        </div>
-        <div class="asset-info-item">
-            <div class="asset-info-label">현금비중</div>
-            <div class="asset-info-value">{{ asset_latest.cash_weight|default_if_none:0 }}%</div>
-            {% with d=asset_changes.cash_weight %}{% if d %}
-            <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
-                {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:2 }}%p
-            </div>
-            {% endif %}{% endwith %}
-        </div>
-    </div>
-    {% else %}
-    <div class="asset-empty">자산 데이터가 없습니다. 키움 API를 통해 데이터를 받아오세요.</div>
-    {% endif %}
+{% if show_tabs %}
+<div class="account-tabs" id="accountTabs">
+    {% for tab in asset_tabs %}
+    <button class="account-tab {% if tab.key == active_tab %}active{% endif %}" data-tab="{{ tab.key }}">{{ tab.name }}</button>
+    {% endfor %}
 </div>
+{% endif %}
 
-<!-- 보유 종목 -->
-<h5 class="section-heading">보유 종목</h5>
-<div class="holdings-card">
-    {% if holdings %}
-    <table class="holdings-table">
-        <thead>
-            <tr>
-                <th>종목명</th>
-                <th>현재가<br><span style="font-weight:400;">매입단가</span></th>
-                <th>수익률<br><span style="font-weight:400;">평가손익</span></th>
-                <th>평가금액<br><span style="font-weight:400;">원금</span></th>
-                <th>평가비중<br><span style="font-weight:400;">원금비중</span></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for h in holdings %}
-            <tr>
-                <td>
-                    <span class="holdings-name">
-                        {% if h.info_etf %}{{ h.stk_nm }}{% else %}<a href="{% url 'stocks:stock_detail' h.stk_cd %}">{{ h.stk_nm }}</a>{% endif %}
-                    </span>
-                </td>
-                <td class="holdings-stack">
-                    <div class="holdings-stack-main {% if h.cur_prc and h.buy_uv %}{% if h.cur_prc > h.buy_uv %}text-up{% elif h.cur_prc < h.buy_uv %}text-down{% endif %}{% endif %}">
-                        {{ h.cur_prc|default_if_none:0|intcomma }}
-                    </div>
-                    <div class="holdings-stack-sub">{{ h.buy_uv|default_if_none:0|intcomma }}</div>
-                </td>
-                <td class="holdings-stack">
-                    <div class="holdings-stack-main {% if h.profit_rate > 0 %}text-up{% elif h.profit_rate < 0 %}text-down{% endif %}">
-                        {{ h.profit_rate|default_if_none:0 }}%
-                    </div>
-                    <div class="holdings-stack-sub" style="color: var(--text-primary);">
-                        {{ h.eval_profit|default_if_none:0|intcomma }}
-                    </div>
-                </td>
-                <td class="holdings-stack">
-                    <div class="holdings-stack-main {% if h.eval_amount and h.principal %}{% if h.eval_amount > h.principal %}text-up{% elif h.eval_amount < h.principal %}text-down{% endif %}{% endif %}">
-                        {{ h.eval_amount|default_if_none:0|intcomma }}
-                    </div>
-                    <div class="holdings-stack-sub">{{ h.principal|default_if_none:0|intcomma }}</div>
-                </td>
-                <td class="holdings-stack">
-                    <div class="holdings-stack-main">{{ h.eval_weight|default_if_none:0 }}%</div>
-                    <div class="holdings-stack-sub">{{ h.buy_weight|default_if_none:0 }}%</div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <div class="asset-empty">보유 종목 데이터가 없습니다.</div>
-    {% endif %}
+{% for tab in asset_tabs %}
+<div class="account-panel" data-panel="{{ tab.key }}" {% if tab.key != active_tab %}style="display:none;"{% endif %}>
+    <!-- 자산 -->
+    <h5 class="section-heading" style="margin-top: 0;">자산</h5>
+    <div class="asset-card">
+        {% if tab.latest %}
+        <div class="asset-chart-wrap">
+            <div id="assetChart-{{ tab.key }}" class="asset-chart"></div>
+            <div id="assetTooltip-{{ tab.key }}" class="asset-tooltip"></div>
+        </div>
+        <div class="asset-info-row">
+            <div class="asset-info-item">
+                <div class="asset-info-label">총 평가금액</div>
+                <div class="asset-info-value">{{ tab.latest.total_eval_amount|default_if_none:0|intcomma }}원</div>
+                {% with d=tab.changes.total_eval_amount %}{% if d %}
+                <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
+                    {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}원{% if d.pct is not None %} ({% if d.pct > 0 %}+{% endif %}{{ d.pct }}%){% endif %}
+                </div>
+                {% endif %}{% endwith %}
+            </div>
+            <div class="asset-info-item">
+                <div class="asset-info-label">총 평가손익</div>
+                <div class="asset-info-value">{{ tab.latest.total_eval_profit|default_if_none:0|intcomma }}원</div>
+                {% with d=tab.changes.total_eval_profit %}{% if d %}
+                <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
+                    {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}원
+                </div>
+                {% endif %}{% endwith %}
+            </div>
+            <div class="asset-info-item">
+                <div class="asset-info-label">수익률</div>
+                <div class="asset-info-value">{{ tab.latest.profit_rate|default_if_none:0 }}%</div>
+                {% with d=tab.changes.profit_rate %}{% if d %}
+                <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
+                    {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:2 }}%p
+                </div>
+                {% endif %}{% endwith %}
+            </div>
+            <div class="asset-info-item">
+                <div class="asset-info-label">예수금</div>
+                <div class="asset-info-value">{{ tab.latest.deposit_balance|default_if_none:0|intcomma }}원</div>
+                {% with d=tab.changes.deposit_balance %}{% if d %}
+                <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
+                    {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}원{% if d.pct is not None %} ({% if d.pct > 0 %}+{% endif %}{{ d.pct }}%){% endif %}
+                </div>
+                {% endif %}{% endwith %}
+            </div>
+            <div class="asset-info-item">
+                <div class="asset-info-label">현금비중</div>
+                <div class="asset-info-value">{{ tab.latest.cash_weight|default_if_none:0 }}%</div>
+                {% with d=tab.changes.cash_weight %}{% if d %}
+                <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
+                    {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:2 }}%p
+                </div>
+                {% endif %}{% endwith %}
+            </div>
+        </div>
+        {% else %}
+        <div class="asset-empty">자산 데이터가 없습니다. 키움 API를 통해 데이터를 받아오세요.</div>
+        {% endif %}
+    </div>
+
+    <!-- 보유 종목 -->
+    <h5 class="section-heading">보유 종목</h5>
+    <div class="holdings-card">
+        {% if tab.holdings %}
+        <table class="holdings-table">
+            <thead>
+                <tr>
+                    <th>종목명</th>
+                    <th>현재가<br><span style="font-weight:400;">매입단가</span></th>
+                    <th>수익률<br><span style="font-weight:400;">평가손익</span></th>
+                    <th>평가금액<br><span style="font-weight:400;">원금</span></th>
+                    <th>평가비중<br><span style="font-weight:400;">원금비중</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in tab.holdings %}
+                <tr>
+                    <td>
+                        <span class="holdings-name">
+                            {% if h.is_etf %}{{ h.stk_nm }}{% else %}<a href="{% url 'stocks:stock_detail' h.stk_cd %}">{{ h.stk_nm }}</a>{% endif %}
+                        </span>
+                    </td>
+                    <td class="holdings-stack">
+                        <div class="holdings-stack-main {% if h.cur_prc and h.buy_uv %}{% if h.cur_prc > h.buy_uv %}text-up{% elif h.cur_prc < h.buy_uv %}text-down{% endif %}{% endif %}">
+                            {{ h.cur_prc|default_if_none:0|intcomma }}
+                        </div>
+                        <div class="holdings-stack-sub">{{ h.buy_uv|default_if_none:0|intcomma }}</div>
+                    </td>
+                    <td class="holdings-stack">
+                        <div class="holdings-stack-main {% if h.profit_rate > 0 %}text-up{% elif h.profit_rate < 0 %}text-down{% endif %}">
+                            {{ h.profit_rate|default_if_none:0 }}%
+                        </div>
+                        <div class="holdings-stack-sub" style="color: var(--text-primary);">
+                            {{ h.eval_profit|default_if_none:0|intcomma }}
+                        </div>
+                    </td>
+                    <td class="holdings-stack">
+                        <div class="holdings-stack-main {% if h.eval_amount and h.principal %}{% if h.eval_amount > h.principal %}text-up{% elif h.eval_amount < h.principal %}text-down{% endif %}{% endif %}">
+                            {{ h.eval_amount|default_if_none:0|intcomma }}
+                        </div>
+                        <div class="holdings-stack-sub">{{ h.principal|default_if_none:0|intcomma }}</div>
+                    </td>
+                    <td class="holdings-stack">
+                        <div class="holdings-stack-main">{{ h.eval_weight|default_if_none:0 }}%</div>
+                        <div class="holdings-stack-sub">{{ h.buy_weight|default_if_none:0 }}%</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="asset-empty">보유 종목 데이터가 없습니다.</div>
+        {% endif %}
+    </div>
 </div>
+{% endfor %}
 
 <!-- 실현손익 -->
-<h5 class="section-heading">실현손익</h5>
+<h5 class="section-heading">실현손익{% if show_tabs and primary_account_name %} <span style="font-weight:400;font-size:0.85rem;color:var(--text-muted);">({{ primary_account_name }})</span>{% endif %}</h5>
 <div class="asset-card">
     {% if has_realized_data %}
     <div class="realized-header">
@@ -438,7 +474,8 @@
 
 {% block extra_js %}
 <script>
-const assetChartData = {{ asset_chart_data|safe }};
+const chartDataByTab = {{ chart_data_by_tab|safe }};
+const activeTab = "{{ active_tab|escapejs }}";
 const realizedChartData = {{ realized_chart_data|safe }};
 const realizedDetailsData = {{ realized_details_data|safe }};
 const realizedInitialDate = "{{ realized_initial_date|escapejs }}";
@@ -459,7 +496,7 @@ const chartOptions = {
     crosshair: { mode: 0 },
 };
 
-function initAssetChart(containerId, data) {
+function initAssetChart(containerId, tooltipId, data) {
     const container = document.getElementById(containerId);
     if (!container || !data || data.length === 0) return null;
 
@@ -499,7 +536,7 @@ function initAssetChart(containerId, data) {
 
     chart.timeScale().fitContent();
 
-    const tooltip = document.getElementById('assetTooltip');
+    const tooltip = document.getElementById(tooltipId);
     if (tooltip) {
         const dataByTime = {};
         data.forEach(d => { dataByTime[d.time] = d; });
@@ -567,7 +604,25 @@ function initAssetChart(containerId, data) {
 
     return chart;
 }
-initAssetChart('assetChart', assetChartData);
+// 숨겨진 패널은 폭이 0이라 차트가 찌그러지므로, 탭이 처음 보일 때 그린다
+const assetChartsByTab = {};
+function ensureAssetChart(tabKey) {
+    if (assetChartsByTab[tabKey]) return;
+    const chart = initAssetChart(`assetChart-${tabKey}`, `assetTooltip-${tabKey}`, chartDataByTab[tabKey]);
+    if (chart) assetChartsByTab[tabKey] = chart;
+}
+ensureAssetChart(activeTab);
+
+document.querySelectorAll('#accountTabs .account-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const key = btn.dataset.tab;
+        document.querySelectorAll('#accountTabs .account-tab').forEach(b => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.account-panel').forEach(p => {
+            p.style.display = p.dataset.panel === key ? '' : 'none';
+        });
+        ensureAssetChart(key);
+    });
+});
 
 let realizedChartInstance = null;
 let buySellChartInstance = null;

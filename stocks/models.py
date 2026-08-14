@@ -3330,15 +3330,67 @@ class Consensus(models.Model):
         return f"{self.stock.name} - {period}"
 
 
+class Account(models.Model):
+    """
+    증권 계좌
+
+    계좌마다 키움 APPKEY/SECRETKEY가 다르므로 토큰도 계좌별로 발급된다.
+    key는 .env 키 접미사(APPKEY_<KEY>)이자 토큰 파일명(token_<key>.json)으로 쓰인다.
+
+    is_primary 계좌는 종목 상세의 보유 현황·투자일지 등 기존 단일 계좌 전제
+    기능이 바라보는 계좌다. 정확히 1개만 True여야 한다.
+    """
+    key = models.SlugField(
+        max_length=20, unique=True,
+        verbose_name='계좌 키',
+        help_text='.env APPKEY_<KEY> / token_<key>.json 에 쓰임 (예: main, sub1)',
+    )
+    name = models.CharField(
+        max_length=50,
+        verbose_name='계좌명',
+        help_text='화면 탭에 표시될 이름',
+    )
+    is_primary = models.BooleanField(
+        default=False,
+        verbose_name='주계좌',
+        help_text='종목 상세 보유 현황·투자일지가 바라보는 계좌 (1개만 지정)',
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='활성',
+        help_text='해제하면 수집·화면 표시에서 제외',
+    )
+    order = models.IntegerField(
+        default=0,
+        verbose_name='정렬순서',
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'account'
+        verbose_name = '계좌'
+        verbose_name_plural = '계좌'
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f"{self.name}({self.key}){' *' if self.is_primary else ''}"
+
+
 class DailyAccountSnapshot(models.Model):
     """
     계좌 일별 자산 스냅샷
 
     키움 API ka01690 (일별잔고수익률) 응답의 최상위 요약 데이터를
-    일자별로 누적 저장합니다. 종목별 보유 정보는 별도 처리.
+    계좌별·일자별로 누적 저장합니다. 종목별 보유 정보는 별도 처리.
     """
+    account = models.ForeignKey(
+        'Account', on_delete=models.CASCADE,
+        related_name='snapshots',
+        verbose_name='계좌',
+    )
     date = models.DateField(
-        unique=True,
         verbose_name='일자',
         help_text='YYYYMMDD (API: dt)',
     )
@@ -3388,6 +3440,7 @@ class DailyAccountSnapshot(models.Model):
         verbose_name = '계좌 일별 스냅샷'
         verbose_name_plural = '계좌 일별 스냅샷'
         ordering = ['-date']
+        unique_together = [('account', 'date')]
 
     def __str__(self):
         return f"{self.date} - 추정자산 {self.estimated_asset or 0:,}원"
@@ -3397,12 +3450,17 @@ class Holding(models.Model):
     """
     현재 보유 종목 (키움 API ka01690 day_bal_rt 리스트)
 
-    매일 cron에서 전체 삭제 후 다시 생성하여 최신 상태만 유지한다.
+    매일 cron에서 계좌별로 삭제 후 다시 생성하여 최신 상태만 유지한다.
     Info/InfoETF에 매칭되는 종목이면 nullable FK로 연결, 매칭 안 되면
     stk_cd / stk_nm 만으로 자체 식별. ETF·비관심 종목 모두 수용 가능.
     """
+    account = models.ForeignKey(
+        'Account', on_delete=models.CASCADE,
+        related_name='holdings',
+        verbose_name='계좌',
+    )
     stk_cd = models.CharField(
-        max_length=10, unique=True,
+        max_length=10,
         verbose_name='종목코드', help_text='API: stk_cd',
     )
     stk_nm = models.CharField(
@@ -3466,6 +3524,7 @@ class Holding(models.Model):
         verbose_name = '보유 종목'
         verbose_name_plural = '보유 종목'
         ordering = ['-eval_weight']
+        unique_together = [('account', 'stk_cd')]
 
     def __str__(self):
         return f"{self.stk_nm}({self.stk_cd})"
