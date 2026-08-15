@@ -40,35 +40,129 @@
 }
 .asset-chart {
     width: 100%;
-    height: 280px;
+    height: 300px;
 }
-.asset-info-row {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
+.asset-chart-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 10px;
-    margin-top: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
 }
-.asset-info-item {
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 10px 12px;
-    background: var(--bg-body, transparent);
-}
-.asset-info-label {
-    font-size: 0.78rem;
+.asset-legend {
+    display: flex;
+    gap: 14px;
+    font-size: 0.76rem;
     color: var(--text-muted, #6b7280);
-    margin-bottom: 4px;
 }
-.asset-info-value {
-    font-size: 1.0rem;
+.asset-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.asset-legend-line {
+    width: 14px;
+    height: 0;
+    border-top: 2px solid currentColor;
+}
+.asset-legend-line.eval { border-top-color: var(--text-primary); }
+.asset-legend-line.principal { border-top-style: dashed; }
+.asset-range {
+    display: flex;
+    gap: 4px;
+}
+.asset-range-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    color: var(--text-muted, #6b7280);
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 3px 9px;
+}
+.asset-range-btn:hover { color: var(--text-primary); }
+.asset-range-btn.active {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #3b82f6;
     font-weight: 600;
 }
-.asset-info-diff {
-    font-size: 0.78rem;
-    margin-top: 3px;
+/* 히어로: 총 평가금액 한 방 */
+.asset-hero {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
 }
-.asset-info-diff.up { color: #ef5350; }
-.asset-info-diff.down { color: #26a69a; }
+.asset-hero-label {
+    font-size: 0.8rem;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: 6px;
+}
+.asset-hero-value {
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+.asset-hero-unit {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-muted, #6b7280);
+    margin-left: 3px;
+}
+.asset-hero-diff {
+    font-size: 1.0rem;
+    font-weight: 600;
+    margin-top: 8px;
+    font-variant-numeric: tabular-nums;
+}
+.asset-hero-diff.up { color: var(--up-color); }
+.asset-hero-diff.down { color: var(--down-color); }
+.asset-hero-diff-note {
+    font-size: 0.78rem;
+    font-weight: 400;
+    color: var(--text-muted, #6b7280);
+    margin-left: 8px;
+}
+
+/* 보조 지표 4개 */
+.asset-sub-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-color);
+}
+.asset-sub-item {
+    padding: 0 16px;
+    border-left: 1px solid var(--border-color);
+    min-width: 0;
+}
+.asset-sub-item:first-child {
+    padding-left: 0;
+    border-left: none;
+}
+.asset-sub-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: 5px;
+}
+.asset-sub-value {
+    font-size: 1.05rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.asset-sub-diff {
+    font-size: 0.72rem;
+    margin-left: 5px;
+    font-variant-numeric: tabular-nums;
+}
+.asset-sub-diff.up { color: var(--up-color); }
+.asset-sub-diff.down { color: var(--down-color); }
 .asset-empty {
     color: var(--text-muted, #6b7280);
     padding: 24px 0;
@@ -109,15 +203,25 @@
     color: var(--text-muted, #6b7280);
 }
 .asset-tooltip-value { font-weight: 500; }
-.asset-tooltip-value.highlight-amount { color: #3b82f6; font-weight: 700; }
-.asset-tooltip-value.highlight-rate-up { color: rgb(34,197,94); font-weight: 700; }
-.asset-tooltip-value.highlight-rate-down { color: rgb(239,68,68); font-weight: 700; }
+.asset-tooltip-value.highlight-amount { color: var(--text-primary); font-weight: 700; }
+.asset-tooltip-value.highlight-rate-up { color: var(--up-color); font-weight: 700; }
+.asset-tooltip-value.highlight-rate-down { color: var(--down-color); font-weight: 700; }
 .asset-tooltip-value.highlight-rate-zero { color: var(--text-muted, #6b7280); font-weight: 700; }
 @media (max-width: 768px) {
-    .asset-info-row { grid-template-columns: repeat(2, 1fr); }
-    .asset-chart { height: 250px; }
-    .asset-info-value { font-size: 0.88rem; word-break: break-all; }
-    .asset-info-diff { word-break: break-all; }
+    .asset-chart { height: 240px; }
+    .asset-hero-value { font-size: 1.9rem; }
+    .asset-hero-diff { font-size: 0.9rem; }
+    .asset-sub-row {
+        grid-template-columns: repeat(2, 1fr);
+        row-gap: 14px;
+    }
+    .asset-sub-item { padding: 0 12px; }
+    .asset-sub-item:nth-child(odd) {
+        padding-left: 0;
+        border-left: none;
+    }
+    .asset-sub-value { font-size: 0.95rem; }
+    .asset-sub-diff { display: block; margin-left: 0; margin-top: 2px; }
 }
 
 /* Holdings table */
@@ -210,54 +314,54 @@
     <h5 class="section-heading" style="margin-top: 0;">자산</h5>
     <div class="asset-card">
         {% if tab.latest %}
+        <div class="asset-chart-head">
+            <div class="asset-legend">
+                <span class="asset-legend-item"><i class="asset-legend-line eval"></i>평가금액</span>
+                <span class="asset-legend-item"><i class="asset-legend-line principal"></i>원금</span>
+            </div>
+            <div class="asset-range" id="assetRange-{{ tab.key }}"></div>
+        </div>
         <div class="asset-chart-wrap">
             <div id="assetChart-{{ tab.key }}" class="asset-chart"></div>
             <div id="assetTooltip-{{ tab.key }}" class="asset-tooltip"></div>
         </div>
-        <div class="asset-info-row">
-            <div class="asset-info-item">
-                <div class="asset-info-label">총 평가금액</div>
-                <div class="asset-info-value">{{ tab.latest.total_eval_amount|default_if_none:0|intcomma }}원</div>
-                {% with d=tab.changes.total_eval_amount %}{% if d %}
-                <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
-                    {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}원{% if d.pct is not None %} ({% if d.pct > 0 %}+{% endif %}{{ d.pct }}%){% endif %}
-                </div>
-                {% endif %}{% endwith %}
+        <div class="asset-hero">
+            <div class="asset-hero-label">총 평가금액</div>
+            <div class="asset-hero-value">{{ tab.latest.total_eval_amount|default_if_none:0|intcomma }}<span class="asset-hero-unit">원</span></div>
+            {% with d=tab.changes.total_eval_amount %}{% if d %}
+            <div class="asset-hero-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
+                {% if d.diff > 0 %}▲ {% elif d.diff < 0 %}▼ {% endif %}{{ d.diff|floatformat:0|intcomma|cut:"-" }}원{% if d.pct is not None %} ({{ d.pct|cut:"-" }}%){% endif %}<span class="asset-hero-diff-note">전일 대비</span>
             </div>
-            <div class="asset-info-item">
-                <div class="asset-info-label">총 평가손익</div>
-                <div class="asset-info-value">{{ tab.latest.total_eval_profit|default_if_none:0|intcomma }}원</div>
+            {% endif %}{% endwith %}
+        </div>
+
+        <div class="asset-sub-row">
+            <div class="asset-sub-item">
+                <span class="asset-sub-label">평가손익</span>
+                <span class="asset-sub-value {% if tab.latest.total_eval_profit > 0 %}text-up{% elif tab.latest.total_eval_profit < 0 %}text-down{% endif %}">{% if tab.latest.total_eval_profit > 0 %}+{% endif %}{{ tab.latest.total_eval_profit|default_if_none:0|intcomma }}</span>
                 {% with d=tab.changes.total_eval_profit %}{% if d %}
-                <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
-                    {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}원
-                </div>
+                <span class="asset-sub-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">{% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}</span>
                 {% endif %}{% endwith %}
             </div>
-            <div class="asset-info-item">
-                <div class="asset-info-label">수익률</div>
-                <div class="asset-info-value">{{ tab.latest.profit_rate|default_if_none:0 }}%</div>
+            <div class="asset-sub-item">
+                <span class="asset-sub-label">수익률</span>
+                <span class="asset-sub-value {% if tab.latest.profit_rate > 0 %}text-up{% elif tab.latest.profit_rate < 0 %}text-down{% endif %}">{% if tab.latest.profit_rate > 0 %}+{% endif %}{{ tab.latest.profit_rate|default_if_none:0 }}%</span>
                 {% with d=tab.changes.profit_rate %}{% if d %}
-                <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
-                    {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:2 }}%p
-                </div>
+                <span class="asset-sub-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">{% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:2 }}%p</span>
                 {% endif %}{% endwith %}
             </div>
-            <div class="asset-info-item">
-                <div class="asset-info-label">예수금</div>
-                <div class="asset-info-value">{{ tab.latest.deposit_balance|default_if_none:0|intcomma }}원</div>
+            <div class="asset-sub-item">
+                <span class="asset-sub-label">예수금</span>
+                <span class="asset-sub-value">{{ tab.latest.deposit_balance|default_if_none:0|intcomma }}</span>
                 {% with d=tab.changes.deposit_balance %}{% if d %}
-                <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
-                    {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}원{% if d.pct is not None %} ({% if d.pct > 0 %}+{% endif %}{{ d.pct }}%){% endif %}
-                </div>
+                <span class="asset-sub-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">{% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:0|intcomma }}</span>
                 {% endif %}{% endwith %}
             </div>
-            <div class="asset-info-item">
-                <div class="asset-info-label">현금비중</div>
-                <div class="asset-info-value">{{ tab.latest.cash_weight|default_if_none:0 }}%</div>
+            <div class="asset-sub-item">
+                <span class="asset-sub-label">현금비중</span>
+                <span class="asset-sub-value">{{ tab.latest.cash_weight|default_if_none:0 }}%</span>
                 {% with d=tab.changes.cash_weight %}{% if d %}
-                <div class="asset-info-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">
-                    {% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:2 }}%p
-                </div>
+                <span class="asset-sub-diff {% if d.diff > 0 %}up{% elif d.diff < 0 %}down{% endif %}">{% if d.diff > 0 %}+{% endif %}{{ d.diff|floatformat:2 }}%p</span>
                 {% endif %}{% endwith %}
             </div>
         </div>
@@ -333,56 +437,140 @@ const activeTab = "{{ active_tab|escapejs }}";
 const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
 const chartBgColor = isDarkTheme ? '#1a1d24' : '#ffffff';
 const chartTextColor = isDarkTheme ? '#9ca3af' : '#6b7280';
-const chartGridColor = isDarkTheme ? '#2a2e38' : '#f3f4f6';
 const chartBorderColor = isDarkTheme ? '#2a2e38' : '#e5e7eb';
+// base.html의 --up-color / --down-color와 같은 값 (한국식: 위=빨강, 아래=파랑)
+const upRGB = isDarkTheme ? '239, 83, 80' : '220, 53, 69';
+const downRGB = isDarkTheme ? '91, 141, 239' : '41, 98, 255';
+const evalLineColor = isDarkTheme ? '#e6e9ef' : '#111827';
+const principalLineColor = isDarkTheme ? '#6b7280' : '#9ca3af';
+
+// 축 라벨을 억/만 단위로 (152,340,120 -> 1.52억)
+function fmtWonShort(v) {
+    const a = Math.abs(v);
+    if (a >= 1e8) return (v / 1e8).toFixed(2) + '억';
+    if (a >= 1e4) return Math.round(v / 1e4).toLocaleString('ko-KR') + '만';
+    return Math.round(v).toLocaleString('ko-KR');
+}
+
 const chartOptions = {
     layout: { background: { color: chartBgColor }, textColor: chartTextColor, fontSize: 11 },
-    grid: { vertLines: { color: chartGridColor }, horzLines: { color: chartGridColor } },
+    localization: { priceFormatter: fmtWonShort },
     timeScale: { timeVisible: false, borderColor: chartBorderColor, fixLeftEdge: true, fixRightEdge: true },
-    rightPriceScale: { borderColor: chartBorderColor },
     handleScale: { axisPressedMouseMove: { price: false } },
     crosshair: { mode: 0 },
 };
 
-function initAssetChart(containerId, tooltipId, data) {
+const RANGES = [
+    { key: '1m', label: '1개월', days: 30 },
+    { key: '3m', label: '3개월', days: 91 },
+    { key: '6m', label: '6개월', days: 182 },
+    { key: '1y', label: '1년', days: 365 },
+    { key: 'all', label: '전체', days: null },
+];
+
+function daysBetween(fromStr, toStr) {
+    return Math.round((Date.parse(toStr) - Date.parse(fromStr)) / 86400000);
+}
+
+function initAssetChart(containerId, tooltipId, rangeId, data) {
     const container = document.getElementById(containerId);
     if (!container || !data || data.length === 0) return null;
 
     const chart = LightweightCharts.createChart(container, {
         ...chartOptions,
-        height: 280,
-        leftPriceScale: { visible: true, borderColor: chartBorderColor },
-        rightPriceScale: { visible: true, borderColor: chartBorderColor },
+        height: container.clientHeight || 300,
+        // 손익 밴드를 배경색 마스크로 그리므로 격자선을 켜면 마스크 위쪽만 남아 지저분해진다
+        grid: { vertLines: { visible: false }, horzLines: { visible: false } },
+        leftPriceScale: { visible: false },
+        rightPriceScale: {
+            visible: true,
+            borderColor: chartBorderColor,
+            scaleMargins: { top: 0.12, bottom: 0.10 },
+        },
     });
 
-    const amountSeries = chart.addAreaSeries({
-        lineColor: '#3b82f6',
-        topColor: 'rgba(59, 130, 246, 0.35)',
-        bottomColor: 'rgba(59, 130, 246, 0.03)',
+    // lineWidth는 v3에서 1~4만 유효하므로, 선을 없애는 대신 색을 투명/배경색으로 준다
+    const bandOpts = { lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false };
+
+    // 평가금액과 원금 사이만 색으로 남기는 3겹 구성.
+    // ① 원금 아래를 파랑으로, ② 평가금액 아래를 빨강으로 덮고,
+    // ③ 둘 중 낮은 선 아래를 배경색으로 지우면 두 선 사이 밴드만 남는다.
+    const lossBand = chart.addAreaSeries({
+        ...bandOpts,
+        lineColor: 'transparent',
+        topColor: `rgba(${downRGB}, 0.20)`,
+        bottomColor: `rgba(${downRGB}, 0.20)`,
+    });
+    const profitBand = chart.addAreaSeries({
+        ...bandOpts,
+        lineColor: 'transparent',
+        topColor: `rgba(${upRGB}, 0.20)`,
+        bottomColor: `rgba(${upRGB}, 0.20)`,
+    });
+    const bandMask = chart.addAreaSeries({
+        ...bandOpts,
+        lineColor: chartBgColor,
+        topColor: chartBgColor,
+        bottomColor: chartBgColor,
+    });
+
+    const principalSeries = chart.addLineSeries({
+        color: principalLineColor,
+        lineWidth: 1,
+        lineStyle: LightweightCharts.LineStyle.Dashed,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+    });
+    const evalSeries = chart.addLineSeries({
+        color: evalLineColor,
         lineWidth: 2,
-        priceScaleId: 'right',
-        priceFormat: { type: 'volume' },
         priceLineVisible: false,
         lastValueVisible: true,
+        crosshairMarkerRadius: 3,
     });
-    amountSeries.setData(data.map(d => ({ time: d.time, value: d.total_eval_amount })));
 
-    const rateSeries = chart.addBaselineSeries({
-        baseValue: { type: 'price', price: 0 },
-        topLineColor: 'rgba(34, 197, 94, 1)',
-        topFillColor1: 'rgba(34, 197, 94, 0.28)',
-        topFillColor2: 'rgba(34, 197, 94, 0.05)',
-        bottomLineColor: 'rgba(239, 68, 68, 1)',
-        bottomFillColor1: 'rgba(239, 68, 68, 0.05)',
-        bottomFillColor2: 'rgba(239, 68, 68, 0.28)',
-        lineWidth: 2,
-        priceScaleId: 'left',
-        priceLineVisible: false,
-        lastValueVisible: true,
-    });
-    rateSeries.setData(data.map(d => ({ time: d.time, value: d.profit_rate })));
+    // 기간 버튼: 쌓인 데이터가 모자란 기간은 아예 감춘다
+    const spanDays = daysBetween(data[0].time, data[data.length - 1].time);
+    const available = RANGES.filter(r => r.days === null || spanDays >= r.days);
+    const lastTime = data[data.length - 1].time;
 
-    chart.timeScale().fitContent();
+    function applyRange(range) {
+        let rows = data;
+        if (range.days !== null) {
+            const cutoff = new Date(Date.parse(lastTime) - range.days * 86400000)
+                .toISOString().slice(0, 10);
+            rows = data.filter(d => d.time >= cutoff);
+        }
+        if (rows.length === 0) rows = data;
+
+        lossBand.setData(rows.map(d => ({ time: d.time, value: d.total_buy_amount })));
+        profitBand.setData(rows.map(d => ({ time: d.time, value: d.total_eval_amount })));
+        bandMask.setData(rows.map(d => ({
+            time: d.time, value: Math.min(d.total_buy_amount, d.total_eval_amount),
+        })));
+        principalSeries.setData(rows.map(d => ({ time: d.time, value: d.total_buy_amount })));
+        evalSeries.setData(rows.map(d => ({ time: d.time, value: d.total_eval_amount })));
+        chart.timeScale().fitContent();
+    }
+
+    const rangeBox = document.getElementById(rangeId);
+    // 3개월이 있으면 기본값, 없으면 가장 넓은 기간
+    const defaultRange = available.find(r => r.key === '3m') || available[available.length - 1];
+    if (rangeBox && available.length > 1) {
+        available.forEach(r => {
+            const btn = document.createElement('button');
+            btn.className = 'asset-range-btn' + (r === defaultRange ? ' active' : '');
+            btn.textContent = r.label;
+            btn.addEventListener('click', () => {
+                rangeBox.querySelectorAll('.asset-range-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                applyRange(r);
+            });
+            rangeBox.appendChild(btn);
+        });
+    }
+    applyRange(defaultRange);
 
     const tooltip = document.getElementById(tooltipId);
     if (tooltip) {
@@ -417,8 +605,12 @@ function initAssetChart(containerId, tooltipId, data) {
                     <span class="asset-tooltip-value highlight-amount">${fmtWon(d.total_eval_amount)}</span>
                 </div>
                 <div class="asset-tooltip-row">
+                    <span class="asset-tooltip-label">원금</span>
+                    <span class="asset-tooltip-value">${fmtWon(d.total_buy_amount)}</span>
+                </div>
+                <div class="asset-tooltip-row">
                     <span class="asset-tooltip-label">총 평가손익</span>
-                    <span class="asset-tooltip-value">${fmtWon(d.total_eval_profit)}</span>
+                    <span class="asset-tooltip-value ${rateClass}">${fmtWon(d.total_eval_profit)}</span>
                 </div>
                 <div class="asset-tooltip-row">
                     <span class="asset-tooltip-label">수익률</span>
@@ -456,7 +648,8 @@ function initAssetChart(containerId, tooltipId, data) {
 const assetChartsByTab = {};
 function ensureAssetChart(tabKey) {
     if (assetChartsByTab[tabKey]) return;
-    const chart = initAssetChart(`assetChart-${tabKey}`, `assetTooltip-${tabKey}`, chartDataByTab[tabKey]);
+    const chart = initAssetChart(
+        `assetChart-${tabKey}`, `assetTooltip-${tabKey}`, `assetRange-${tabKey}`, chartDataByTab[tabKey]);
     if (chart) assetChartsByTab[tabKey] = chart;
 }
 ensureAssetChart(activeTab);

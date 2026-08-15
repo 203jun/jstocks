@@ -2425,9 +2425,16 @@ def _merge_snapshots(snapshots):
 
 def _chart_point(row):
     """합산/단일 스냅샷 dict를 차트 데이터 포인트로 변환"""
+    eval_amount = row['total_eval_amount'] or 0
+    eval_profit = row['total_eval_profit']
+    # 원금은 보유 종목 표와 같은 정의(평가금액 - 평가손익)를 쓴다.
+    # 스냅샷의 total_buy_amount는 수수료 등으로 미세하게 어긋나, 그걸 쓰면
+    # 차트의 두 선 간격이 평가손익과 딱 맞아떨어지지 않는다.
+    principal = (eval_amount - eval_profit) if eval_profit is not None else (row['total_buy_amount'] or 0)
     return {
         'time': row['date'].strftime('%Y-%m-%d'),
-        'total_eval_amount': row['total_eval_amount'] or 0,
+        'total_eval_amount': eval_amount,
+        'total_buy_amount': principal,
         'profit_rate': row['profit_rate'] if row['profit_rate'] is not None else 0,
         'total_eval_profit': row['total_eval_profit'],
         'deposit_balance': row['deposit_balance'],
@@ -2526,19 +2533,17 @@ def asset(request):
 
     accounts = list(Account.objects.filter(is_active=True))
 
-    # 계좌별 최근 60영업일 스냅샷
+    # 계좌별 전체 스냅샷 (기간 자르기는 차트 쪽 기간 버튼이 담당)
     snapshots_by_account = {a.id: [] for a in accounts}
     for account in accounts:
-        rows = list(account.snapshots.order_by('-date')[:60])
-        rows.reverse()
-        snapshots_by_account[account.id] = rows
+        snapshots_by_account[account.id] = list(account.snapshots.order_by('date'))
 
     # 합산: 같은 날짜끼리 묶어서 계좌 수만큼 합침
     by_date = {}
     for rows in snapshots_by_account.values():
         for s in rows:
             by_date.setdefault(s.date, []).append(s)
-    merged_rows = [_merge_snapshots(by_date[d]) for d in sorted(by_date)][-60:]
+    merged_rows = [_merge_snapshots(by_date[d]) for d in sorted(by_date)]
 
     holdings_by_account = {a.id: list(a.holdings.select_related('info', 'info_etf')) for a in accounts}
     all_holdings = [h for hs in holdings_by_account.values() for h in hs]
