@@ -1,23 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-시장 지표 상태 판정 + 화면 표시용 카드 구성
+시장 지표 해석 — 종합 신호 / 지표 카드 / 상태 변화 로그
 
-MarketIndicator 에 저장된 4개 값을 "지금 사도 되는 자리인가" 관점으로 해석한다.
+MarketIndicator 에 저장된 4개 값을 "지금 사도 되는 자리인가" 관점으로 읽는다.
 색은 값의 등락이 아니라 매수 관점의 신호로 준다.
 
-    warn(빨강)   사기 나쁜 신호 — 과열, 순매도, 약세
-    ok(초록)     사기 좋은 신호 — 순매수, 강세
-    chance(파랑) 기회 구간      — 이격도 침체, ADR 바닥권
+    warn(빨강)    사기 나쁜 신호 — 과열, 순매도, 약세
+    ok(초록)      사기 좋은 신호 — 순매수, 강세
+    chance(파랑)  기회 구간      — 이격도 침체, ADR 바닥권
     neutral(회색) 중립
 
-지표마다 성격이 다르다는 점에 주의한다. 이격도·ADR 은 높을수록 나쁘고(과열),
-수급·200일선은 높을수록 좋다. 그래서 "값이 올랐는가"로 색을 칠하면 안 된다.
+지표마다 성격이 다르다. 이격도·ADR 은 높을수록 나쁘고(과열), 수급·200일선은
+높을수록 좋다. 그래서 "값이 올랐는가"로 색을 칠하면 안 된다.
 
-임계값은 종합 신호(다음 단계)에서도 그대로 쓰므로 여기에 모아 둔다.
+200일선은 종합 점수에 더하지 않고 브레이크로 쓴다. 합산에 넣으면 약세장일 때
+점수가 내려가 "기회"로 밀려나는데, 200일선의 역할은 정확히 그 반대다.
 """
 from decimal import Decimal
-
-from django.db.models import Max, Min
 
 from .models import MarketIndicator
 
@@ -28,9 +27,105 @@ DISPARITY_THRESHOLDS = {
 }
 ADR_THRESHOLDS = (Decimal('75'), Decimal('120'))
 
+# 임계선 근처에서 값이 넘나들면 상태 변화가 5일에 한 번씩 생겨 로그가 노이즈로
+# 가득 찬다. 새 상태가 이만큼 유지돼야 '변화'로 인정한다 (104건 -> 44건).
+EVENT_MIN_DAYS = 3
+
+# 상태 변화 로그와 지속 일수를 계산할 범위. 늘어나도 조회가 무거워지지 않게 자른다.
+HISTORY_LIMIT = 750
+
+# 신중한 쪽 -> 낙관적인 쪽 순서. 브레이크는 이 배열에서 한 칸 앞으로 당긴다.
+SIGNAL_LEVELS = [
+    ('hot', '🔴', '과열', '지금 사고 싶은 종목, 2주 뒤에도 살 수 있습니다'),
+    ('warn', '🟠', '주의', '살 거면 반만. 나머지는 열흘 뒤의 나에게 맡기세요'),
+    ('neutral', '⚪', '중립', '시장은 핑계가 안 됩니다. 종목만 보세요'),
+    ('watch', '🟢', '관심', '평소 담고 싶던 자리입니다. 서두르지만 마세요'),
+    ('cold', '🔵', '침체', '무섭게 느껴진다면 대체로 맞는 자리입니다'),
+]
+BEAR_NOTE = '다만 200일선 아래입니다 — 눌림목이 아니라 하락 중간일 수 있습니다'
+
+EVENT_TEXT = {
+    ('disparity', 'mid', 'hot'): '이격도 과열권 진입',
+    ('disparity', 'hot', 'mid'): '이격도 과열 해소',
+    ('disparity', 'mid', 'cold'): '이격도 침체권 진입',
+    ('disparity', 'cold', 'mid'): '이격도 침체 벗어남',
+    ('disparity', 'hot', 'cold'): '이격도 과열에서 침체로',
+    ('disparity', 'cold', 'hot'): '이격도 침체에서 과열로',
+    ('adr', 'mid', 'hot'): 'ADR 과열권 진입',
+    ('adr', 'hot', 'mid'): 'ADR 과열 해소',
+    ('adr', 'mid', 'cold'): 'ADR 바닥권 진입',
+    ('adr', 'cold', 'mid'): 'ADR 바닥권 벗어남',
+    ('adr', 'hot', 'cold'): 'ADR 과열에서 바닥권으로',
+    ('adr', 'cold', 'hot'): 'ADR 바닥권에서 과열로',
+    ('foreign', 'minus', 'plus'): '외국인 순매수 전환',
+    ('foreign', 'plus', 'minus'): '외국인 순매도 전환',
+    ('ma200', 'minus', 'plus'): '200일선 상향 돌파',
+    ('ma200', 'plus', 'minus'): '200일선 하향 이탈',
+}
+
+
+# --------------------------------------------------------------------- #
+# 상태 판정
+# --------------------------------------------------------------------- #
+
+def _band_state(value, low, high):
+    if value is None:
+        return None
+    return 'hot' if value >= high else ('cold' if value <= low else 'mid')
+
+
+def _sign_state(value):
+    if value is None:
+        return None
+    return 'plus' if value > 0 else ('minus' if value < 0 else 'zero')
+
+
+def _confirm_events(series, min_days):
+    """
+    (date, state) 시퀀스에서 min_days 이상 유지된 상태 변화만 뽑는다.
+    반환은 (전환일, 이전상태, 새상태) 목록.
+    """
+    events = []
+    confirmed = pending = pending_from = None
+    count = 0
+    for date, state in series:
+        if state is None:
+            continue
+        if confirmed is None:
+            confirmed = state
+            continue
+        if state == confirmed:
+            pending, count = None, 0
+            continue
+        if state == pending:
+            count += 1
+        else:
+            pending, pending_from, count = state, date, 1
+        if count >= min_days:
+            events.append((pending_from, confirmed, state))
+            confirmed, pending, count = state, None, 0
+    return events
+
+
+def _streak(series):
+    """오늘 상태가 며칠째인지. (상태, 일수, 조회범위에 걸렸는지)"""
+    values = [(d, s) for d, s in series if s is not None]
+    if not values:
+        return None, 0, False
+    current = values[-1][1]
+    days = 0
+    for _, state in reversed(values):
+        if state != current:
+            break
+        days += 1
+    return current, days, days == len(values)
+
+
+# --------------------------------------------------------------------- #
+# 게이지
+# --------------------------------------------------------------------- #
 
 def _pos(value, low, high):
-    """value 를 [low, high] 구간 안의 0~100 위치로. 범위를 벗어나면 끝에 붙인다."""
     if high == low:
         return 50.0
     ratio = (Decimal(value) - Decimal(low)) / (Decimal(high) - Decimal(low)) * 100
@@ -40,18 +135,12 @@ def _pos(value, low, high):
 def _banded_gauge(value, low, high):
     """
     임계값 2개짜리 게이지 (이격도, ADR).
-
-    low/high 가 항상 1/3, 2/3 지점에 오도록 축을 잡는다. 두 게이지의 읽는 법이
-    같아져서 "오른쪽 칸에 있으면 과열"이 눈에 익는다.
+    low/high 가 늘 1/3, 2/3 지점에 오도록 축을 잡아 두 게이지의 읽는 법을 통일한다.
     """
     width = high - low
-    axis_low, axis_high = low - width, high + width
     return {
-        'pos': _pos(value, axis_low, axis_high),
-        'marks': [
-            {'pos': 33.33, 'label': f'{low:g}'},
-            {'pos': 66.67, 'label': f'{high:g}'},
-        ],
+        'pos': _pos(value, low - width, high + width),
+        'marks': [{'pos': 33.33, 'label': f'{low:g}'}, {'pos': 66.67, 'label': f'{high:g}'}],
         'zones': 'band',
     }
 
@@ -74,107 +163,158 @@ def _fmt_eok(value_in_million):
     return f'{eok:+,.0f}억'
 
 
-def _card(label, value_text, delta_text, state, badge, gauge):
+# --------------------------------------------------------------------- #
+# 조립
+# --------------------------------------------------------------------- #
+
+def build_market_panel(market):
+    """
+    화면에 그대로 뿌릴 수 있는 종합 신호 + 지표 카드 + 상태 변화 로그.
+    데이터가 없으면 None.
+    """
+    rows = list(
+        MarketIndicator.objects.filter(market=market)
+        .order_by('-date')
+        .values_list('date', 'disparity', 'adr', 'foreign_net_20d', 'ma200_gap')[:HISTORY_LIMIT]
+    )
+    if not rows:
+        return None
+    rows.reverse()  # 오래된 것부터
+
+    dis_low, dis_high = DISPARITY_THRESHOLDS.get(market, DISPARITY_THRESHOLDS['KOSPI'])
+    adr_low, adr_high = ADR_THRESHOLDS
+
+    series = {
+        'disparity': [(r[0], _band_state(r[1], dis_low, dis_high)) for r in rows],
+        'adr': [(r[0], _band_state(r[2], adr_low, adr_high)) for r in rows],
+        'foreign': [(r[0], _sign_state(r[3])) for r in rows],
+        'ma200': [(r[0], _sign_state(r[4])) for r in rows],
+    }
+    streaks = {key: _streak(seq) for key, seq in series.items()}
+
+    date, disparity, adr, foreign, gap = rows[-1]
+    # 게이지 폭은 조회 범위 안의 실제 최대치에서 잡는다.
+    # 코스피와 코스닥의 수급 규모가 10배 넘게 차이나 공통 눈금을 쓸 수 없다.
+    foreign_span = max((abs(r[3]) for r in rows if r[3] is not None), default=0)
+    gap_span = max((abs(r[4]) for r in rows if r[4] is not None), default=0)
+
+    cards = _build_cards(
+        disparity, adr, foreign, gap,
+        (dis_low, dis_high), (adr_low, adr_high), foreign_span, gap_span, streaks,
+    )
+    if not cards:
+        return None
+
     return {
-        'label': label,
-        'value': value_text,
-        'delta': delta_text,
-        'state': state,
-        'badge': badge,
-        **gauge,
+        'date': date,
+        'signal': _build_signal(streaks, series),
+        'cards': cards,
+        'events': _build_events(series, date),
     }
 
 
-def build_indicator_cards(market):
-    """
-    화면에 그대로 뿌릴 수 있는 지표 카드 4개를 만든다.
-    데이터가 없으면 None, 개별 지표가 비어 있으면 그 카드만 뺀다.
-    """
-    rows = list(MarketIndicator.objects.filter(market=market).order_by('-date')[:2])
-    if not rows:
-        return None
-    cur = rows[0]
-    prev = rows[1] if len(rows) > 1 else None
+def _card(label, value, delta, state, badge, streak, gauge):
+    return {
+        'label': label, 'value': value, 'delta': delta,
+        'state': state, 'badge': badge, 'streak': streak, **gauge,
+    }
 
-    # 수급·200일선 게이지 폭은 시장별 실제 최대치에서 잡는다.
-    # 코스피와 코스닥의 수급 규모가 10배 넘게 차이나 공통 눈금을 쓸 수 없다.
-    span = MarketIndicator.objects.filter(market=market).aggregate(
-        f_max=Max('foreign_net_20d'), f_min=Min('foreign_net_20d'),
-        g_max=Max('ma200_gap'), g_min=Min('ma200_gap'),
-    )
-    foreign_span = max(abs(span['f_max'] or 0), abs(span['f_min'] or 0))
-    gap_span = max(abs(span['g_max'] or 0), abs(span['g_min'] or 0))
 
-    def delta(field, fmt):
-        if prev is None:
-            return ''
-        now, before = getattr(cur, field), getattr(prev, field)
-        if now is None or before is None:
-            return ''
-        diff = now - before
-        arrow = '▲' if diff > 0 else ('▼' if diff < 0 else '–')
-        return f'{arrow} {fmt(abs(diff))}'
+def _streak_text(streaks, key):
+    _, days, capped = streaks[key]
+    if not days:
+        return ''
+    return f'{days}일+' if capped else f'{days}일째'
 
+
+def _build_cards(disparity, adr, foreign, gap,
+                 dis_th, adr_th, foreign_span, gap_span, streaks):
     cards = []
 
-    # 1. 이격도 — 높을수록 과열
-    if cur.disparity is not None:
-        low, high = DISPARITY_THRESHOLDS.get(market, DISPARITY_THRESHOLDS['KOSPI'])
-        if cur.disparity >= high:
-            state, badge = 'warn', '과열'
-        elif cur.disparity <= low:
-            state, badge = 'chance', '침체'
-        else:
-            state, badge = 'neutral', '중립'
-        cards.append(_card(
-            '이격도', f'{cur.disparity:,.2f}',
-            delta('disparity', lambda v: f'{v:,.2f}'),
-            state, badge, _banded_gauge(cur.disparity, low, high),
-        ))
+    if disparity is not None:
+        low, high = dis_th
+        state, badge = (('warn', '과열') if disparity >= high else
+                        ('chance', '침체') if disparity <= low else ('neutral', '중립'))
+        cards.append(_card('이격도', f'{disparity:,.2f}', '', state, badge,
+                           _streak_text(streaks, 'disparity'),
+                           _banded_gauge(disparity, low, high)))
 
-    # 2. ADR — 높을수록 과열
-    if cur.adr is not None:
-        low, high = ADR_THRESHOLDS
-        if cur.adr >= high:
-            state, badge = 'warn', '과열'
-        elif cur.adr <= low:
-            state, badge = 'chance', '바닥권'
-        else:
-            state, badge = 'neutral', '중립'
-        cards.append(_card(
-            'ADR', f'{cur.adr:,.2f}',
-            delta('adr', lambda v: f'{v:,.2f}'),
-            state, badge, _banded_gauge(cur.adr, low, high),
-        ))
+    if adr is not None:
+        low, high = adr_th
+        state, badge = (('warn', '과열') if adr >= high else
+                        ('chance', '바닥권') if adr <= low else ('neutral', '중립'))
+        cards.append(_card('ADR', f'{adr:,.2f}', '', state, badge,
+                           _streak_text(streaks, 'adr'),
+                           _banded_gauge(adr, low, high)))
 
-    # 3. 외국인 20일 누적 순매수 — 부호가 곧 방향
-    if cur.foreign_net_20d is not None:
-        if cur.foreign_net_20d > 0:
-            state, badge = 'ok', '순매수'
-        elif cur.foreign_net_20d < 0:
-            state, badge = 'warn', '순매도'
-        else:
-            state, badge = 'neutral', '중립'
-        cards.append(_card(
-            '외인 20일', _fmt_eok(cur.foreign_net_20d),
-            delta('foreign_net_20d', lambda v: _fmt_eok(v).lstrip('+')),
-            state, badge, _zero_gauge(cur.foreign_net_20d, foreign_span),
-        ))
+    if foreign is not None:
+        state, badge = (('ok', '순매수') if foreign > 0 else
+                        ('warn', '순매도') if foreign < 0 else ('neutral', '중립'))
+        cards.append(_card('외인 20일', _fmt_eok(foreign), '', state, badge,
+                           _streak_text(streaks, 'foreign'),
+                           _zero_gauge(foreign, foreign_span)))
 
-    # 4. 200일선 대비 — 위면 강세 레짐
-    if cur.ma200_gap is not None:
-        if cur.ma200_gap > 0:
-            state, badge = 'ok', '강세'
-        elif cur.ma200_gap < 0:
-            state, badge = 'warn', '약세'
-        else:
-            state, badge = 'neutral', '중립'
-        cards.append(_card(
-            '200일선', f'{cur.ma200_gap:+,.2f}%',
-            delta('ma200_gap', lambda v: f'{v:,.2f}%p'),
-            state, badge, _zero_gauge(cur.ma200_gap, gap_span),
-        ))
+    if gap is not None:
+        state, badge = (('ok', '강세') if gap > 0 else
+                        ('warn', '약세') if gap < 0 else ('neutral', '중립'))
+        cards.append(_card('200일선', f'{gap:+,.2f}%', '', state, badge,
+                           _streak_text(streaks, 'ma200'),
+                           _zero_gauge(gap, gap_span)))
 
-    if not cards:
+    return cards
+
+
+def _build_signal(streaks, series):
+    """
+    참을 이유 점수(-3 ~ +3)로 5단계를 정한다. 높을수록 참아야 한다.
+    200일선은 점수에 넣지 않고, 아래면 판정을 한 칸 신중한 쪽으로 당긴다.
+    """
+    dis_state = streaks['disparity'][0]
+    adr_state = streaks['adr'][0]
+    foreign_state = streaks['foreign'][0]
+    ma200_state = streaks['ma200'][0]
+
+    if dis_state is None or adr_state is None or foreign_state is None:
         return None
-    return {'date': cur.date, 'cards': cards}
+
+    score = 0
+    score += 1 if dis_state == 'hot' else (-1 if dis_state == 'cold' else 0)
+    score += 1 if adr_state == 'hot' else (-1 if adr_state == 'cold' else 0)
+    score += -1 if foreign_state == 'plus' else (1 if foreign_state == 'minus' else 0)
+
+    index = 0 if score >= 2 else (1 if score == 1 else (2 if score == 0 else (3 if score == -1 else 4)))
+    braked = ma200_state == 'minus'
+    if braked:
+        index = max(0, index - 1)
+
+    key, emoji, name, message = SIGNAL_LEVELS[index]
+
+    # 근거 한 줄 — 중립이 아닌 지표만 지속 일수와 함께
+    reasons = []
+    for field, label, texts in (
+        ('disparity', '이격도', {'hot': '과열', 'cold': '침체'}),
+        ('adr', 'ADR', {'hot': '과열', 'cold': '바닥권'}),
+        ('foreign', '외국인', {'plus': '순매수', 'minus': '순매도'}),
+    ):
+        text = texts.get(streaks[field][0])
+        if text:
+            reasons.append(f'{label} {text} {_streak_text(streaks, field)}'.strip())
+
+    return {
+        'key': key, 'emoji': emoji, 'name': name, 'message': message,
+        'score': score, 'braked': braked,
+        'bear_note': BEAR_NOTE if braked else '',
+        'reason': ' · '.join(reasons),
+    }
+
+
+def _build_events(series, today, limit=5):
+    """확정된 상태 변화를 최근 순으로. limit 개."""
+    events = []
+    for field, seq in series.items():
+        for date, before, after in _confirm_events(seq, EVENT_MIN_DAYS):
+            text = EVENT_TEXT.get((field, before, after))
+            if text:
+                events.append({'date': date, 'text': text, 'ago': (today - date).days})
+    events.sort(key=lambda e: e['date'], reverse=True)
+    return events[:limit]
