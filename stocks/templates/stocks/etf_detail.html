@@ -47,28 +47,6 @@
     font-size: 0.75rem; font-weight: 500;
 }
 .tag-badge.etf { background: #eff6ff; color: #2962ff; }
-.tag-badge.sector { background: #ecfdf5; color: #059669; }
-
-/* Sector select */
-.sector-select {
-    border: 1px solid var(--border-color); border-radius: 6px;
-    padding: 4px 10px; font-size: 0.82rem; color: var(--text-primary);
-    max-width: 300px; outline: none;
-}
-.sector-select:focus { border-color: #2962ff; }
-
-/* Selected sector chips */
-.sector-chip {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 4px 10px; background: #ecfdf5; border-radius: 4px;
-    font-size: 0.78rem; color: #059669;
-}
-.sector-chip-remove {
-    background: none; border: none; font-size: 0.9rem; color: #059669;
-    cursor: pointer; padding: 0; line-height: 1;
-}
-.sector-chip-remove:hover { color: var(--up-color); }
-
 /* MA toggle */
 .ma-badge {
     display: inline-flex; align-items: center; justify-content: center;
@@ -110,9 +88,6 @@
         </h5>
         <div class="d-flex gap-2" style="margin-top:6px;">
             <span class="tag-badge etf">ETF</span>
-            {% for sector in etf.custom_sectors.all %}
-            <a href="{% url 'stocks:sector_detail' sector.id %}" class="tag-badge sector" style="text-decoration:none;">{{ sector.name }}</a>
-            {% endfor %}
         </div>
     </div>
     <div class="d-flex gap-2">
@@ -161,35 +136,6 @@
                     보유중
                 </label>
             </div>
-            {% if custom_sectors %}
-            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">관심섹터</div>
-            <div id="selectedSectors" class="d-flex flex-wrap gap-2" style="margin-bottom:10px;">
-                {% for sector in etf.custom_sectors.all %}
-                <span class="sector-chip selected-sector" data-id="{{ sector.id }}">
-                    {{ sector.name }}
-                    <button type="button" class="sector-chip-remove btn-remove-sector">&times;</button>
-                </span>
-                {% endfor %}
-            </div>
-            <div class="d-flex gap-2 align-items-center" style="margin-bottom:12px;">
-                <select id="sectorSelect" class="sector-select" style="font-size:0.78rem;padding:3px 8px;">
-                    <option value="">섹터 선택...</option>
-                    {% for sector in custom_sectors %}
-                    <option value="{{ sector.id }}" data-name="{{ sector.name }}">{{ sector.name }}</option>
-                    {% endfor %}
-                </select>
-                <button type="button" id="btnAddSector" class="btn-refresh" style="padding:3px 10px;">추가</button>
-            </div>
-            <div id="sectorInputs">
-                {% for sector in etf.custom_sectors.all %}
-                <input type="hidden" name="custom_sectors" value="{{ sector.id }}">
-                {% endfor %}
-            </div>
-            {% else %}
-            {% for sector in etf.custom_sectors.all %}
-            <input type="hidden" name="custom_sectors" value="{{ sector.id }}">
-            {% endfor %}
-            {% endif %}
             <div class="d-flex gap-2" style="margin-bottom:10px;">
                 <button type="submit" class="btn-refresh" style="padding:4px 16px;">저장</button>
                 <button type="button" id="btnEditCancel" class="btn-refresh" style="padding:4px 16px;">취소</button>
@@ -217,39 +163,6 @@
         btnToggle.textContent = '정보수정';
     });
 
-    const selectedSectors = document.getElementById('selectedSectors');
-    const form = document.getElementById('holdingForm');
-    const select = document.getElementById('sectorSelect');
-    const btnAdd = document.getElementById('btnAddSector');
-    if (!selectedSectors || !select || !btnAdd) return;
-
-    btnAdd.addEventListener('click', () => {
-        const sectorId = select.value;
-        if (!sectorId) return;
-        if (form.querySelector(`input[name="custom_sectors"][value="${sectorId}"]`)) { alert('이미 추가된 섹터입니다.'); return; }
-        const sectorName = select.options[select.selectedIndex].dataset.name;
-        const chip = document.createElement('span');
-        chip.className = 'sector-chip selected-sector';
-        chip.dataset.id = sectorId;
-        chip.innerHTML = `${sectorName}<button type="button" class="sector-chip-remove btn-remove-sector">&times;</button>`;
-        selectedSectors.appendChild(chip);
-        const input = document.createElement('input');
-        input.type = 'hidden'; input.name = 'custom_sectors'; input.value = sectorId;
-        const sectorInputs = document.getElementById('sectorInputs');
-        if (sectorInputs) sectorInputs.appendChild(input);
-        else form.appendChild(input);
-        select.value = '';
-    });
-
-    selectedSectors.addEventListener('click', (e) => {
-        if (!e.target.classList.contains('btn-remove-sector')) return;
-        const chip = e.target.closest('.selected-sector');
-        if (!chip) return;
-        const sectorId = chip.dataset.id;
-        chip.remove();
-        const input = form.querySelector(`input[name="custom_sectors"][value="${sectorId}"]`);
-        if (input) input.remove();
-    });
 })();
 </script>
 

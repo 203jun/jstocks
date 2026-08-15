@@ -132,9 +132,6 @@
                     <td style="padding-left:16px;">
                         <strong>{{ item.etf.name }}</strong>
                         {% if item.etf.is_holding %}<span title="보유중">💰</span>{% endif %}
-                        {% for sector in item.etf.custom_sectors.all %}
-                        <a href="{% url 'stocks:sector_detail' sector.id %}" style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:0.68rem;background:#ecfdf5;color:#059669;text-decoration:none;margin-left:4px;" onclick="event.stopPropagation();">{{ sector.name }}</a>
-                        {% endfor %}
                     </td>
                     <td style="text-align:right;">
                         {% if item.etf.current_price %}{{ item.etf.current_price|intcomma }}{% else %}-{% endif %}

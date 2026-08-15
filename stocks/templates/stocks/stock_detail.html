@@ -497,13 +497,8 @@
         <span style="color:var(--text-muted);font-size:0.82rem;">보유 안함</span>
         {% endif %}
     </div>
-    {% if stock.themes.all or sectors or stock.custom_sectors.all %}
+    {% if stock.themes.all or sectors %}
     <div style="border-top:1px solid var(--border-color);padding-top:8px;margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
-        {% if stock.custom_sectors.all %}
-        {% for sector in stock.custom_sectors.all %}
-        <a href="{% url 'stocks:sector_detail' sector.id %}" class="tag-badge sector" style="text-decoration:none;">{{ sector.name }}</a>
-        {% endfor %}
-        {% endif %}
         {% if stock.themes.all %}
         {% regroup stock.themes.all by category as theme_groups %}
         {% for group in theme_groups %}

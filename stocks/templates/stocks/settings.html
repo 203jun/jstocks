@@ -341,7 +341,6 @@ small.text-muted {
         <button class="nav-link" id="theme-tab" data-bs-toggle="tab" data-bs-target="#theme-panel" type="button" role="tab">업종</button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="sector-tab" data-bs-toggle="tab" data-bs-target="#sector-panel" type="button" role="tab">섹터</button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-panel" type="button" role="tab">정보</button>
@@ -392,35 +391,6 @@ small.text-muted {
                 </div>
                 {% endfor %}
             </div>
-        </div>
-    </div>
-
-    <!-- 섹터 탭 -->
-    <div class="tab-pane fade" id="sector-panel" role="tabpanel">
-        <div class="brief-card">
-            <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
-                <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">섹터 관리</span>
-                <span style="font-size:0.78rem;color:var(--text-muted);">{{ custom_sectors|length }}개</span>
-            </div>
-            <!-- 섹터 추가 폼 -->
-            <div class="d-flex gap-2 align-items-center" style="margin-bottom:16px;">
-                <input type="text" class="settings-input" id="customSectorName" placeholder="섹터명 입력 (예: 화장품, 2차전지)" maxlength="50" style="flex:1;">
-                <button type="button" class="btn-refresh" id="btnAddCustomSector">추가</button>
-            </div>
-            <!-- 섹터 목록 -->
-            <div id="customSectorList" class="d-flex flex-wrap gap-2">
-                {% for sector in custom_sectors %}
-                <span class="tag-chip" data-id="{{ sector.id }}">
-                    {{ sector.name }}
-                    <button type="button" class="tag-chip-remove btn-delete-custom-sector" data-id="{{ sector.id }}" data-name="{{ sector.name }}">&times;</button>
-                </span>
-                {% empty %}
-                <span style="color:var(--text-muted);font-size:0.82rem;" id="noSectorMsg">등록된 섹터가 없습니다.</span>
-                {% endfor %}
-            </div>
-        </div>
-        <div style="margin-top:12px;font-size:0.78rem;color:var(--text-muted);">
-            <strong>사용법:</strong> 섹터를 추가하면 '섹터' 페이지 하단에 표시됩니다.
         </div>
     </div>
 
@@ -1765,100 +1735,6 @@ async function savePromptAsync(key, value) {
     if (!data.success) throw new Error(data.error || '저장 실패');
     return data;
 }
-
-// === 섹터 관리 ===
-const customSectorName = document.getElementById('customSectorName');
-const btnAddCustomSector = document.getElementById('btnAddCustomSector');
-const customSectorList = document.getElementById('customSectorList');
-
-btnAddCustomSector.addEventListener('click', async () => {
-    const name = customSectorName.value.trim();
-    if (!name) {
-        alert('섹터명을 입력해주세요.');
-        return;
-    }
-
-    btnAddCustomSector.disabled = true;
-
-    try {
-        const formData = new FormData();
-        formData.append('name', name);
-
-        const response = await fetch('/api/custom-sector/add/', {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            // 빈 메시지 제거
-            const noMsg = document.getElementById('noSectorMsg');
-            if (noMsg) noMsg.remove();
-
-            // 새 뱃지 추가
-            const badge = document.createElement('span');
-            badge.className = 'tag-chip';
-            badge.dataset.id = data.id;
-            badge.innerHTML = `
-                ${escapeHtml(data.name)}
-                <button type="button" class="tag-chip-remove btn-delete-custom-sector" data-id="${data.id}" data-name="${escapeHtml(data.name)}">&times;</button>
-            `;
-            customSectorList.appendChild(badge);
-
-            customSectorName.value = '';
-            customSectorName.focus();
-        } else {
-            alert(data.error || '저장에 실패했습니다.');
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-    } finally {
-        btnAddCustomSector.disabled = false;
-    }
-});
-
-customSectorName.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') btnAddCustomSector.click();
-});
-
-// 섹터 삭제
-document.addEventListener('click', async (e) => {
-    if (!e.target.classList.contains('btn-delete-custom-sector')) return;
-
-    const sectorId = e.target.dataset.id;
-    const sectorName = e.target.dataset.name;
-
-    if (!confirm(`"${sectorName}" 섹터를 삭제하시겠습니까?`)) return;
-
-    e.target.disabled = true;
-
-    try {
-        const response = await fetch(`/api/custom-sector/${sectorId}/delete/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            const badge = e.target.closest('[data-id]');
-            badge.remove();
-
-            // 목록이 비었으면 메시지 표시
-            if (customSectorList.children.length === 0) {
-                customSectorList.innerHTML = '<span class="text-muted small" id="noSectorMsg">등록된 섹터가 없습니다.</span>';
-            }
-        } else {
-            alert(data.error || '삭제에 실패했습니다.');
-            e.target.disabled = false;
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-        e.target.disabled = false;
-    }
-});
 
 // === 변수 전체 조회 ===
 document.getElementById('btnLoadAllVars').addEventListener('click', async () => {
