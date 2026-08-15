@@ -12,6 +12,7 @@ from decouple import config
 from telethon import TelegramClient
 from django.views.decorators.http import require_POST
 from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, IndexChart, MarketTrend, InvestorTrend, ShortSelling, MarketDiary, StockDiary, StockEvent, SectorEvent, ETFEvent, DailyTrade
+from .market_signal import build_indicator_cards
 
 import unicodedata
 import re as _re
@@ -2736,6 +2737,8 @@ def market(request):
         'kosdaq_52w_low': kosdaq_52w_low,
         'kospi_raw_trends': json.dumps(kospi_raw_trends),
         'kosdaq_raw_trends': json.dumps(kosdaq_raw_trends),
+        'kospi_indicators': build_indicator_cards('KOSPI'),
+        'kosdaq_indicators': build_indicator_cards('KOSDAQ'),
     }
     return render(request, 'stocks/market.html', context)
 
