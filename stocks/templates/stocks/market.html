@@ -642,6 +642,18 @@ const kospiRawTrends = {{ kospi_raw_trends|safe }};
 const kosdaqRawTrends = {{ kosdaq_raw_trends|safe }};
 const futuresRawTrends = {{ futures_raw_trends|safe }};
 
+// ===== 누적 순매수 =====
+function buildCumulative(rawData, days) {
+    const sliced = rawData.slice(-days);
+    let cumInd = 0, cumFor = 0, cumInst = 0;
+    return sliced.map(d => {
+        cumInd += d.individual;
+        cumFor += d.foreign;
+        cumInst += d.institution;
+        return { date: d.date, individual: cumInd, foreign: cumFor, institution: cumInst };
+    });
+}
+
 // ===== Chart Options =====
 const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
 const chartBgColor = isDarkTheme ? '#1a1d24' : '#ffffff';
