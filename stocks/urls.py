@@ -64,11 +64,7 @@ urlpatterns = [
     path('api/disclosure/search/', views.search_disclosure, name='search_disclosure'),
     path('api/report/search/', views.search_report, name='search_report'),
     path('api/nodaji/search/', views.search_nodaji, name='search_nodaji'),
-    path('api/nodaji/brief/', views.fetch_nodaji_brief, name='fetch_nodaji_brief'),
-    path('api/morning-market/', views.fetch_morning_market, name='fetch_morning_market'),
     path('api/habono/', views.fetch_habono, name='fetch_habono'),
-    path('api/youtube-channel/', views.fetch_youtube_channel, name='fetch_youtube_channel'),
-    path('api/youtube-search/', views.fetch_youtube_search, name='fetch_youtube_search'),
     # 투자일기
     path('api/diary/', views.diary_list, name='diary_list'),
     path('api/diary/save/', views.diary_save, name='diary_save'),
@@ -85,11 +81,6 @@ urlpatterns = [
     path('api/stock/<str:code>/event/<int:event_id>/update/', views.stock_event_update, name='stock_event_update'),
     path('api/stock/<str:code>/event/<int:event_id>/delete/', views.stock_event_delete, name='stock_event_delete'),
     path('api/stock/<str:code>/event/<int:event_id>/move/', views.stock_event_move, name='stock_event_move'),
-    # 시황 유튜브
-    path('api/market/youtube/', views.market_youtube_list, name='market_youtube_list'),
-    path('api/market/youtube/save/', views.market_youtube_save, name='market_youtube_save'),
-    path('api/market/youtube/<int:video_id>/update/', views.market_youtube_update, name='market_youtube_update'),
-    path('api/market/youtube/<int:video_id>/delete/', views.market_youtube_delete, name='market_youtube_delete'),
     path('api/dart/<str:code>/', views.fetch_dart, name='fetch_dart'),
     path('api/dart-document/<str:rcept_no>/', views.fetch_dart_document, name='fetch_dart_document'),
     path('api/sector/date/', views.sector_date_data, name='sector_date_data'),
