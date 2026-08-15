@@ -2246,6 +2246,104 @@ class MarketTrend(models.Model):
 
 
 
+class MarketIndicator(models.Model):
+    """
+    시장별 일일 지표 스냅샷 (KOSPI, KOSDAQ)
+
+    "지금 사도 되는 자리인가"를 판단하는 4개 지표를 하루 한 행으로 남긴다.
+
+    1. 이격도(20일)  = 종가 / 20일 이동평균 * 100     — 단기 과열/침체
+    2. ADR           = 등락비율 (adrinfo.kr에서 수집)  — 시장 전체 과열 폭
+    3. 외국인 20일 누적 순매수                          — 수급 방향
+    4. 200일선 대비  = (종가 / 200일 이동평균 - 1) * 100 — 강세/약세 레짐
+
+    ※ 이격도·200일선·수급은 IndexChart/MarketTrend에서 파생되지만 값을 그대로
+      저장한다. 나중에 붙일 '상태 변화 로그'가 연속된 두 행 비교로 끝나고,
+      임계값을 조정하거나 과거를 되짚을 때 그날 실제 값이 남아 있어야 한다.
+      원본이 보정되면 save_market_indicator --mode all 로 재계산한다.
+
+    ※ 지표마다 필요한 과거 이력이 달라 초기 구간은 일부가 null이다.
+      200일선은 IndexChart 시작 + 200일, 수급은 MarketTrend 시작 + 20일부터.
+    """
+
+    market = models.CharField(
+        max_length=10,
+        verbose_name='시장',
+        help_text='KOSPI, KOSDAQ',
+        db_index=True
+    )
+    date = models.DateField(
+        verbose_name='일자',
+        db_index=True
+    )
+
+    # === 지수 ===
+    close = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='종가'
+    )
+
+    # === 1. 이격도 (20일) ===
+    ma20 = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='20일 이동평균'
+    )
+    disparity = models.DecimalField(
+        max_digits=7, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='이격도(20일)',
+        help_text='종가 / 20일 이동평균 * 100'
+    )
+
+    # === 2. ADR ===
+    adr = models.DecimalField(
+        max_digits=7, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='ADR',
+        help_text='등락비율, 단위: % (출처: adrinfo.kr)'
+    )
+
+    # === 3. 수급 ===
+    foreign_net_20d = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='외국인 20일 누적 순매수',
+        help_text='단위: 백만원 (MarketTrend 최근 20영업일 합)'
+    )
+
+    # === 4. 200일선 ===
+    ma200 = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='200일 이동평균'
+    )
+    ma200_gap = models.DecimalField(
+        max_digits=7, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='200일선 대비',
+        help_text='(종가 / 200일 이동평균 - 1) * 100, 단위: %'
+    )
+
+    # === 메타 정보 ===
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'market_indicator'
+        verbose_name = '시장지표'
+        verbose_name_plural = '시장지표'
+        ordering = ['-date', 'market']
+        unique_together = [('market', 'date')]
+        indexes = [
+            models.Index(fields=['market', '-date']),
+            models.Index(fields=['-date']),
+        ]
+
+    def __str__(self):
+        return f"{self.market} - {self.date} (이격도: {self.disparity}, ADR: {self.adr})"
+
+
 class ExcludedYoutubeChannel(models.Model):
     """
     유튜브 검색 제외 채널
