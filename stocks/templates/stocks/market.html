@@ -158,7 +158,7 @@
 /* 일별 순매수 표 */
 .td-summary {
     display: flex;
-    gap: 18px;
+    gap: 14px;
     flex-wrap: wrap;
     padding-bottom: 10px;
     margin-bottom: 8px;
@@ -184,6 +184,12 @@
 .td-num { text-align: right; }
 .td-date { color: var(--text-muted); }
 .td-note { margin-top: 10px; font-size: 0.72rem; color: var(--text-muted); }
+/* 컬럼이 4개라 좁은 화면에서는 여백을 줄인다 */
+@media (max-width: 420px) {
+    .td-table { font-size: 0.74rem; }
+    .td-table th, .td-table td { padding-left: 4px; padding-right: 4px; }
+    .td-summary { gap: 10px; font-size: 0.72rem; }
+}
 
 /* 시장 지표 스트립 — 값 + 상태 배지 + 임계선 게이지 */
 .mi-strip {
@@ -804,7 +810,7 @@
         <div class="td-scroll">
             <table class="td-table">
                 <thead>
-                    <tr><th>일자</th><th class="td-num">외국인</th><th class="td-num">기관</th></tr>
+                    <tr><th>일자</th><th class="td-num">외국인</th><th class="td-num">기관</th><th class="td-num">개인</th></tr>
                 </thead>
                 <tbody id="trendDetailBody"></tbody>
             </table>
@@ -1143,19 +1149,20 @@ function openTrendDetail(marketCode) {
     document.getElementById('trendDetailTitle').textContent =
         `${marketCode} 투자자별 일별 순매수`;
 
-    const sum = (field) => rows.reduce((acc, d) => acc + d[field], 0);
+    const sum = (field) => rows.reduce((acc, d) => acc + (d[field] || 0), 0);
     const cls = (v) => v > 0 ? 'text-up' : (v < 0 ? 'text-down' : '');
-    const foreignSum = sum('foreign'), instSum = sum('institution');
+    const totals = [['외국인', sum('foreign')], ['기관', sum('institution')], ['개인', sum('individual')]];
     document.getElementById('trendDetailSummary').innerHTML =
         `<span>60일 합계</span>` +
-        `<span>외국인<b class="${cls(foreignSum)}">${fmtEok(foreignSum)}억</b></span>` +
-        `<span>기관<b class="${cls(instSum)}">${fmtEok(instSum)}억</b></span>`;
+        totals.map(([name, v]) =>
+            `<span>${name}<b class="${cls(v)}">${fmtEok(v)}억</b></span>`).join('');
 
     document.getElementById('trendDetailBody').innerHTML = rows.map(d => `
         <tr>
             <td class="td-date">${d.date.slice(5).replace('-', '/')}</td>
             <td class="td-num ${cls(d.foreign)}">${fmtEok(d.foreign)}</td>
             <td class="td-num ${cls(d.institution)}">${fmtEok(d.institution)}</td>
+            <td class="td-num ${cls(d.individual)}">${fmtEok(d.individual || 0)}</td>
         </tr>`).join('');
 
     trendModal.classList.add('show');

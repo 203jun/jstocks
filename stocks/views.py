@@ -2713,6 +2713,8 @@ def market(request):
                 'date': t.date.strftime('%Y-%m-%d'),
                 'foreign': t.foreign,
                 'institution': t.institution,
+                # 차트에는 안 쓰지만 외인 카드 팝업에서 같이 보여준다
+                'individual': t.individual,
             }
             for t in trends
         ]
