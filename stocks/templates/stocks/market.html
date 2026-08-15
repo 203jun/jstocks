@@ -587,6 +587,12 @@ function applyRange(chartKey, days) {
     state.institutionSeries.setData(cumulative.map(d => ({ time: d.time, value: d.institution })));
     state.zeroSeries.setData(cumulative.map(d => ({ time: d.time, value: 0 })));
 
+    // 오버레이 축은 setData만으로 가격 범위를 다시 잡지 않는다. 최초 렌더가 멀쩡했던 건
+    // ResizeObserver가 observe() 직후 한 번 발화하며 레이아웃을 다시 태웠기 때문이고,
+    // 기간을 바꿀 때는 그 계기가 없어 선이 옛 범위에 갇힌 채 화면 밖으로 나간다.
+    state.foreignSeries.priceScale().applyOptions({ scaleMargins: TREND_MARGINS, autoScale: true });
+    state.volumeSeries.priceScale().applyOptions({ scaleMargins: VOLUME_MARGINS, autoScale: true });
+
     // 툴팁이 참조하는 조회표도 같이 갱신
     state.candleByTime = {};
     sliced.forEach((d, i) => {
