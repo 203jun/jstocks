@@ -27,6 +27,9 @@ DISPARITY_THRESHOLDS = {
 }
 ADR_THRESHOLDS = (Decimal('75'), Decimal('120'))
 
+# ADR 출처. 카드에서 눌러 원본을 확인할 수 있게 한다 (HTTPS 미지원 사이트)
+ADR_SOURCE_URL = 'http://adrinfo.kr/'
+
 # 임계선 근처에서 값이 넘나들면 상태 변화가 5일에 한 번씩 생겨 로그가 노이즈로
 # 가득 찬다. 새 상태가 이만큼 유지돼야 '변화'로 인정한다 (104건 -> 44건).
 EVENT_MIN_DAYS = 3
@@ -227,10 +230,15 @@ def build_market_panel(market):
     }
 
 
-def _card(label, value, delta, state, badge, streak, gauge):
+def _card(label, value, delta, state, badge, streak, gauge, link='', action=''):
+    """
+    link   : 누르면 새 탭으로 여는 외부 주소
+    action : 누르면 화면 안에서 처리할 동작 (JS 가 data-action 으로 받는다)
+    """
     return {
         'label': label, 'value': value, 'delta': delta,
-        'state': state, 'badge': badge, 'streak': streak, **gauge,
+        'state': state, 'badge': badge, 'streak': streak,
+        'link': link, 'action': action, **gauge,
     }
 
 
@@ -280,7 +288,8 @@ def _build_cards(disparity, adr, foreign, gap, foreign_pct, gap_pct,
                         ('chance', '바닥권') if adr <= low else ('neutral', '중립'))
         cards.append(_card('ADR', f'{adr:,.2f}', '', state, badge,
                            _streak_text(streaks, 'adr'),
-                           _banded_gauge(adr, low, high)))
+                           _banded_gauge(adr, low, high),
+                           link=ADR_SOURCE_URL))
 
     if foreign is not None:
         state, badge = (('ok', '순매수') if foreign > 0 else
@@ -289,7 +298,8 @@ def _build_cards(disparity, adr, foreign, gap, foreign_pct, gap_pct,
                            _percentile_text(foreign_pct, samples['foreign']),
                            state, badge,
                            _streak_text(streaks, 'foreign'),
-                           _zero_gauge(foreign, foreign_span)))
+                           _zero_gauge(foreign, foreign_span),
+                           action='trend-detail'))
 
     if gap is not None:
         state, badge = (('ok', '강세') if gap > 0 else
