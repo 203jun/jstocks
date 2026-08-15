@@ -242,77 +242,103 @@
     }
 }
 
-/* Holdings table */
+/* Holdings list — 종목명 / 좌우 막대 / 수익률, 탭하면 상세 */
 .holdings-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 14px 16px 16px;
+    padding: 6px 16px 8px;
     margin-bottom: 24px;
-    overflow-x: auto;
 }
-.holdings-table {
+.hold-item + .hold-item { border-top: 1px solid var(--border-color); }
+.hold-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(110px, 2.2fr) 66px;
+    align-items: center;
+    gap: 10px;
     width: 100%;
-    border-collapse: collapse;
+    padding: 11px 2px;
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-family: inherit;
     font-size: 0.85rem;
+    text-align: left;
+    cursor: pointer;
 }
-.holdings-table th,
-.holdings-table td {
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--border-color);
-    text-align: right;
+.hold-row:hover { background: var(--bg-hover, rgba(0,0,0,0.03)); }
+.hold-name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
-.holdings-table th {
+/* 0을 가운데 축으로 두고 수익은 오른쪽, 손실은 왼쪽으로 뻗는다 */
+.hold-bar {
+    display: flex;
+    align-items: center;
+    height: 13px;
+}
+.hold-bar-half {
+    flex: 1;
+    display: flex;
+    height: 100%;
+    min-width: 0;
+}
+.hold-bar-half.left { justify-content: flex-end; }
+.hold-bar-axis {
+    width: 1px;
+    height: 100%;
+    background: var(--border-color);
+    flex: none;
+}
+.hold-bar-half i {
+    display: block;
+    height: 100%;
+    opacity: 0.8;
+}
+.hold-bar-half.left i {
+    background: var(--down-color);
+    border-radius: 2px 0 0 2px;
+}
+.hold-bar-half.right i {
+    background: var(--up-color);
+    border-radius: 0 2px 2px 0;
+}
+.hold-rate {
+    text-align: right;
     font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.hold-detail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    padding: 2px 2px 12px;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+}
+.hold-detail-item em {
+    font-style: normal;
     color: var(--text-muted, #6b7280);
-    background: var(--bg-body, transparent);
-    position: sticky;
-    top: 0;
+    margin-right: 6px;
 }
-.holdings-table th:first-child,
-.holdings-table td:first-child {
-    text-align: left;
-}
-.holdings-table tbody tr:hover {
-    background: var(--bg-hover, rgba(0,0,0,0.03));
-}
-.holdings-name {
-    font-weight: 600;
-}
-.holdings-name a {
-    color: inherit;
+.hold-detail-link {
+    color: #3b82f6;
     text-decoration: none;
+    font-weight: 600;
 }
-.holdings-name a:hover {
-    text-decoration: underline;
-}
-.holdings-stack {
-    line-height: 1.3;
-}
-.holdings-stack-main {
-    font-weight: 500;
-}
-.holdings-stack-sub {
-    color: var(--text-muted, #6b7280);
-    font-size: 0.75rem;
-    margin-top: 1px;
-}
+.hold-detail-link:hover { text-decoration: underline; }
 @media (max-width: 768px) {
-    .holdings-table th:first-child,
-    .holdings-table td:first-child {
-        position: sticky;
-        left: 0;
-        background: var(--bg-card);
-        z-index: 2;
-        box-shadow: 2px 0 4px -2px rgba(0,0,0,0.1);
+    /* 위쪽 미디어쿼리의 .holdings-card 여백은 아래 .holdings-card 규칙에 덮이므로 여기서 다시 지정 */
+    .holdings-card { padding: 6px 12px 8px; }
+    .hold-row {
+        grid-template-columns: minmax(0, 1fr) minmax(96px, 1.5fr) 60px;
+        gap: 8px;
+        font-size: 0.82rem;
+        padding: 12px 2px;
     }
-    .holdings-table thead th:first-child {
-        z-index: 3;
-    }
-    .holdings-table tbody tr:hover td:first-child {
-        background: var(--bg-hover, rgba(0,0,0,0.03));
-    }
+    .hold-detail { gap: 5px 14px; font-size: 0.76rem; }
 }
 
 {% endblock %}
@@ -392,52 +418,41 @@
     <h5 class="section-heading">보유 종목</h5>
     <div class="holdings-card">
         {% if tab.holdings %}
-        <table class="holdings-table">
-            <thead>
-                <tr>
-                    <th>종목명</th>
-                    <th>현재가<br><span style="font-weight:400;">매입단가</span></th>
-                    <th>수익률<br><span style="font-weight:400;">평가손익</span></th>
-                    <th>평가금액<br><span style="font-weight:400;">원금</span></th>
-                    <th>평가비중<br><span style="font-weight:400;">원금비중</span></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for h in tab.holdings %}
-                <tr>
-                    <td>
-                        <span class="holdings-name">
-                            {% if h.is_etf %}{{ h.stk_nm }}{% else %}<a href="{% url 'stocks:stock_detail' h.stk_cd %}">{{ h.stk_nm }}</a>{% endif %}
+        <div class="hold-list">
+            {% for h in tab.holdings %}
+            <div class="hold-item">
+                <button type="button" class="hold-row" aria-expanded="false">
+                    <span class="hold-name">{{ h.stk_nm }}</span>
+                    <span class="hold-bar">
+                        <span class="hold-bar-half left">
+                            {% if h.is_loss %}<i style="width: {{ h.bar_pct }}%;"></i>{% endif %}
                         </span>
-                    </td>
-                    <td class="holdings-stack">
-                        <div class="holdings-stack-main {% if h.cur_prc and h.buy_uv %}{% if h.cur_prc > h.buy_uv %}text-up{% elif h.cur_prc < h.buy_uv %}text-down{% endif %}{% endif %}">
-                            {{ h.cur_prc|default_if_none:0|intcomma }}
-                        </div>
-                        <div class="holdings-stack-sub">{{ h.buy_uv|default_if_none:0|intcomma }}</div>
-                    </td>
-                    <td class="holdings-stack">
-                        <div class="holdings-stack-main {% if h.profit_rate > 0 %}text-up{% elif h.profit_rate < 0 %}text-down{% endif %}">
-                            {{ h.profit_rate|default_if_none:0 }}%
-                        </div>
-                        <div class="holdings-stack-sub" style="color: var(--text-primary);">
-                            {{ h.eval_profit|default_if_none:0|intcomma }}
-                        </div>
-                    </td>
-                    <td class="holdings-stack">
-                        <div class="holdings-stack-main {% if h.eval_amount and h.principal %}{% if h.eval_amount > h.principal %}text-up{% elif h.eval_amount < h.principal %}text-down{% endif %}{% endif %}">
-                            {{ h.eval_amount|default_if_none:0|intcomma }}
-                        </div>
-                        <div class="holdings-stack-sub">{{ h.principal|default_if_none:0|intcomma }}</div>
-                    </td>
-                    <td class="holdings-stack">
-                        <div class="holdings-stack-main">{{ h.eval_weight|default_if_none:0 }}%</div>
-                        <div class="holdings-stack-sub">{{ h.buy_weight|default_if_none:0 }}%</div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        <span class="hold-bar-axis"></span>
+                        <span class="hold-bar-half right">
+                            {% if h.is_profit %}<i style="width: {{ h.bar_pct }}%;"></i>{% endif %}
+                        </span>
+                    </span>
+                    <span class="hold-rate {% if h.is_profit %}text-up{% elif h.is_loss %}text-down{% endif %}">
+                        {% if h.is_profit %}+{% endif %}{{ h.profit_rate|default_if_none:0 }}%
+                    </span>
+                </button>
+                <div class="hold-detail" hidden>
+                    <span class="hold-detail-item">
+                        <em>평가금액</em>{{ h.eval_amount|default_if_none:0|intcomma }}원
+                    </span>
+                    <span class="hold-detail-item">
+                        <em>평가손익</em><b class="{% if h.is_profit %}text-up{% elif h.is_loss %}text-down{% endif %}">{% if h.is_profit %}+{% endif %}{{ h.eval_profit|default_if_none:0|intcomma }}원</b>
+                    </span>
+                    <span class="hold-detail-item">
+                        <em>비중</em>{{ h.eval_weight|default_if_none:0 }}%
+                    </span>
+                    {% if h.has_detail %}
+                    <a class="hold-detail-link" href="{% url 'stocks:stock_detail' h.stk_cd %}">종목 상세 →</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
         {% else %}
         <div class="asset-empty">보유 종목 데이터가 없습니다.</div>
         {% endif %}
@@ -695,6 +710,17 @@ function ensureAssetChart(tabKey) {
     if (chart) assetChartsByTab[tabKey] = chart;
 }
 ensureAssetChart(activeTab);
+
+// 보유 종목: 행을 누르면 평가금액·손익·비중이 펼쳐진다
+document.querySelectorAll('.hold-row').forEach(row => {
+    row.addEventListener('click', () => {
+        const detail = row.nextElementSibling;
+        if (!detail) return;
+        const open = detail.hidden;
+        detail.hidden = !open;
+        row.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+});
 
 document.querySelectorAll('#accountTabs .account-tab').forEach(btn => {
     btn.addEventListener('click', () => {

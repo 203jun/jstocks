@@ -2480,7 +2480,28 @@ def _holding_to_dict(h):
         'eval_weight': float(h.eval_weight) if h.eval_weight is not None else None,
         'buy_weight': float(h.buy_weight) if h.buy_weight is not None else None,
         'is_etf': h.info_etf_id is not None,
+        # Info에 연동된 종목만 상세 페이지가 있다 (미연동 ETF 등은 링크를 걸면 404)
+        'has_detail': h.info_id is not None,
     }
+
+
+def _decorate_holdings(holdings):
+    """수익률 내림차순 정렬 + 좌우 막대 길이(가장 큰 수익률 절대값 = 100%) 계산"""
+    rows = sorted(
+        holdings,
+        key=lambda r: r['profit_rate'] if r['profit_rate'] is not None else 0,
+        reverse=True,
+    )
+    max_abs = max(
+        (abs(r['profit_rate']) for r in rows if r['profit_rate'] is not None),
+        default=0,
+    )
+    for r in rows:
+        rate = r['profit_rate'] or 0
+        r['bar_pct'] = round(abs(rate) / max_abs * 100, 1) if max_abs else 0
+        r['is_profit'] = rate > 0
+        r['is_loss'] = rate < 0
+    return rows
 
 
 def _merge_holdings(holdings):
@@ -2502,6 +2523,7 @@ def _merge_holdings(holdings):
                 'eval_amount': h.eval_amount or 0,
                 'eval_profit': h.eval_profit or 0,
                 'is_etf': h.info_etf_id is not None,
+                'has_detail': h.info_id is not None,
             }
         else:
             row['rmnd_qty'] += h.rmnd_qty or 0
@@ -2510,6 +2532,7 @@ def _merge_holdings(holdings):
             if row['cur_prc'] is None:
                 row['cur_prc'] = h.cur_prc
             row['is_etf'] = row['is_etf'] or h.info_etf_id is not None
+            row['has_detail'] = row['has_detail'] or h.info_id is not None
 
     merged = list(by_code.values())
     total_eval = sum(r['eval_amount'] for r in merged)
@@ -2556,7 +2579,7 @@ def asset(request):
             'name': name,
             'latest': latest,
             'changes': _snapshot_changes(latest, prev),
-            'holdings': holdings,
+            'holdings': _decorate_holdings(holdings),
             'chart_data': [_chart_point(r) for r in rows],
         }
 
