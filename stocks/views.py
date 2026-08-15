@@ -2609,8 +2609,8 @@ def market(request):
     """시황 페이지"""
     from django.db.models import Max, Min
 
-    # KOSPI 차트 데이터 (200일선 계산분 포함: 120일 표시 + 200일 = 320개 필요)
-    kospi_charts = list(IndexChart.objects.filter(code='KOSPI').order_by('-date')[:400])
+    # KOSPI 차트 데이터 (200일선 계산분 포함: 240일 표시 + 200일 = 440개 필요)
+    kospi_charts = list(IndexChart.objects.filter(code='KOSPI').order_by('-date')[:460])
     kospi_charts.reverse()
 
     kospi_candle_data = [
@@ -2633,8 +2633,8 @@ def market(request):
         for c in kospi_charts
     ]
 
-    # KOSDAQ 차트 데이터 (200일선 계산분 포함: 120일 표시 + 200일 = 320개 필요)
-    kosdaq_charts = list(IndexChart.objects.filter(code='KOSDAQ').order_by('-date')[:400])
+    # KOSDAQ 차트 데이터 (200일선 계산분 포함: 240일 표시 + 200일 = 440개 필요)
+    kosdaq_charts = list(IndexChart.objects.filter(code='KOSDAQ').order_by('-date')[:460])
     kosdaq_charts.reverse()
 
     kosdaq_candle_data = [
@@ -2705,7 +2705,8 @@ def market(request):
 
     # 지수 차트 하단에 겹쳐 그릴 매매동향 (선물은 수집만 하고 화면에는 쓰지 않는다)
     def get_raw_trend_data(market):
-        trends = list(MarketTrend.objects.filter(market=market).order_by('-date')[:150])
+        # 차트 최대 범위(240일)를 덮을 만큼. 쌓인 게 모자라면 화면에 그 사실을 표시한다.
+        trends = list(MarketTrend.objects.filter(market=market).order_by('-date')[:260])
         trends.reverse()  # oldest first
         return [
             {
