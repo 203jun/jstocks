@@ -265,6 +265,13 @@
     opacity: 1; transition: opacity 0.2s; user-select: none;
 }
 .ma-badge:not(.active) { opacity: 0.25; }
+/* 이평선 뱃지 색 = 선 색 (숫자에 고정) */
+.ma-10 { background-color: #f59e0b; }
+.ma-20 { background-color: #06b6d4; }
+.ma-60 { background-color: #16a34a; }
+.ma-120 { background-color: #a855f7; }
+.ma-regime { background-color: #111827; }
+[data-theme="dark"] .ma-regime { background-color: #e6e9ef; color: #1a1d24; }
 
 /* Range buttons */
 .range-btn {
@@ -922,10 +929,10 @@
                 </div>
                 <div style="width:1px;height:16px;background:var(--border-color);"></div>
                 <div class="d-flex gap-1">
-                    <span class="ma-badge ma-toggle active" data-ma="10" style="background-color:#ff9800;">10</span>
-                    <span class="ma-badge ma-toggle active" data-ma="20" style="background-color:#2196f3;">20</span>
-                    <span class="ma-badge ma-toggle active" data-ma="60" style="background-color:#4caf50;">60</span>
-                    <span class="ma-badge ma-toggle active" data-ma="120" style="background-color:#9c27b0;">120</span>
+                    <span class="ma-badge ma-toggle active ma-10" data-ma="10">10</span>
+                    <span class="ma-badge ma-toggle active ma-20" data-ma="20">20</span>
+                    <span class="ma-badge ma-toggle active ma-60" data-ma="60">60</span>
+                    <span class="ma-badge ma-toggle active ma-120" data-ma="120">120</span>
                 </div>
             </div>
         </div>
@@ -940,9 +947,8 @@
                 <span style="font-size:0.72rem;color:var(--text-muted);margin-left:6px;">최근 2년</span>
             </div>
             <div class="d-flex gap-1">
-                <span class="ma-badge weekly-ma-toggle active" data-ma="5" style="background-color:#ff9800;">5</span>
-                <span class="ma-badge weekly-ma-toggle active" data-ma="10" style="background-color:#2196f3;">10</span>
-                <span class="ma-badge weekly-ma-toggle active" data-ma="20" style="background-color:#4caf50;">20</span>
+                <span class="ma-badge weekly-ma-toggle active ma-20" data-ma="20">20</span>
+                <span class="ma-badge weekly-ma-toggle active ma-60" data-ma="60">60</span>
             </div>
         </div>
         <div id="weeklyChart" style="height:400px;"></div>
@@ -956,9 +962,7 @@
                 <span style="font-size:0.72rem;color:var(--text-muted);margin-left:6px;">최근 6년</span>
             </div>
             <div class="d-flex gap-1">
-                <span class="ma-badge monthly-ma-toggle active" data-ma="5" style="background-color:#ff9800;">5</span>
-                <span class="ma-badge monthly-ma-toggle active" data-ma="10" style="background-color:#2196f3;">10</span>
-                <span class="ma-badge monthly-ma-toggle active" data-ma="20" style="background-color:#4caf50;">20</span>
+                <span class="ma-badge monthly-ma-toggle active ma-regime" data-ma="12">12</span>
             </div>
         </div>
         <div id="monthlyChart" style="height:400px;"></div>
@@ -3219,7 +3223,24 @@ function calculateMA(data, period) {
 // ===== Daily chart with MA + range buttons =====
 const fullDailyCandle = {{ daily_candle_data|safe }};
 const fullDailyVolume = {{ daily_volume_data|safe }};
-const maConfig = { 10: '#ff9800', 20: '#2196f3', 60: '#4caf50', 120: '#9c27b0' };
+// 이평선 색은 사이트 전체에서 숫자에 고정한다 (10 앰버 / 20 청록 / 60 초록 / 120 보라).
+// 캔들이 빨강·파랑을 쓰므로 이평선은 그 두 계열을 피한다.
+// 굵기는 등급 — 단기 1px / 중기 2px / 장기 3px
+const maConfig = {
+    10: { color: '#f59e0b', width: 1 },
+    20: { color: '#06b6d4', width: 1 },
+    60: { color: '#16a34a', width: 2 },
+    120: { color: '#a855f7', width: 3 },
+};
+const REGIME_MA_COLOR = (document.documentElement.getAttribute('data-theme') === 'dark') ? '#e6e9ef' : '#111827';
+
+// LightweightCharts 는 setData 에 넘긴 객체의 time 을 {year,month,day} 로 덮어쓴다.
+// 원본 배열을 그대로 넘기면 두 번째 호출부터 날짜 비교가 조용히 어긋난다.
+function timeToStr(t) {
+    return typeof t === 'string'
+        ? t
+        : `${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`;
+}
 let dailyMaSeries = {};
 let dailyChartInstance = null;
 let dailyCandleSeries = null;
@@ -3264,8 +3285,11 @@ function initDailyChart(days, visibleDays) {
         return;
     }
 
-    const candleData = fullDailyCandle.slice(-days);
-    const volumeData = fullDailyVolume.slice(-days);
+    // setData 가 원본을 변질시키므로 복사본을 만들고 time 을 문자열로 되돌린다
+    const fullCandle = fullDailyCandle.map(d => ({ ...d, time: timeToStr(d.time) }));
+    const candleData = fullCandle.slice(-days);
+    const volumeData = fullDailyVolume.slice(-days).map(d => ({ ...d, time: timeToStr(d.time) }));
+    const fromTime = candleData[0].time;
 
     const chart = LightweightCharts.createChart(container, {
         width: container.clientWidth, height: 400,
@@ -3287,9 +3311,14 @@ function initDailyChart(days, visibleDays) {
     candleSeries.setMarkers(buildDiaryMarkers(diaryTrades));
 
 
-    for (const [period, color] of Object.entries(maConfig)) {
-        const s = chart.addLineSeries({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-        s.setData(calculateMA(candleData, parseInt(period)));
+    // 이평선은 전체 이력으로 계산한 뒤 보이는 구간만 잘라 넘긴다.
+    // 잘린 구간만으로 계산하면 20일 화면에서 60·120일선이 아예 안 나온다.
+    for (const [period, cfg] of Object.entries(maConfig)) {
+        const s = chart.addLineSeries({
+            color: cfg.color, lineWidth: cfg.width,
+            priceLineVisible: false, lastValueVisible: false,
+        });
+        s.setData(calculateMA(fullCandle, parseInt(period)).filter(d => d.time >= fromTime));
         dailyMaSeries[period] = s;
     }
 
@@ -3376,8 +3405,11 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
 
 // Weekly chart with MA 5/10/20
 (function() {
-    const candleData = {{ weekly_candle_data|safe }};
-    const volumeData = {{ weekly_volume_data|safe }};
+    // 60주선 계산분까지 받아서, 화면에는 최근 104주만 그린다
+    const fullCandle = ({{ weekly_candle_data|safe }}).map(d => ({ ...d, time: timeToStr(d.time) }));
+    const candleData = fullCandle.slice(-104);
+    const volumeData = ({{ weekly_volume_data|safe }}).slice(-104).map(d => ({ ...d, time: timeToStr(d.time) }));
+    const fromTime = candleData.length ? candleData[0].time : '';
     const container = document.getElementById('weeklyChart');
     if (!candleData.length) { container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">주봉 데이터가 없습니다.</div>'; return; }
 
@@ -3394,11 +3426,11 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
     candleSeries.setData(candleData);
 
 
-    const weeklyMaConfig = { 5:'#ff9800', 10:'#2196f3', 20:'#4caf50' };
+    const weeklyMaConfig = { 20: { color:'#06b6d4', width:1 }, 60: { color:'#16a34a', width:2 } };
     const weeklyMaSeries = {};
-    for (const [p, color] of Object.entries(weeklyMaConfig)) {
-        const s = chart.addLineSeries({ color, lineWidth:1, priceLineVisible:false, lastValueVisible:false });
-        s.setData(calculateMA(candleData, parseInt(p)));
+    for (const [p, cfg] of Object.entries(weeklyMaConfig)) {
+        const s = chart.addLineSeries({ color: cfg.color, lineWidth: cfg.width, priceLineVisible:false, lastValueVisible:false });
+        s.setData(calculateMA(fullCandle, parseInt(p)).filter(d => d.time >= fromTime));
         weeklyMaSeries[p] = s;
     }
 
@@ -3416,8 +3448,11 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
 
 // Monthly chart with MA 5/10/20
 (function() {
-    const candleData = {{ monthly_candle_data|safe }};
-    const volumeData = {{ monthly_volume_data|safe }};
+    // 12개월선 계산분까지 받아서, 화면에는 최근 72개월만 그린다
+    const fullCandle = ({{ monthly_candle_data|safe }}).map(d => ({ ...d, time: timeToStr(d.time) }));
+    const candleData = fullCandle.slice(-72);
+    const volumeData = ({{ monthly_volume_data|safe }}).slice(-72).map(d => ({ ...d, time: timeToStr(d.time) }));
+    const fromTime = candleData.length ? candleData[0].time : '';
     const container = document.getElementById('monthlyChart');
     if (!candleData.length) { container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">월봉 데이터가 없습니다.</div>'; return; }
 
@@ -3434,11 +3469,11 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
     candleSeries.setData(candleData);
 
 
-    const monthlyMaConfig = { 5:'#ff9800', 10:'#2196f3', 20:'#4caf50' };
+    const monthlyMaConfig = { 12: { color: REGIME_MA_COLOR, width: 3 } };
     const monthlyMaSeries = {};
-    for (const [p, color] of Object.entries(monthlyMaConfig)) {
-        const s = chart.addLineSeries({ color, lineWidth:1, priceLineVisible:false, lastValueVisible:false });
-        s.setData(calculateMA(candleData, parseInt(p)));
+    for (const [p, cfg] of Object.entries(monthlyMaConfig)) {
+        const s = chart.addLineSeries({ color: cfg.color, lineWidth: cfg.width, priceLineVisible:false, lastValueVisible:false });
+        s.setData(calculateMA(fullCandle, parseInt(p)).filter(d => d.time >= fromTime));
         monthlyMaSeries[p] = s;
     }
 

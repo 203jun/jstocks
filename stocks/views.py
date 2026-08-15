@@ -966,10 +966,10 @@ def stock_detail(request, code):
     consensus_quarter_rows = _consensus_rows(_cons_quarter)
     has_consensus = bool(_cons_annual or _cons_quarter)
 
-    # 일봉 차트 데이터 (최근 240일 + 이평선 계산용 60일 = 300일)
+    # 일봉 차트 데이터 (표시 240일 + 120일선 계산용 120일 + 여유 = 420일)
     daily_charts = list(DailyChart.objects.filter(
         stock=stock
-    ).order_by('-date')[:300])
+    ).order_by('-date')[:420])
     daily_charts.reverse()
 
     # 이평선 계산 (20일, 60일)
@@ -992,10 +992,10 @@ def stock_detail(request, code):
     ma20_value = next((v for v in reversed(ma20) if v is not None), None)
     ma60_value = next((v for v in reversed(ma60) if v is not None), None)
 
-    # 최근 240일만 사용
-    daily_charts = daily_charts[-240:]
-    ma20 = ma20[-240:]
-    ma60 = ma60[-240:]
+    # 화면 최대 범위(240일) + 120일선 계산분(120일)을 내려보낸다
+    daily_charts = daily_charts[-360:]
+    ma20 = ma20[-360:]
+    ma60 = ma60[-360:]
 
     daily_candle_data = [
         {
@@ -1025,9 +1025,10 @@ def stock_detail(request, code):
     ]
 
     # 주봉 차트 데이터 (최근 104주 = 2년)
+    # 표시 104주 + 60주선 계산용 60주
     weekly_charts = list(WeeklyChart.objects.filter(
         stock=stock
-    ).order_by('-date')[:104])
+    ).order_by('-date')[:164])
     weekly_charts.reverse()
 
     weekly_candle_data = [
@@ -1049,10 +1050,10 @@ def stock_detail(request, code):
         for w in weekly_charts
     ]
 
-    # 월봉 차트 데이터 (최근 72개월 = 6년)
+    # 월봉 차트 데이터 (표시 72개월 + 12개월선 계산용 12개월)
     monthly_charts = list(MonthlyChart.objects.filter(
         stock=stock
-    ).order_by('-date')[:72])
+    ).order_by('-date')[:84])
     monthly_charts.reverse()
 
     monthly_candle_data = [
@@ -4198,10 +4199,10 @@ def etf_detail(request, code):
         messages.success(request, '저장되었습니다.')
         return redirect('stocks:etf_detail', code=code)
 
-    # 일봉 차트 데이터 (최근 240일)
+    # 일봉 차트 데이터 (표시 240일 + 120일선 계산용 120일)
     daily_charts = list(DailyChartETF.objects.filter(
         etf=etf
-    ).order_by('-date')[:240])
+    ).order_by('-date')[:360])
     daily_charts.reverse()
 
     daily_candle_data = [

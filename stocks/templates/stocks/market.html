@@ -334,6 +334,13 @@
     user-select: none;
 }
 .ma-badge:not(.active) { opacity: 0.25; }
+/* 이평선 뱃지 색 = 선 색 (숫자에 고정) */
+.ma-10 { background-color: #f59e0b; }
+.ma-20 { background-color: #06b6d4; }
+.ma-60 { background-color: #16a34a; }
+.ma-120 { background-color: #a855f7; }
+.ma-regime { background-color: #111827; }
+[data-theme="dark"] .ma-regime { background-color: #e6e9ef; color: #1a1d24; }
 
 /* Range buttons */
 .range-btn {
@@ -628,9 +635,9 @@
                 <button class="range-btn active" data-days="120">120일</button>
             </div>
             <div class="ma-badges">
-                <span class="ma-badge ma-toggle active" data-ma="20" data-chart="kospi" style="background-color:#2196f3;">20</span>
-                <span class="ma-badge ma-toggle active" data-ma="60" data-chart="kospi" style="background-color:#4caf50;">60</span>
-                <span class="ma-badge ma-toggle active" data-ma="200" data-chart="kospi" style="background-color:#9c27b0;">200</span>
+                <span class="ma-badge ma-toggle active ma-20" data-ma="20" data-chart="kospi">20</span>
+                <span class="ma-badge ma-toggle active ma-60" data-ma="60" data-chart="kospi">60</span>
+                <span class="ma-badge ma-toggle active ma-regime" data-ma="200" data-chart="kospi">200</span>
             </div>
         </div>
         <div class="chart-legend">
@@ -716,9 +723,9 @@
                 <button class="range-btn active" data-days="120">120일</button>
             </div>
             <div class="ma-badges">
-                <span class="ma-badge ma-toggle active" data-ma="20" data-chart="kosdaq" style="background-color:#2196f3;">20</span>
-                <span class="ma-badge ma-toggle active" data-ma="60" data-chart="kosdaq" style="background-color:#4caf50;">60</span>
-                <span class="ma-badge ma-toggle active" data-ma="200" data-chart="kosdaq" style="background-color:#9c27b0;">200</span>
+                <span class="ma-badge ma-toggle active ma-20" data-ma="20" data-chart="kosdaq">20</span>
+                <span class="ma-badge ma-toggle active ma-60" data-ma="60" data-chart="kosdaq">60</span>
+                <span class="ma-badge ma-toggle active ma-regime" data-ma="200" data-chart="kosdaq">200</span>
             </div>
         </div>
         <div class="chart-legend">
@@ -785,7 +792,16 @@ const CANDLE_MARGINS = { top: 0.04, bottom: 0.42 };
 const VOLUME_MARGINS = { top: 0.47, bottom: 0.42 };
 const TREND_MARGINS  = { top: 0.66, bottom: 0.02 };
 
-const maConfig = { 20: '#2196f3', 60: '#4caf50', 200: '#9c27b0' };
+// 이평선 색은 사이트 전체에서 숫자에 고정한다 (10 앰버 / 20 청록 / 60 초록 / 120 보라).
+// 캔들이 빨강·파랑을 쓰므로 이평선은 그 두 계열을 피한다.
+// 200(지수)·12(월봉)는 그 차트의 유일한 레짐 기준선이라 테마를 따르는 무채색.
+const REGIME_MA_COLOR = isDarkTheme ? '#e6e9ef' : '#111827';
+// 굵기는 등급 — 단기 1px / 중기 2px / 장기 3px
+const maConfig = {
+    20: { color: '#06b6d4', width: 1 },
+    60: { color: '#16a34a', width: 2 },
+    200: { color: REGIME_MA_COLOR, width: 3 },
+};
 const maSeries = { kospi: {}, kosdaq: {} };
 const charts = {};
 
@@ -834,9 +850,9 @@ function createIndexChart(chartKey) {
     const candleSeries = chart.addCandlestickSeries({ ...candleColors, priceScaleId: 'right' });
 
     maSeries[chartKey] = {};
-    for (const [period, color] of Object.entries(maConfig)) {
+    for (const [period, cfg] of Object.entries(maConfig)) {
         maSeries[chartKey][period] = chart.addLineSeries({
-            color, lineWidth: 1, priceScaleId: 'right',
+            color: cfg.color, lineWidth: cfg.width, priceScaleId: 'right',
             priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
         });
     }
