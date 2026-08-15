@@ -253,7 +253,7 @@
 .hold-item + .hold-item { border-top: 1px solid var(--border-color); }
 .hold-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(110px, 2.2fr) 66px;
+    grid-template-columns: minmax(0, 1fr) 52px minmax(110px, 2.2fr) 66px;
     align-items: center;
     gap: 10px;
     width: 100%;
@@ -272,6 +272,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+/* 정렬 기준이라 눈으로 순서를 확인할 수 있게 값을 드러낸다 */
+.hold-weight {
+    text-align: right;
+    color: var(--text-muted, #6b7280);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
 }
 /* 0을 가운데 축으로 두고 수익은 오른쪽, 손실은 왼쪽으로 뻗는다 */
 .hold-bar {
@@ -333,8 +340,8 @@
     /* 위쪽 미디어쿼리의 .holdings-card 여백은 아래 .holdings-card 규칙에 덮이므로 여기서 다시 지정 */
     .holdings-card { padding: 6px 12px 8px; }
     .hold-row {
-        grid-template-columns: minmax(0, 1fr) minmax(96px, 1.5fr) 60px;
-        gap: 8px;
+        grid-template-columns: minmax(0, 1fr) 44px minmax(84px, 1.4fr) 58px;
+        gap: 7px;
         font-size: 0.82rem;
         padding: 12px 2px;
     }
@@ -423,6 +430,7 @@
             <div class="hold-item">
                 <button type="button" class="hold-row" aria-expanded="false">
                     <span class="hold-name">{{ h.stk_nm }}</span>
+                    <span class="hold-weight">{{ h.eval_weight|default_if_none:0|floatformat:1 }}%</span>
                     <span class="hold-bar">
                         <span class="hold-bar-half left">
                             {% if h.is_loss %}<i style="width: {{ h.bar_pct }}%;"></i>{% endif %}
@@ -444,7 +452,7 @@
                         <em>평가손익</em><b class="{% if h.is_profit %}text-up{% elif h.is_loss %}text-down{% endif %}">{% if h.is_profit %}+{% endif %}{{ h.eval_profit|default_if_none:0|intcomma }}원</b>
                     </span>
                     <span class="hold-detail-item">
-                        <em>비중</em>{{ h.eval_weight|default_if_none:0 }}%
+                        <em>원금</em>{{ h.principal|default_if_none:0|intcomma }}원
                     </span>
                     {% if h.has_detail %}
                     <a class="hold-detail-link" href="{% url 'stocks:stock_detail' h.stk_cd %}">종목 상세 →</a>

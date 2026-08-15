@@ -2486,10 +2486,10 @@ def _holding_to_dict(h):
 
 
 def _decorate_holdings(holdings):
-    """수익률 내림차순 정렬 + 좌우 막대 길이(가장 큰 수익률 절대값 = 100%) 계산"""
+    """평가비중 내림차순 정렬 + 좌우 막대 길이(가장 큰 수익률 절대값 = 100%) 계산"""
     rows = sorted(
         holdings,
-        key=lambda r: r['profit_rate'] if r['profit_rate'] is not None else 0,
+        key=lambda r: r['eval_weight'] if r['eval_weight'] is not None else 0,
         reverse=True,
     )
     max_abs = max(
