@@ -243,12 +243,20 @@ def _streak_text(streaks, key):
 
 def _percentile_text(pct, sample):
     """
-    백분위 표기. 창이 꽉 차기 전에는 값이 흔들리므로 표본 수를 함께 적는다.
-    (창이 꽉 찬 뒤에는 늘 250이라 굳이 반복하지 않는다)
+    백분위를 상위/하위로 뒤집어 적는다. "백분위 75%"는 높은 쪽인지 낮은 쪽인지
+    한 번 더 생각해야 하지만 "상위 25%"는 바로 읽힌다.
+
+    창이 꽉 차기 전에는 값이 흔들리므로 표본 수를 함께 적는다.
+    (꽉 찬 뒤에는 늘 250이라 굳이 반복하지 않는다)
     """
     if pct is None:
         return ''
-    text = f'백분위 {pct:.0f}%'
+    value = float(pct)
+    # 0%/100% 는 "상위 0%" 처럼 어색해지므로 1% 를 바닥으로 둔다
+    if value >= 50:
+        text = f'상위 {max(1, round(100 - value))}%'
+    else:
+        text = f'하위 {max(1, round(value))}%'
     if sample < PERCENTILE_WINDOW:
         text += f' · 표본 {sample}일'
     return text
