@@ -57,8 +57,8 @@
 .ma-badge:not(.active) { opacity: 0.25; }
 /* 이평선 뱃지 색 = 선 색 (숫자에 고정) */
 .ma-10 { background-color: #f59e0b; }
-.ma-20 { background-color: #06b6d4; }
-.ma-60 { background-color: #16a34a; }
+.ma-20 { background-color: #38bdf8; }
+.ma-60 { background-color: #15803d; }
 .ma-120 { background-color: #a855f7; }
 .ma-regime { background-color: #111827; }
 [data-theme="dark"] .ma-regime { background-color: #e6e9ef; color: #1a1d24; }
@@ -367,8 +367,8 @@ const fullDailyVolume = {{ daily_volume_data|safe }};
 const REGIME_MA_COLOR = (document.documentElement.getAttribute('data-theme') === 'dark') ? '#e6e9ef' : '#111827';
 const maConfig = {
     10: { color: '#f59e0b', width: 1 },
-    20: { color: '#06b6d4', width: 1 },
-    60: { color: '#16a34a', width: 2 },
+    20: { color: '#38bdf8', width: 1 },
+    60: { color: '#15803d', width: 2 },
     120: { color: '#a855f7', width: 3 },
 };
 
@@ -512,7 +512,7 @@ function createCandleChart(containerId, fullCandleRaw, fullVolumeRaw, emptyMessa
 
 createCandleChart('weeklyChart', {{ weekly_candle_data|safe }}, {{ weekly_volume_data|safe }},
     '주봉 데이터가 없습니다.', 104,
-    { 20: { color:'#06b6d4', width:1 }, 60: { color:'#16a34a', width:2 } }, 'weekly-ma-toggle');
+    { 20: { color:'#38bdf8', width:1 }, 60: { color:'#15803d', width:2 } }, 'weekly-ma-toggle');
 createCandleChart('monthlyChart', {{ monthly_candle_data|safe }}, {{ monthly_volume_data|safe }},
     '월봉 데이터가 없습니다.', 72,
     { 12: { color: REGIME_MA_COLOR, width:3 } }, 'monthly-ma-toggle');
