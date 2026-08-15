@@ -34,6 +34,9 @@ EVENT_MIN_DAYS = 3
 # 상태 변화 로그와 지속 일수를 계산할 범위. 늘어나도 조회가 무거워지지 않게 자른다.
 HISTORY_LIMIT = 750
 
+# save_market_indicator 와 같은 값. 백분위 표본이 몇 일인지 화면에 밝히는 데 쓴다.
+PERCENTILE_WINDOW = 250
+
 # 신중한 쪽 -> 낙관적인 쪽 순서. 브레이크는 이 배열에서 한 칸 앞으로 당긴다.
 SIGNAL_LEVELS = [
     ('hot', '🔴', '과열', '지금 사고 싶은 종목, 2주 뒤에도 살 수 있습니다'),
@@ -175,7 +178,10 @@ def build_market_panel(market):
     rows = list(
         MarketIndicator.objects.filter(market=market)
         .order_by('-date')
-        .values_list('date', 'disparity', 'adr', 'foreign_net_20d', 'ma200_gap')[:HISTORY_LIMIT]
+        .values_list(
+            'date', 'disparity', 'adr', 'foreign_net_20d', 'ma200_gap',
+            'foreign_net_20d_pct', 'ma200_gap_pct',
+        )[:HISTORY_LIMIT]
     )
     if not rows:
         return None
@@ -192,15 +198,22 @@ def build_market_panel(market):
     }
     streaks = {key: _streak(seq) for key, seq in series.items()}
 
-    date, disparity, adr, foreign, gap = rows[-1]
+    date, disparity, adr, foreign, gap, foreign_pct, gap_pct = rows[-1]
     # 게이지 폭은 조회 범위 안의 실제 최대치에서 잡는다.
     # 코스피와 코스닥의 수급 규모가 10배 넘게 차이나 공통 눈금을 쓸 수 없다.
     foreign_span = max((abs(r[3]) for r in rows if r[3] is not None), default=0)
     gap_span = max((abs(r[4]) for r in rows if r[4] is not None), default=0)
 
+    # 백분위를 낸 표본 크기. 창(250일)이 꽉 차기 전에는 값이 흔들리므로 화면에 밝힌다.
+    samples = {
+        'foreign': min(sum(1 for r in rows if r[3] is not None), PERCENTILE_WINDOW),
+        'ma200': min(sum(1 for r in rows if r[4] is not None), PERCENTILE_WINDOW),
+    }
+
     cards = _build_cards(
-        disparity, adr, foreign, gap,
-        (dis_low, dis_high), (adr_low, adr_high), foreign_span, gap_span, streaks,
+        disparity, adr, foreign, gap, foreign_pct, gap_pct,
+        (dis_low, dis_high), (adr_low, adr_high),
+        foreign_span, gap_span, streaks, samples,
     )
     if not cards:
         return None
@@ -210,6 +223,7 @@ def build_market_panel(market):
         'signal': _build_signal(streaks, series),
         'cards': cards,
         'events': _build_events(series, date),
+        'samples': samples,
     }
 
 
@@ -227,8 +241,21 @@ def _streak_text(streaks, key):
     return f'{days}일+' if capped else f'{days}일째'
 
 
-def _build_cards(disparity, adr, foreign, gap,
-                 dis_th, adr_th, foreign_span, gap_span, streaks):
+def _percentile_text(pct, sample):
+    """
+    백분위 표기. 창이 꽉 차기 전에는 값이 흔들리므로 표본 수를 함께 적는다.
+    (창이 꽉 찬 뒤에는 늘 250이라 굳이 반복하지 않는다)
+    """
+    if pct is None:
+        return ''
+    text = f'백분위 {pct:.0f}%'
+    if sample < PERCENTILE_WINDOW:
+        text += f' · 표본 {sample}일'
+    return text
+
+
+def _build_cards(disparity, adr, foreign, gap, foreign_pct, gap_pct,
+                 dis_th, adr_th, foreign_span, gap_span, streaks, samples):
     cards = []
 
     if disparity is not None:
@@ -250,14 +277,21 @@ def _build_cards(disparity, adr, foreign, gap,
     if foreign is not None:
         state, badge = (('ok', '순매수') if foreign > 0 else
                         ('warn', '순매도') if foreign < 0 else ('neutral', '중립'))
-        cards.append(_card('외인 20일', _fmt_eok(foreign), '', state, badge,
+        cards.append(_card('외인 20일', _fmt_eok(foreign),
+                           _percentile_text(foreign_pct, samples['foreign']),
+                           state, badge,
                            _streak_text(streaks, 'foreign'),
                            _zero_gauge(foreign, foreign_span)))
 
     if gap is not None:
         state, badge = (('ok', '강세') if gap > 0 else
                         ('warn', '약세') if gap < 0 else ('neutral', '중립'))
-        cards.append(_card('200일선', f'{gap:+,.2f}%', '', state, badge,
+        # 200일선은 판정하지 않고 값과 백분위만 보여준다. 추세 시계열이라
+        # 상승장에서는 백분위가 계속 상단에 붙어 있어(관측 75~78%) 과열 판정에
+        # 쓰면 양치기가 된다. 배지는 강세/약세 레짐만 표시한다.
+        cards.append(_card('200일선', f'{gap:+,.2f}%',
+                           _percentile_text(gap_pct, samples['ma200']),
+                           state, badge,
                            _streak_text(streaks, 'ma200'),
                            _zero_gauge(gap, gap_span)))
 
