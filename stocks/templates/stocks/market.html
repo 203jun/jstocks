@@ -499,19 +499,12 @@ function buildCumulative(trends, fromTime) {
     });
 }
 
-function initIndexChart(chartKey, days) {
+// 차트와 시리즈는 한 번만 만들고, 기간이 바뀌면 데이터만 갈아끼운다.
+// (기간마다 차트를 부수고 다시 만들면 왼쪽 축 시리즈가 살아나지 않는다)
+function createIndexChart(chartKey) {
     const container = document.getElementById(chartKey + 'Chart');
     const candles = candleData[chartKey];
     if (!container || !candles || candles.length === 0) return null;
-
-    // 기간을 바꿀 때마다 새로 그리므로 이전 차트와 옵저버를 확실히 정리한다
-    const prev = charts[chartKey];
-    if (prev) {
-        if (prev.observer) prev.observer.disconnect();
-        prev.chart.remove();
-    }
-    container.innerHTML = '';
-    maSeries[chartKey] = {};
 
     const chart = LightweightCharts.createChart(container, {
         ...chartOptions,
@@ -521,29 +514,20 @@ function initIndexChart(chartKey, days) {
         leftPriceScale: { visible: !isNarrowScreen(), borderColor: chartBorderColor, scaleMargins: TREND_MARGINS },
     });
 
-    const sliced = candles.slice(-days);
-    const slicedVolume = volumeData[chartKey].slice(-days);
-    const fromTime = sliced[0].time;
-
     const candleSeries = chart.addCandlestickSeries({ ...candleColors, priceScaleId: 'right' });
-    candleSeries.setData(sliced);
 
+    maSeries[chartKey] = {};
     for (const [period, color] of Object.entries(maConfig)) {
-        const series = chart.addLineSeries({
+        maSeries[chartKey][period] = chart.addLineSeries({
             color, lineWidth: 1, priceScaleId: 'right',
             priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
         });
-        series.setData(calculateMA(sliced, parseInt(period)));
-        maSeries[chartKey][period] = series;
     }
 
     const volumeSeries = chart.addHistogramSeries({
         priceFormat: { type: 'volume' }, priceScaleId: 'vol',
         priceLineVisible: false, lastValueVisible: false,
     });
-    volumeSeries.setData(slicedVolume.map(d => ({
-        time: d.time, value: d.value, color: d.up ? upColor : downColor,
-    })));
     volumeSeries.priceScale().applyOptions({ scaleMargins: VOLUME_MARGINS });
 
     const trendPriceFormat = { type: 'custom', formatter: fmtTrend, minMove: 1 };
@@ -562,36 +546,60 @@ function initIndexChart(chartKey, days) {
         priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
     });
 
-    const cumulative = buildCumulative(rawTrends[chartKey], fromTime);
-    foreignSeries.setData(cumulative.map(d => ({ time: d.time, value: d.foreign })));
-    institutionSeries.setData(cumulative.map(d => ({ time: d.time, value: d.institution })));
-    zeroSeries.setData(cumulative.map(d => ({ time: d.time, value: 0 })));
+    const state = {
+        chart, container, candleSeries, volumeSeries,
+        foreignSeries, institutionSeries, zeroSeries,
+        candleByTime: {}, trendByTime: {},
+    };
 
-    chart.timeScale().setVisibleRange({ from: sliced[0].time, to: sliced[sliced.length - 1].time });
-
-    const state = { chart, days, container, observer: null };
-    attachTooltip(chartKey, state, sliced, cumulative);
+    attachTooltip(chartKey, state);
 
     if (window.ResizeObserver) {
-        state.observer = new ResizeObserver(entries => {
+        new ResizeObserver(entries => {
             const rect = entries[0].contentRect;
             if (rect.width === 0) return;
             chart.applyOptions({ width: rect.width, height: rect.height });
-        });
-        state.observer.observe(container);
+        }).observe(container);
     }
     return state;
 }
 
-function attachTooltip(chartKey, state, candles, cumulative) {
+function applyRange(chartKey, days) {
+    const state = charts[chartKey];
+    if (!state) return;
+
+    const sliced = candleData[chartKey].slice(-days);
+    const slicedVolume = volumeData[chartKey].slice(-days);
+    const fromTime = sliced[0].time;
+
+    state.candleSeries.setData(sliced);
+    for (const period of Object.keys(maConfig)) {
+        maSeries[chartKey][period].setData(calculateMA(sliced, parseInt(period)));
+    }
+    state.volumeSeries.setData(slicedVolume.map(d => ({
+        time: d.time, value: d.value, color: d.up ? upColor : downColor,
+    })));
+
+    const cumulative = buildCumulative(rawTrends[chartKey], fromTime);
+    state.foreignSeries.setData(cumulative.map(d => ({ time: d.time, value: d.foreign })));
+    state.institutionSeries.setData(cumulative.map(d => ({ time: d.time, value: d.institution })));
+    state.zeroSeries.setData(cumulative.map(d => ({ time: d.time, value: 0 })));
+
+    // 툴팁이 참조하는 조회표도 같이 갱신
+    state.candleByTime = {};
+    sliced.forEach((d, i) => {
+        state.candleByTime[d.time] = { ...d, prevClose: i > 0 ? sliced[i - 1].close : null };
+    });
+    state.trendByTime = {};
+    cumulative.forEach(d => { state.trendByTime[d.time] = d; });
+
+    state.chart.timeScale().setVisibleRange({ from: fromTime, to: sliced[sliced.length - 1].time });
+}
+
+function attachTooltip(chartKey, state) {
     const tooltip = document.getElementById(chartKey + 'Tooltip');
     if (!tooltip) return;
     const container = state.container;
-
-    const candleByTime = {};
-    candles.forEach((d, i) => { candleByTime[d.time] = { ...d, prevClose: i > 0 ? candles[i - 1].close : null }; });
-    const trendByTime = {};
-    cumulative.forEach(d => { trendByTime[d.time] = d; });
 
     state.chart.subscribeCrosshairMove(param => {
         if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
@@ -601,9 +609,9 @@ function attachTooltip(chartKey, state, candles, cumulative) {
         const t = (typeof param.time === 'string')
             ? param.time
             : `${param.time.year}-${String(param.time.month).padStart(2, '0')}-${String(param.time.day).padStart(2, '0')}`;
-        const c = candleByTime[t];
+        const c = state.candleByTime[t];
         if (!c) { tooltip.style.display = 'none'; return; }
-        const tr = trendByTime[t];
+        const tr = state.trendByTime[t];
 
         const diff = c.prevClose === null ? null : c.close - c.prevClose;
         const rate = (diff === null || !c.prevClose) ? null : (diff / c.prevClose * 100);
@@ -658,15 +666,9 @@ function attachTooltip(chartKey, state, candles, cumulative) {
     });
 }
 
-function applyMaVisibility(chartKey) {
-    document.querySelectorAll(`.ma-toggle[data-chart="${chartKey}"]`).forEach(badge => {
-        const series = maSeries[chartKey][badge.dataset.ma];
-        if (series) series.applyOptions({ visible: badge.classList.contains('active') });
-    });
-}
-
 ['kospi', 'kosdaq'].forEach(k => {
-    charts[k] = initIndexChart(k, 120);
+    charts[k] = createIndexChart(k);
+    applyRange(k, 120);
 });
 
 // ===== Range Buttons =====
@@ -675,9 +677,7 @@ document.querySelectorAll('.range-btns').forEach(group => {
         btn.addEventListener('click', function () {
             group.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            const chartKey = group.dataset.chart;
-            charts[chartKey] = initIndexChart(chartKey, parseInt(this.dataset.days));
-            applyMaVisibility(chartKey);
+            applyRange(group.dataset.chart, parseInt(this.dataset.days));
         });
     });
 });
@@ -707,8 +707,7 @@ document.querySelectorAll('.btn-refresh-trend').forEach(btn => {
             if (data.success) {
                 rawTrends[chartKey] = data.chart_data;
                 const active = document.querySelector(`.range-btns[data-chart="${chartKey}"] .range-btn.active`);
-                charts[chartKey] = initIndexChart(chartKey, parseInt(active ? active.dataset.days : 120));
-                applyMaVisibility(chartKey);
+                applyRange(chartKey, parseInt(active ? active.dataset.days : 120));
             } else {
                 alert(data.error || '업데이트 실패');
             }
