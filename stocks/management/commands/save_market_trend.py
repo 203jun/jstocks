@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import time
 import requests
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -14,12 +15,14 @@ class Command(BaseCommand):
 옵션:
   --market    (선택) KOSPI / KOSDAQ / FUTURES / all (기본값: all)
   --mode      (선택) all (60일) / last (10일, 기본값)
+  --pages     (선택) 받아올 페이지 수 (1페이지 = 10영업일). 지정하면 --mode 보다 우선
   --clear     (선택) 전체 데이터 삭제
   --log-level (선택) debug / info / warning / error (기본값: info)
 
 예시:
   python manage.py save_market_trend
   python manage.py save_market_trend --market KOSPI --mode all
+  python manage.py save_market_trend --pages 64       # 과거 백필 (약 2.5년)
   python manage.py save_market_trend --clear
 '''
 
@@ -45,6 +48,12 @@ class Command(BaseCommand):
             help='all: 6 pages (60 days), last: 1 page (10 days) (default: last)'
         )
         parser.add_argument(
+            '--pages',
+            type=int,
+            default=None,
+            help='받아올 페이지 수 (1페이지 = 10영업일). 지정하면 --mode 보다 우선'
+        )
+        parser.add_argument(
             '--clear',
             action='store_true',
             help='전체 데이터 삭제'
@@ -62,7 +71,12 @@ class Command(BaseCommand):
 
         market = options['market'].upper()
         mode = options['mode']
-        max_page = 6 if mode == 'all' else 1
+        # --pages 는 과거 백필용. 지정하면 --mode 를 덮어쓴다.
+        # (0 을 넣었을 때 조용히 기본값으로 떨어지지 않도록 None 검사)
+        max_page = options['pages'] if options['pages'] is not None else (6 if mode == 'all' else 1)
+        if max_page < 1:
+            self.log.error(f'--pages 는 1 이상이어야 합니다: {max_page}')
+            return
 
         if market == 'ALL':
             markets = list(self.MARKET_CODES.keys())
@@ -73,7 +87,10 @@ class Command(BaseCommand):
             self.log.info(f'Supported: {", ".join(self.MARKET_CODES.keys())}')
             return
 
-        self.log.info(f'시장 투자동향 저장 시작 (모드: {mode}, 대상: {", ".join(markets)})')
+        self.log.info(
+            f'시장 투자동향 저장 시작 '
+            f'(대상: {", ".join(markets)}, {max_page}페이지 = 약 {max_page * 10}영업일)'
+        )
 
         total_created = 0
         total_updated = 0
@@ -105,13 +122,18 @@ class Command(BaseCommand):
             data = self.fetch_page(url)
             if data:
                 all_data.extend(data)
-                self.log.debug(f'  -> {len(data)} rows collected')
+                self.log.debug(f'  -> {len(data)} rows collected ({data[0]["date"]} ~ {data[-1]["date"]})')
             else:
                 self.log.debug(f'  -> No data')
                 break
 
+            # 백필로 수십 페이지를 연속 요청할 수 있으므로 간격을 둔다
+            if page < max_page:
+                time.sleep(0.3)
+
         # Save to DB
         if all_data:
+            self.log.info(f'[{market_name}] {len(all_data)}행 수집 ({all_data[-1]["date"]} ~ {all_data[0]["date"]})')
             return self.save_to_db(market_name, all_data)
         else:
             self.log.info(f'[{market_name}] 데이터 없음')
