@@ -2607,8 +2607,8 @@ def market(request):
     """시황 페이지"""
     from django.db.models import Max, Min
 
-    # KOSPI 차트 데이터 (이평선 계산분 포함, 화면에는 최대 120일만 표시)
-    kospi_charts = list(IndexChart.objects.filter(code='KOSPI').order_by('-date')[:300])
+    # KOSPI 차트 데이터 (200일선 계산분 포함: 120일 표시 + 200일 = 320개 필요)
+    kospi_charts = list(IndexChart.objects.filter(code='KOSPI').order_by('-date')[:400])
     kospi_charts.reverse()
 
     kospi_candle_data = [
@@ -2631,8 +2631,8 @@ def market(request):
         for c in kospi_charts
     ]
 
-    # KOSDAQ 차트 데이터 (이평선 계산분 포함, 화면에는 최대 120일만 표시)
-    kosdaq_charts = list(IndexChart.objects.filter(code='KOSDAQ').order_by('-date')[:300])
+    # KOSDAQ 차트 데이터 (200일선 계산분 포함: 120일 표시 + 200일 = 320개 필요)
+    kosdaq_charts = list(IndexChart.objects.filter(code='KOSDAQ').order_by('-date')[:400])
     kosdaq_charts.reverse()
 
     kosdaq_candle_data = [
