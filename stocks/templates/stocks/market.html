@@ -78,6 +78,7 @@
     border-radius: 1px;
     display: inline-block;
 }
+.chart-legend-val { font-weight: 700; font-variant-numeric: tabular-nums; }
 .chart-legend-note { margin-left: auto; font-size: 0.7rem; opacity: 0.8; }
 .index-chart-wrap { position: relative; overflow: hidden; }
 .index-chart { width: 100%; height: 420px; }
@@ -372,8 +373,8 @@
             </div>
         </div>
         <div class="chart-legend">
-            <span class="chart-legend-item"><i style="background:#8b5cf6;"></i>외국인 누적</span>
-            <span class="chart-legend-item"><i style="background:#f59e0b;"></i>기관 누적</span>
+            <span class="chart-legend-item"><i style="background:#8b5cf6;"></i>외국인 <b class="chart-legend-val" id="kospiForeignVal"></b></span>
+            <span class="chart-legend-item"><i style="background:#f59e0b;"></i>기관 <b class="chart-legend-val" id="kospiInstVal"></b></span>
             <span class="chart-legend-note">기간 첫날 = 0</span>
         </div>
         <div class="index-chart-wrap">
@@ -412,8 +413,8 @@
             </div>
         </div>
         <div class="chart-legend">
-            <span class="chart-legend-item"><i style="background:#8b5cf6;"></i>외국인 누적</span>
-            <span class="chart-legend-item"><i style="background:#f59e0b;"></i>기관 누적</span>
+            <span class="chart-legend-item"><i style="background:#8b5cf6;"></i>외국인 <b class="chart-legend-val" id="kosdaqForeignVal"></b></span>
+            <span class="chart-legend-item"><i style="background:#f59e0b;"></i>기관 <b class="chart-legend-val" id="kosdaqInstVal"></b></span>
             <span class="chart-legend-note">기간 첫날 = 0</span>
         </div>
         <div class="index-chart-wrap">
@@ -510,8 +511,6 @@ function createIndexChart(chartKey) {
         ...chartOptions,
         height: container.clientHeight || 420,
         rightPriceScale: { visible: true, borderColor: chartBorderColor, scaleMargins: CANDLE_MARGINS },
-        // 좁은 화면에선 축 두 개가 캔들 폭을 잡아먹으므로 누적 축은 숨기고 툴팁으로 읽는다
-        leftPriceScale: { visible: !isNarrowScreen(), borderColor: chartBorderColor, scaleMargins: TREND_MARGINS },
     });
 
     const candleSeries = chart.addCandlestickSeries({ ...candleColors, priceScaleId: 'right' });
@@ -530,21 +529,24 @@ function createIndexChart(chartKey) {
     });
     volumeSeries.priceScale().applyOptions({ scaleMargins: VOLUME_MARGINS });
 
+    // 거래량과 같은 오버레이 축을 쓴다. 왼쪽 축('left')에 붙이면 데이터를 갈아끼운 뒤
+    // 다시 그려지지 않아, 기간을 한 번 바꾸면 선이 사라진다.
     const trendPriceFormat = { type: 'custom', formatter: fmtTrend, minMove: 1 };
     const foreignSeries = chart.addLineSeries({
-        color: FOREIGN_COLOR, lineWidth: 2, priceScaleId: 'left',
+        color: FOREIGN_COLOR, lineWidth: 2, priceScaleId: 'trend',
         priceFormat: trendPriceFormat, priceLineVisible: false, lastValueVisible: false,
     });
     const institutionSeries = chart.addLineSeries({
-        color: INSTITUTION_COLOR, lineWidth: 2, priceScaleId: 'left',
+        color: INSTITUTION_COLOR, lineWidth: 2, priceScaleId: 'trend',
         priceFormat: trendPriceFormat, priceLineVisible: false, lastValueVisible: false,
     });
     // 매수/매도 전환점을 보려면 0선이 필요하다
     const zeroSeries = chart.addLineSeries({
         color: chartBorderColor, lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dotted,
-        priceScaleId: 'left', priceFormat: trendPriceFormat,
+        priceScaleId: 'trend', priceFormat: trendPriceFormat,
         priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
     });
+    foreignSeries.priceScale().applyOptions({ scaleMargins: TREND_MARGINS });
 
     const state = {
         chart, container, candleSeries, volumeSeries,
@@ -592,6 +594,17 @@ function applyRange(chartKey, days) {
     });
     state.trendByTime = {};
     cumulative.forEach(d => { state.trendByTime[d.time] = d; });
+
+    // 오버레이 축이라 눈금 라벨이 없으므로 기간 끝 누적값을 범례에 띄운다
+    const last = cumulative[cumulative.length - 1];
+    const setLegend = (id, v) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = v === undefined ? '' : (v > 0 ? '+' : '') + fmtTrend(v);
+        el.className = 'chart-legend-val ' + (v > 0 ? 'text-up' : v < 0 ? 'text-down' : '');
+    };
+    setLegend(chartKey + 'ForeignVal', last && last.foreign);
+    setLegend(chartKey + 'InstVal', last && last.institution);
 
     state.chart.timeScale().setVisibleRange({ from: fromTime, to: sliced[sliced.length - 1].time });
 }
