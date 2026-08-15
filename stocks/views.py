@@ -2625,7 +2625,8 @@ def market(request):
         {
             'time': c.date.strftime('%Y-%m-%d'),
             'value': c.trading_volume,
-            'color': '#ef5350' if c.closing_price >= c.opening_price else '#26a69a',
+            # 색은 테마에 맞춰 차트 쪽에서 입힌다
+            'up': c.closing_price >= c.opening_price,
         }
         for c in kospi_charts
     ]
@@ -2648,7 +2649,8 @@ def market(request):
         {
             'time': c.date.strftime('%Y-%m-%d'),
             'value': c.trading_volume,
-            'color': '#ef5350' if c.closing_price >= c.opening_price else '#26a69a',
+            # 색은 테마에 맞춰 차트 쪽에서 입힌다
+            'up': c.closing_price >= c.opening_price,
         }
         for c in kosdaq_charts
     ]
@@ -2699,30 +2701,13 @@ def market(request):
         kosdaq_52w_high = 0
         kosdaq_52w_low = 0
 
-    # MarketTrend data (top 20 per market)
-    kospi_trends = MarketTrend.objects.filter(market='KOSPI').order_by('-date')[:20]
-    kosdaq_trends = MarketTrend.objects.filter(market='KOSDAQ').order_by('-date')[:20]
-    futures_trends = MarketTrend.objects.filter(market='FUTURES').order_by('-date')[:20]
-
-    # Trend summary JSON (for JS tab switching)
-    def trends_to_json(trends):
-        return [
-            {
-                'individual': t.individual,
-                'foreign': t.foreign,
-                'institution': t.institution,
-            }
-            for t in trends
-        ]
-
-    # Raw trend data (120 days, for JS cumulative calculation)
+    # 지수 차트 하단에 겹쳐 그릴 매매동향 (선물은 수집만 하고 화면에는 쓰지 않는다)
     def get_raw_trend_data(market):
-        trends = list(MarketTrend.objects.filter(market=market).order_by('-date')[:120])
+        trends = list(MarketTrend.objects.filter(market=market).order_by('-date')[:150])
         trends.reverse()  # oldest first
         return [
             {
                 'date': t.date.strftime('%Y-%m-%d'),
-                'individual': t.individual,
                 'foreign': t.foreign,
                 'institution': t.institution,
             }
@@ -2731,7 +2716,6 @@ def market(request):
 
     kospi_raw_trends = get_raw_trend_data('KOSPI')
     kosdaq_raw_trends = get_raw_trend_data('KOSDAQ')
-    futures_raw_trends = get_raw_trend_data('FUTURES')
 
     context = {
         'kospi_candle_data': json.dumps(kospi_candle_data),
@@ -2750,15 +2734,8 @@ def market(request):
         'kospi_52w_low': kospi_52w_low,
         'kosdaq_52w_high': kosdaq_52w_high,
         'kosdaq_52w_low': kosdaq_52w_low,
-        'kospi_trends': kospi_trends,
-        'kosdaq_trends': kosdaq_trends,
-        'futures_trends': futures_trends,
-        'kospi_trends_json': json.dumps(trends_to_json(kospi_trends)),
-        'kosdaq_trends_json': json.dumps(trends_to_json(kosdaq_trends)),
-        'futures_trends_json': json.dumps(trends_to_json(futures_trends)),
         'kospi_raw_trends': json.dumps(kospi_raw_trends),
         'kosdaq_raw_trends': json.dumps(kosdaq_raw_trends),
-        'futures_raw_trends': json.dumps(futures_raw_trends),
     }
     return render(request, 'stocks/market.html', context)
 
@@ -7656,51 +7633,24 @@ def refresh_market_trend(request, market):
         except Exception:
             pass
 
-    # 업데이트된 데이터 반환 (테이블용 20개, 차트용 120개)
-    trends = list(MarketTrend.objects.filter(market=market).order_by('-date')[:120])
-
-    # 테이블 데이터 (최근 20개)
-    table_data = [
+    # 화면(market.html)이 쓰는 형태와 같은 일별 원본을 돌려준다.
+    # 누적은 선택한 기간의 첫날부터 다시 쌓아야 해서 프론트에서 계산한다.
+    trends = list(MarketTrend.objects.filter(market=market).order_by('-date')[:150])
+    trends.reverse()
+    chart_data = [
         {
-            'date': t.date.strftime('%m.%d'),
-            'individual': t.individual,
+            'date': t.date.strftime('%Y-%m-%d'),
             'foreign': t.foreign,
             'institution': t.institution,
-            'financial_investment': t.financial_investment,
-            'insurance': t.insurance,
-            'trust': t.trust,
-            'bank': t.bank,
-            'other_financial': t.other_financial,
-            'pension_fund': t.pension_fund,
-            'other_corporation': t.other_corporation,
         }
-        for t in trends[:20]
+        for t in trends
     ]
-
-    # 누적 차트 데이터
-    trends.reverse()
-    cumulative_individual = 0
-    cumulative_foreign = 0
-    cumulative_institution = 0
-
-    chart_data = []
-    for t in trends:
-        cumulative_individual += t.individual
-        cumulative_foreign += t.foreign
-        cumulative_institution += t.institution
-        chart_data.append({
-            'date': t.date.strftime('%Y-%m-%d'),
-            'individual': cumulative_individual,
-            'foreign': cumulative_foreign,
-            'institution': cumulative_institution,
-        })
 
     return JsonResponse({
         'success': True,
         'market': market,
         'created': created_count,
         'updated': updated_count,
-        'table_data': table_data,
         'chart_data': chart_data,
     })
 

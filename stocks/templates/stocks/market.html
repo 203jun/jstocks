@@ -53,17 +53,64 @@
     font-size: 0.75rem;
     color: var(--text-muted);
 }
-.chart-header {
+/* 차트 툴바: 좁은 화면에서는 기간 버튼 줄 / MA 줄로 자연스럽게 접힌다 */
+.chart-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
     margin-bottom: 8px;
 }
-.chart-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-primary);
+.range-btns, .ma-badges { display: flex; gap: 4px; }
+.chart-legend {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 6px;
+    font-size: 0.74rem;
+    color: var(--text-muted);
 }
+.chart-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.chart-legend i {
+    width: 12px;
+    height: 2px;
+    border-radius: 1px;
+    display: inline-block;
+}
+.chart-legend-note { margin-left: auto; font-size: 0.7rem; opacity: 0.8; }
+.index-chart-wrap { position: relative; overflow: hidden; }
+.index-chart { width: 100%; height: 420px; }
+.index-tooltip {
+    position: absolute;
+    pointer-events: none;
+    display: none;
+    z-index: 10;
+    min-width: 200px;
+    padding: 8px 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    font-size: 0.76rem;
+}
+.index-tooltip-date {
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 4px;
+    margin-bottom: 5px;
+}
+.index-tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 2px 0;
+}
+.index-tooltip-row span { color: var(--text-muted); display: inline-flex; align-items: center; gap: 5px; }
+.index-tooltip-row i { width: 10px; height: 2px; border-radius: 1px; display: inline-block; }
+.index-tooltip-row b { font-weight: 600; }
+.index-tooltip-sep { border-top: 1px solid var(--border-color); margin: 5px 0; }
 .ma-badge {
     display: inline-flex;
     align-items: center;
@@ -101,120 +148,6 @@
     background: var(--text-primary);
     color: var(--bg-card);
     border-color: var(--text-primary);
-}
-
-/* Sub tabs */
-.market-tabs {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 20px;
-}
-.market-tab {
-    padding: 10px 22px;
-    background: none;
-    border: 1px solid transparent;
-    border-radius: var(--radius);
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.15s;
-}
-.market-tab:hover {
-    color: var(--text-primary);
-}
-.market-tab.active {
-    color: var(--text-primary);
-    font-weight: 700;
-    border-color: var(--border-color);
-    background: var(--bg-card);
-    box-shadow: var(--shadow-card);
-}
-
-/* Trend cards */
-.trend-summary-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-card);
-    padding: 20px 24px;
-}
-.trend-summary-card .card-title {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.trend-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid #f3f4f6;
-}
-.trend-item:last-child { border-bottom: none; }
-.trend-item-label {
-    font-size: 0.85rem;
-    color: var(--text-primary);
-    font-weight: 500;
-}
-.trend-item-value {
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-
-/* Table */
-.modern-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-.modern-table thead th {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--border-color);
-    white-space: nowrap;
-}
-.modern-table tbody td {
-    font-size: 0.82rem;
-    padding: 9px 12px;
-    border-bottom: 1px solid #f3f4f6;
-    white-space: nowrap;
-}
-.modern-table tbody tr:last-child td { border-bottom: none; }
-.modern-table tbody tr:hover { background: #f9fafb; }
-
-/* Cumulative chart card */
-.chart-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-card);
-    overflow: hidden;
-}
-.chart-card-header {
-    padding: 16px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border-color);
-}
-.chart-card-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-.legend-dot {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    margin-right: 4px;
 }
 
 /* Refresh button */
@@ -392,6 +325,16 @@
     .hero-info-line { gap: 8px; padding: 10px 14px; }
     .price-main { font-size: 1.1rem; }
     .hero-chart { padding: 10px 12px 14px; }
+    /* 툴바 한 줄에 다 넣으면 폭이 130px 넘치므로 두 줄로 펴서 탭 영역도 키운다 */
+    .chart-toolbar { flex-direction: column; align-items: stretch; gap: 6px; }
+    .range-btns { width: 100%; }
+    .range-btns .range-btn { flex: 1; padding: 7px 4px; }
+    .ma-badges { width: 100%; }
+    .ma-badges .ma-badge { flex: 1; height: 26px; }
+    .chart-legend { gap: 10px; font-size: 0.7rem; }
+    .chart-legend-note { display: none; }
+    .index-chart { height: 340px; }
+    .index-tooltip { min-width: 175px; font-size: 0.72rem; }
 }
 
 {% endblock %}
@@ -400,10 +343,10 @@
 <!-- 차트 -->
 <h5 class="section-heading" style="margin-top: 0;">차트</h5>
 
-<!-- KOSPI Hero Card -->
+<!-- KOSPI -->
 <div class="hero-card">
     <div class="hero-info-line">
-        <span class="index-badge">KOSPI <span class="dot"></span></span>
+        <span class="index-badge">KOSPI</span>
         {% if kospi_latest %}
         <span class="price-main">{{ kospi_latest.closing_price|floatformat:2 }}</span>
         <span class="price-change {% if kospi_change_rate > 0 %}text-up{% elif kospi_change_rate < 0 %}text-down{% endif %}">
@@ -412,34 +355,38 @@
         </span>
         <span class="price-date">{{ kospi_latest.date|date:"m.d" }} 기준</span>
         {% endif %}
+        <button type="button" class="btn-refresh btn-refresh-trend" data-market="KOSPI" title="매매동향 새로고침">새로고침</button>
     </div>
     <div class="hero-chart">
-                <div class="chart-header">
-                    <span class="chart-title">KOSPI 일봉</span>
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="d-flex gap-1 range-btns" data-chart="kospi">
-                            <button class="range-btn" data-days="20">20일</button>
-                            <button class="range-btn" data-days="60">60일</button>
-                            <button class="range-btn active" data-days="120">120일</button>
-                            <button class="range-btn" data-days="240">240일</button>
-                        </div>
-                        <div style="width:1px;height:16px;background:var(--border-color);"></div>
-                        <div class="d-flex gap-1">
-                            <span class="ma-badge ma-toggle active" data-ma="10" data-chart="kospi" style="background-color:#ff9800;">10</span>
-                            <span class="ma-badge ma-toggle active" data-ma="20" data-chart="kospi" style="background-color:#2196f3;">20</span>
-                            <span class="ma-badge ma-toggle active" data-ma="60" data-chart="kospi" style="background-color:#4caf50;">60</span>
-                            <span class="ma-badge ma-toggle active" data-ma="120" data-chart="kospi" style="background-color:#9c27b0;">120</span>
-                        </div>
-                    </div>
-                </div>
-                <div id="kospiChart" style="height: 340px; flex: 1;"></div>
+        <div class="chart-toolbar">
+            <div class="range-btns" data-chart="kospi">
+                <button class="range-btn" data-days="20">20일</button>
+                <button class="range-btn" data-days="60">60일</button>
+                <button class="range-btn active" data-days="120">120일</button>
+            </div>
+            <div class="ma-badges">
+                <span class="ma-badge ma-toggle active" data-ma="10" data-chart="kospi" style="background-color:#ff9800;">10</span>
+                <span class="ma-badge ma-toggle active" data-ma="20" data-chart="kospi" style="background-color:#2196f3;">20</span>
+                <span class="ma-badge ma-toggle active" data-ma="60" data-chart="kospi" style="background-color:#4caf50;">60</span>
+                <span class="ma-badge ma-toggle active" data-ma="120" data-chart="kospi" style="background-color:#9c27b0;">120</span>
+            </div>
+        </div>
+        <div class="chart-legend">
+            <span class="chart-legend-item"><i style="background:#8b5cf6;"></i>외국인 누적</span>
+            <span class="chart-legend-item"><i style="background:#f59e0b;"></i>기관 누적</span>
+            <span class="chart-legend-note">기간 첫날 = 0</span>
+        </div>
+        <div class="index-chart-wrap">
+            <div id="kospiChart" class="index-chart"></div>
+            <div id="kospiTooltip" class="index-tooltip"></div>
+        </div>
     </div>
 </div>
 
-<!-- KOSDAQ Hero Card -->
+<!-- KOSDAQ -->
 <div class="hero-card">
     <div class="hero-info-line">
-        <span class="index-badge">KOSDAQ <span class="dot"></span></span>
+        <span class="index-badge">KOSDAQ</span>
         {% if kosdaq_latest %}
         <span class="price-main">{{ kosdaq_latest.closing_price|floatformat:2 }}</span>
         <span class="price-change {% if kosdaq_change_rate > 0 %}text-up{% elif kosdaq_change_rate < 0 %}text-down{% endif %}">
@@ -448,182 +395,30 @@
         </span>
         <span class="price-date">{{ kosdaq_latest.date|date:"m.d" }} 기준</span>
         {% endif %}
+        <button type="button" class="btn-refresh btn-refresh-trend" data-market="KOSDAQ" title="매매동향 새로고침">새로고침</button>
     </div>
     <div class="hero-chart">
-        <div class="chart-header">
-            <span class="chart-title">KOSDAQ 일봉</span>
-            <div class="d-flex align-items-center gap-2">
-                <div class="d-flex gap-1 range-btns" data-chart="kosdaq">
-                    <button class="range-btn" data-days="20">20일</button>
-                    <button class="range-btn" data-days="60">60일</button>
-                    <button class="range-btn active" data-days="120">120일</button>
-                    <button class="range-btn" data-days="240">240일</button>
-                </div>
-                <div style="width:1px;height:16px;background:var(--border-color);"></div>
-                <div class="d-flex gap-1">
-                    <span class="ma-badge ma-toggle active" data-ma="10" data-chart="kosdaq" style="background-color:#ff9800;">10</span>
-                    <span class="ma-badge ma-toggle active" data-ma="20" data-chart="kosdaq" style="background-color:#2196f3;">20</span>
-                    <span class="ma-badge ma-toggle active" data-ma="60" data-chart="kosdaq" style="background-color:#4caf50;">60</span>
-                    <span class="ma-badge ma-toggle active" data-ma="120" data-chart="kosdaq" style="background-color:#9c27b0;">120</span>
-                </div>
+        <div class="chart-toolbar">
+            <div class="range-btns" data-chart="kosdaq">
+                <button class="range-btn" data-days="20">20일</button>
+                <button class="range-btn" data-days="60">60일</button>
+                <button class="range-btn active" data-days="120">120일</button>
+            </div>
+            <div class="ma-badges">
+                <span class="ma-badge ma-toggle active" data-ma="10" data-chart="kosdaq" style="background-color:#ff9800;">10</span>
+                <span class="ma-badge ma-toggle active" data-ma="20" data-chart="kosdaq" style="background-color:#2196f3;">20</span>
+                <span class="ma-badge ma-toggle active" data-ma="60" data-chart="kosdaq" style="background-color:#4caf50;">60</span>
+                <span class="ma-badge ma-toggle active" data-ma="120" data-chart="kosdaq" style="background-color:#9c27b0;">120</span>
             </div>
         </div>
-        <div id="kosdaqChart" style="height: 340px; flex: 1;"></div>
-    </div>
-</div>
-
-<!-- 매매동향 -->
-<h5 class="section-heading">매매동향</h5>
-<div id="section-trend">
-    <!-- 시장 선택 탭 -->
-    <div class="market-tabs">
-        <button class="market-tab active" data-market="kospi">KOSPI</button>
-        <button class="market-tab" data-market="kosdaq">KOSDAQ</button>
-        <button class="market-tab" data-market="futures">FUTURES</button>
-    </div>
-
-    <!-- 누적 순매수 차트 -->
-    <div class="chart-card mb-4">
-        <div class="chart-card-header">
-            <div class="d-flex align-items-center gap-3">
-                <span class="chart-card-title">누적 순매수</span>
-                <button type="button" class="btn-refresh btn-refresh-trend" data-market="KOSPI" title="새로고침">새로고침</button>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-                <div class="d-flex gap-1 cumulative-range-btns">
-                    <button class="range-btn" data-days="20">20일</button>
-                    <button class="range-btn" data-days="60">60일</button>
-                    <button class="range-btn active" data-days="120">120일</button>
-                </div>
-                <div style="width:1px;height:16px;background:var(--border-color);margin:0 4px;"></div>
-                <div class="d-flex align-items-center" style="gap: 12px;">
-                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:#ffc107;"></span>개인</span>
-                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:#198754;"></span>외국인</span>
-                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:#dc3545;"></span>기관</span>
-                </div>
-            </div>
+        <div class="chart-legend">
+            <span class="chart-legend-item"><i style="background:#8b5cf6;"></i>외국인 누적</span>
+            <span class="chart-legend-item"><i style="background:#f59e0b;"></i>기관 누적</span>
+            <span class="chart-legend-note">기간 첫날 = 0</span>
         </div>
-        <div style="padding: 8px;">
-            <div id="kospiCumulativeChart" style="height: 260px;"></div>
-            <div id="kosdaqCumulativeChart" style="height: 260px; display: none;"></div>
-            <div id="futuresCumulativeChart" style="height: 260px; display: none;"></div>
-        </div>
-    </div>
-
-    <!-- 매매동향 테이블 -->
-    <div class="card-v2" style="overflow: hidden;">
-        <div style="overflow-x: auto;">
-            <!-- KOSPI Table -->
-            <table class="modern-table" id="kospiTrendTable">
-                <thead>
-                    <tr>
-                        <th style="padding-left:20px;">날짜</th>
-                        <th class="text-end">개인</th>
-                        <th class="text-end">외국인</th>
-                        <th class="text-end">기관계</th>
-                        <th class="text-end">금융투자</th>
-                        <th class="text-end">보험</th>
-                        <th class="text-end">투신</th>
-                        <th class="text-end">은행</th>
-                        <th class="text-end">기타금융</th>
-                        <th class="text-end">연기금</th>
-                        <th class="text-end" style="padding-right:20px;">기타법인</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for t in kospi_trends %}
-                    <tr>
-                        <td style="padding-left:20px;color:var(--text-muted);">{{ t.date|date:"m.d" }}</td>
-                        <td class="text-end {% if t.individual > 0 %}text-up{% elif t.individual < 0 %}text-down{% endif %}" {% if t.individual > 10000 or t.individual < -10000 %}style="font-weight:700;"{% endif %}>{{ t.individual|intcomma }}</td>
-                        <td class="text-end {% if t.foreign > 0 %}text-up{% elif t.foreign < 0 %}text-down{% endif %}" {% if t.foreign > 10000 or t.foreign < -10000 %}style="font-weight:700;"{% endif %}>{{ t.foreign|intcomma }}</td>
-                        <td class="text-end {% if t.institution > 0 %}text-up{% elif t.institution < 0 %}text-down{% endif %}" {% if t.institution > 10000 or t.institution < -10000 %}style="font-weight:700;"{% endif %}>{{ t.institution|intcomma }}</td>
-                        <td class="text-end {% if t.financial_investment > 0 %}text-up{% elif t.financial_investment < 0 %}text-down{% endif %}">{{ t.financial_investment|intcomma }}</td>
-                        <td class="text-end {% if t.insurance > 0 %}text-up{% elif t.insurance < 0 %}text-down{% endif %}">{{ t.insurance|intcomma }}</td>
-                        <td class="text-end {% if t.trust > 0 %}text-up{% elif t.trust < 0 %}text-down{% endif %}">{{ t.trust|intcomma }}</td>
-                        <td class="text-end {% if t.bank > 0 %}text-up{% elif t.bank < 0 %}text-down{% endif %}">{{ t.bank|intcomma }}</td>
-                        <td class="text-end {% if t.other_financial > 0 %}text-up{% elif t.other_financial < 0 %}text-down{% endif %}">{{ t.other_financial|intcomma }}</td>
-                        <td class="text-end {% if t.pension_fund > 0 %}text-up{% elif t.pension_fund < 0 %}text-down{% endif %}">{{ t.pension_fund|intcomma }}</td>
-                        <td class="text-end {% if t.other_corporation > 0 %}text-up{% elif t.other_corporation < 0 %}text-down{% endif %}" style="padding-right:20px;">{{ t.other_corporation|intcomma }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:24px;">데이터가 없습니다.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <!-- KOSDAQ Table -->
-            <table class="modern-table" id="kosdaqTrendTable" style="display: none;">
-                <thead>
-                    <tr>
-                        <th style="padding-left:20px;">날짜</th>
-                        <th class="text-end">개인</th>
-                        <th class="text-end">외국인</th>
-                        <th class="text-end">기관계</th>
-                        <th class="text-end">금융투자</th>
-                        <th class="text-end">보험</th>
-                        <th class="text-end">투신</th>
-                        <th class="text-end">은행</th>
-                        <th class="text-end">기타금융</th>
-                        <th class="text-end">연기금</th>
-                        <th class="text-end" style="padding-right:20px;">기타법인</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for t in kosdaq_trends %}
-                    <tr>
-                        <td style="padding-left:20px;color:var(--text-muted);">{{ t.date|date:"m.d" }}</td>
-                        <td class="text-end {% if t.individual > 0 %}text-up{% elif t.individual < 0 %}text-down{% endif %}" {% if t.individual > 10000 or t.individual < -10000 %}style="font-weight:700;"{% endif %}>{{ t.individual|intcomma }}</td>
-                        <td class="text-end {% if t.foreign > 0 %}text-up{% elif t.foreign < 0 %}text-down{% endif %}" {% if t.foreign > 10000 or t.foreign < -10000 %}style="font-weight:700;"{% endif %}>{{ t.foreign|intcomma }}</td>
-                        <td class="text-end {% if t.institution > 0 %}text-up{% elif t.institution < 0 %}text-down{% endif %}" {% if t.institution > 10000 or t.institution < -10000 %}style="font-weight:700;"{% endif %}>{{ t.institution|intcomma }}</td>
-                        <td class="text-end {% if t.financial_investment > 0 %}text-up{% elif t.financial_investment < 0 %}text-down{% endif %}">{{ t.financial_investment|intcomma }}</td>
-                        <td class="text-end {% if t.insurance > 0 %}text-up{% elif t.insurance < 0 %}text-down{% endif %}">{{ t.insurance|intcomma }}</td>
-                        <td class="text-end {% if t.trust > 0 %}text-up{% elif t.trust < 0 %}text-down{% endif %}">{{ t.trust|intcomma }}</td>
-                        <td class="text-end {% if t.bank > 0 %}text-up{% elif t.bank < 0 %}text-down{% endif %}">{{ t.bank|intcomma }}</td>
-                        <td class="text-end {% if t.other_financial > 0 %}text-up{% elif t.other_financial < 0 %}text-down{% endif %}">{{ t.other_financial|intcomma }}</td>
-                        <td class="text-end {% if t.pension_fund > 0 %}text-up{% elif t.pension_fund < 0 %}text-down{% endif %}">{{ t.pension_fund|intcomma }}</td>
-                        <td class="text-end {% if t.other_corporation > 0 %}text-up{% elif t.other_corporation < 0 %}text-down{% endif %}" style="padding-right:20px;">{{ t.other_corporation|intcomma }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:24px;">데이터가 없습니다.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <!-- FUTURES Table -->
-            <table class="modern-table" id="futuresTrendTable" style="display: none;">
-                <thead>
-                    <tr>
-                        <th style="padding-left:20px;">날짜</th>
-                        <th class="text-end">개인</th>
-                        <th class="text-end">외국인</th>
-                        <th class="text-end">기관계</th>
-                        <th class="text-end">금융투자</th>
-                        <th class="text-end">보험</th>
-                        <th class="text-end">투신</th>
-                        <th class="text-end">은행</th>
-                        <th class="text-end">기타금융</th>
-                        <th class="text-end">연기금</th>
-                        <th class="text-end" style="padding-right:20px;">기타법인</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for t in futures_trends %}
-                    <tr>
-                        <td style="padding-left:20px;color:var(--text-muted);">{{ t.date|date:"m.d" }}</td>
-                        <td class="text-end {% if t.individual > 0 %}text-up{% elif t.individual < 0 %}text-down{% endif %}" {% if t.individual > 10000 or t.individual < -10000 %}style="font-weight:700;"{% endif %}>{{ t.individual|intcomma }}</td>
-                        <td class="text-end {% if t.foreign > 0 %}text-up{% elif t.foreign < 0 %}text-down{% endif %}" {% if t.foreign > 10000 or t.foreign < -10000 %}style="font-weight:700;"{% endif %}>{{ t.foreign|intcomma }}</td>
-                        <td class="text-end {% if t.institution > 0 %}text-up{% elif t.institution < 0 %}text-down{% endif %}" {% if t.institution > 10000 or t.institution < -10000 %}style="font-weight:700;"{% endif %}>{{ t.institution|intcomma }}</td>
-                        <td class="text-end {% if t.financial_investment > 0 %}text-up{% elif t.financial_investment < 0 %}text-down{% endif %}">{{ t.financial_investment|intcomma }}</td>
-                        <td class="text-end {% if t.insurance > 0 %}text-up{% elif t.insurance < 0 %}text-down{% endif %}">{{ t.insurance|intcomma }}</td>
-                        <td class="text-end {% if t.trust > 0 %}text-up{% elif t.trust < 0 %}text-down{% endif %}">{{ t.trust|intcomma }}</td>
-                        <td class="text-end {% if t.bank > 0 %}text-up{% elif t.bank < 0 %}text-down{% endif %}">{{ t.bank|intcomma }}</td>
-                        <td class="text-end {% if t.other_financial > 0 %}text-up{% elif t.other_financial < 0 %}text-down{% endif %}">{{ t.other_financial|intcomma }}</td>
-                        <td class="text-end {% if t.pension_fund > 0 %}text-up{% elif t.pension_fund < 0 %}text-down{% endif %}">{{ t.pension_fund|intcomma }}</td>
-                        <td class="text-end {% if t.other_corporation > 0 %}text-up{% elif t.other_corporation < 0 %}text-down{% endif %}" style="padding-right:20px;">{{ t.other_corporation|intcomma }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:24px;">데이터가 없습니다.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="index-chart-wrap">
+            <div id="kosdaqChart" class="index-chart"></div>
+            <div id="kosdaqTooltip" class="index-tooltip"></div>
         </div>
     </div>
 </div>
@@ -634,50 +429,55 @@
 {% block extra_js %}
 <script>
 // ===== Data =====
-const kospiCandleData = {{ kospi_candle_data|safe }};
-const kospiVolumeData = {{ kospi_volume_data|safe }};
-const kosdaqCandleData = {{ kosdaq_candle_data|safe }};
-const kosdaqVolumeData = {{ kosdaq_volume_data|safe }};
-const kospiRawTrends = {{ kospi_raw_trends|safe }};
-const kosdaqRawTrends = {{ kosdaq_raw_trends|safe }};
-const futuresRawTrends = {{ futures_raw_trends|safe }};
+const candleData = { kospi: {{ kospi_candle_data|safe }}, kosdaq: {{ kosdaq_candle_data|safe }} };
+const volumeData = { kospi: {{ kospi_volume_data|safe }}, kosdaq: {{ kosdaq_volume_data|safe }} };
+const rawTrends  = { kospi: {{ kospi_raw_trends|safe }}, kosdaq: {{ kosdaq_raw_trends|safe }} };
 
-// ===== 누적 순매수 =====
-function buildCumulative(rawData, days) {
-    const sliced = rawData.slice(-days);
-    let cumInd = 0, cumFor = 0, cumInst = 0;
-    return sliced.map(d => {
-        cumInd += d.individual;
-        cumFor += d.foreign;
-        cumInst += d.institution;
-        return { date: d.date, individual: cumInd, foreign: cumFor, institution: cumInst };
-    });
-}
-
-// ===== Chart Options =====
+// ===== Theme =====
 const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
 const chartBgColor = isDarkTheme ? '#1a1d24' : '#ffffff';
 const chartTextColor = isDarkTheme ? '#9ca3af' : '#6b7280';
 const chartGridColor = isDarkTheme ? '#2a2e38' : '#f3f4f6';
 const chartBorderColor = isDarkTheme ? '#2a2e38' : '#e5e7eb';
+const upColor = isDarkTheme ? '#ef5350' : '#dc3545';
+const downColor = isDarkTheme ? '#5b8def' : '#2962ff';
+const FOREIGN_COLOR = '#8b5cf6';
+const INSTITUTION_COLOR = '#f59e0b';
+
+function isNarrowScreen() {
+    return window.matchMedia('(max-width: 768px)').matches;
+}
+
+// 매매동향 단위는 백만원
+function fmtTrend(v) {
+    const a = Math.abs(v);
+    if (a >= 1e6) return (v / 1e6).toFixed(2) + '조';
+    if (a >= 100) return Math.round(v / 100).toLocaleString('ko-KR') + '억';
+    return Math.round(v).toLocaleString('ko-KR') + '백만';
+}
+
 const chartOptions = {
     layout: { background: { color: chartBgColor }, textColor: chartTextColor, fontSize: 11 },
     grid: { vertLines: { color: chartGridColor }, horzLines: { color: chartGridColor } },
     timeScale: { timeVisible: false, borderColor: chartBorderColor, fixLeftEdge: true, fixRightEdge: true },
-    rightPriceScale: { borderColor: chartBorderColor },
     handleScale: { axisPressedMouseMove: { price: false } },
     crosshair: { mode: 0 },
 };
 
 const candleColors = {
-    upColor: '#ef5350', downColor: '#26a69a',
-    borderUpColor: '#ef5350', borderDownColor: '#26a69a',
-    wickUpColor: '#ef5350', wickDownColor: '#26a69a',
+    upColor: upColor, downColor: downColor,
+    borderUpColor: upColor, borderDownColor: downColor,
+    wickUpColor: upColor, wickDownColor: downColor,
 };
 
-// ===== MA =====
+// 위 62%는 캔들+이평선(거래량은 그 바닥), 아래 38%는 누적 순매수
+const CANDLE_MARGINS = { top: 0.04, bottom: 0.42 };
+const VOLUME_MARGINS = { top: 0.47, bottom: 0.42 };
+const TREND_MARGINS  = { top: 0.66, bottom: 0.02 };
+
 const maConfig = { 10: '#ff9800', 20: '#2196f3', 60: '#4caf50', 120: '#9c27b0' };
 const maSeries = { kospi: {}, kosdaq: {} };
+const charts = {};
 
 function calculateMA(data, period) {
     const result = [];
@@ -689,171 +489,226 @@ function calculateMA(data, period) {
     return result;
 }
 
-// ===== Init Charts =====
-function initCandleChart(containerId, candleData, volumeData, chartKey) {
-    const container = document.getElementById(containerId);
-    if (!container || candleData.length === 0) return;
+// 선택한 기간의 첫 캔들 날짜부터 0으로 다시 쌓는다
+function buildCumulative(trends, fromTime) {
+    let f = 0, i = 0;
+    return trends.filter(d => d.date >= fromTime).map(d => {
+        f += d.foreign;
+        i += d.institution;
+        return { time: d.date, foreign: f, institution: i, dayForeign: d.foreign, dayInstitution: d.institution };
+    });
+}
 
-    const chart = LightweightCharts.createChart(container, { ...chartOptions, height: 340 });
+function initIndexChart(chartKey, days) {
+    const container = document.getElementById(chartKey + 'Chart');
+    const candles = candleData[chartKey];
+    if (!container || !candles || candles.length === 0) return null;
 
-    const candleSeries = chart.addCandlestickSeries(candleColors);
-    candleSeries.setData(candleData);
+    // 기간을 바꿀 때마다 새로 그리므로 이전 차트와 옵저버를 확실히 정리한다
+    const prev = charts[chartKey];
+    if (prev) {
+        if (prev.observer) prev.observer.disconnect();
+        prev.chart.remove();
+    }
+    container.innerHTML = '';
+    maSeries[chartKey] = {};
+
+    const chart = LightweightCharts.createChart(container, {
+        ...chartOptions,
+        height: container.clientHeight || 420,
+        rightPriceScale: { visible: true, borderColor: chartBorderColor, scaleMargins: CANDLE_MARGINS },
+        // 좁은 화면에선 축 두 개가 캔들 폭을 잡아먹으므로 누적 축은 숨기고 툴팁으로 읽는다
+        leftPriceScale: { visible: !isNarrowScreen(), borderColor: chartBorderColor, scaleMargins: TREND_MARGINS },
+    });
+
+    const sliced = candles.slice(-days);
+    const slicedVolume = volumeData[chartKey].slice(-days);
+    const fromTime = sliced[0].time;
+
+    const candleSeries = chart.addCandlestickSeries({ ...candleColors, priceScaleId: 'right' });
+    candleSeries.setData(sliced);
 
     for (const [period, color] of Object.entries(maConfig)) {
-        const series = chart.addLineSeries({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-        series.setData(calculateMA(candleData, parseInt(period)));
+        const series = chart.addLineSeries({
+            color, lineWidth: 1, priceScaleId: 'right',
+            priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+        });
+        series.setData(calculateMA(sliced, parseInt(period)));
         maSeries[chartKey][period] = series;
     }
 
     const volumeSeries = chart.addHistogramSeries({
-        priceFormat: { type: 'volume' }, priceScaleId: '',
-        scaleMargins: { top: 0.85, bottom: 0 },
+        priceFormat: { type: 'volume' }, priceScaleId: 'vol',
+        priceLineVisible: false, lastValueVisible: false,
     });
-    volumeSeries.setData(volumeData);
+    volumeSeries.setData(slicedVolume.map(d => ({
+        time: d.time, value: d.value, color: d.up ? upColor : downColor,
+    })));
+    volumeSeries.priceScale().applyOptions({ scaleMargins: VOLUME_MARGINS });
 
-    chart.timeScale().fitContent();
-    if (candleData.length > 0) {
-        chart.timeScale().setVisibleRange({ from: candleData[0].time, to: candleData[candleData.length - 1].time });
+    const trendPriceFormat = { type: 'custom', formatter: fmtTrend, minMove: 1 };
+    const foreignSeries = chart.addLineSeries({
+        color: FOREIGN_COLOR, lineWidth: 2, priceScaleId: 'left',
+        priceFormat: trendPriceFormat, priceLineVisible: false, lastValueVisible: false,
+    });
+    const institutionSeries = chart.addLineSeries({
+        color: INSTITUTION_COLOR, lineWidth: 2, priceScaleId: 'left',
+        priceFormat: trendPriceFormat, priceLineVisible: false, lastValueVisible: false,
+    });
+    // 매수/매도 전환점을 보려면 0선이 필요하다
+    const zeroSeries = chart.addLineSeries({
+        color: chartBorderColor, lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dotted,
+        priceScaleId: 'left', priceFormat: trendPriceFormat,
+        priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+    });
+
+    const cumulative = buildCumulative(rawTrends[chartKey], fromTime);
+    foreignSeries.setData(cumulative.map(d => ({ time: d.time, value: d.foreign })));
+    institutionSeries.setData(cumulative.map(d => ({ time: d.time, value: d.institution })));
+    zeroSeries.setData(cumulative.map(d => ({ time: d.time, value: 0 })));
+
+    chart.timeScale().setVisibleRange({ from: sliced[0].time, to: sliced[sliced.length - 1].time });
+
+    const state = { chart, days, container, observer: null };
+    attachTooltip(chartKey, state, sliced, cumulative);
+
+    if (window.ResizeObserver) {
+        state.observer = new ResizeObserver(entries => {
+            const rect = entries[0].contentRect;
+            if (rect.width === 0) return;
+            chart.applyOptions({ width: rect.width, height: rect.height });
+        });
+        state.observer.observe(container);
     }
-    return chart;
+    return state;
 }
 
-function initCumulativeChart(containerId, data) {
-    const container = document.getElementById(containerId);
-    if (!container || data.length === 0) return null;
+function attachTooltip(chartKey, state, candles, cumulative) {
+    const tooltip = document.getElementById(chartKey + 'Tooltip');
+    if (!tooltip) return;
+    const container = state.container;
 
-    const chart = LightweightCharts.createChart(container, { ...chartOptions, height: 260 });
+    const candleByTime = {};
+    candles.forEach((d, i) => { candleByTime[d.time] = { ...d, prevClose: i > 0 ? candles[i - 1].close : null }; });
+    const trendByTime = {};
+    cumulative.forEach(d => { trendByTime[d.time] = d; });
 
-    const colors = { individual: '#ffc107', foreign: '#198754', institution: '#dc3545' };
-    for (const [key, color] of Object.entries(colors)) {
-        const series = chart.addLineSeries({ color, lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
-        series.setData(data.map(d => ({ time: d.date, value: d[key] })));
-    }
-    chart.timeScale().fitContent();
-    return chart;
+    state.chart.subscribeCrosshairMove(param => {
+        if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
+            tooltip.style.display = 'none';
+            return;
+        }
+        const t = (typeof param.time === 'string')
+            ? param.time
+            : `${param.time.year}-${String(param.time.month).padStart(2, '0')}-${String(param.time.day).padStart(2, '0')}`;
+        const c = candleByTime[t];
+        if (!c) { tooltip.style.display = 'none'; return; }
+        const tr = trendByTime[t];
+
+        const diff = c.prevClose === null ? null : c.close - c.prevClose;
+        const rate = (diff === null || !c.prevClose) ? null : (diff / c.prevClose * 100);
+        const cls = v => v > 0 ? 'text-up' : v < 0 ? 'text-down' : '';
+        const sign = v => v > 0 ? '+' : '';
+
+        let html = `<div class="index-tooltip-date">${t}</div>
+            <div class="index-tooltip-row">
+                <span>지수</span>
+                <b>${c.close.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+            </div>`;
+        if (diff !== null) {
+            html += `<div class="index-tooltip-row">
+                <span>전일 대비</span>
+                <b class="${cls(diff)}">${sign(diff)}${diff.toFixed(2)} (${sign(rate)}${rate.toFixed(2)}%)</b>
+            </div>`;
+        }
+        if (tr) {
+            html += `<div class="index-tooltip-sep"></div>
+                <div class="index-tooltip-row">
+                    <span><i style="background:${FOREIGN_COLOR};"></i>외국인 누적</span>
+                    <b class="${cls(tr.foreign)}">${fmtTrend(tr.foreign)}</b>
+                </div>
+                <div class="index-tooltip-row">
+                    <span><i style="background:${INSTITUTION_COLOR};"></i>기관 누적</span>
+                    <b class="${cls(tr.institution)}">${fmtTrend(tr.institution)}</b>
+                </div>
+                <div class="index-tooltip-row">
+                    <span>당일 외국인 / 기관</span>
+                    <b><span class="${cls(tr.dayForeign)}">${fmtTrend(tr.dayForeign)}</span> / <span class="${cls(tr.dayInstitution)}">${fmtTrend(tr.dayInstitution)}</span></b>
+                </div>`;
+        }
+        tooltip.innerHTML = html;
+
+        const wrapRect = container.parentElement.getBoundingClientRect();
+        const tipW = tooltip.offsetWidth || 210;
+        const tipH = tooltip.offsetHeight || 150;
+        if (isNarrowScreen()) {
+            // 터치는 손가락이 짚은 자리를 가리므로 반대편 위에 고정
+            tooltip.style.top = '0px';
+            tooltip.style.left = (param.point.x < wrapRect.width / 2)
+                ? Math.max(0, wrapRect.width - tipW) + 'px' : '0px';
+        } else {
+            let left = param.point.x + 15;
+            let top = param.point.y + 15;
+            if (left + tipW > wrapRect.width) left = param.point.x - tipW - 15;
+            if (top + tipH > wrapRect.height) top = param.point.y - tipH - 15;
+            tooltip.style.left = Math.max(0, left) + 'px';
+            tooltip.style.top = Math.max(0, top) + 'px';
+        }
+        tooltip.style.display = 'block';
+    });
 }
 
-// ===== Chart instances & full data =====
-const chartInstances = {};
-const fullData = {
-    kospi: { candle: kospiCandleData, volume: kospiVolumeData },
-    kosdaq: { candle: kosdaqCandleData, volume: kosdaqVolumeData },
-};
+function applyMaVisibility(chartKey) {
+    document.querySelectorAll(`.ma-toggle[data-chart="${chartKey}"]`).forEach(badge => {
+        const series = maSeries[chartKey][badge.dataset.ma];
+        if (series) series.applyOptions({ visible: badge.classList.contains('active') });
+    });
+}
 
-// Init (120일 기본)
-chartInstances.kospi = initCandleChart('kospiChart', kospiCandleData.slice(-120), kospiVolumeData.slice(-120), 'kospi');
-chartInstances.kosdaq = initCandleChart('kosdaqChart', kosdaqCandleData.slice(-120), kosdaqVolumeData.slice(-120), 'kosdaq');
-initCumulativeChart('kospiCumulativeChart', buildCumulative(kospiRawTrends, 120));
+['kospi', 'kosdaq'].forEach(k => {
+    charts[k] = initIndexChart(k, 120);
+});
 
 // ===== Range Buttons =====
 document.querySelectorAll('.range-btns').forEach(group => {
     group.querySelectorAll('.range-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             group.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-
             const chartKey = group.dataset.chart;
-            const days = parseInt(this.dataset.days);
-            const candle = fullData[chartKey].candle;
-            const volume = fullData[chartKey].volume;
-
-            const slicedCandle = candle.slice(-days);
-            const slicedVolume = volume.slice(-days);
-
-            // Destroy and recreate chart
-            const containerId = chartKey + 'Chart';
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
-            maSeries[chartKey] = {};
-            chartInstances[chartKey] = initCandleChart(containerId, slicedCandle, slicedVolume, chartKey);
-
-            // Re-apply MA toggle states
-            document.querySelectorAll(`.ma-toggle[data-chart="${chartKey}"]`).forEach(badge => {
-                const period = badge.dataset.ma;
-                const series = maSeries[chartKey][period];
-                if (series) {
-                    series.applyOptions({ visible: badge.classList.contains('active') });
-                }
-            });
+            charts[chartKey] = initIndexChart(chartKey, parseInt(this.dataset.days));
+            applyMaVisibility(chartKey);
         });
     });
 });
 
 // ===== MA Toggle =====
 document.querySelectorAll('.ma-toggle').forEach(badge => {
-    badge.addEventListener('click', function() {
+    badge.addEventListener('click', function () {
         const series = maSeries[this.dataset.chart][this.dataset.ma];
         if (!series) return;
-        const isActive = this.classList.toggle('active');
-        series.applyOptions({ visible: isActive });
+        series.applyOptions({ visible: this.classList.toggle('active') });
     });
 });
 
-// ===== Market Tab Switching =====
-const cumulativeChartInits = { kospi: true, kosdaq: false, futures: false };
-const rawTrendData = { kospi: kospiRawTrends, kosdaq: kosdaqRawTrends, futures: futuresRawTrends };
-let currentCumulativeDays = 120;
-let currentCumulativeMarket = 'kospi';
-
-document.querySelectorAll('.market-tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-        document.querySelectorAll('.market-tab').forEach(t => t.classList.remove('active'));
-        this.classList.add('active');
-
-        const market = this.dataset.market;
-
-        // Show/hide tables
-        ['kospi', 'kosdaq', 'futures'].forEach(m => {
-            document.getElementById(m + 'TrendTable').style.display = m === market ? '' : 'none';
-            document.getElementById(m + 'CumulativeChart').style.display = m === market ? '' : 'none';
-        });
-
-        // Update refresh button market
-        document.querySelector('.btn-refresh-trend').dataset.market = market.toUpperCase();
-
-        currentCumulativeMarket = market;
-
-        // Init chart if needed
-        if (!cumulativeChartInits[market]) {
-            const containerId = market + 'CumulativeChart';
-            initCumulativeChart(containerId, buildCumulative(rawTrendData[market], currentCumulativeDays));
-            cumulativeChartInits[market] = true;
-        }
-
-    });
-});
-
-// ===== Cumulative Range Buttons =====
-document.querySelectorAll('.cumulative-range-btns .range-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        document.querySelectorAll('.cumulative-range-btns .range-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-
-        currentCumulativeDays = parseInt(this.dataset.days);
-        const containerId = currentCumulativeMarket + 'CumulativeChart';
-        const container = document.getElementById(containerId);
-        container.innerHTML = '';
-        initCumulativeChart(containerId, buildCumulative(rawTrendData[currentCumulativeMarket], currentCumulativeDays));
-    });
-});
-
-// ===== Refresh Trend =====
+// ===== 매매동향 새로고침 =====
 document.querySelectorAll('.btn-refresh-trend').forEach(btn => {
-    btn.addEventListener('click', async function() {
+    btn.addEventListener('click', async function () {
         const market = this.dataset.market;
+        const chartKey = market.toLowerCase();
         this.disabled = true;
         this.classList.add('spin');
-
         try {
             const response = await fetch(`/api/market/trend/${market}/refresh/`, {
                 method: 'POST',
                 headers: { 'X-CSRFToken': '{{ csrf_token }}' }
             });
             const data = await response.json();
-
             if (data.success) {
-                updateTrendTable(market, data.table_data);
-                updateCumulativeChart(market, data.chart_data);
+                rawTrends[chartKey] = data.chart_data;
+                const active = document.querySelector(`.range-btns[data-chart="${chartKey}"] .range-btn.active`);
+                charts[chartKey] = initIndexChart(chartKey, parseInt(active ? active.dataset.days : 120));
+                applyMaVisibility(chartKey);
             } else {
                 alert(data.error || '업데이트 실패');
             }
@@ -865,44 +720,5 @@ document.querySelectorAll('.btn-refresh-trend').forEach(btn => {
         }
     });
 });
-
-function updateTrendTable(market, tableData) {
-    const table = document.getElementById(`${market.toLowerCase()}TrendTable`);
-    if (!table) return;
-
-    const tbody = table.querySelector('tbody');
-    const fmt = n => new Intl.NumberFormat('ko-KR').format(n);
-    const cls = v => v > 0 ? 'text-up' : v < 0 ? 'text-down' : '';
-    const bold = v => v > 10000 || v < -10000 ? 'font-weight:700;' : '';
-
-    tbody.innerHTML = tableData.map(t => `
-        <tr>
-            <td style="padding-left:20px;color:var(--text-muted);">${t.date}</td>
-            <td class="text-end ${cls(t.individual)}" style="${bold(t.individual)}">${fmt(t.individual)}</td>
-            <td class="text-end ${cls(t.foreign)}" style="${bold(t.foreign)}">${fmt(t.foreign)}</td>
-            <td class="text-end ${cls(t.institution)}" style="${bold(t.institution)}">${fmt(t.institution)}</td>
-            <td class="text-end ${cls(t.financial_investment)}">${fmt(t.financial_investment)}</td>
-            <td class="text-end ${cls(t.insurance)}">${fmt(t.insurance)}</td>
-            <td class="text-end ${cls(t.trust)}">${fmt(t.trust)}</td>
-            <td class="text-end ${cls(t.bank)}">${fmt(t.bank)}</td>
-            <td class="text-end ${cls(t.other_financial)}">${fmt(t.other_financial)}</td>
-            <td class="text-end ${cls(t.pension_fund)}">${fmt(t.pension_fund)}</td>
-            <td class="text-end" style="padding-right:20px;${cls(t.other_corporation) ? 'color:' + (t.other_corporation > 0 ? 'var(--up-color)' : 'var(--down-color)') : ''}">${fmt(t.other_corporation)}</td>
-        </tr>
-    `).join('');
-}
-
-function updateCumulativeChart(market, chartData) {
-    const key = market.toLowerCase();
-    // chartData from refresh is raw daily data - update stored raw data
-    rawTrendData[key] = chartData;
-    const containerId = `${key}CumulativeChart`;
-    const container = document.getElementById(containerId);
-    if (!container || chartData.length === 0) return;
-    container.innerHTML = '';
-    initCumulativeChart(containerId, buildCumulative(chartData, currentCumulativeDays));
-    cumulativeChartInits[key] = true;
-}
-
 </script>
 {% endblock %}
