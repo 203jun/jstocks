@@ -320,7 +320,7 @@
             <a class="nav-brand" href="{% url 'stocks:index' %}">JStocks</a>
             <ul class="nav-links">
                 <li><a href="{% url 'stocks:asset' %}" class="{% if request.resolver_match.url_name == 'asset' %}active{% endif %}">자산</a></li>
-                <li><a href="{% url 'stocks:market' %}" class="{% if request.resolver_match.url_name == 'market' %}active{% endif %}">시황</a></li>
+                <li><a href="{% url 'stocks:market' %}" class="{% if request.resolver_match.url_name == 'market' %}active{% endif %}">시장</a></li>
                 <li><a href="{% url 'stocks:sector' %}" class="{% if request.resolver_match.url_name == 'sector' %}active{% endif %}">섹터</a></li>
                 <li><a href="{% url 'stocks:index' %}" class="{% if request.resolver_match.url_name == 'index' or 'stock' in request.resolver_match.url_name %}active{% endif %}">종목</a></li>
                 <li><a href="{% url 'stocks:etf' %}" class="{% if request.resolver_match.url_name == 'etf' %}active{% endif %}">ETF</a></li>
