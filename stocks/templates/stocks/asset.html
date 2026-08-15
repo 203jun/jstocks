@@ -208,6 +208,8 @@
 .asset-tooltip-value.highlight-rate-down { color: var(--down-color); font-weight: 700; }
 .asset-tooltip-value.highlight-rate-zero { color: var(--text-muted, #6b7280); font-weight: 700; }
 @media (max-width: 768px) {
+    /* 좁은 화면에선 카드 여백을 줄여 차트 폭을 최대한 확보 */
+    .asset-card, .holdings-card { padding: 12px 12px 14px; }
     .asset-chart { height: 240px; }
     .asset-hero-value { font-size: 1.9rem; }
     .asset-hero-diff { font-size: 0.9rem; }
@@ -222,6 +224,22 @@
     }
     .asset-sub-value { font-size: 0.95rem; }
     .asset-sub-diff { display: block; margin-left: 0; margin-top: 2px; }
+
+    /* 기간 버튼은 한 줄 통째로 써서 손가락으로 누를 만한 크기로 */
+    .asset-chart-head { gap: 8px; }
+    .asset-range {
+        width: 100%;
+        gap: 0;
+    }
+    .asset-range-btn {
+        flex: 1;
+        padding: 8px 4px;
+        font-size: 0.78rem;
+    }
+    .asset-tooltip {
+        min-width: 165px;
+        font-size: 0.78rem;
+    }
 }
 
 /* Holdings table */
@@ -472,6 +490,10 @@ function daysBetween(fromStr, toStr) {
     return Math.round((Date.parse(toStr) - Date.parse(fromStr)) / 86400000);
 }
 
+function isNarrowScreen() {
+    return window.matchMedia('(max-width: 768px)').matches;
+}
+
 function initAssetChart(containerId, tooltipId, rangeId, data) {
     const container = document.getElementById(containerId);
     if (!container || !data || data.length === 0) return null;
@@ -630,16 +652,36 @@ function initAssetChart(containerId, tooltipId, rangeId, data) {
             const wrapRect = wrap.getBoundingClientRect();
             const tipW = tooltip.offsetWidth || 200;
             const tipH = tooltip.offsetHeight || 160;
-            let left = param.point.x + 15;
-            let top = param.point.y + 15;
-            if (left + tipW > wrapRect.width) left = param.point.x - tipW - 15;
-            if (top + tipH > wrapRect.height) top = param.point.y - tipH - 15;
-            if (left < 0) left = 0;
-            if (top < 0) top = 0;
-            tooltip.style.left = left + 'px';
-            tooltip.style.top = top + 'px';
+
+            if (isNarrowScreen()) {
+                // 터치는 손가락이 크로스헤어 자리를 가리므로, 따라다니지 않고
+                // 짚은 지점 반대편 위쪽에 고정한다
+                tooltip.style.top = '0px';
+                tooltip.style.left = (param.point.x < wrapRect.width / 2)
+                    ? Math.max(0, wrapRect.width - tipW) + 'px'
+                    : '0px';
+            } else {
+                let left = param.point.x + 15;
+                let top = param.point.y + 15;
+                if (left + tipW > wrapRect.width) left = param.point.x - tipW - 15;
+                if (top + tipH > wrapRect.height) top = param.point.y - tipH - 15;
+                if (left < 0) left = 0;
+                if (top < 0) top = 0;
+                tooltip.style.left = left + 'px';
+                tooltip.style.top = top + 'px';
+            }
             tooltip.style.display = 'block';
         });
+    }
+
+    // 화면 회전·주소창 접힘 등으로 폭이 바뀌면 차트도 따라가게 한다
+    if (window.ResizeObserver) {
+        new ResizeObserver(entries => {
+            const rect = entries[0].contentRect;
+            if (rect.width === 0) return;   // 탭 전환으로 숨겨진 순간
+            chart.applyOptions({ width: rect.width, height: rect.height });
+            chart.timeScale().fitContent();
+        }).observe(container);
     }
 
     return chart;
