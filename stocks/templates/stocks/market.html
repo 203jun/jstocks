@@ -583,13 +583,18 @@ function applyRange(chartKey, days) {
     if (!state) return;
 
     // setData가 원본을 변질시키므로 복사본을 만들고 time을 문자열로 되돌려 넘긴다
-    const sliced = candleData[chartKey].slice(-days).map(d => ({ ...d, time: timeToStr(d.time) }));
+    const full = candleData[chartKey].map(d => ({ ...d, time: timeToStr(d.time) }));
+    const sliced = full.slice(-days);
     const slicedVolume = volumeData[chartKey].slice(-days).map(d => ({ ...d, time: timeToStr(d.time) }));
     const fromTime = sliced[0].time;
 
     state.candleSeries.setData(sliced);
+    // 이평선은 전체 이력으로 계산한 뒤 보이는 구간만 잘라 넘긴다.
+    // 잘린 구간만으로 계산하면 20일 화면에서 60·120일선이 아예 안 나온다.
     for (const period of Object.keys(maConfig)) {
-        maSeries[chartKey][period].setData(calculateMA(sliced, parseInt(period)));
+        maSeries[chartKey][period].setData(
+            calculateMA(full, parseInt(period)).filter(d => d.time >= fromTime)
+        );
     }
     state.volumeSeries.setData(slicedVolume.map(d => ({
         time: d.time, value: d.value, color: d.up ? upColor : downColor,
