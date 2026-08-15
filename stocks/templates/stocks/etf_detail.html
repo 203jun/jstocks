@@ -329,6 +329,10 @@ document.getElementById('delete-etf-btn').addEventListener('click', async functi
             <span style="font-size:0.82rem;color:var(--text-secondary);">주봉</span>
             <span style="font-size:0.72rem;color:var(--text-muted);margin-left:6px;">최근 2년</span>
         </div>
+        <div class="d-flex gap-1">
+            <span class="ma-badge weekly-ma-toggle active ma-20" data-ma="20">20</span>
+            <span class="ma-badge weekly-ma-toggle active ma-60" data-ma="60">60</span>
+        </div>
     </div>
     <div id="weeklyChart" style="height:400px;"></div>
 </div>
@@ -339,6 +343,9 @@ document.getElementById('delete-etf-btn').addEventListener('click', async functi
         <div>
             <span style="font-size:0.82rem;color:var(--text-secondary);">월봉</span>
             <span style="font-size:0.72rem;color:var(--text-muted);margin-left:6px;">최근 6년</span>
+        </div>
+        <div class="d-flex gap-1">
+            <span class="ma-badge monthly-ma-toggle active ma-regime" data-ma="12">12</span>
         </div>
     </div>
     <div id="monthlyChart" style="height:400px;"></div>
@@ -357,6 +364,7 @@ const fullDailyVolume = {{ daily_volume_data|safe }};
 // 이평선 색은 사이트 전체에서 숫자에 고정한다 (10 앰버 / 20 청록 / 60 초록 / 120 보라).
 // 캔들이 빨강·파랑을 쓰므로 이평선은 그 두 계열을 피한다.
 // 굵기는 등급 — 단기 1px / 중기 2px / 장기 3px
+const REGIME_MA_COLOR = (document.documentElement.getAttribute('data-theme') === 'dark') ? '#e6e9ef' : '#111827';
 const maConfig = {
     10: { color: '#f59e0b', width: 1 },
     20: { color: '#06b6d4', width: 1 },
@@ -459,10 +467,15 @@ document.querySelectorAll('.ma-toggle').forEach(badge => {
     });
 });
 
-// Simple candle chart (weekly/monthly)
-function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
+// 주봉/월봉 차트 (이평선 포함)
+function createCandleChart(containerId, fullCandleRaw, fullVolumeRaw, emptyMessage, showCount, maCfg, toggleClass) {
     const container = document.getElementById(containerId);
+    // setData 가 원본을 변질시키므로 복사본을 만들고 time 을 문자열로 되돌린다
+    const fullCandle = fullCandleRaw.map(d => ({ ...d, time: timeToStr(d.time) }));
+    const candleData = fullCandle.slice(-showCount);
+    const volumeData = fullVolumeRaw.slice(-showCount).map(d => ({ ...d, time: timeToStr(d.time) }));
     if (!candleData.length) { container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted);">${emptyMessage}</div>`; return; }
+    const fromTime = candleData[0].time;
 
     const chart = LightweightCharts.createChart(container, {
         width: container.clientWidth, height: 400,
@@ -476,14 +489,33 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
 
     const candleSeries = chart.addCandlestickSeries({ upColor:'#ef5350', downColor:'#26a69a', borderUpColor:'#ef5350', borderDownColor:'#26a69a', wickUpColor:'#ef5350', wickDownColor:'#26a69a' });
     candleSeries.setData(candleData);
+    // 이평선은 전체 이력으로 계산한 뒤 보이는 구간만 잘라 넘긴다
+    const maSeries = {};
+    for (const [period, cfg] of Object.entries(maCfg)) {
+        const s = chart.addLineSeries({ color: cfg.color, lineWidth: cfg.width, priceLineVisible:false, lastValueVisible:false });
+        s.setData(calculateMA(fullCandle, parseInt(period)).filter(d => d.time >= fromTime));
+        maSeries[period] = s;
+    }
+
     const volumeSeries = chart.addHistogramSeries({ color:'#26a69a', priceFormat:{type:'volume'}, priceScaleId:'', scaleMargins:{top:0.8,bottom:0} });
     volumeSeries.setData(volumeData);
     chart.timeScale().fitContent();
     new ResizeObserver(entries => { if(entries.length) chart.applyOptions({width:entries[0].contentRect.width}); }).observe(container);
+
+    document.querySelectorAll('.' + toggleClass).forEach(badge => {
+        badge.addEventListener('click', function() {
+            const s = maSeries[this.dataset.ma];
+            if (s) s.applyOptions({ visible: this.classList.toggle('active') });
+        });
+    });
 }
 
-createCandleChart('weeklyChart', {{ weekly_candle_data|safe }}, {{ weekly_volume_data|safe }}, '주봉 데이터가 없습니다.');
-createCandleChart('monthlyChart', {{ monthly_candle_data|safe }}, {{ monthly_volume_data|safe }}, '월봉 데이터가 없습니다.');
+createCandleChart('weeklyChart', {{ weekly_candle_data|safe }}, {{ weekly_volume_data|safe }},
+    '주봉 데이터가 없습니다.', 104,
+    { 20: { color:'#06b6d4', width:1 }, 60: { color:'#16a34a', width:2 } }, 'weekly-ma-toggle');
+createCandleChart('monthlyChart', {{ monthly_candle_data|safe }}, {{ monthly_volume_data|safe }},
+    '월봉 데이터가 없습니다.', 72,
+    { 12: { color: REGIME_MA_COLOR, width:3 } }, 'monthly-ma-toggle');
 
 // ===== 마크다운 렌더링 =====
 const etfCode = '{{ etf.code }}';

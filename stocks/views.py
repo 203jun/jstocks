@@ -4224,10 +4224,10 @@ def etf_detail(request, code):
         for d in daily_charts
     ]
 
-    # 주봉 차트 데이터 (최근 104주 = 2년)
+    # 주봉 차트 데이터 (표시 104주 + 60주선 계산용 60주)
     weekly_charts = list(WeeklyChartETF.objects.filter(
         etf=etf
-    ).order_by('-date')[:104])
+    ).order_by('-date')[:164])
     weekly_charts.reverse()
 
     weekly_candle_data = [
@@ -4249,10 +4249,10 @@ def etf_detail(request, code):
         for w in weekly_charts
     ]
 
-    # 월봉 차트 데이터 (최근 72개월 = 6년)
+    # 월봉 차트 데이터 (표시 72개월 + 12개월선 계산용 12개월)
     monthly_charts = list(MonthlyChartETF.objects.filter(
         etf=etf
-    ).order_by('-date')[:72])
+    ).order_by('-date')[:84])
     monthly_charts.reverse()
 
     monthly_candle_data = [
