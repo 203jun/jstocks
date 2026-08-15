@@ -2522,7 +2522,7 @@ def _merge_holdings(holdings):
 
 def asset(request):
     """자산 페이지 (계좌별/합산 총자산 시계열 + 보유 종목 + 실현손익)"""
-    from .models import Account, DailyAccountSnapshot, Holding, DailyTradeDiary, InfoETF
+    from .models import Account
 
     accounts = list(Account.objects.filter(is_active=True))
 
@@ -2566,69 +2566,11 @@ def asset(request):
     chart_data_by_tab = {t['key']: t['chart_data'] for t in asset_tabs}
     active_tab = asset_tabs[0]['key'] if asset_tabs else ''
 
-    # 실현손익 차트 데이터 (최근 60일 DailyTradeDiary, 합산은 JS에서 범위별 재계산)
-    # 매매일지(ka10170)는 주계좌만 수집하므로 계좌 탭과 무관하게 항상 주계좌 기준이다.
-    diaries = list(
-        DailyTradeDiary.objects.prefetch_related('trades').order_by('-date')[:60]
-    )
-    diaries.reverse()
-    realized_chart_data = [
-        {
-            'time': d.date.strftime('%Y-%m-%d'),
-            'buy': d.total_buy_amount or 0,
-            'sell': d.total_sell_amount or 0,
-            'pl': d.total_pl_amount or 0,
-        }
-        for d in diaries
-    ]
-
-    # 일자별 상세 (클릭 시 표시할 매매 내역)
-    etf_codes = set(InfoETF.objects.values_list('code', flat=True))
-    realized_details = {}
-    for d in diaries:
-        date_str = d.date.strftime('%Y-%m-%d')
-        trades_list = []
-        for t in d.trades.all().order_by('stk_cd'):
-            trades_list.append({
-                'stk_cd': t.stk_cd,
-                'stk_nm': t.stk_nm,
-                'buy_qty': t.buy_qty,
-                'buy_avg_price': t.buy_avg_price,
-                'buy_amount': t.buy_amount,
-                'sell_qty': t.sell_qty,
-                'sell_avg_price': t.sell_avg_price,
-                'sell_amount': t.sell_amount,
-                'pl_amount': t.pl_amount,
-                'profit_rate': float(t.profit_rate) if t.profit_rate is not None else None,
-                'is_etf': t.stk_cd in etf_codes,
-            })
-        realized_details[date_str] = {
-            'total_buy_amount': d.total_buy_amount,
-            'total_sell_amount': d.total_sell_amount,
-            'total_settlement_amount': d.total_settlement_amount,
-            'total_pl_amount': d.total_pl_amount,
-            'profit_rate': float(d.profit_rate) if d.profit_rate is not None else None,
-            'total_commission_tax': d.total_commission_tax,
-            'trades': trades_list,
-        }
-
-    # 초기 선택일: 가장 최근에 매매가 있던 날
-    realized_initial_date = ''
-    for d in reversed(diaries):
-        if d.trades.all():
-            realized_initial_date = d.date.strftime('%Y-%m-%d')
-            break
-
     context = {
         'asset_tabs': asset_tabs,
         'active_tab': active_tab,
         'show_tabs': len(asset_tabs) > 1,
-        'primary_account_name': next((a.name for a in accounts if a.is_primary), ''),
         'chart_data_by_tab': json.dumps(chart_data_by_tab),
-        'realized_chart_data': json.dumps(realized_chart_data),
-        'has_realized_data': bool(realized_chart_data),
-        'realized_details_data': json.dumps(realized_details),
-        'realized_initial_date': realized_initial_date,
     }
     return render(request, 'stocks/asset.html', context)
 
