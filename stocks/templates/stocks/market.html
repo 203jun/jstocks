@@ -493,6 +493,15 @@ function calculateMA(data, period) {
     return result;
 }
 
+// LightweightCharts는 setData에 넘긴 객체의 time을 {year,month,day}로 제자리에서
+// 덮어쓴다. 원본 배열을 그대로 넘기면 두 번째 호출부터 time이 문자열이 아니게 되어
+// 매매동향 날짜 비교(d.date >= fromTime)가 조용히 전부 false가 된다.
+function timeToStr(t) {
+    return typeof t === 'string'
+        ? t
+        : `${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`;
+}
+
 // 선택한 기간의 첫 캔들 날짜부터 0으로 다시 쌓는다
 function buildCumulative(trends, fromTime) {
     let f = 0, i = 0;
@@ -573,8 +582,9 @@ function applyRange(chartKey, days) {
     const state = charts[chartKey];
     if (!state) return;
 
-    const sliced = candleData[chartKey].slice(-days);
-    const slicedVolume = volumeData[chartKey].slice(-days);
+    // setData가 원본을 변질시키므로 복사본을 만들고 time을 문자열로 되돌려 넘긴다
+    const sliced = candleData[chartKey].slice(-days).map(d => ({ ...d, time: timeToStr(d.time) }));
+    const slicedVolume = volumeData[chartKey].slice(-days).map(d => ({ ...d, time: timeToStr(d.time) }));
     const fromTime = sliced[0].time;
 
     state.candleSeries.setData(sliced);
@@ -584,6 +594,7 @@ function applyRange(chartKey, days) {
     state.volumeSeries.setData(slicedVolume.map(d => ({
         time: d.time, value: d.value, color: d.up ? upColor : downColor,
     })));
+
 
     const cumulative = buildCumulative(rawTrends[chartKey], fromTime);
     state.foreignSeries.setData(cumulative.map(d => ({ time: d.time, value: d.foreign })));
