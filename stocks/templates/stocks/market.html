@@ -335,10 +335,11 @@
 }
 .ma-badge:not(.active) { opacity: 0.25; }
 /* 이평선 뱃지 색 = 선 색 (숫자에 고정) */
-.ma-10 { background-color: #f59e0b; }
-.ma-20 { background-color: #38bdf8; }
-.ma-60 { background-color: #15803d; }
-.ma-120 { background-color: #a855f7; }
+.ma-10 { background-color: #16a34a; }
+.ma-20 { background-color: #f97316; }
+.ma-60 { background-color: #2563eb; }
+.ma-120 { background-color: #111827; }
+[data-theme="dark"] .ma-120 { background-color: #e6e9ef; color: #1a1d24; }
 .ma-regime { background-color: #111827; }
 [data-theme="dark"] .ma-regime { background-color: #e6e9ef; color: #1a1d24; }
 
@@ -792,14 +793,14 @@ const CANDLE_MARGINS = { top: 0.04, bottom: 0.42 };
 const VOLUME_MARGINS = { top: 0.47, bottom: 0.42 };
 const TREND_MARGINS  = { top: 0.66, bottom: 0.02 };
 
-// 이평선 색은 사이트 전체에서 숫자에 고정한다 (10 앰버 / 20 청록 / 60 초록 / 120 보라).
-// 캔들이 빨강·파랑을 쓰므로 이평선은 그 두 계열을 피한다.
+// 이평선 색은 사이트 전체에서 숫자에 고정한다 (10 초록 / 20 주황 / 60 파랑 / 120·200·12 무채색).
+// 20과 60은 색상환 정반대(주황/파랑)에 둬야 얇은 선에서도 확실히 갈린다.
 // 200(지수)·12(월봉)는 그 차트의 유일한 레짐 기준선이라 테마를 따르는 무채색.
 const REGIME_MA_COLOR = isDarkTheme ? '#e6e9ef' : '#111827';
 // 굵기는 등급 — 단기 1px / 중기 2px / 장기 3px
 const maConfig = {
-    20: { color: '#38bdf8', width: 1 },
-    60: { color: '#15803d', width: 2 },
+    20: { color: '#f97316', width: 1 },
+    60: { color: '#2563eb', width: 2 },
     200: { color: REGIME_MA_COLOR, width: 3 },
 };
 const maSeries = { kospi: {}, kosdaq: {} };
