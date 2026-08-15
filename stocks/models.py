@@ -2257,6 +2257,11 @@ class MarketIndicator(models.Model):
     3. 외국인 20일 누적 순매수                          — 수급 방향
     4. 200일선 대비  = (종가 / 200일 이동평균 - 1) * 100 — 강세/약세 레짐
 
+    ※ 절대값에는 기준이 없다. +289억이 큰 건지 작은 건지는 시기마다 다르고,
+      200일선 +19%도 코스피에선 평상시다(중앙값). 그래서 두 지표는 백분위를
+      함께 저장한다 — "최근 1년의 자기 자신 대비 어디쯤인가"라 기준이 자동으로
+      갱신되고, 시장이 바뀌면 임계값도 따라간다.
+
     ※ 이격도·200일선·수급은 IndexChart/MarketTrend에서 파생되지만 값을 그대로
       저장한다. 나중에 붙일 '상태 변화 로그'가 연속된 두 행 비교로 끝나고,
       임계값을 조정하거나 과거를 되짚을 때 그날 실제 값이 남아 있어야 한다.
@@ -2311,6 +2316,12 @@ class MarketIndicator(models.Model):
         verbose_name='외국인 20일 누적 순매수',
         help_text='단위: 백만원 (MarketTrend 최근 20영업일 합)'
     )
+    foreign_net_20d_pct = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='외국인 20일 누적 백분위',
+        help_text='최근 250거래일의 20일 누적값 중 오늘 값의 위치 (0~100)'
+    )
 
     # === 4. 200일선 ===
     ma200 = models.DecimalField(
@@ -2323,6 +2334,12 @@ class MarketIndicator(models.Model):
         null=True, blank=True,
         verbose_name='200일선 대비',
         help_text='(종가 / 200일 이동평균 - 1) * 100, 단위: %'
+    )
+    ma200_gap_pct = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='200일선 대비 백분위',
+        help_text='최근 250거래일의 200일선 대비 값 중 오늘 값의 위치 (0~100)'
     )
 
     # === 메타 정보 ===

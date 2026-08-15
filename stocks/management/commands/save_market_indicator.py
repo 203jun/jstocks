@@ -20,6 +20,8 @@ class Command(BaseCommand):
   3. 외국인 20일 누적 순매수 = MarketTrend 최근 20영업일 합
   4. 200일선 대비  = (종가 / 200일 이평 - 1) * 100
 
+3·4 는 절대값만으로는 크기를 알 수 없어 최근 250거래일 백분위도 함께 저장한다.
+
 옵션:
   --market    (선택) KOSPI / KOSDAQ / all (기본값: all)
   --mode      (선택) all (전체 재계산) / last (최근 10영업일, 기본값)
@@ -40,6 +42,11 @@ class Command(BaseCommand):
     MA_LONG = 200          # 레짐 판단 기준
     FOREIGN_WINDOW = 20    # 외국인 누적 순매수 영업일 수
     LAST_MODE_DAYS = 10    # --mode last 에서 다시 계산할 영업일 수
+
+    # 백분위 표본. 절대값에는 기준이 없어서 "최근 1년의 자기 자신 대비 위치"로 본다.
+    PERCENTILE_WINDOW = 250
+    # 표본이 이보다 적으면 백분위가 노이즈라 비워 둔다 (이력 초반 구간)
+    PERCENTILE_MIN_SAMPLE = 20
 
     # 매매동향이 지수보다 뒤처져 있으면 오래된 합계를 그럴듯하게 저장하게 된다.
     # 지수 날짜와 이만큼 이상 벌어지면 수급은 비워 둔다.
@@ -139,7 +146,16 @@ class Command(BaseCommand):
         )
         trend_dates = sorted(trend_map)
 
-        # 계산 대상 인덱스 정하기
+        # 백분위는 최근 250거래일 표본이 필요하므로, 저장 대상이 10일뿐이어도
+        # 전 구간을 계산한 뒤 마지막에 대상만 잘라 저장한다.
+        all_rows = [
+            self.build_row(i, dates, closes, trend_map, trend_dates, adr_series)
+            for i in range(len(dates))
+        ]
+        self.attach_percentile(all_rows, 'foreign_net_20d', 'foreign_net_20d_pct')
+        self.attach_percentile(all_rows, 'ma200_gap', 'ma200_gap_pct')
+
+        # 저장 대상 인덱스 정하기
         targets = range(len(dates))
         if mode == 'last':
             targets = range(max(0, len(dates) - self.LAST_MODE_DAYS), len(dates))
@@ -147,10 +163,10 @@ class Command(BaseCommand):
             start = bisect.bisect_left(dates, from_date)
             targets = range(max(targets.start, start), targets.stop)
 
-        rows = [
-            self.build_row(market, i, dates, closes, trend_map, trend_dates, adr_series)
-            for i in targets
-        ]
+        rows = [all_rows[i] for i in targets]
+        if not rows:
+            self.log.info(f'[{market}] 저장할 구간이 없습니다')
+            return 0, 0
         self.log.info(f'[{market}] 계산 대상 {len(rows)}일 ({dates[targets.start]} ~ {dates[-1]})')
 
         missing = {
@@ -158,6 +174,8 @@ class Command(BaseCommand):
             '이격도': sum(1 for r in rows if r['disparity'] is None),
             '수급': sum(1 for r in rows if r['foreign_net_20d'] is None),
             '200일선': sum(1 for r in rows if r['ma200_gap'] is None),
+            '수급 백분위': sum(1 for r in rows if r['foreign_net_20d_pct'] is None),
+            '200일선 백분위': sum(1 for r in rows if r['ma200_gap_pct'] is None),
         }
         if any(missing.values()):
             detail = ', '.join(f'{k} {v}일' for k, v in missing.items() if v)
@@ -182,7 +200,7 @@ class Command(BaseCommand):
 
     # ------------------------------------------------------------------ #
 
-    def build_row(self, market, i, dates, closes, trend_map, trend_dates, adr_series):
+    def build_row(self, i, dates, closes, trend_map, trend_dates, adr_series):
         """i번째 거래일의 지표 한 행을 만든다"""
         date = dates[i]
         close = closes[i]
@@ -199,7 +217,27 @@ class Command(BaseCommand):
             'foreign_net_20d': self.foreign_net(date, trend_map, trend_dates),
             'ma200': self.q(ma200),
             'ma200_gap': self.q((close / ma200 - 1) * 100) if ma200 else None,
+            # 백분위는 전 구간을 만든 뒤 attach_percentile 에서 채운다
+            'foreign_net_20d_pct': None,
+            'ma200_gap_pct': None,
         }
+
+    def attach_percentile(self, rows, field, out_field):
+        """
+        각 날짜의 값이 최근 PERCENTILE_WINDOW 표본 안에서 몇 %에 있는지 채운다.
+        백분위 = (오늘보다 작은 값의 개수) / 표본 수 * 100
+        """
+        seen = []
+        for row in rows:
+            value = row[field]
+            if value is None:
+                continue
+            seen.append(value)
+            sample = seen[-self.PERCENTILE_WINDOW:]
+            if len(sample) < self.PERCENTILE_MIN_SAMPLE:
+                continue
+            below = sum(1 for v in sample if v < value)
+            row[out_field] = self.q(Decimal(below) / len(sample) * 100)
 
     def moving_average(self, closes, i, period):
         """i번째까지 period일 이동평균. 이력이 모자라면 None."""
@@ -231,8 +269,10 @@ class Command(BaseCommand):
         if not rows:
             return
         fmt = lambda v: '-' if v is None else f'{v:,}'
+        pct = lambda v: '-' if v is None else f'{v:.0f}%'
         self.log.info(
-            f'  {"일자":<12}{"종가":>11}{"이격도":>9}{"ADR":>8}{"외인20일":>13}{"200일선":>10}'
+            f'  {"일자":<12}{"종가":>11}{"이격도":>9}{"ADR":>8}'
+            f'{"외인20일":>13}{"백분위":>7}{"200일선":>10}{"백분위":>7}'
         )
         for row in rows[-3:]:
             foreign = row['foreign_net_20d']
@@ -241,5 +281,6 @@ class Command(BaseCommand):
             gap_txt = '-' if gap is None else f'{gap:+.2f}%'
             self.log.info(
                 f'  {str(row["date"]):<12}{fmt(row["close"]):>11}{fmt(row["disparity"]):>9}'
-                f'{fmt(row["adr"]):>8}{foreign_txt:>13}{gap_txt:>10}'
+                f'{fmt(row["adr"]):>8}{foreign_txt:>13}{pct(row["foreign_net_20d_pct"]):>7}'
+                f'{gap_txt:>10}{pct(row["ma200_gap_pct"]):>7}'
             )
