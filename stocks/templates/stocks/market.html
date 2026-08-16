@@ -276,14 +276,26 @@
 /* 붙여넣기 폼 */
 .ma-form-row { display: flex; gap: 8px; margin-top: 10px; }
 .ma-form-row input, .ma-form-row select {
-    padding: 6px 9px;
+    padding: 7px 10px;
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 8px;
     background: var(--bg-page);
     color: var(--text-primary);
-    font-size: 0.78rem;
+    font-family: inherit;
+    font-size: 0.8rem;
+}
+.ma-form-row input:focus, .ma-form-row select:focus {
+    outline: none;
+    border-color: var(--text-muted);
 }
 .ma-form-row input { flex: 1; min-width: 0; }
+.ma-form-row select { flex: none; }
+
+@media (max-width: 520px) {
+    /* 좁은 화면에서는 결론과 스탠스를 두 줄로 */
+    .ma-form-row { flex-direction: column; }
+    .ma-form-row select { width: 100%; }
+}
 
 @media (max-width: 768px) {
     .ma-headline, .ma-body, .ma-actions { padding-left: 12px; padding-right: 12px; }
@@ -322,19 +334,32 @@
 }
 .mp-var:hover { color: var(--text-primary); }
 .mp-var small { color: var(--text-muted); margin-left: 4px; }
-#mpText {
+/* 프롬프트 편집 · AI 답변 붙여넣기 입력창 */
+#mpText, #maContent {
+    display: block;
     width: 100%;
-    min-height: 320px;
-    padding: 10px;
+    padding: 10px 12px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background: var(--bg-page);
     color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.8rem;
+    line-height: 1.7;
+    resize: vertical;
+}
+#mpText:focus, #maContent:focus {
+    outline: none;
+    border-color: var(--text-muted);
+}
+/* 프롬프트는 변수와 줄맞춤을 봐야 해서 고정폭 */
+#mpText {
+    min-height: 320px;
     font-size: 0.78rem;
     line-height: 1.6;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    resize: vertical;
 }
+#maContent { min-height: 260px; }
 .mp-foot {
     display: flex;
     align-items: center;
