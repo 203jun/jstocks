@@ -40,6 +40,12 @@ HISTORY_LIMIT = 750
 # save_market_indicator 와 같은 값. 백분위 표본이 몇 일인지 화면에 밝히는 데 쓴다.
 PERCENTILE_WINDOW = 250
 
+# 카드 팝업의 미니 차트 길이. 반년쯤이면 지금 자리가 어디인지 눈으로 잡힌다.
+DETAIL_SERIES_DAYS = 120
+
+# 팝업에 나열할 최근 구간 개수
+DETAIL_EPISODE_LIMIT = 5
+
 # 신중한 쪽 -> 낙관적인 쪽 순서. 브레이크는 이 배열에서 한 칸 앞으로 당긴다.
 SIGNAL_LEVELS = [
     ('hot', '🔴', '과열', '지금 사고 싶은 종목, 2주 뒤에도 살 수 있습니다'),
@@ -228,6 +234,9 @@ def build_market_panel(market):
         'cards': cards,
         'events': _build_events(series, date),
         'samples': samples,
+        'disparity_detail': _build_disparity_detail(
+            rows, (dis_low, dis_high), disparity_pct, samples['disparity'], streaks
+        ),
     }
 
 
@@ -285,7 +294,8 @@ def _build_cards(disparity, adr, foreign, gap, disparity_pct, foreign_pct, gap_p
                            _percentile_text(disparity_pct, samples['disparity']),
                            state, badge,
                            _streak_text(streaks, 'disparity'),
-                           _banded_gauge(disparity, low, high)))
+                           _banded_gauge(disparity, low, high),
+                           action='disparity-detail'))
 
     if adr is not None:
         low, high = adr_th
@@ -319,6 +329,101 @@ def _build_cards(disparity, adr, foreign, gap, disparity_pct, foreign_pct, gap_p
                            _zero_gauge(gap, gap_span)))
 
     return cards
+
+
+def _episodes(seq, in_band, pick):
+    """
+    in_band(값)이 참인 연속 구간을 뽑는다.
+    마지막 구간이 오늘까지 이어지면 open=True (아직 안 끝나서 길이가 잘려 있다).
+    """
+    out, run = [], None
+    for date, value in seq:
+        if in_band(value):
+            if run is None:
+                run = {'from': date, 'to': date, 'days': 1, 'peak': value}
+            else:
+                run.update(to=date, days=run['days'] + 1, peak=pick(run['peak'], value))
+        elif run:
+            out.append(run)
+            run = None
+    if run:
+        run['open'] = True
+        out.append(run)
+    return out
+
+
+def _build_disparity_detail(rows, dis_th, disparity_pct, sample, streaks):
+    """
+    이격도 카드 팝업.
+
+    "111.78" 만으로는 아무 느낌이 없다. 세 가지를 붙여야 읽힌다.
+      1. 분포 위치 — 최근 250일 중 이보다 높았던 날이 몇 일인가
+      2. 지속성   — 지금 구간이 며칠째이고, 과거엔 보통 며칠 갔나
+      3. 추이     — 최근 120일 그림 (임계선 두 개와 함께)
+
+    2번은 수익률 예측이 아니라 지속 기간 통계다. 이력이 2년 반뿐이라
+    "이랬을 때 20일 뒤 수익률" 같은 건 표본이 사실상 에피소드 1~2개라
+    쓰지 않는다 (상승확률 93% 같은 숫자가 나와 오히려 부추긴다).
+    """
+    low, high = dis_th
+    seq = [(r[0], r[1]) for r in rows if r[1] is not None]
+    if not seq:
+        return None
+
+    value = seq[-1][1]
+    window = seq[-PERCENTILE_WINDOW:]
+
+    state, streak_days, _ = streaks['disparity']
+    bands = [
+        ('hot', '과열', f'≥ {high:g}', _episodes(seq, lambda v: v >= high, max)),
+        ('cold', '침체', f'≤ {low:g}', _episodes(seq, lambda v: v <= low, min)),
+    ]
+
+    stats, recent = [], []
+    for key, label, rule, eps in bands:
+        # 진행 중인 구간은 길이가 잘려 있어 평균/최장을 왜곡한다. 통계는 끝난 것만.
+        closed = [e for e in eps if not e.get('open')]
+        stats.append({
+            'key': key, 'label': label, 'rule': rule,
+            'count': len(closed),
+            'avg': round(sum(e['days'] for e in closed) / len(closed)) if closed else 0,
+            'max': max((e['days'] for e in closed), default=0),
+        })
+        for e in eps:
+            recent.append({**e, 'key': key, 'label': label})
+
+    recent.sort(key=lambda e: e['to'], reverse=True)
+
+    return {
+        'value': f'{value:,.2f}',
+        'pct_text': _percentile_text(disparity_pct, sample),
+        'above': sum(1 for _, v in window if v > value),
+        'sample': len(window),
+        'state': state,
+        'state_label': {'hot': '과열', 'cold': '침체'}.get(state, '중립'),
+        'streak': streak_days,
+        'low': float(low), 'high': float(high),
+        'stats': stats,
+        'recent': [
+            {
+                'label': e['label'], 'key': e['key'],
+                'from': e['from'].strftime('%y.%m.%d'),
+                'to': '진행 중' if e.get('open') else e['to'].strftime('%y.%m.%d'),
+                'days': e['days'],
+                'peak': f'{e["peak"]:,.2f}',
+            }
+            for e in recent[:DETAIL_EPISODE_LIMIT]
+        ],
+        'series': [
+            {'d': d.strftime('%Y-%m-%d'), 'v': float(v)}
+            for d, v in seq[-DETAIL_SERIES_DAYS:]
+        ],
+        'span': {
+            'from': seq[0][0].strftime('%Y-%m-%d'),
+            'to': seq[-1][0].strftime('%Y-%m-%d'),
+            'days': len(seq),
+        },
+    }
 
 
 def _build_signal(streaks, series):

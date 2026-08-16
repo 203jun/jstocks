@@ -191,6 +191,50 @@
     .td-summary { gap: 10px; font-size: 0.72rem; }
 }
 
+/* 이격도 상세 */
+.dd-hero { display: flex; align-items: baseline; gap: 10px; }
+.dd-value { font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dd-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+}
+.dd-badge.dd-hot { background: rgba(220, 53, 69, 0.14); color: var(--down-color); }
+.dd-badge.dd-cold { background: rgba(13, 110, 253, 0.14); color: #2563eb; }
+.dd-lead {
+    margin-top: 6px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+.dd-lead b { color: var(--text-primary); font-weight: 700; }
+.dd-chart { margin: 12px 0 4px; }
+.dd-chart svg { display: block; width: 100%; height: auto; }
+.dd-stats { margin-bottom: 14px; }
+.dd-sub {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+/* 과열/침체 꼬리표 */
+.dd-tag {
+    display: inline-block;
+    min-width: 34px;
+    text-align: center;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+.dd-tag.dd-hot { background: rgba(220, 53, 69, 0.14); color: var(--down-color); }
+.dd-tag.dd-cold { background: rgba(13, 110, 253, 0.14); color: #2563eb; }
+
 /* 시장 지표 스트립 — 값 + 상태 배지 + 임계선 게이지 */
 .mi-strip {
     display: grid;
@@ -819,6 +863,42 @@
     </div>
 </div>
 
+<!-- 이격도 상세 -->
+<div class="modal-overlay" id="disparityDetailModal">
+    <div class="modal-box" style="max-width:520px;">
+        <div class="modal-header-custom">
+            <h6 id="disparityDetailTitle">이격도 (20일)</h6>
+            <button type="button" class="modal-close-btn" id="disparityDetailClose">&times;</button>
+        </div>
+
+        <!-- 지금 어디인가 -->
+        <div class="dd-hero">
+            <span class="dd-value" id="ddValue"></span>
+            <span class="dd-badge" id="ddBadge"></span>
+        </div>
+        <div class="dd-lead" id="ddLead"></div>
+
+        <!-- 최근 120일 추이 -->
+        <div class="dd-chart" id="ddChart"></div>
+
+        <!-- 구간 통계 -->
+        <table class="td-table dd-stats">
+            <thead>
+                <tr><th>구간</th><th>기준</th><th class="td-num">횟수</th><th class="td-num">평균</th><th class="td-num">최장</th></tr>
+            </thead>
+            <tbody id="ddStats"></tbody>
+        </table>
+
+        <!-- 최근 구간 -->
+        <div class="dd-sub">최근 구간</div>
+        <table class="td-table">
+            <tbody id="ddRecent"></tbody>
+        </table>
+
+        <div class="td-note" id="ddNote"></div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -827,6 +907,8 @@
 const candleData = { kospi: {{ kospi_candle_data|safe }}, kosdaq: {{ kosdaq_candle_data|safe }} };
 const volumeData = { kospi: {{ kospi_volume_data|safe }}, kosdaq: {{ kosdaq_volume_data|safe }} };
 const rawTrends  = { kospi: {{ kospi_raw_trends|safe }}, kosdaq: {{ kosdaq_raw_trends|safe }} };
+// 이격도 카드 팝업용 (백분위 · 구간 통계 · 최근 120일 추이)
+const disparityDetail = { kospi: {{ kospi_disparity_detail|safe }}, kosdaq: {{ kosdaq_disparity_detail|safe }} };
 
 // ===== Theme =====
 const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -1172,6 +1254,85 @@ function closeTrendDetail() {
     trendModal.classList.remove('show');
 }
 
+// ===== 이격도 상세 =====
+const disparityModal = document.getElementById('disparityDetailModal');
+
+// 최근 120일 추이 + 임계선. 차트 라이브러리를 쓸 만한 분량이 아니라 SVG 로 직접 그린다.
+function disparitySpark(d) {
+    const W = 520, H = 110, PAD = 6;
+    const vals = d.series.map(p => p.v);
+    // 임계선이 항상 보이도록 y 범위에 포함시킨다
+    const lo = Math.min(...vals, d.low) - 1, hi = Math.max(...vals, d.high) + 1;
+    const x = i => PAD + i * (W - PAD * 2) / Math.max(1, d.series.length - 1);
+    const y = v => PAD + (hi - v) * (H - PAD * 2) / (hi - lo);
+
+    const line = d.series.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join('');
+    const last = d.series.length - 1;
+    // SVG 프레젠테이션 속성의 var() 는 브라우저별로 지원이 갈려 인라인 style 로 준다
+    const band = `<rect x="0" y="${y(d.high).toFixed(1)}" width="${W}" height="${(y(d.low) - y(d.high)).toFixed(1)}"
+                        style="fill: var(--text-muted); opacity: 0.06"/>`;
+    const mark = (v, color, label) => `
+        <line x1="0" y1="${y(v).toFixed(1)}" x2="${W}" y2="${y(v).toFixed(1)}"
+              style="stroke: ${color}; stroke-width: 1; stroke-dasharray: 4 3; opacity: 0.65"/>
+        <text x="${W - 2}" y="${(y(v) - 3).toFixed(1)}" text-anchor="end"
+              style="font-size: 10px; fill: ${color}; opacity: 0.9">${label}</text>`;
+
+    // 가로로 늘리면 글자와 점이 찌그러지므로 비율을 유지하고 높이는 CSS 가 따라오게 둔다
+    return `<svg viewBox="0 0 ${W} ${H}" role="img"
+                 aria-label="최근 ${d.series.length}일 이격도 추이">
+        ${band}
+        ${mark(d.high, 'var(--down-color)', d.high)}
+        ${mark(d.low, '#2563eb', d.low)}
+        <path d="${line}" vector-effect="non-scaling-stroke"
+              style="fill: none; stroke: var(--text-primary); stroke-width: 1.5; stroke-linejoin: round"/>
+        <circle cx="${x(last).toFixed(1)}" cy="${y(d.series[last].v).toFixed(1)}" r="3"
+                style="fill: var(--text-primary)"/>
+    </svg>`;
+}
+
+function openDisparityDetail(marketCode) {
+    const d = disparityDetail[marketCode.toLowerCase()];
+    if (!d) return;
+
+    document.getElementById('disparityDetailTitle').textContent = `${marketCode} 이격도 (20일)`;
+    document.getElementById('ddValue').textContent = d.value;
+
+    const badge = document.getElementById('ddBadge');
+    badge.textContent = `${d.state_label} ${d.streak}일째`;
+    badge.className = 'dd-badge' + (d.state === 'hot' ? ' dd-hot' : d.state === 'cold' ? ' dd-cold' : '');
+
+    document.getElementById('ddLead').innerHTML =
+        `<b>${d.pct_text}</b> · 최근 ${d.sample}일 중 이보다 높았던 날 <b>${d.above}일</b>`;
+
+    document.getElementById('ddChart').innerHTML = disparitySpark(d);
+
+    document.getElementById('ddStats').innerHTML = d.stats.map(s => `
+        <tr>
+            <td><span class="dd-tag dd-${s.key}">${s.label}</span></td>
+            <td class="td-date">${s.rule}</td>
+            <td class="td-num">${s.count}회</td>
+            <td class="td-num">${s.avg}일</td>
+            <td class="td-num">${s.max}일</td>
+        </tr>`).join('');
+
+    document.getElementById('ddRecent').innerHTML = d.recent.map(e => `
+        <tr>
+            <td><span class="dd-tag dd-${e.key}">${e.label}</span></td>
+            <td class="td-date">${e.from} ~ ${e.to}</td>
+            <td class="td-num">${e.days}일</td>
+            <td class="td-num">${e.peak}</td>
+        </tr>`).join('') || '<tr><td class="td-date">기록 없음</td></tr>';
+
+    document.getElementById('ddNote').textContent =
+        `구간 통계는 ${d.span.from} ~ ${d.span.to} (${d.span.days}영업일) 기준 · 진행 중인 구간은 평균·최장에서 제외`;
+
+    disparityModal.classList.add('show');
+}
+
+function closeDisparityDetail() {
+    disparityModal.classList.remove('show');
+}
+
 document.querySelectorAll('.mi-clickable').forEach(cell => {
     cell.addEventListener('click', () => {
         const link = cell.dataset.link;
@@ -1181,15 +1342,20 @@ document.querySelectorAll('.mi-clickable').forEach(cell => {
         }
         if (cell.dataset.action === 'trend-detail') {
             openTrendDetail(cell.dataset.market);
+        } else if (cell.dataset.action === 'disparity-detail') {
+            openDisparityDetail(cell.dataset.market);
         }
     });
 });
 
-document.getElementById('trendDetailClose').addEventListener('click', closeTrendDetail);
-// 바깥을 눌렀을 때만 닫는다 (모달 안쪽 클릭은 통과시키지 않음)
-trendModal.addEventListener('click', e => { if (e.target === trendModal) closeTrendDetail(); });
-document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && trendModal.classList.contains('show')) closeTrendDetail();
+// 모달 닫기 (X · 바깥 클릭 · Esc). 바깥을 눌렀을 때만 닫고 안쪽 클릭은 통과시키지 않는다.
+[[trendModal, 'trendDetailClose', closeTrendDetail],
+ [disparityModal, 'disparityDetailClose', closeDisparityDetail]].forEach(([modal, closeId, close]) => {
+    document.getElementById(closeId).addEventListener('click', close);
+    modal.addEventListener('click', e => { if (e.target === modal) close(); });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && modal.classList.contains('show')) close();
+    });
 });
 
 // 최근 변화 로그 펼치기

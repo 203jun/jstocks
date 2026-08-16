@@ -2722,6 +2722,13 @@ def market(request):
     kospi_raw_trends = get_raw_trend_data('KOSPI')
     kosdaq_raw_trends = get_raw_trend_data('KOSDAQ')
 
+    kospi_panel = build_market_panel('KOSPI')
+    kosdaq_panel = build_market_panel('KOSDAQ')
+
+    # 이격도 팝업은 JS 가 채우므로 패널에서 떼어내 JSON 으로 넘긴다
+    def disparity_json(panel):
+        return json.dumps((panel or {}).get('disparity_detail') or None)
+
     context = {
         'kospi_candle_data': json.dumps(kospi_candle_data),
         'kospi_volume_data': json.dumps(kospi_volume_data),
@@ -2741,8 +2748,10 @@ def market(request):
         'kosdaq_52w_low': kosdaq_52w_low,
         'kospi_raw_trends': json.dumps(kospi_raw_trends),
         'kosdaq_raw_trends': json.dumps(kosdaq_raw_trends),
-        'kospi_indicators': build_market_panel('KOSPI'),
-        'kosdaq_indicators': build_market_panel('KOSDAQ'),
+        'kospi_indicators': kospi_panel,
+        'kosdaq_indicators': kosdaq_panel,
+        'kospi_disparity_detail': disparity_json(kospi_panel),
+        'kosdaq_disparity_detail': disparity_json(kosdaq_panel),
     }
     return render(request, 'stocks/market.html', context)
 
