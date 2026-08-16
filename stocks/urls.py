@@ -125,6 +125,10 @@ urlpatterns = [
     path('api/stock/<str:code>/short-selling/', views.fetch_short_selling, name='fetch_short_selling'),
     path('api/setting/get/', views.get_setting, name='get_setting'),
     path('api/setting/save/', views.save_setting, name='save_setting'),
+    # 시장 AI 판단
+    path('api/market/analysis/parse/', views.market_analysis_parse, name='market_analysis_parse'),
+    path('api/market/analysis/save/', views.market_analysis_save, name='market_analysis_save'),
+    path('api/market/analysis/detail/', views.market_analysis_detail, name='market_analysis_detail'),
     # 리서치 프롬프트
     path('api/research-prompt/', views.research_prompt_list, name='research_prompt_list'),
     path('api/research-prompt/add/', views.research_prompt_add, name='research_prompt_add'),

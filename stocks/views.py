@@ -11,7 +11,8 @@ from django.views.decorators.http import require_GET
 from decouple import config
 from telethon import TelegramClient
 from django.views.decorators.http import require_POST
-from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, IndexChart, MarketTrend, InvestorTrend, ShortSelling, MarketDiary, StockDiary, StockEvent, SectorEvent, ETFEvent, DailyTrade
+from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, IndexChart, MarketTrend, MarketAnalysis, InvestorTrend, ShortSelling, MarketDiary, StockDiary, StockEvent, SectorEvent, ETFEvent, DailyTrade
+from .market_analysis import build_analysis_panel
 from .market_signal import build_market_panel, build_prompt_vars
 from .prompts import (
     MARKET_SIGNAL_DEFAULT, MARKET_SIGNAL_KEYS, MARKET_SIGNAL_VARIABLES, get_prompt,
@@ -2727,6 +2728,8 @@ def market(request):
 
     kospi_panel = build_market_panel('KOSPI')
     kosdaq_panel = build_market_panel('KOSDAQ')
+    kospi_analysis = build_analysis_panel('KOSPI')
+    kosdaq_analysis = build_analysis_panel('KOSDAQ')
 
     # 카드 팝업은 JS 가 채우므로 패널에서 떼어내 JSON 으로 넘긴다
     def detail_json(panel):
@@ -2769,6 +2772,18 @@ def market(request):
         'kosdaq_card_details': detail_json(kosdaq_panel),
         'market_prompts': market_prompts,
         'market_prompt_help': MARKET_SIGNAL_VARIABLES,
+        'kospi_analysis': kospi_analysis,
+        'kosdaq_analysis': kosdaq_analysis,
+        'analysis_stances': MarketAnalysis.STANCES,
+        # json_script 가 직렬화하므로 여기서 dumps 하면 이중 인코딩된다
+        'analysis_history': {
+            market: [
+                {'date': h['date'].strftime('%Y-%m-%d'),
+                 'headline': h['headline'], 'stance': h['stance']}
+                for h in (panel['history'] if panel else [])
+            ]
+            for market, panel in (('KOSPI', kospi_analysis), ('KOSDAQ', kosdaq_analysis))
+        },
     }
     return render(request, 'stocks/market.html', context)
 
@@ -8172,6 +8187,71 @@ def save_setting(request):
     )
 
     return JsonResponse({'success': True})
+
+
+# ============ 시장 AI 판단 ============
+
+@require_POST
+def market_analysis_parse(request):
+    """붙여넣은 답변에서 한 줄 결론·스탠스를 뽑아 돌려준다 (저장 전 미리보기)"""
+    from .market_analysis import parse
+
+    return JsonResponse({'success': True, **parse(request.POST.get('content', ''))})
+
+
+@require_POST
+def market_analysis_save(request):
+    """
+    AI 판단 저장.
+
+    날짜는 클라이언트를 믿지 않고 서버에서 정한다 — 그 시장의 최신 지표 기준일.
+    같은 기준일에 다시 저장하면 덮어쓴다.
+    """
+    from .market_analysis import parse
+    from .models import MarketAnalysis, MarketIndicator
+
+    market = (request.POST.get('market') or '').upper()
+    content = (request.POST.get('content') or '').strip()
+    if market not in ('KOSPI', 'KOSDAQ'):
+        return JsonResponse({'success': False, 'error': f'알 수 없는 시장: {market}'})
+    if not content:
+        return JsonResponse({'success': False, 'error': '답변 내용이 비어 있습니다.'})
+
+    latest = MarketIndicator.objects.filter(market=market).order_by('-date').first()
+    if not latest:
+        return JsonResponse({'success': False, 'error': '지표가 아직 없어 기준일을 정할 수 없습니다.'})
+
+    auto = parse(content)
+    MarketAnalysis.objects.update_or_create(
+        market=market, date=latest.date,
+        defaults={
+            # 사람이 고쳤으면 그 값을, 안 건드렸으면 자동 추출값을 쓴다
+            'headline': (request.POST.get('headline') or auto['headline'])[:300],
+            'stance': request.POST.get('stance') or auto['stance'],
+            'content': content,
+        },
+    )
+    return JsonResponse({'success': True, 'date': latest.date.strftime('%Y-%m-%d')})
+
+
+@require_GET
+def market_analysis_detail(request):
+    """이력에서 특정 날짜의 전문을 꺼낸다"""
+    from .models import MarketAnalysis
+
+    row = MarketAnalysis.objects.filter(
+        market=(request.GET.get('market') or '').upper(),
+        date=request.GET.get('date'),
+    ).first()
+    if not row:
+        return JsonResponse({'success': False, 'error': '해당 날짜의 판단이 없습니다.'})
+    return JsonResponse({
+        'success': True,
+        'date': row.date.strftime('%Y-%m-%d'),
+        'headline': row.headline,
+        'stance': row.stance,
+        'content': row.content,
+    })
 
 
 # ============ 리서치 프롬프트 ============

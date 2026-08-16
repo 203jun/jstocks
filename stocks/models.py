@@ -2369,6 +2369,72 @@ class MarketIndicator(models.Model):
         return f"{self.market} - {self.date} (이격도: {self.disparity}, ADR: {self.adr})"
 
 
+class MarketAnalysis(models.Model):
+    """
+    시장 지표를 AI에게 물어보고 받은 판단 (KOSPI, KOSDAQ)
+
+    화면의 [AI 프롬프트] 버튼으로 복사 -> 외부 AI -> 답변을 도로 붙여넣어 저장한다.
+    저장하지 않으면 판단이 창을 닫는 순간 사라지고 화면에는 다시 숫자만 남는다.
+
+    ※ date 는 저장한 날이 아니라 '판단의 근거가 된 지표 기준일'이다.
+      토요일에 물어봐도 데이터는 금요일 것이라 저장일로 잡으면 어긋난다.
+      같은 기준일에 다시 저장하면 덮어쓰고, 새 거래일 데이터로 물어보면
+      새 행이 쌓인다 — "7/31엔 침체라 했는데 2주 만에 과열까지 왔네"가 보인다.
+
+    ※ headline/stance 는 답변 형식에서 뽑아낸 것이다(stocks/market_analysis.py).
+      AI 가 형식을 어길 수 있으므로 저장 전에 사람이 고칠 수 있게 한다.
+    """
+
+    STANCES = [
+        ('공격적', '공격적'),
+        ('보통', '보통'),
+        ('신중', '신중'),
+        ('관망', '관망'),
+    ]
+
+    market = models.CharField(
+        max_length=10,
+        verbose_name='시장',
+        help_text='KOSPI, KOSDAQ',
+        db_index=True
+    )
+    date = models.DateField(
+        verbose_name='지표 기준일',
+        help_text='판단의 근거가 된 지표 날짜 (저장일이 아니다)',
+        db_index=True
+    )
+    headline = models.CharField(
+        max_length=300,
+        blank=True,
+        verbose_name='한 줄 결론',
+        help_text='접힌 상태에서 보여주는 요약'
+    )
+    stance = models.CharField(
+        max_length=10,
+        blank=True,
+        choices=STANCES,
+        verbose_name='매매 스탠스'
+    )
+    content = models.TextField(
+        verbose_name='답변 전문'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='저장일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'market_analysis'
+        verbose_name = '시장 AI 판단'
+        verbose_name_plural = '시장 AI 판단'
+        ordering = ['-date', 'market']
+        unique_together = [('market', 'date')]
+        indexes = [
+            models.Index(fields=['market', '-date']),
+        ]
+
+    def __str__(self):
+        return f"{self.market} - {self.date} ({self.stance or '-'})"
+
+
 class ExcludedYoutubeChannel(models.Model):
     """
     유튜브 검색 제외 채널
