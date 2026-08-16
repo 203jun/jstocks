@@ -94,6 +94,25 @@
     margin-top: 1px;
 }
 
+/* ETF 는 목록에 없어서 외부로 보낸다 */
+.etf-link-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.78rem;
+}
+.etf-link-row a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 600;
+}
+.etf-link-row a:hover { color: var(--text-primary); }
+.etf-link-row a i { font-style: normal; font-size: 0.7rem; opacity: 0.6; }
+.etf-link-row span { color: var(--text-muted); font-size: 0.72rem; }
+
 /* Search form layout */
 .search-form {
     display: flex;
@@ -136,6 +155,13 @@
         </select>
         <button type="submit" class="btn-refresh">검색</button>
     </form>
+    {# ETF 는 이 목록에 없다. 네이버 ETF 시세로 넘긴다. #}
+    <div class="etf-link-row">
+        <a href="https://stock.naver.com/market/stock/kr/etf/priceTop" target="_blank" rel="noopener">
+            ETF 검색 <i>↗</i>
+        </a>
+        <span>네이버 금융에서 열립니다</span>
+    </div>
 </div>
 
 <!-- 종목 테이블 -->
