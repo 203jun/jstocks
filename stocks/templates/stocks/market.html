@@ -1,5 +1,6 @@
 {% extends 'stocks/base.html' %}
 {% load humanize %}
+{% load help_tags %}
 
 {% block title %}시장 - JStocks{% endblock %}
 
@@ -142,9 +143,28 @@
 .ms-log-date { color: var(--text-muted); flex: none; min-width: 34px; }
 
 /* 누를 수 있는 지표 카드 */
-.mi-clickable { cursor: pointer; }
-.mi-clickable:hover { background: var(--bg-hover, rgba(0,0,0,0.03)); }
-.mi-ext { font-style: normal; font-size: 0.66rem; opacity: 0.55; }
+/* 값 옆의 동작 아이콘 (↗ 외부 링크 / ⊞ 상세 팝업) */
+.mi-act {
+    position: relative;
+    margin-left: auto;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 1;
+    text-decoration: none;
+    cursor: pointer;
+}
+.mi-act:hover { color: var(--text-primary); }
+/* 손가락으로 누를 수 있게 터치 영역만 넓힌다 (레이아웃은 그대로) */
+.mi-act::after {
+    content: '';
+    position: absolute;
+    width: 34px;
+    height: 34px;
+    margin: -12px;
+}
 
 /* 모달 (index.html 과 같은 규격) */
 .modal-overlay { display:none; position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,0.4); z-index:1000; justify-content:center; align-items:center; }
@@ -755,6 +775,7 @@
             <span class="ms-emoji">{{ ind.signal.emoji }}</span>
             <span class="ms-name">{{ ind.signal.name }}</span>
             <span class="ms-message">{{ ind.signal.message }}</span>
+            {% help_icon "signal" %}
         </div>
         {% if ind.signal.reason %}<div class="ms-reason">{{ ind.signal.reason }}</div>{% endif %}
         {% if ind.signal.bear_note %}<div class="ms-bear">{{ ind.signal.bear_note }}</div>{% endif %}
@@ -762,16 +783,19 @@
     {% endif %}
     <div class="mi-strip">
         {% for c in ind.cards %}
-        <div class="mi-cell mi-{{ c.state }}{% if c.link or c.action %} mi-clickable{% endif %}"
-             {% if c.link %}data-link="{{ c.link }}"{% endif %}
-             {% if c.action %}data-action="{{ c.action }}" data-market="{{ market_code }}"{% endif %}>
+        <div class="mi-cell mi-{{ c.state }}">
             <div class="mi-head">
-                <span class="mi-label">{{ c.label }}{% if c.link %} <i class="mi-ext">↗</i>{% elif c.action %} <i class="mi-ext">⊞</i>{% endif %}</span>
+                <span class="mi-label">{{ c.label }}{% help_icon c.help market_code %}</span>
                 <span class="mi-badge">{{ c.badge }}{% if c.streak %} {{ c.streak }}{% endif %}</span>
             </div>
             <div class="mi-value-row">
                 <span class="mi-value">{{ c.value }}</span>
                 <span class="mi-delta">{{ c.delta }}</span>
+                {% if c.link %}
+                <a class="mi-act" href="{{ c.link }}" target="_blank" rel="noopener" title="원본 사이트 열기">↗</a>
+                {% elif c.action %}
+                <button type="button" class="mi-act" data-action="{{ c.action }}" data-market="{{ market_code }}" title="상세 보기">⊞</button>
+                {% endif %}
             </div>
             <div class="mi-gauge mi-gauge-{{ c.zones }}">
                 {% for m in c.marks %}<i class="mi-mark" style="left: {{ m.pos }}%;"></i>{% endfor %}
@@ -786,7 +810,7 @@
     {% if ind.events %}
     <div class="ms-log">
         <button type="button" class="ms-log-head" aria-expanded="false">
-            <span class="ms-log-title">최근 변화</span>
+            <span class="ms-log-title">최근 변화{% help_icon "events" %}</span>
             <span class="ms-log-latest">{{ ind.events.0.date|date:"n/j" }} {{ ind.events.0.text }}</span>
             <span class="ms-log-ago">{{ ind.events.0.ago }}일 전</span>
             <span class="ms-log-caret">⌄</span>
@@ -816,7 +840,7 @@
         <div class="chart-legend">
             <span class="chart-legend-item"><i style="background:#8b5cf6;"></i>외국인 <b class="chart-legend-val" id="kospiForeignVal"></b></span>
             <span class="chart-legend-item"><i style="background:#f59e0b;"></i>기관 <b class="chart-legend-val" id="kospiInstVal"></b></span>
-            <span class="chart-legend-note" id="kospiTrendNote">기간 첫날 = 0</span>
+            <span class="chart-legend-note" id="kospiTrendNote">기간 첫날 = 0</span>{% help_icon "cumulative" %}
         </div>
         <div class="index-chart-wrap">
             <div id="kospiChart" class="index-chart"></div>
@@ -848,6 +872,7 @@
             <span class="ms-emoji">{{ ind.signal.emoji }}</span>
             <span class="ms-name">{{ ind.signal.name }}</span>
             <span class="ms-message">{{ ind.signal.message }}</span>
+            {% help_icon "signal" %}
         </div>
         {% if ind.signal.reason %}<div class="ms-reason">{{ ind.signal.reason }}</div>{% endif %}
         {% if ind.signal.bear_note %}<div class="ms-bear">{{ ind.signal.bear_note }}</div>{% endif %}
@@ -855,16 +880,19 @@
     {% endif %}
     <div class="mi-strip">
         {% for c in ind.cards %}
-        <div class="mi-cell mi-{{ c.state }}{% if c.link or c.action %} mi-clickable{% endif %}"
-             {% if c.link %}data-link="{{ c.link }}"{% endif %}
-             {% if c.action %}data-action="{{ c.action }}" data-market="{{ market_code }}"{% endif %}>
+        <div class="mi-cell mi-{{ c.state }}">
             <div class="mi-head">
-                <span class="mi-label">{{ c.label }}{% if c.link %} <i class="mi-ext">↗</i>{% elif c.action %} <i class="mi-ext">⊞</i>{% endif %}</span>
+                <span class="mi-label">{{ c.label }}{% help_icon c.help market_code %}</span>
                 <span class="mi-badge">{{ c.badge }}{% if c.streak %} {{ c.streak }}{% endif %}</span>
             </div>
             <div class="mi-value-row">
                 <span class="mi-value">{{ c.value }}</span>
                 <span class="mi-delta">{{ c.delta }}</span>
+                {% if c.link %}
+                <a class="mi-act" href="{{ c.link }}" target="_blank" rel="noopener" title="원본 사이트 열기">↗</a>
+                {% elif c.action %}
+                <button type="button" class="mi-act" data-action="{{ c.action }}" data-market="{{ market_code }}" title="상세 보기">⊞</button>
+                {% endif %}
             </div>
             <div class="mi-gauge mi-gauge-{{ c.zones }}">
                 {% for m in c.marks %}<i class="mi-mark" style="left: {{ m.pos }}%;"></i>{% endfor %}
@@ -879,7 +907,7 @@
     {% if ind.events %}
     <div class="ms-log">
         <button type="button" class="ms-log-head" aria-expanded="false">
-            <span class="ms-log-title">최근 변화</span>
+            <span class="ms-log-title">최근 변화{% help_icon "events" %}</span>
             <span class="ms-log-latest">{{ ind.events.0.date|date:"n/j" }} {{ ind.events.0.text }}</span>
             <span class="ms-log-ago">{{ ind.events.0.ago }}일 전</span>
             <span class="ms-log-caret">⌄</span>
@@ -909,7 +937,7 @@
         <div class="chart-legend">
             <span class="chart-legend-item"><i style="background:#8b5cf6;"></i>외국인 <b class="chart-legend-val" id="kosdaqForeignVal"></b></span>
             <span class="chart-legend-item"><i style="background:#f59e0b;"></i>기관 <b class="chart-legend-val" id="kosdaqInstVal"></b></span>
-            <span class="chart-legend-note" id="kosdaqTrendNote">기간 첫날 = 0</span>
+            <span class="chart-legend-note" id="kosdaqTrendNote">기간 첫날 = 0</span>{% help_icon "cumulative" %}
         </div>
         <div class="index-chart-wrap">
             <div id="kosdaqChart" class="index-chart"></div>
@@ -1448,18 +1476,14 @@ function closeBandDetail() {
     bandModal.classList.remove('show');
 }
 
-document.querySelectorAll('.mi-clickable').forEach(cell => {
-    cell.addEventListener('click', () => {
-        const link = cell.dataset.link;
-        if (link) {
-            window.open(link, '_blank', 'noopener');
-            return;
-        }
-        const action = cell.dataset.action;
+// ⊞ 아이콘만 상세를 연다 (↗ 는 그냥 링크라 JS 가 필요 없다)
+document.querySelectorAll('.mi-act[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
         if (action === 'trend-detail') {
-            openTrendDetail(cell.dataset.market);
-        } else if (action) {
-            openBandDetail(cell.dataset.market, action);
+            openTrendDetail(btn.dataset.market);
+        } else {
+            openBandDetail(btn.dataset.market, action);
         }
     });
 });

@@ -244,15 +244,20 @@ def build_market_panel(market):
     }
 
 
-def _card(label, value, delta, state, badge, streak, gauge, link='', action=''):
+def _card(label, value, delta, state, badge, streak, gauge, help_key,
+          link='', action=''):
     """
-    link   : 누르면 새 탭으로 여는 외부 주소
-    action : 누르면 화면 안에서 처리할 동작 (JS 가 data-action 으로 받는다)
+    카드에는 아이콘이 최대 두 개 붙는다. 카드 전체를 누르게 했더니 눌리는지도
+    모르겠고 카드마다 하는 일이 달라(외부 링크 / 표 / 통계) 예측이 안 됐다.
+
+    help_key : 라벨 옆 ⓘ — 이게 뭔지와 기준을 설명한다 (help_texts.py)
+    link     : 값 옆 ↗ — 새 탭으로 여는 외부 주소
+    action   : 값 옆 ⊞ — 화면 안에서 여는 상세 팝업
     """
     return {
         'label': label, 'value': value, 'delta': delta,
         'state': state, 'badge': badge, 'streak': streak,
-        'link': link, 'action': action, **gauge,
+        'help': help_key, 'link': link, 'action': action, **gauge,
     }
 
 
@@ -299,7 +304,7 @@ def _build_cards(disparity, adr, foreign, gap, disparity_pct, foreign_pct, gap_p
                            state, badge,
                            _streak_text(streaks, 'disparity'),
                            _banded_gauge(disparity, low, high),
-                           action='disparity-detail'))
+                           'disparity', action='disparity-detail'))
 
     if adr is not None:
         low, high = adr_th
@@ -308,7 +313,7 @@ def _build_cards(disparity, adr, foreign, gap, disparity_pct, foreign_pct, gap_p
         cards.append(_card('ADR', f'{adr:,.2f}', '', state, badge,
                            _streak_text(streaks, 'adr'),
                            _banded_gauge(adr, low, high),
-                           link=ADR_SOURCE_URL))
+                           'adr', link=ADR_SOURCE_URL))
 
     if foreign is not None:
         state, badge = (('ok', '순매수') if foreign > 0 else
@@ -318,7 +323,7 @@ def _build_cards(disparity, adr, foreign, gap, disparity_pct, foreign_pct, gap_p
                            state, badge,
                            _streak_text(streaks, 'foreign'),
                            _zero_gauge(foreign, foreign_span),
-                           action='trend-detail'))
+                           'foreign', action='trend-detail'))
 
     if gap is not None:
         state, badge = (('ok', '강세') if gap > 0 else
@@ -331,7 +336,7 @@ def _build_cards(disparity, adr, foreign, gap, disparity_pct, foreign_pct, gap_p
                            state, badge,
                            _streak_text(streaks, 'ma200'),
                            _zero_gauge(gap, gap_span),
-                           action='ma200-detail'))
+                           'ma200', action='ma200-detail'))
 
     return cards
 

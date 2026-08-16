@@ -310,6 +310,76 @@
             .nav-right a, .nav-right button, .nav-logout-btn { font-size: 0.68rem; padding: 4px 6px; }
         }
 
+        /* ⓘ 설명 아이콘 — {% templatetag openblock %} help_icon "키" {% templatetag closeblock %} 로 어느 화면에서든 붙인다 */
+        .hlp {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 15px;
+            height: 15px;
+            padding: 0;
+            margin-left: 3px;
+            border: none;
+            background: none;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            line-height: 1;
+            cursor: pointer;
+            vertical-align: middle;
+        }
+        .hlp:hover { color: var(--text-primary); }
+        /* 손가락으로 누를 수 있게 실제 터치 영역만 넓힌다 (레이아웃은 그대로) */
+        .hlp::after {
+            content: '';
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            margin: -8px;
+        }
+
+        .hlp-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1080;
+            background: rgba(0, 0, 0, 0.45);
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .hlp-overlay.show { display: flex; align-items: center; justify-content: center; }
+        .hlp-box {
+            width: 100%;
+            max-width: 420px;
+            padding: 18px 20px 20px;
+            border-radius: var(--radius);
+            background: var(--bg-card);
+            box-shadow: var(--shadow-card-hover);
+        }
+        .hlp-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .hlp-head h6 { margin: 0; font-size: 0.92rem; font-weight: 700; color: var(--text-primary); }
+        .hlp-close {
+            border: none;
+            background: none;
+            color: var(--text-muted);
+            font-size: 1.3rem;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .hlp-body {
+            font-size: 0.8rem;
+            line-height: 1.65;
+            color: var(--text-secondary);
+            white-space: pre-line;
+            word-break: keep-all;
+        }
+
         {% block extra_style %}{% endblock %}
     </style>
     {% block extra_css %}{% endblock %}
@@ -346,6 +416,51 @@
         {% endif %}
         {% block content %}{% endblock %}
     </div>
+
+    <!-- ⓘ 설명 팝업 (모든 화면 공용) -->
+    <div class="hlp-overlay" id="helpOverlay">
+        <div class="hlp-box">
+            <div class="hlp-head">
+                <h6 id="helpTitle"></h6>
+                <button type="button" class="hlp-close" id="helpClose" aria-label="닫기">&times;</button>
+            </div>
+            <div class="hlp-body" id="helpBody"></div>
+        </div>
+    </div>
+    <script>
+    // ⓘ 아이콘은 어느 화면에서든 나중에 추가될 수 있으므로 위임으로 받는다.
+    (function () {
+        const overlay = document.getElementById('helpOverlay');
+        const close = () => overlay.classList.remove('show');
+        function open(icon) {
+            document.getElementById('helpTitle').textContent = icon.dataset.helpTitle || '';
+            document.getElementById('helpBody').textContent = icon.dataset.helpBody || '';
+            overlay.classList.add('show');
+        }
+        // 캡처 단계에서 잡는다. 접기 헤더처럼 누를 수 있는 요소 안에 들어가도
+        // 바깥 동작이 같이 일어나지 않게 하기 위해서다.
+        document.addEventListener('click', e => {
+            const icon = e.target.closest('.hlp');
+            if (!icon) return;
+            e.preventDefault();
+            e.stopPropagation();
+            open(icon);
+        }, true);
+        // span 이라 키보드 조작을 직접 붙여준다
+        document.addEventListener('keydown', e => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            const icon = e.target.closest && e.target.closest('.hlp');
+            if (!icon) return;
+            e.preventDefault();
+            open(icon);
+        });
+        document.getElementById('helpClose').addEventListener('click', close);
+        overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && overlay.classList.contains('show')) close();
+        });
+    })();
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
