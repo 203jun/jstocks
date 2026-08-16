@@ -189,7 +189,7 @@ def build_market_panel(market):
         .order_by('-date')
         .values_list(
             'date', 'disparity', 'adr', 'foreign_net_20d', 'ma200_gap',
-            'foreign_net_20d_pct', 'ma200_gap_pct', 'disparity_pct',
+            'foreign_net_20d_pct', 'ma200_gap_pct', 'disparity_pct', 'close',
         )[:HISTORY_LIMIT]
     )
     if not rows:
@@ -207,7 +207,16 @@ def build_market_panel(market):
     }
     streaks = {key: _streak(seq) for key, seq in series.items()}
 
-    date, disparity, adr, foreign, gap, foreign_pct, gap_pct, disparity_pct = rows[-1]
+    (date, disparity, adr, foreign, gap,
+     foreign_pct, gap_pct, disparity_pct, close) = rows[-1]
+
+    # 지수와 등락률. 화면 상단 값은 IndexChart 에서 따로 뽑지만, 프롬프트는
+    # 지표와 같은 날짜여야 하므로 MarketIndicator 안의 종가를 쓴다.
+    prev_close = rows[-2][8] if len(rows) > 1 else None
+    change_rate = None
+    if close is not None and prev_close:
+        change_rate = (close / prev_close - 1) * 100
+
     # 게이지 폭은 조회 범위 안의 실제 최대치에서 잡는다.
     # 코스피와 코스닥의 수급 규모가 10배 넘게 차이나 공통 눈금을 쓸 수 없다.
     foreign_span = max((abs(r[3]) for r in rows if r[3] is not None), default=0)
@@ -230,6 +239,8 @@ def build_market_panel(market):
 
     return {
         'date': date,
+        'close': close,
+        'change_rate': change_rate,
         'signal': _build_signal(streaks, series),
         'cards': cards,
         'events': _build_events(series, date),
@@ -600,10 +611,13 @@ def _prompt_reading_guide(market):
         f'- 이격도 임계값은 {name} 기준 {low:g}/{high:g} 다. 시장마다 다르며 '
         f'{_with_particle(MARKET_NAMES[other], "은", "는")} {other_low:g}/{other_high:g} 다'
         f' — 코스닥이 더 크게 흔들려서다.',
-        f'- ADR 은 등락비율이다. {adr_low:g} 이하 바닥권, {adr_high:g} 이상 과열.',
+        f'- ADR 은 등락비율×100 이며 백분율(%)이 아니다. '
+        f'{adr_low:g} 이하 바닥권, {adr_high:g} 이상 과열.',
         '- 외국인 20일 누적은 최근 20거래일 순매수 합계(억원)다.',
         f'- 괄호 안 백분위는 최근 {PERCENTILE_WINDOW}거래일 중 위치다. '
         f'"상위 2%" 는 2년 가까이 그만큼밖에 없던 자리라는 뜻이다.',
+        '- 이격도 백분위는 그대로 믿어도 된다. 20일선으로 되돌아오는 성질이라 '
+        '분포가 고르게 퍼져 있다(관측 중앙값 51~52).',
         '- 단 200일선 대비 백분위는 예외다. 추세 시계열이라 상승장에서는 계속 '
         '상단에 붙어 있다(관측 75~78%). 과열 신호로 읽지 마라.',
         f'- 상태 변화 로그는 새 상태가 {EVENT_MIN_DAYS}거래일 이상 유지돼야 올라온다. '
@@ -617,10 +631,14 @@ def build_prompt_vars(market, panel, today):
     {변수} -> 채워 넣을 값. 화면(JS)이 이 사전으로 치환한다.
     코스피/코스닥이 각자 다른 프롬프트를 쓰므로 시장 하나짜리로 만든다.
     """
+    close = panel['close'] if panel else None
+    rate = panel['change_rate'] if panel else None
     return {
         '{시장}': MARKET_NAMES.get(market, market),
         '{오늘날짜}': today.strftime('%Y-%m-%d'),
         '{기준일}': panel['date'].strftime('%Y-%m-%d') if panel else '(없음)',
+        '{지수}': f'{close:,.2f}' if close is not None else '(없음)',
+        '{등락률}': f'{rate:+,.2f}%' if rate is not None else '(없음)',
         '{지표}': _prompt_table(panel),
         '{상태변화}': _prompt_events(panel),
         '{읽는법}': _prompt_reading_guide(market),
