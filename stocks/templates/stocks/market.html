@@ -1210,10 +1210,13 @@ const candleColors = {
     wickUpColor: upColor, wickDownColor: downColor,
 };
 
-// 위 62%는 캔들+이평선(거래량은 그 바닥), 아래 38%는 누적 순매수
-const CANDLE_MARGINS = { top: 0.04, bottom: 0.42 };
-const VOLUME_MARGINS = { top: 0.47, bottom: 0.42 };
-const TREND_MARGINS  = { top: 0.66, bottom: 0.02 };
+// 세 칸을 세로로 나눈다. 캔들 4~50% / 거래량 55~67% / 누적 순매수 71~98%.
+// 예전에는 캔들 영역이 58% 까지 내려와 거래량(47~58%)과 11% 겹쳤다. 겹치면
+// 기간 저점이 거래량 막대 위에 그려져 저점 가격선과 이름이 파묻힌다.
+// 캔들과 거래량 사이 5% 는 저점 가격선의 이름이 들어갈 자리다.
+const CANDLE_MARGINS = { top: 0.04, bottom: 0.50 };
+const VOLUME_MARGINS = { top: 0.55, bottom: 0.33 };
+const TREND_MARGINS  = { top: 0.71, bottom: 0.02 };
 
 // 모바일도 데스크톱과 같은 차트를 쓴다. 좁은 화면에서 캔들 대신 종가선을 쓰고
 // 거래량을 숨겨 봤지만, 캔들과 거래량이 있는 쪽이 낫다는 판단.
