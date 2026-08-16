@@ -20,7 +20,7 @@ class Command(BaseCommand):
   3. 외국인 20일 누적 순매수 = MarketTrend 최근 20영업일 합
   4. 200일선 대비  = (종가 / 200일 이평 - 1) * 100
 
-3·4 는 절대값만으로는 크기를 알 수 없어 최근 250거래일 백분위도 함께 저장한다.
+1·3·4 는 절대값만으로는 크기를 알 수 없어 최근 250거래일 백분위도 함께 저장한다.
 
 옵션:
   --market    (선택) KOSPI / KOSDAQ / all (기본값: all)
@@ -152,6 +152,7 @@ class Command(BaseCommand):
             self.build_row(i, dates, closes, trend_map, trend_dates, adr_series)
             for i in range(len(dates))
         ]
+        self.attach_percentile(all_rows, 'disparity', 'disparity_pct')
         self.attach_percentile(all_rows, 'foreign_net_20d', 'foreign_net_20d_pct')
         self.attach_percentile(all_rows, 'ma200_gap', 'ma200_gap_pct')
 
@@ -174,6 +175,7 @@ class Command(BaseCommand):
             '이격도': sum(1 for r in rows if r['disparity'] is None),
             '수급': sum(1 for r in rows if r['foreign_net_20d'] is None),
             '200일선': sum(1 for r in rows if r['ma200_gap'] is None),
+            '이격도 백분위': sum(1 for r in rows if r['disparity_pct'] is None),
             '수급 백분위': sum(1 for r in rows if r['foreign_net_20d_pct'] is None),
             '200일선 백분위': sum(1 for r in rows if r['ma200_gap_pct'] is None),
         }
@@ -218,6 +220,7 @@ class Command(BaseCommand):
             'ma200': self.q(ma200),
             'ma200_gap': self.q((close / ma200 - 1) * 100) if ma200 else None,
             # 백분위는 전 구간을 만든 뒤 attach_percentile 에서 채운다
+            'disparity_pct': None,
             'foreign_net_20d_pct': None,
             'ma200_gap_pct': None,
         }
@@ -271,7 +274,7 @@ class Command(BaseCommand):
         fmt = lambda v: '-' if v is None else f'{v:,}'
         pct = lambda v: '-' if v is None else f'{v:.0f}%'
         self.log.info(
-            f'  {"일자":<12}{"종가":>11}{"이격도":>9}{"ADR":>8}'
+            f'  {"일자":<12}{"종가":>11}{"이격도":>9}{"백분위":>7}{"ADR":>8}'
             f'{"외인20일":>13}{"백분위":>7}{"200일선":>10}{"백분위":>7}'
         )
         for row in rows[-3:]:
@@ -281,6 +284,7 @@ class Command(BaseCommand):
             gap_txt = '-' if gap is None else f'{gap:+.2f}%'
             self.log.info(
                 f'  {str(row["date"]):<12}{fmt(row["close"]):>11}{fmt(row["disparity"]):>9}'
+                f'{pct(row["disparity_pct"]):>7}'
                 f'{fmt(row["adr"]):>8}{foreign_txt:>13}{pct(row["foreign_net_20d_pct"]):>7}'
                 f'{gap_txt:>10}{pct(row["ma200_gap_pct"]):>7}'
             )
