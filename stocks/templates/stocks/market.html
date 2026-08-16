@@ -246,6 +246,13 @@
     border-top: 1px solid var(--border-color);
     margin-top: 4px;
 }
+.ma-body strong { color: var(--text-primary); font-weight: 700; }
+.ma-body mark {
+    padding: 1px 3px;
+    border-radius: 3px;
+    background: rgba(245, 158, 11, 0.22);
+    color: var(--text-primary);
+}
 .ma-actions { display: flex; gap: 6px; padding: 0 20px 12px; }
 .ma-empty {
     display: flex;
@@ -881,8 +888,8 @@
             </span>
             <span class="ms-log-caret">⌄</span>
         </button>
-        <div class="ma-headline">{{ analysis.latest.headline }}</div>
-        <div class="ma-body" hidden>{{ analysis.latest.content }}</div>
+        <div class="ma-headline">{{ analysis.headline }}</div>
+        <div class="ma-body" hidden>{{ analysis.content_html }}</div>
         <div class="ma-actions">
             <button type="button" class="mp-btn" data-ma-edit="{{ market_code }}">답변 갱신</button>
             {% if analysis.history|length > 1 %}
@@ -994,8 +1001,8 @@
             </span>
             <span class="ms-log-caret">⌄</span>
         </button>
-        <div class="ma-headline">{{ analysis.latest.headline }}</div>
-        <div class="ma-body" hidden>{{ analysis.latest.content }}</div>
+        <div class="ma-headline">{{ analysis.headline }}</div>
+        <div class="ma-body" hidden>{{ analysis.content_html }}</div>
         <div class="ma-actions">
             <button type="button" class="mp-btn" data-ma-edit="{{ market_code }}">답변 갱신</button>
             {% if analysis.history|length > 1 %}
@@ -1828,7 +1835,9 @@ document.getElementById('maHistoryList').addEventListener('click', async e => {
     const params = new URLSearchParams({ market: row.dataset.market, date: row.dataset.date });
     try {
         const data = await (await fetch(`/api/market/analysis/detail/?${params}`)).json();
-        detail.textContent = data.success ? data.content : data.error;
+        // 서버가 이스케이프한 뒤 굵게/강조만 넣어 준 HTML 이다
+        if (data.success) detail.innerHTML = data.content_html;
+        else detail.textContent = data.error;
     } catch (err) {
         detail.textContent = '불러오지 못했습니다: ' + err.message;
     }

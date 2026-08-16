@@ -8237,6 +8237,7 @@ def market_analysis_save(request):
 @require_GET
 def market_analysis_detail(request):
     """이력에서 특정 날짜의 전문을 꺼낸다"""
+    from .market_analysis import render_content
     from .models import MarketAnalysis
 
     row = MarketAnalysis.objects.filter(
@@ -8250,7 +8251,7 @@ def market_analysis_detail(request):
         'date': row.date.strftime('%Y-%m-%d'),
         'headline': row.headline,
         'stance': row.stance,
-        'content': row.content,
+        'content_html': str(render_content(row.content)),
     })
 
 

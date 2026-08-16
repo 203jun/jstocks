@@ -16,6 +16,9 @@ AI 답변에서 한 줄 결론과 매매 스탠스를 뽑아낸다.
 """
 import re
 
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
+
 STANCES = ['공격적', '보통', '신중', '관망']
 
 HEADLINE_MAX = 300
@@ -30,11 +33,31 @@ _STANCE_SECTION_RE = re.compile(r'매매\s*스탠스[^\n:：\-]*[:：\-]?\s*(.*)
 _STANCE_RE = re.compile('|'.join(STANCES))
 
 # 굵게/제목 표시 등 값이 아닌 글자
-_DECOR = '*_#`> '
+_DECOR = '*_#`>=~ '
+
+# 문장 안에 섞인 마크다운 표시. 한 줄 결론은 그대로 화면에 뿌리므로 걷어낸다.
+_INLINE_MARK_RE = re.compile(r'\*\*|==|__|~~|`')
+
+# 본문 렌더용. 줄을 넘어가면 문단을 통째로 삼키므로 한 줄 안에서만 잡는다.
+_BOLD_RE = re.compile(r'\*\*([^*\n]+?)\*\*')
+_MARK_RE = re.compile(r'==([^=\n]+?)==')
 
 
 def _clean(text):
-    return text.strip().strip(_DECOR).strip()
+    return _INLINE_MARK_RE.sub('', text.strip().strip(_DECOR)).strip()
+
+
+def render_content(content):
+    """
+    붙여넣은 답변을 화면용 HTML 로. 굵게(**)와 강조(==)만 살린다.
+
+    사용자가 붙여넣는 텍스트라 먼저 이스케이프한 뒤 태그를 넣는다.
+    줄바꿈은 CSS(white-space: pre-line)가 살리므로 <br> 을 넣지 않는다.
+    """
+    html = escape(content or '')
+    html = _BOLD_RE.sub(r'<strong>\1</strong>', html)
+    html = _MARK_RE.sub(r'<mark>\1</mark>', html)
+    return mark_safe(html)
 
 
 def _first_meaningful_line(text):
@@ -96,11 +119,16 @@ def build_analysis_panel(market, limit=12):
     )
     if not rows:
         return None
+    # 예전에 저장된 행이나 손으로 고친 값에 ** 나 == 가 남아 있을 수 있다
+    for row in rows:
+        row['headline'] = _clean(row['headline'])
 
     latest = MarketAnalysis.objects.filter(market=market).order_by('-date').first()
     behind = MarketIndicator.objects.filter(market=market, date__gt=latest.date).count()
     return {
         'latest': latest,
+        'headline': _clean(latest.headline),
+        'content_html': render_content(latest.content),
         'behind': behind,          # 판단 이후 쌓인 거래일 수
         'stale': behind >= STALE_TRADING_DAYS,
         'history': rows,
