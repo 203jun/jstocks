@@ -183,7 +183,7 @@ def build_market_panel(market):
         .order_by('-date')
         .values_list(
             'date', 'disparity', 'adr', 'foreign_net_20d', 'ma200_gap',
-            'foreign_net_20d_pct', 'ma200_gap_pct',
+            'foreign_net_20d_pct', 'ma200_gap_pct', 'disparity_pct',
         )[:HISTORY_LIMIT]
     )
     if not rows:
@@ -201,7 +201,7 @@ def build_market_panel(market):
     }
     streaks = {key: _streak(seq) for key, seq in series.items()}
 
-    date, disparity, adr, foreign, gap, foreign_pct, gap_pct = rows[-1]
+    date, disparity, adr, foreign, gap, foreign_pct, gap_pct, disparity_pct = rows[-1]
     # 게이지 폭은 조회 범위 안의 실제 최대치에서 잡는다.
     # 코스피와 코스닥의 수급 규모가 10배 넘게 차이나 공통 눈금을 쓸 수 없다.
     foreign_span = max((abs(r[3]) for r in rows if r[3] is not None), default=0)
@@ -209,12 +209,13 @@ def build_market_panel(market):
 
     # 백분위를 낸 표본 크기. 창(250일)이 꽉 차기 전에는 값이 흔들리므로 화면에 밝힌다.
     samples = {
+        'disparity': min(sum(1 for r in rows if r[1] is not None), PERCENTILE_WINDOW),
         'foreign': min(sum(1 for r in rows if r[3] is not None), PERCENTILE_WINDOW),
         'ma200': min(sum(1 for r in rows if r[4] is not None), PERCENTILE_WINDOW),
     }
 
     cards = _build_cards(
-        disparity, adr, foreign, gap, foreign_pct, gap_pct,
+        disparity, adr, foreign, gap, disparity_pct, foreign_pct, gap_pct,
         (dis_low, dis_high), (adr_low, adr_high),
         foreign_span, gap_span, streaks, samples,
     )
@@ -270,7 +271,7 @@ def _percentile_text(pct, sample):
     return text
 
 
-def _build_cards(disparity, adr, foreign, gap, foreign_pct, gap_pct,
+def _build_cards(disparity, adr, foreign, gap, disparity_pct, foreign_pct, gap_pct,
                  dis_th, adr_th, foreign_span, gap_span, streaks, samples):
     cards = []
 
@@ -278,7 +279,11 @@ def _build_cards(disparity, adr, foreign, gap, foreign_pct, gap_pct,
         low, high = dis_th
         state, badge = (('warn', '과열') if disparity >= high else
                         ('chance', '침체') if disparity <= low else ('neutral', '중립'))
-        cards.append(_card('이격도', f'{disparity:,.2f}', '', state, badge,
+        # 이격도는 평균회귀 계열이라 백분위 분포가 고르다(중앙 51~52, 상위 20%
+        # 구간이 관측 24~27%). 200일선과 달리 백분위를 그대로 믿고 읽어도 된다.
+        cards.append(_card('이격도', f'{disparity:,.2f}',
+                           _percentile_text(disparity_pct, samples['disparity']),
+                           state, badge,
                            _streak_text(streaks, 'disparity'),
                            _banded_gauge(disparity, low, high)))
 
