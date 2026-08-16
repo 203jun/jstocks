@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET
 from decouple import config
 from telethon import TelegramClient
 from django.views.decorators.http import require_POST
-from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, IndexChart, MarketTrend, MarketAnalysis, InvestorTrend, ShortSelling, MarketDiary, StockDiary, StockEvent, SectorEvent, ETFEvent, DailyTrade
+from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Gongsi, IndexChart, MarketTrend, MarketAnalysis, InvestorTrend, ShortSelling, MarketDiary, StockDiary, StockEvent, SectorEvent, ETFEvent, DailyTrade
 from .market_analysis import build_analysis_panel
 from .market_signal import build_market_panel, build_prompt_vars
 from .prompts import (
@@ -520,39 +520,6 @@ def index(request):
     # 괴리율 높은 순 정렬
     card_report_stocks.sort(key=lambda x: x['gap_rate'], reverse=True)
 
-    # ============ 노다지 카드 ============
-    # 거래일 기준 최근 5거래일 가져오기
-    recent_5_trading_dates = list(DailyChart.objects.values_list('date', flat=True)
-                                .order_by('-date').distinct()[:5])
-
-    card_nodaji_stocks = []
-    if recent_5_trading_dates:
-        # 최근 5거래일 내 노다지 조회 (관심종목만)
-        nodajis = Nodaji.objects.filter(
-            stock__in=target_stocks,
-            date__gte=min(recent_5_trading_dates)
-        ).select_related('stock').order_by('-date')
-
-        # 종목별로 가장 최신 노다지만
-        seen_codes = set()
-        for nodaji in nodajis:
-            if nodaji.stock.code in seen_codes:
-                continue
-            seen_codes.add(nodaji.stock.code)
-
-            stock = nodaji.stock
-            card_nodaji_stocks.append({
-                'stock': stock,
-                'nodaji_id': nodaji.id,
-                'change_rate': stock.change_rate or 0,
-                'title': nodaji.title,
-                'date': nodaji.date,
-                'link': nodaji.link,
-            })
-
-    # 등락율 순 정렬
-    card_nodaji_stocks.sort(key=lambda x: x['change_rate'], reverse=True)
-
     # ============ 현황 테이블 ============
     # --- 공시 분류 로직 ---
     # 관심종목 최근실적 한번에 조회
@@ -594,7 +561,7 @@ def index(request):
         daily_data = list(DailyChart.objects.filter(stock=stock).order_by('-date')[:130])
         if not daily_data:
             _gc = _gongsi_map.get(stock.code)
-            status_stocks.append({'stock': stock, 'level': stock.interest_level, 'vol_high_20': False, 'vol_high_60': False, 'ma_align': '', 'pullback': None, 'pullback_label': '', 'has_report': False, 'has_nodaji': False, 'inst_label': '', 'frgn_label': '', 'gongsi_cat': _gc[0] if _gc else '', 'gongsi_title': _gc[1] if _gc else '', 'has_alert': False, 'alert_conditions': '', 'recent_perf': _recent_perf_map.get(stock.code, '')})
+            status_stocks.append({'stock': stock, 'level': stock.interest_level, 'vol_high_20': False, 'vol_high_60': False, 'ma_align': '', 'pullback': None, 'pullback_label': '', 'has_report': False, 'inst_label': '', 'frgn_label': '', 'gongsi_cat': _gc[0] if _gc else '', 'gongsi_title': _gc[1] if _gc else '', 'has_alert': False, 'alert_conditions': '', 'recent_perf': _recent_perf_map.get(stock.code, '')})
             continue
 
         today = daily_data[0]
@@ -711,13 +678,11 @@ def index(request):
                 if frgn_consec >= 3:
                     frgn_label = str(frgn_consec)
 
-        # 리포트(3거래일)/노다지(5거래일) 최근 자료 확인
+        # 리포트(3거래일) 최근 자료 확인
         from datetime import timedelta
         today_date = today.date
         recent_reports = list(Report.objects.filter(stock=stock, date__gte=today_date - timedelta(days=5)).order_by('-date')[:3])
         has_report = bool(recent_reports)
-        recent_nodajis = list(Nodaji.objects.filter(stock=stock, title__contains=stock.name, date__gte=today_date - timedelta(days=9)).order_by('-date')[:3])
-        has_nodaji = bool(recent_nodajis)
 
         # 괴리율 (최신 리포트 목표가 vs 현재가)
         report_gap = None
@@ -736,7 +701,6 @@ def index(request):
             'pullback': pullback,
             'pullback_label': pullback_label,
             'has_report': has_report,
-            'has_nodaji': has_nodaji,
             'report_gap': report_gap,
             'signal_info': signal_info,
             'sparkline': sparkline,
@@ -745,7 +709,6 @@ def index(request):
             'gongsi_cat': _gc[0] if _gc else '',
             'gongsi_title': _gc[1] if _gc else '',
             'recent_reports': recent_reports,
-            'recent_nodajis': recent_nodajis,
             'inv_data': inv_data if signal_info else [],
             'short_data': list(ShortSelling.objects.filter(stock=stock).order_by('-date')[:20]) if signal_info else [],
         })
@@ -831,9 +794,6 @@ def index(request):
             lines.append(f"리포트: {titles}{gap_str}" if titles else f"리포트: 있음{gap_str}")
         elif item.get('report_gap') is not None:
             lines.append(f"괴리율: {'+' if item['report_gap'] > 0 else ''}{item['report_gap']}%")
-        if item.get('recent_nodajis'):
-            titles = ', '.join(n.title for n in item['recent_nodajis'] if n.title)
-            lines.append(f"노다지: {titles}" if titles else "노다지: 있음")
         # 신호 종목: 수급/공매도 20일 데이터
         if item.get('inv_data'):
             inv_lines = ['  날짜 | 외국인 | 기관']
@@ -861,7 +821,6 @@ def index(request):
         'card_d_stocks': card_d_stocks,
         'card_c_stocks': card_c_stocks,
         'card_report_stocks': card_report_stocks,
-        'card_nodaji_stocks': card_nodaji_stocks,
         'status_stocks': status_stocks,
         'upcoming_events': upcoming_events,
         'prompt_status': prompt_status,
@@ -1100,15 +1059,6 @@ def stock_detail(request, code):
                 r.gap_rate = round((r.target_price / closing - 1) * 100, 1)
             else:
                 r.gap_rate = None
-
-    # 노다지 (최근 20개)
-    nodaji_queryset = Nodaji.objects.filter(
-        stock=stock,
-        title__contains=stock.name
-    ).order_by('-date')
-    total_nodaji = nodaji_queryset.count()
-    nodaji_list = list(nodaji_queryset[:20])
-    nodaji_summary_count = sum(1 for n in nodaji_list if n.summary)
 
     # 공시 (최근 20개) + 호재/악재/검토 분류
     _raw_gongsi = list(Gongsi.objects.filter(stock=stock).order_by('-date')[:20])
@@ -1519,13 +1469,6 @@ def stock_detail(request, code):
             news_parts.append(f"{title}\n{content}")
     if news_parts:
         all_content_sections.append("## 뉴스\n" + '\n\n'.join(news_parts))
-    # 노다지 (요약이 있는 것만)
-    nodaji_parts = []
-    for n in nodaji_list:
-        if n.summary:
-            nodaji_parts.append(f"[{n.date.strftime('%Y-%m-%d') if n.date else ''}] {n.title}\n{n.summary}")
-    if nodaji_parts:
-        all_content_sections.append("## 노다지\n" + '\n\n'.join(nodaji_parts))
     # 유튜브 (요약이 있는 것만)
     youtube_videos = YoutubeVideo.objects.filter(stock=stock).order_by('-id')
     yt_parts = []
@@ -1559,10 +1502,9 @@ def stock_detail(request, code):
         if prev_volume and prev_volume > 0:
             volume_change_rate = round((today_volume - prev_volume) / prev_volume * 100, 1)
 
-    # 최근 5거래일 기준 리포트/노다지/공시 존재 여부
+    # 최근 5거래일 기준 리포트/공시 존재 여부
     recent_5_dates = [d.date for d in daily_charts[-5:]] if len(daily_charts) >= 5 else [d.date for d in daily_charts]
     has_recent_report = any(r.date in recent_5_dates for r in reports if r.date)
-    has_recent_nodaji = any(n.date in recent_5_dates for n in nodaji_list if n.date)
     has_recent_gongsi = any(g.date in recent_5_dates for g in gongsi_list if g.date)
 
     # 최근 수급 (다음 기준, 외국인/기관)
@@ -1658,7 +1600,6 @@ def stock_detail(request, code):
         'sectors': sectors,
         'volume_change_rate': volume_change_rate,
         'has_recent_report': has_recent_report,
-        'has_recent_nodaji': has_recent_nodaji,
         'has_recent_gongsi': has_recent_gongsi,
         'latest_investor': latest_investor,
         'latest_short': latest_short,
@@ -1686,9 +1627,6 @@ def stock_detail(request, code):
         # 탭 데이터
         'reports': reports,
         'total_reports': total_reports,
-        'nodaji_list': nodaji_list,
-        'total_nodaji': total_nodaji,
-        'nodaji_summary_count': nodaji_summary_count,
         'gongsi_list': gongsi_list,
         'investor_trends': investor_trends,
         'investor_chart_data': json.dumps(investor_chart_data),
@@ -1732,7 +1670,7 @@ def stock_detail(request, code):
         'ma10_value': ma10_value,
         'ma20_value': ma20_value,
         'ma60_value': ma60_value,
-        'briefing_data': _build_briefing_data(stock, question_reports, nodaji_list, reports, common_core_reports + common_extra_reports, update_core_reports + update_extra_reports),
+        'briefing_data': _build_briefing_data(stock, question_reports, reports, common_core_reports + common_extra_reports, update_core_reports + update_extra_reports),
         'avg_target_price_3m': avg_target_price_3m,
         'diary_trades_json': json.dumps([
             {'date': d.date.strftime('%Y-%m-%d'), 'is_buy': d.trade_type == 'buy', 'is_sell': d.trade_type == 'sell'}
@@ -1743,7 +1681,7 @@ def stock_detail(request, code):
     return render(request, 'stocks/stock_detail.html', context)
 
 
-def _build_briefing_data(stock, question_reports, nodaji_list, reports, common_question_reports=None, update_question_reports=None):
+def _build_briefing_data(stock, question_reports, reports, common_question_reports=None, update_question_reports=None):
     """핵심브리핑 프롬프트용 데이터 구성"""
     try:
         from .models import IncomeStatement
@@ -1787,13 +1725,6 @@ def _build_briefing_data(stock, question_reports, nodaji_list, reports, common_q
         data['event_analysis'] = qr_map.get('향후 이벤트', '')
         data['competitor_analysis'] = qr_map.get('경쟁사', '')
 
-        # 노다지 요약
-        parts = []
-        for n in nodaji_list[:5]:
-            if n.summary:
-                parts.append(f"[{n.date.strftime('%Y-%m-%d') if n.date else '-'}] {n.title}\n{n.summary}")
-        data['nodaji'] = '\n\n---\n\n'.join(parts)
-
         # 리포트 요약
         report_parts = []
         for r in reports[:10]:
@@ -1830,15 +1761,12 @@ def run_fav_commands(stock_code, action):
                 call_command('save_gongsi_stock', code=stock_code)
                 logger.info(f'[FAV] {stock_code} save_fnguide_report 시작')
                 call_command('save_fnguide_report', code=stock_code)
-                logger.info(f'[FAV] {stock_code} save_nodaji_stock 시작')
-                call_command('save_nodaji_stock', code=stock_code)
             else:  # remove
                 # 데이터 삭제
                 call_command('save_investor_trend', clear=True, code=stock_code)
                 call_command('save_short_selling', clear=True, code=stock_code)
                 call_command('save_gongsi_stock', clear=True, code=stock_code)
                 call_command('save_fnguide_report', clear=True, code=stock_code)
-                call_command('save_nodaji_stock', clear=True, code=stock_code)
             logger.info(f'[FAV] {stock_code} 동기화 완료')
         except Exception as e:
             logger.error(f'[FAV] {stock_code} 동기화 오류: {e}', exc_info=True)
@@ -2225,102 +2153,6 @@ def search_report(request):
             'code': code,
             'reports': reports
         })
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-
-@require_GET
-def search_nodaji(request):
-    """노다지(네이버 프리미엄 콘텐츠) 검색 API - Playwright 사용"""
-    keyword = request.GET.get('keyword', '')
-
-    if not keyword:
-        return JsonResponse({'error': '검색어가 필요합니다.'}, status=400)
-
-    url = f'https://contents.premium.naver.com/ystreet/irnote/search?searchQuery={keyword}'
-
-    try:
-        from playwright.sync_api import sync_playwright
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(url, wait_until='networkidle')
-
-            # 페이지 로드 대기 및 스크롤
-            page.wait_for_timeout(3000)
-            page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-            page.wait_for_timeout(2000)
-
-            # 디버그: HTML 구조 확인
-            html = page.content()
-            browser.close()
-
-            # HTML에서 검색 결과 파싱
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(html, 'html.parser')
-
-            results = []
-            # 노다지 검색 결과 셀렉터
-            cards = soup.select('.psp_content_item')
-
-            for card in cards[:20]:
-                # 실제 기사 제목 (.psp_name)
-                title_el = card.select_one('strong.psp_name')
-                title = title_el.get_text(strip=True) if title_el else ''
-
-                # 카테고리
-                category_el = card.select_one('.psp_category_name')
-                category = category_el.get_text(strip=True) if category_el else ''
-
-                # 날짜
-                date_el = card.select_one('.psp_content_info_text')
-                date = date_el.get_text(strip=True) if date_el else ''
-
-                # 링크
-                link_el = card.select_one('a.psp_content_link')
-                link = ''
-                if link_el and link_el.get('href'):
-                    link = link_el.get('href')
-                    if not link.startswith('http'):
-                        link = 'https://contents.premium.naver.com' + link
-
-                if title:
-                    results.append({
-                        'title': title,
-                        'category': category,
-                        'date': date,
-                        'link': link,
-                    })
-
-            # 날짜순 정렬 (최신순)
-            def parse_date_for_sort(item):
-                date_str = item.get('date', '')
-                # "2024.12.06" 형식
-                if '.' in date_str and len(date_str) >= 10:
-                    try:
-                        return datetime.strptime(date_str[:10], '%Y.%m.%d')
-                    except ValueError:
-                        pass
-                # "12월 6일" 형식
-                if '월' in date_str and '일' in date_str:
-                    try:
-                        import re
-                        match = re.match(r'(\d+)월\s*(\d+)일', date_str)
-                        if match:
-                            month, day = int(match.group(1)), int(match.group(2))
-                            return datetime(datetime.now().year, month, day)
-                    except:
-                        pass
-                return datetime.min
-
-            results.sort(key=parse_date_for_sort, reverse=True)
-
-        return JsonResponse({
-            'success': True,
-            'keyword': keyword,
-            'results': results,
-        })
-
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -3214,36 +3046,6 @@ def stock_event_move(request, code, event_id):
     return JsonResponse({'success': True})
 
 
-def nodaji_summary(request, nodaji_id):
-    """노다지 요약 편집 페이지"""
-    nodaji = get_object_or_404(Nodaji, id=nodaji_id)
-
-    if request.method == 'POST':
-        import re
-        summary = request.POST.get('summary', '')
-        summary = re.sub(r'\[cite_start\]', '', summary)
-        summary = re.sub(r'\[cite:\s*[\d,\s]+\]', '', summary)
-        nodaji.summary = summary
-        nodaji.my_opinion = request.POST.get('my_opinion', '')
-        nodaji.save()
-
-        # AJAX 요청이면 JSON 응답
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': True})
-
-        return redirect('stocks:nodaji_summary', nodaji_id=nodaji_id)
-
-    from .models import SystemSetting
-    nodaji_prompt = SystemSetting.objects.filter(key='prompt_nodaji').values_list('value', flat=True).first() or ''
-    prompt_summary = SystemSetting.objects.filter(key='prompt_summary').values_list('value', flat=True).first() or ''
-
-    return render(request, 'stocks/nodaji_summary.html', {
-        'nodaji': nodaji,
-        'nodaji_prompt': nodaji_prompt,
-        'prompt_summary': prompt_summary,
-    })
-
-
 def report_summary(request, report_id):
     """리포트 요약 저장 API"""
     report = get_object_or_404(Report, id=report_id)
@@ -3305,148 +3107,6 @@ def fetch_more_reports(request, code):
         'success': True,
         'reports': result,
         'has_more': Report.objects.filter(stock=stock).count() > offset + limit
-    })
-
-
-@require_GET
-def fetch_more_nodaji(request, code):
-    """노다지 더 가져오기 API"""
-    stock = get_object_or_404(Info, code=code)
-    offset = int(request.GET.get('offset', 20))
-    limit = int(request.GET.get('limit', 20))
-
-    nodaji_list = Nodaji.objects.filter(
-        stock=stock,
-        title__contains=stock.name
-    ).order_by('-date')[offset:offset + limit]
-
-    result = []
-    for n in nodaji_list:
-        result.append({
-            'id': n.id,
-            'date': n.date.strftime('%y/%m/%d') if n.date else '-',
-            'title': n.title,
-            'link': n.link,
-            'summary': n.summary or '',
-        })
-
-    total = Nodaji.objects.filter(stock=stock, title__contains=stock.name).count()
-
-    return JsonResponse({
-        'success': True,
-        'nodaji': result,
-        'has_more': total > offset + limit
-    })
-
-
-@require_GET
-def search_stock(request):
-    """종목/ETF 검색 API"""
-    from django.db.models import Q
-    from .models import InfoETF
-
-    query = request.GET.get('q', request.GET.get('keyword', '')).strip()
-    if not query:
-        return JsonResponse({'success': False, 'error': '검색어를 입력하세요.'})
-
-    stocks = Info.objects.filter(
-        Q(name__icontains=query) | Q(code__icontains=query)
-    )[:10]
-
-    etfs = InfoETF.objects.filter(
-        Q(name__icontains=query) | Q(code__icontains=query)
-    )[:5]
-
-    results = [{'code': s.code, 'name': s.name, 'type': 'stock'} for s in stocks]
-    results += [{'code': e.code, 'name': e.name, 'type': 'etf'} for e in etfs]
-
-    return JsonResponse({'success': True, 'stocks': results, 'results': results})
-
-
-@require_GET
-def fetch_stock_prompt_data(request, code):
-    """종목 프롬프트 데이터 조회 API"""
-    from .models import YoutubeVideo
-
-    stock = get_object_or_404(Info, code=code)
-
-    # 리포트 최근 5개 (같은 날짜면 1개만)
-    all_reports = Report.objects.filter(stock=stock).order_by('-date')
-    seen_dates = set()
-    reports = []
-    for r in all_reports:
-        if r.date not in seen_dates:
-            reports.append(r)
-            seen_dates.add(r.date)
-            if len(reports) >= 5:
-                break
-
-    # 유튜브 저장된 영상 (최근 5개)
-    youtube_videos = YoutubeVideo.objects.filter(stock=stock).order_by('-id')[:5]
-
-    # 노다지 (요약 있는 것만, 최근 3개)
-    nodaji_list = Nodaji.objects.filter(
-        stock=stock,
-        title__contains=stock.name
-    ).exclude(summary__isnull=True).exclude(summary='').order_by('-date')[:3]
-
-    # 텍스트 형식으로 변환
-    lines = []
-    lines.append(f"=== {stock.name} ({stock.code}) 데이터 ===\n")
-
-    # 리포트
-    lines.append("## 리포트 (최근 5일)")
-    if reports:
-        for r in reports:
-            date_str = r.date.strftime('%Y-%m-%d') if r.date else '-'
-            lines.append(f"- [{date_str}] {r.title} / {r.author} / {r.provider}")
-    else:
-        lines.append("- 없음")
-    lines.append("")
-
-    # 유튜브
-    lines.append("## 유튜브 (최근 5개)")
-    if youtube_videos:
-        for v in youtube_videos:
-            lines.append(f"- {v.title}")
-            lines.append(f"  링크: {v.link}")
-            lines.append(f"  채널: {v.channel}, {v.published}")
-    else:
-        lines.append("- 없음")
-    lines.append("")
-
-    # 노다지
-    lines.append("## 노다지 IR노트 (최근 3개)")
-    if nodaji_list:
-        import re
-        from bs4 import BeautifulSoup
-        for n in nodaji_list:
-            date_str = n.date.strftime('%Y-%m-%d') if n.date else '-'
-            lines.append(f"- [{date_str}] {n.title}")
-            if n.summary:
-                # HTML -> 텍스트 변환
-                soup = BeautifulSoup(n.summary, 'html.parser')
-                summary = soup.get_text(separator='\n')
-                # 연속된 빈 줄/공백 정리
-                summary = re.sub(r'\n\s*\n+', '\n', summary)
-                # citation 제거 (모든 [cite...] 형식)
-                summary = re.sub(r'\[cite_start\]', '', summary)
-                summary = re.sub(r'\[cite_end\]', '', summary)
-                summary = re.sub(r'\[cite:\s*\d+\]', '', summary)
-                summary = re.sub(r'\[cite:\s*[\d,\s]+\]', '', summary)
-                summary = re.sub(r'\[citexx\]', '', summary)
-                summary = re.sub(r'\[/cite\]', '', summary)
-                # 요약 내용 전체 (빈 줄 제외)
-                for sl in summary.strip().split('\n'):
-                    if sl.strip():  # 빈 줄 제외
-                        lines.append(f"  {sl.strip()}")
-            lines.append("")
-    else:
-        lines.append("- 없음")
-
-    return JsonResponse({
-        'success': True,
-        'data': '\n'.join(lines)
     })
 
 
@@ -3518,23 +3178,180 @@ def fetch_stock_data_loader(request, code):
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
 
-    # 노다지 (요약 풀로 최대 5개)
-    if 'nodaji' in types:
-        lines.append("## 노다지 IR노트 (최대 5개)")
-        nodaji_list = Nodaji.objects.filter(
-            stock=stock,
-            title__contains=stock.name
-        ).exclude(summary__isnull=True).exclude(summary='').order_by('-date')[:5]
-        if nodaji_list:
-            for n in nodaji_list:
-                date_str = n.date.strftime('%Y-%m-%d') if n.date else '-'
-                lines.append(f"\n### [{date_str}] {n.title}")
-                if n.summary:
-                    summary = html_to_text(n.summary)
-                    lines.append(summary)
+
+    # 리포트 (최신 10개)
+    if 'report' in types:
+        lines.append("## 리포트 (최신 10개)")
+        all_reports = Report.objects.filter(stock=stock).order_by('-date')
+        seen_dates = set()
+        reports = []
+        for r in all_reports:
+            if r.date not in seen_dates:
+                reports.append(r)
+                seen_dates.add(r.date)
+                if len(reports) >= 10:
+                    break
+        if reports:
+            for r in reports:
+                date_str = r.date.strftime('%Y-%m-%d') if r.date else '-'
+                lines.append(f"- [{date_str}] {r.title} / {r.author} / {r.provider}")
         else:
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
+
+    # 유튜브 (저장된 링크, 제목 최대 10개)
+    if 'youtube' in types:
+        lines.append("## 유튜브 (최대 10개)")
+        youtube_list = YoutubeVideo.objects.filter(stock=stock).order_by('-id')[:10]
+        if youtube_list:
+            for v in youtube_list:
+                lines.append(f"- {v.title}")
+                lines.append(f"  링크: {v.link}")
+                if v.channel:
+                    lines.append(f"  채널: {v.channel}")
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    # 뉴스 (최대 10개)
+    if 'news' in types:
+        lines.append("## 뉴스 (최대 10개)")
+        news_list = News.objects.filter(stock=stock).order_by('-id')[:10]
+        if news_list:
+            for n in news_list:
+                lines.append(f"- {n.title}")
+                lines.append(f"  링크: {n.link}")
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    # 텔레그램
+    if 'telegram' in types:
+        lines.append("## 텔레그램")
+        telegram_list = TelegramMessage.objects.filter(stock=stock).order_by('-id')[:10]
+        if telegram_list:
+            for t in telegram_list:
+                channel_name = t.channel_name or t.channel
+                lines.append(f"\n### {channel_name}")
+                lines.append(t.text[:500] if t.text else '')
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    # 메모
+    if 'memo' in types:
+        lines.append("## 메모")
+        if stock.memo:
+            lines.append(html_to_text(stock.memo))
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    return JsonResponse({
+        'success': True,
+        'data': '\n'.join(lines)
+    })
+
+
+@require_GET
+def search_stock(request):
+    """종목/ETF 검색 API"""
+    from django.db.models import Q
+    from .models import InfoETF
+
+    query = request.GET.get('q', request.GET.get('keyword', '')).strip()
+    if not query:
+        return JsonResponse({'success': False, 'error': '검색어를 입력하세요.'})
+
+    stocks = Info.objects.filter(
+        Q(name__icontains=query) | Q(code__icontains=query)
+    )[:10]
+
+    etfs = InfoETF.objects.filter(
+        Q(name__icontains=query) | Q(code__icontains=query)
+    )[:5]
+
+    results = [{'code': s.code, 'name': s.name, 'type': 'stock'} for s in stocks]
+    results += [{'code': e.code, 'name': e.name, 'type': 'etf'} for e in etfs]
+
+    return JsonResponse({'success': True, 'stocks': results, 'results': results})
+
+
+@require_GET
+def fetch_stock_prompt_data(request, code):
+    """종목 프롬프트 데이터 조회 API"""
+    from .models import YoutubeVideo
+
+    stock = get_object_or_404(Info, code=code)
+
+    # 리포트 최근 5개 (같은 날짜면 1개만)
+    all_reports = Report.objects.filter(stock=stock).order_by('-date')
+    seen_dates = set()
+    reports = []
+    for r in all_reports:
+        if r.date not in seen_dates:
+            reports.append(r)
+            seen_dates.add(r.date)
+            if len(reports) >= 5:
+                break
+
+    # 유튜브 저장된 영상 (최근 5개)
+    youtube_videos = YoutubeVideo.objects.filter(stock=stock).order_by('-id')[:5]
+
+    # 텍스트 형식으로 변환
+    lines = []
+    lines.append(f"=== {stock.name} ({stock.code}) 데이터 ===\n")
+
+    # 리포트
+    lines.append("## 리포트 (최근 5일)")
+    if reports:
+        for r in reports:
+            date_str = r.date.strftime('%Y-%m-%d') if r.date else '-'
+            lines.append(f"- [{date_str}] {r.title} / {r.author} / {r.provider}")
+    else:
+        lines.append("- 없음")
+    lines.append("")
+
+    # 유튜브
+    lines.append("## 유튜브 (최근 5개)")
+    if youtube_videos:
+        for v in youtube_videos:
+            lines.append(f"- {v.title}")
+            lines.append(f"  링크: {v.link}")
+            lines.append(f"  채널: {v.channel}, {v.published}")
+    else:
+        lines.append("- 없음")
+    lines.append("")
+
+
+    # 인사이트
+    if 'insight' in types:
+        lines.append("## 인사이트")
+        if stock.insight_summary_html:
+            lines.append(html_to_text(stock.insight_summary_html))
+        elif stock.insight_report_html:
+            lines.append(html_to_text(stock.insight_report_html))
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
+    # 질문리포트 (최대 10개)
+    if 'question_report' in types:
+        lines.append("## 질문리포트 (최대 10개)")
+        qr_list = StockQuestionReport.objects.filter(stock=stock).order_by('-id')[:10]
+        if qr_list:
+            for qr in qr_list:
+                lines.append(f"\n### Q: {qr.question}")
+                if qr.report:
+                    # 마크다운은 그대로, HTML은 텍스트로 변환
+                    if qr.report_type == 'markdown':
+                        lines.append(qr.report)
+                    else:
+                        lines.append(html_to_text(qr.report))
+        else:
+            lines.append("- 저장된 데이터가 없습니다.")
+        lines.append("")
+
 
     # 리포트 (최신 10개)
     if 'report' in types:
@@ -3629,9 +3446,9 @@ def fetch_stock_data_loader_with_summary(request, code):
         saved_types = SystemSetting.objects.get(key='briefing_data_types').value
         data_types = [t for t in saved_types.split(',') if t]  # 빈 문자열 제거
         if not data_types:
-            data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+            data_types = ['analysis', 'key_briefing', 'report', 'youtube', 'news', 'telegram', 'memo']
     except SystemSetting.DoesNotExist:
-        data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+        data_types = ['analysis', 'key_briefing', 'report', 'youtube', 'news', 'telegram', 'memo']
 
     def html_to_text(html):
         """HTML을 텍스트로 변환"""
@@ -3659,23 +3476,6 @@ def fetch_stock_data_loader_with_summary(request, code):
         lines.append("")
 
 
-    # 3. 노다지 (요약 포함, 최대 5개)
-    if 'nodaji' in data_types:
-        lines.append("## 노다지 IR노트 (최대 5개)")
-        nodaji_list = Nodaji.objects.filter(
-            stock=stock,
-            title__contains=stock.name
-        ).exclude(summary__isnull=True).exclude(summary='').order_by('-date')[:5]
-        if nodaji_list:
-            for n in nodaji_list:
-                date_str = n.date.strftime('%Y-%m-%d') if n.date else '-'
-                lines.append(f"\n### [{date_str}] {n.title}")
-                if n.summary:
-                    summary = html_to_text(n.summary)
-                    lines.append(f"요약:\n{summary}")
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
 
     # 4. 리포트 (요약 포함, 최신 10개)
     if 'report' in data_types:
@@ -3812,9 +3612,9 @@ def _fetch_stock_data_loader_with_summary_valuation_REMOVED():
         saved_types = SystemSetting.objects.get(key='valuation_data_types').value
         data_types = [t for t in saved_types.split(',') if t]
         if not data_types:
-            data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+            data_types = ['analysis', 'key_briefing', 'report', 'youtube', 'news', 'telegram', 'memo']
     except SystemSetting.DoesNotExist:
-        data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+        data_types = ['analysis', 'key_briefing', 'report', 'youtube', 'news', 'telegram', 'memo']
 
     def html_to_text(html):
         """HTML을 텍스트로 변환"""
@@ -3840,22 +3640,6 @@ def _fetch_stock_data_loader_with_summary_valuation_REMOVED():
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
 
-    if 'nodaji' in data_types:
-        lines.append("## 노다지 IR노트 (최대 5개)")
-        nodaji_list = Nodaji.objects.filter(
-            stock=stock,
-            title__contains=stock.name
-        ).exclude(summary__isnull=True).exclude(summary='').order_by('-date')[:5]
-        if nodaji_list:
-            for n in nodaji_list:
-                date_str = n.date.strftime('%Y-%m-%d') if n.date else '-'
-                lines.append(f"\n### [{date_str}] {n.title}")
-                if n.summary:
-                    summary = html_to_text(n.summary)
-                    lines.append(f"요약:\n{summary}")
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
 
     if 'report' in data_types:
         lines.append("## 애널리스트 리포트 (최신 10개)")
@@ -4128,10 +3912,10 @@ def settings(request):
         saved_types = SystemSetting.objects.get(key='briefing_data_types').value
         briefing_data_types = [t for t in saved_types.split(',') if t]  # 빈 문자열 제거
         if not briefing_data_types:
-            briefing_data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+            briefing_data_types = ['analysis', 'key_briefing', 'report', 'youtube', 'news', 'telegram', 'memo']
     except SystemSetting.DoesNotExist:
         # 기본값: 모든 타입 선택
-        briefing_data_types = ['analysis', 'key_briefing', 'nodaji', 'report', 'youtube', 'news', 'telegram', 'memo']
+        briefing_data_types = ['analysis', 'key_briefing', 'report', 'youtube', 'news', 'telegram', 'memo']
 
     context = {
         'categories': categories,
@@ -6121,25 +5905,9 @@ def stock_question_report_detail(request, report_id):
     research_core = sorted([p for p in research_prompts if p.question in _core_questions], key=lambda p: _core_order.index(p.question) if p.question in _core_order else 99)
     research_extra = [p for p in research_prompts if p.question not in _core_questions]
 
-    # 기업분석용 노다지 요약 (6개월 이내, 요약 있는 것만)
-    nodaji_summaries = ''
     theme_category_name = ''
     theme_name = ''
     if qr.stock:
-        from .models import Nodaji
-        from datetime import date, timedelta
-        six_months_ago = date.today() - timedelta(days=180)
-        nodaji_list = Nodaji.objects.filter(
-            stock=qr.stock,
-            title__contains=qr.stock.name,
-            date__gte=six_months_ago,
-            summary__gt='',
-        ).order_by('-date')
-        parts = []
-        for n in nodaji_list:
-            parts.append(f"[{n.date.strftime('%Y-%m-%d') if n.date else '-'}] {n.title}\n{n.summary}")
-        nodaji_summaries = '\n\n---\n\n'.join(parts)
-
         # 대분류/소분류
         first_theme = qr.stock.themes.select_related('category').first()
         if first_theme:
@@ -6337,7 +6105,6 @@ def stock_question_report_detail(request, report_id):
             'key_briefing': qr.stock.key_briefing or '',
             'financial_analysis': qr.stock.financial_analysis_v2 or '',
             'consensus_analysis': qr.stock.consensus_analysis or '',
-            'nodaji_summaries': nodaji_summaries,
         }
 
     return render(request, 'stocks/question_report_detail.html', {
@@ -6347,7 +6114,6 @@ def stock_question_report_detail(request, report_id):
         'update_core_prompts': update_core_prompts,
         'update_extra_prompts': update_extra_prompts,
         'waiting_prompts': waiting_prompts,
-        'nodaji_summaries': nodaji_summaries,
         'theme_category_name': theme_category_name,
         'theme_name': theme_name,
         'stock_current_price': stock_current_price,

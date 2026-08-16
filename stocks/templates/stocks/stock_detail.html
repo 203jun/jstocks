@@ -453,7 +453,7 @@
     <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;line-height:2;">
         <span><span style="color:var(--text-muted);">수급</span> {% if latest_investor %}<span class="{% if latest_investor.foreign > 0 %}text-up{% elif latest_investor.foreign < 0 %}text-down{% endif %}">외{% if latest_investor.foreign > 0 %}+{% endif %}{{ latest_investor.foreign|intcomma }}</span> <span class="{% if latest_investor.institution > 0 %}text-up{% elif latest_investor.institution < 0 %}text-down{% endif %}">기{% if latest_investor.institution > 0 %}+{% endif %}{{ latest_investor.institution|intcomma }}</span>{% else %}<span style="color:var(--text-muted);">-</span>{% endif %}</span>
         <span><span style="color:var(--text-muted);">공매도</span> {% if latest_short %}{{ latest_short.weight }}%{% else %}<span style="color:var(--text-muted);">-</span>{% endif %}</span>
-        <span><span style="color:var(--text-muted);">5거래일</span> {% if has_recent_report %}<span class="status-badge info">리포트</span>{% endif %}{% if has_recent_nodaji %}<span class="status-badge" style="background:#fffbeb;color:#d97706;">노다지</span>{% endif %}{% if has_recent_gongsi %}<span class="status-badge" style="background:#eff6ff;color:#0891b2;">공시</span>{% endif %}{% if not has_recent_report and not has_recent_nodaji and not has_recent_gongsi %}<span style="color:var(--text-muted);">없음</span>{% endif %}</span>
+        <span><span style="color:var(--text-muted);">5거래일</span> {% if has_recent_report %}<span class="status-badge info">리포트</span>{% endif %}{% if has_recent_gongsi %}<span class="status-badge" style="background:#eff6ff;color:#0891b2;">공시</span>{% endif %}{% if not has_recent_report and not has_recent_gongsi %}<span style="color:var(--text-muted);">없음</span>{% endif %}</span>
     </div>
     <div style="border-top:1px solid var(--border-color);padding-top:8px;margin-top:8px;">
         <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;line-height:2;">
@@ -534,7 +534,6 @@
     <button class="market-tab" data-target="disclosure-content">공시</button>
     <button class="market-tab" data-target="report-content">리포트{% with total=total_summary_count|add:total_attachment_count %}{% if total %}<span class="tab-count">{{ total }}</span>{% endif %}{% endwith %}</button>
     <button class="market-tab" data-target="news-content">뉴스{% if news_articles %}<span class="tab-count">{{ news_articles|length }}</span>{% endif %}</button>
-    <button class="market-tab" data-target="nodaji-content">노다지{% if nodaji_summary_count %}<span class="tab-count">{{ nodaji_summary_count }}</span>{% endif %}</button>
     <button class="market-tab" data-target="youtube-content">유튜브<span class="tab-count d-none" id="ytTabCount"></span></button>
 </div>
 
@@ -1900,34 +1899,6 @@
     </div>
 </div>
 
-<!-- ========== 노다지 탭 ========== -->
-<div id="nodaji-content" class="tab-panel" style="display:none;">
-    <h5 class="section-heading" style="margin-top:0;">노다지 IR노트 <span style="font-size:0.68rem; font-weight:400; color:var(--text-muted);">{{ nodaji_list|length }}개{% if total_nodaji > 20 %} / {{ total_nodaji }}개{% endif %}</span></h5>
-    <div class="brief-card" style="padding:0; overflow:hidden;">
-        {% for article in nodaji_list %}
-        <div class="edit-list-item">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                <div style="flex:1; overflow:hidden;">
-                    <a href="{{ article.link }}" target="_blank" style="font-weight:600; font-size:0.85rem; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; color:var(--text-primary);">{{ article.title }}</a>
-                    <span style="color:var(--text-muted); font-size:0.75rem;">{{ article.date|date:"Y-m-d"|default:"-" }}</span>
-                </div>
-                <div style="display:flex; gap:4px; align-items:center; margin-left:8px;">
-                    <a href="{% url 'stocks:nodaji_summary' article.id %}" style="text-decoration:none; line-height:1; display:flex;" title="요약">
-                        {% if article.summary %}
-                        <span class="status-badge done">요약</span>
-                        {% else %}
-                        <span class="status-badge pending">요약</span>
-                        {% endif %}
-                    </a>
-                </div>
-            </div>
-        </div>
-        {% empty %}
-        <div style="text-align:center; color:var(--text-muted); padding:16px;">노다지 기사가 없습니다.</div>
-        {% endfor %}
-    </div>
-</div>
-
 <!-- ========== 유튜브 탭 ========== -->
 <div id="youtube-content" class="tab-panel" style="display:none;">
     <h5 class="section-heading" style="margin-top:0;">유튜브</h5>
@@ -2493,12 +2464,10 @@ btnCopyBriefingPrompt.addEventListener('click', async () => {
         prompt = prompt.replace(/## 참고자료[\s\S]*?(?=---\n\n## 직접|---\n\n## 출력)/g, '');
     }
 
-    // 노다지
-    if (briefingData.nodaji) {
-        prompt = prompt.replace(/\{노다지\}/g, briefingData.nodaji);
-    } else {
-        prompt = prompt.replace(/\[노다지[^\]]*\]\n.*\n※[^\n]*\n?/g, '');
-    }
+    // 노다지는 더 이상 수집하지 않는다. 옛 프롬프트에 남아 있으면 그 절만 걷어낸다.
+    prompt = prompt.replace(/\{노다지\}/g, '');
+    // 저장된 프롬프트가 CRLF 인 경우가 있어 \r 을 함께 허용한다
+    prompt = prompt.replace(/\[노다지[^\]]*\]\r?\n.*\r?\n※[^\r\n]*\r?\n?/g, '');
 
     // 리포트 요약
     if (briefingData.report_summary) {
@@ -2507,8 +2476,8 @@ btnCopyBriefingPrompt.addEventListener('click', async () => {
         prompt = prompt.replace(/\[리포트[^\]]*\]\n.*\n※[^\n]*\n?/g, '');
     }
 
-    // 직접 수집 자료 섹션: 노다지+리포트 모두 비어있으면 삭제
-    if (!briefingData.nodaji && !briefingData.report_summary) {
+    // 직접 수집 자료 섹션: 리포트가 비어있으면 삭제
+    if (!briefingData.report_summary) {
         prompt = prompt.replace(/## 직접 수집 자료[\s\S]*?(?=---\n\n## 출력)/g, '');
     }
 

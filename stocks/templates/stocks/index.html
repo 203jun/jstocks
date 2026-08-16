@@ -178,7 +178,6 @@
                     <th style="text-align:center;">공시</th>
                     <th style="text-align:center;">리포트</th>
                     <th style="text-align:right;">괴리율</th>
-                    <th style="text-align:center;">노다지</th>
                     <th style="text-align:center;">10일</th>
                 </tr>
             </thead>
@@ -212,7 +211,6 @@
                     <td style="text-align:right;font-size:0.78rem;">
                         {% if item.report_gap is not None %}<span class="{% if item.report_gap > 0 %}text-up{% elif item.report_gap < 0 %}text-down{% endif %}">{% if item.report_gap > 0 %}+{% endif %}{{ item.report_gap }}%</span>{% endif %}
                     </td>
-                    <td style="text-align:center;">{% if item.has_nodaji %}&#10003;{% endif %}</td>
                     <td style="text-align:center;"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
                 </tr>
                 {% endfor %}
@@ -229,7 +227,7 @@
     <span style="margin-right:12px;"><strong>신호</strong> 신고거래량(20/60일)+양봉+MA20위 발생 후 10거래일 내 종가 대비 등락, 클릭 시 차트</span>
     <span style="margin-right:12px;"><strong>리포트</strong> 3거래일 내</span>
     <span style="margin-right:12px;"><strong>괴리율</strong> 최신 리포트 목표가 vs 현재가</span>
-    <span style="margin-right:12px;"><strong>노다지</strong> 5거래일 내</span>
+    
     <span><strong>10일</strong> 10일 종가 추이, <span style="color:#ef5350;">상승</span>/<span style="color:#2196f3;">하락</span></span>
 </div>
 
