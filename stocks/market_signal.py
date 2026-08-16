@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-시장 지표 해석 — 종합 신호 / 지표 카드 / 상태 변화 로그
+시장 지표 해석 — 지표 카드 / 상태 변화 로그 / AI 프롬프트 재료
 
 MarketIndicator 에 저장된 4개 값을 "지금 사도 되는 자리인가" 관점으로 읽는다.
 색은 값의 등락이 아니라 매수 관점의 신호로 준다.
@@ -13,8 +13,10 @@ MarketIndicator 에 저장된 4개 값을 "지금 사도 되는 자리인가" �
 지표마다 성격이 다르다. 이격도·ADR 은 높을수록 나쁘고(과열), 수급·200일선은
 높을수록 좋다. 그래서 "값이 올랐는가"로 색을 칠하면 안 된다.
 
-200일선은 종합 점수에 더하지 않고 브레이크로 쓴다. 합산에 넣으면 약세장일 때
-점수가 내려가 "기회"로 밀려나는데, 200일선의 역할은 정확히 그 반대다.
+※ 네 지표를 점수로 합쳐 5단계로 판정하던 '종합 신호'가 있었지만 걷어냈다.
+  합산은 레짐을 못 본다 — 200일선 아래에서 나온 이격도 과열을 "살 거면 반만"
+  으로 읽어 정반대 결론을 냈다. 종합 판단은 AI 에게 맡기고(prompts.py),
+  화면은 지표 자체와 그 변화만 보여준다.
 """
 from decimal import Decimal
 
@@ -45,16 +47,6 @@ DETAIL_SERIES_DAYS = 120
 
 # 팝업에 나열할 최근 구간 개수
 DETAIL_EPISODE_LIMIT = 5
-
-# 신중한 쪽 -> 낙관적인 쪽 순서. 브레이크는 이 배열에서 한 칸 앞으로 당긴다.
-SIGNAL_LEVELS = [
-    ('hot', '🔴', '과열', '지금 사고 싶은 종목, 2주 뒤에도 살 수 있습니다'),
-    ('warn', '🟠', '주의', '살 거면 반만. 나머지는 열흘 뒤의 나에게 맡기세요'),
-    ('neutral', '⚪', '중립', '시장은 핑계가 안 됩니다. 종목만 보세요'),
-    ('watch', '🟢', '관심', '평소 담고 싶던 자리입니다. 서두르지만 마세요'),
-    ('cold', '🔵', '침체', '무섭게 느껴진다면 대체로 맞는 자리입니다'),
-]
-BEAR_NOTE = '다만 200일선 아래입니다 — 눌림목이 아니라 하락 중간일 수 있습니다'
 
 EVENT_TEXT = {
     ('disparity', 'mid', 'hot'): '이격도 과열권 진입',
@@ -241,7 +233,6 @@ def build_market_panel(market):
         'date': date,
         'close': close,
         'change_rate': change_rate,
-        'signal': _build_signal(streaks, series),
         'cards': cards,
         'events': _build_events(series, date),
         'samples': samples,
@@ -498,50 +489,6 @@ def _ma200_detail(rows, pct, sample, streaks):
         caution='200일선 이격은 추세 시계열이라 상승장에서는 백분위가 계속 '
                 '상단에 붙어 있습니다(관측 75~78%). 과열 신호로 읽지 마세요.',
     )
-
-
-def _build_signal(streaks, series):
-    """
-    참을 이유 점수(-3 ~ +3)로 5단계를 정한다. 높을수록 참아야 한다.
-    200일선은 점수에 넣지 않고, 아래면 판정을 한 칸 신중한 쪽으로 당긴다.
-    """
-    dis_state = streaks['disparity'][0]
-    adr_state = streaks['adr'][0]
-    foreign_state = streaks['foreign'][0]
-    ma200_state = streaks['ma200'][0]
-
-    if dis_state is None or adr_state is None or foreign_state is None:
-        return None
-
-    score = 0
-    score += 1 if dis_state == 'hot' else (-1 if dis_state == 'cold' else 0)
-    score += 1 if adr_state == 'hot' else (-1 if adr_state == 'cold' else 0)
-    score += -1 if foreign_state == 'plus' else (1 if foreign_state == 'minus' else 0)
-
-    index = 0 if score >= 2 else (1 if score == 1 else (2 if score == 0 else (3 if score == -1 else 4)))
-    braked = ma200_state == 'minus'
-    if braked:
-        index = max(0, index - 1)
-
-    key, emoji, name, message = SIGNAL_LEVELS[index]
-
-    # 근거 한 줄 — 중립이 아닌 지표만 지속 일수와 함께
-    reasons = []
-    for field, label, texts in (
-        ('disparity', '이격도', {'hot': '과열', 'cold': '침체'}),
-        ('adr', 'ADR', {'hot': '과열', 'cold': '바닥권'}),
-        ('foreign', '외국인', {'plus': '순매수', 'minus': '순매도'}),
-    ):
-        text = texts.get(streaks[field][0])
-        if text:
-            reasons.append(f'{label} {text} {_streak_text(streaks, field)}'.strip())
-
-    return {
-        'key': key, 'emoji': emoji, 'name': name, 'message': message,
-        'score': score, 'braked': braked,
-        'bear_note': BEAR_NOTE if braked else '',
-        'reason': ' · '.join(reasons),
-    }
 
 
 def _build_events(series, today, limit=5):

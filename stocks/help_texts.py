@@ -142,26 +142,6 @@ def _events(market=None):
     ])
 
 
-def _signal(market=None):
-    from .market_signal import BEAR_NOTE, SIGNAL_LEVELS
-
-    lines = [
-        '이격도 · ADR · 외국인 수급을 합쳐 "지금 참아야 할 이유가 얼마나 있나"를 '
-        '5단계로 나눈 것이다.',
-        '',
-    ]
-    lines += [f'  {emoji} {name} — {message}' for _, emoji, name, message in SIGNAL_LEVELS]
-    lines += [
-        '',
-        '200일선은 이 점수에 더하지 않는다. 합산에 넣으면 약세장일수록 점수가 '
-        '내려가 "기회"로 밀려나는데, 200일선의 역할은 정확히 그 반대다.',
-        '',
-        f'대신 200일선 아래일 때 한 단계 신중한 쪽으로 당기고 이렇게 덧붙인다.',
-        f'  "{BEAR_NOTE}"',
-    ]
-    return '\n'.join(lines)
-
-
 def _cumulative(market=None):
     return '\n'.join([
         '지수 차트 아래에 겹쳐 그린 외국인·기관 누적 순매수다.',
@@ -181,6 +161,5 @@ HELP_TEXTS = {
     'foreign': {'title': '외국인 20일 누적 순매수', 'body': _foreign},
     'ma200': {'title': '200일선 대비', 'body': _ma200},
     'events': {'title': '최근 변화', 'body': _events},
-    'signal': {'title': '종합 신호', 'body': _signal},
     'cumulative': {'title': '누적 순매수', 'body': _cumulative},
 }

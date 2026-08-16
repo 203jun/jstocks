@@ -55,50 +55,6 @@
     color: var(--text-muted);
 }
 /* 종합 신호 — 정보가 아니라 행동을 말하게 한다 */
-.ms-signal {
-    padding: 12px 20px;
-    border-bottom: 1px solid var(--border-color);
-    border-left: 3px solid transparent;
-}
-.ms-headline {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-.ms-emoji { font-size: 0.9rem; }
-.ms-name { font-size: 0.9rem; font-weight: 700; }
-.ms-message {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-.ms-reason {
-    margin-top: 4px;
-    font-size: 0.74rem;
-    color: var(--text-muted);
-}
-.ms-bear {
-    margin-top: 4px;
-    font-size: 0.74rem;
-    font-weight: 600;
-    color: #f59e0b;
-}
-.ms-hot { border-left-color: #dc3545; background: rgba(220,53,69,0.05); }
-.ms-hot .ms-name { color: #dc3545; }
-.ms-warn { border-left-color: #f59e0b; background: rgba(245,158,11,0.05); }
-.ms-warn .ms-name { color: #f59e0b; }
-.ms-neutral { border-left-color: var(--border-color); }
-.ms-neutral .ms-name { color: var(--text-muted); }
-.ms-watch { border-left-color: #16a34a; background: rgba(34,197,94,0.05); }
-.ms-watch .ms-name { color: #16a34a; }
-.ms-cold { border-left-color: #3b82f6; background: rgba(59,130,246,0.06); }
-.ms-cold .ms-name { color: #3b82f6; }
-[data-theme="dark"] .ms-hot .ms-name { color: #ef5350; }
-[data-theme="dark"] .ms-watch .ms-name { color: #4ade80; }
-[data-theme="dark"] .ms-cold .ms-name { color: #5b8def; }
-
-/* 상태 변화 로그 — 지금 상태가 얼마나 오래된 것인지 맥락을 준다 */
 .ms-log { border-bottom: 1px solid var(--border-color); }
 .ms-log-head {
     display: flex;
@@ -812,8 +768,6 @@
     .range-btns .range-btn { flex: 1; padding: 7px 4px; }
     .ma-badges { width: 100%; }
     .ma-badges .ma-badge { flex: 1; height: 26px; }
-    .ms-signal { padding: 10px 12px; }
-    .ms-message { font-size: 0.84rem; }
     .ms-log-head, .ms-log-list { padding-left: 12px; padding-right: 12px; }
     .mi-strip { grid-template-columns: repeat(2, 1fr); }
     .mi-cell { padding: 10px 12px 8px; }
@@ -848,18 +802,6 @@
         <button type="button" class="mp-btn mp-btn-icon" data-prompt-edit="KOSPI" title="프롬프트 편집">⚙</button>
     </div>
     {% with ind=kospi_indicators analysis=kospi_analysis market_code="KOSPI" %}{% if ind %}
-    {% if ind.signal %}
-    <div class="ms-signal ms-{{ ind.signal.key }}">
-        <div class="ms-headline">
-            <span class="ms-emoji">{{ ind.signal.emoji }}</span>
-            <span class="ms-name">{{ ind.signal.name }}</span>
-            <span class="ms-message">{{ ind.signal.message }}</span>
-            {% help_icon "signal" %}
-        </div>
-        {% if ind.signal.reason %}<div class="ms-reason">{{ ind.signal.reason }}</div>{% endif %}
-        {% if ind.signal.bear_note %}<div class="ms-bear">{{ ind.signal.bear_note }}</div>{% endif %}
-    </div>
-    {% endif %}
     <div class="mi-strip">
         {% for c in ind.cards %}
         <div class="mi-cell mi-{{ c.state }}">
@@ -973,18 +915,6 @@
         <button type="button" class="mp-btn mp-btn-icon" data-prompt-edit="KOSDAQ" title="프롬프트 편집">⚙</button>
     </div>
     {% with ind=kosdaq_indicators analysis=kosdaq_analysis market_code="KOSDAQ" %}{% if ind %}
-    {% if ind.signal %}
-    <div class="ms-signal ms-{{ ind.signal.key }}">
-        <div class="ms-headline">
-            <span class="ms-emoji">{{ ind.signal.emoji }}</span>
-            <span class="ms-name">{{ ind.signal.name }}</span>
-            <span class="ms-message">{{ ind.signal.message }}</span>
-            {% help_icon "signal" %}
-        </div>
-        {% if ind.signal.reason %}<div class="ms-reason">{{ ind.signal.reason }}</div>{% endif %}
-        {% if ind.signal.bear_note %}<div class="ms-bear">{{ ind.signal.bear_note }}</div>{% endif %}
-    </div>
-    {% endif %}
     <div class="mi-strip">
         {% for c in ind.cards %}
         <div class="mi-cell mi-{{ c.state }}">
