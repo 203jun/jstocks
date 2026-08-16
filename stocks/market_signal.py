@@ -538,3 +538,74 @@ def _build_events(series, today, limit=5):
                 events.append({'date': date, 'text': text, 'ago': (today - date).days})
     events.sort(key=lambda e: e['date'], reverse=True)
     return events[:limit]
+
+
+# --------------------------------------------------------------------- #
+# AI 프롬프트용 텍스트
+# --------------------------------------------------------------------- #
+
+def _prompt_table(panel):
+    """카드 4개를 프롬프트에 붙일 표로. 화면과 같은 값을 그대로 쓴다."""
+    if not panel:
+        return '(데이터 없음)'
+    lines = []
+    for c in panel['cards']:
+        badge = c['badge'] + (f" {c['streak']}" if c['streak'] else '')
+        lines.append(f"- {c['label']}: {c['value']}"
+                     + (f" ({c['delta']})" if c['delta'] else '')
+                     + f" · {badge}")
+    return '\n'.join(lines)
+
+
+def _prompt_events(panel):
+    if not panel or not panel['events']:
+        return f'- 최근 {EVENT_MIN_DAYS}거래일 이상 유지된 상태 변화 없음'
+    return '\n'.join(
+        f"- {e['date']:%m/%d} {e['text']} ({e['ago']}일 전)" for e in panel['events']
+    )
+
+
+def _prompt_reading_guide():
+    """
+    화면에는 안 보이지만 값을 읽을 때 반드시 알아야 하는 규칙들.
+
+    AI 가 이걸 모르면 엉뚱하게 읽는다 — 코스닥 이격도 106 을 코스피 기준(105)으로
+    과열이라 하거나, 200일선 백분위 상위 7% 를 과열 신호로 잡거나, 어제 생긴
+    전환이 로그에 없다고 "변화 없음"으로 단정한다.
+
+    임계값이 바뀌면 문구도 같이 바뀌도록 상수에서 만들어 쓴다.
+    """
+    kospi_low, kospi_high = DISPARITY_THRESHOLDS['KOSPI']
+    kosdaq_low, kosdaq_high = DISPARITY_THRESHOLDS['KOSDAQ']
+    adr_low, adr_high = ADR_THRESHOLDS
+    return '\n'.join([
+        f'- 이격도 임계값은 시장마다 다르다. 코스피 {kospi_low:g}/{kospi_high:g}, '
+        f'코스닥 {kosdaq_low:g}/{kosdaq_high:g} — 코스닥이 더 크게 흔들려서다.',
+        f'- ADR 은 등락비율이다. {adr_low:g} 이하 바닥권, {adr_high:g} 이상 과열.',
+        '- 외국인 20일 누적은 최근 20거래일 순매수 합계(억원)다.',
+        f'- 괄호 안 백분위는 최근 {PERCENTILE_WINDOW}거래일 중 위치다. '
+        f'"상위 2%" 는 2년 가까이 그만큼밖에 없던 자리라는 뜻이다.',
+        '- 단 200일선 대비 백분위는 예외다. 추세 시계열이라 상승장에서는 계속 '
+        '상단에 붙어 있다(관측 75~78%). 과열 신호로 읽지 마라.',
+        f'- 상태 변화 로그는 새 상태가 {EVENT_MIN_DAYS}거래일 이상 유지돼야 올라온다. '
+        f'최근 1~2일 안에 생긴 전환은 아직 안 보일 수 있다.',
+        '- 이 지표들은 시장 전체 판단용이다. 개별 종목의 좋고 나쁨은 말해주지 않는다.',
+    ])
+
+
+def build_prompt_vars(panels, today):
+    """
+    {변수} -> 채워 넣을 값. 화면(JS)이 이 사전으로 치환한다.
+
+    panels: {'KOSPI': panel, 'KOSDAQ': panel}
+    """
+    dates = [p['date'] for p in panels.values() if p]
+    return {
+        '{오늘날짜}': today.strftime('%Y-%m-%d'),
+        '{기준일}': max(dates).strftime('%Y-%m-%d') if dates else '(없음)',
+        '{코스피지표}': _prompt_table(panels.get('KOSPI')),
+        '{코스닥지표}': _prompt_table(panels.get('KOSDAQ')),
+        '{코스피변화}': _prompt_events(panels.get('KOSPI')),
+        '{코스닥변화}': _prompt_events(panels.get('KOSDAQ')),
+        '{읽는법}': _prompt_reading_guide(),
+    }

@@ -235,6 +235,77 @@
 }
 .dd-tag.dd-hot { background: rgba(220, 53, 69, 0.14); color: var(--up-color); }
 .dd-tag.dd-cold { background: rgba(41, 98, 255, 0.14); color: var(--down-color); }
+/* AI 프롬프트 버튼 */
+.mp-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.mp-actions { display: flex; gap: 6px; }
+.mp-btn {
+    padding: 5px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.mp-btn:hover { color: var(--text-primary); border-color: var(--text-muted); }
+.mp-btn-icon { padding: 5px 9px; }
+
+/* 프롬프트 편집 */
+.mp-vars {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 8px;
+}
+.mp-var {
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    font-family: inherit;
+    cursor: pointer;
+}
+.mp-var:hover { color: var(--text-primary); }
+.mp-var small { color: var(--text-muted); margin-left: 4px; }
+#mpText {
+    width: 100%;
+    min-height: 320px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    line-height: 1.6;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    resize: vertical;
+}
+.mp-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+.mp-foot .mp-msg { margin-left: auto; font-size: 0.74rem; color: var(--text-muted); }
+.mp-save {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 8px;
+    background: var(--up-color);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
 .dd-caution {
     margin-top: 8px;
     padding: 8px 10px;
@@ -667,7 +738,13 @@
 
 {% block content %}
 <!-- 차트 -->
-<h5 class="section-heading" style="margin-top: 0;">차트</h5>
+<div class="mp-bar">
+    <h5 class="section-heading" style="margin: 0;">차트</h5>
+    <div class="mp-actions">
+        <button type="button" class="mp-btn" id="mpCopy">AI 프롬프트 복사</button>
+        <button type="button" class="mp-btn mp-btn-icon" id="mpEdit" title="프롬프트 편집">⚙</button>
+    </div>
+</div>
 
 <!-- KOSPI -->
 <div class="hero-card">
@@ -909,6 +986,30 @@
         <div class="td-note" id="bdNote"></div>
     </div>
 </div>
+
+<!-- AI 프롬프트 편집 -->
+<div class="modal-overlay" id="promptEditModal">
+    <div class="modal-box" style="max-width:680px;">
+        <div class="modal-header-custom">
+            <h6>AI 프롬프트</h6>
+            <button type="button" class="modal-close-btn" id="mpClose">&times;</button>
+        </div>
+        <div class="mp-vars">
+            {% for name, desc in market_prompt_help %}
+            <button type="button" class="mp-var" data-var="{{ name }}" title="누르면 커서 위치에 넣습니다">{{ name }}<small>{{ desc }}</small></button>
+            {% endfor %}
+        </div>
+        <textarea id="mpText" spellcheck="false"></textarea>
+        <div class="mp-foot">
+            <button type="button" class="mp-save" id="mpSave">저장</button>
+            <button type="button" class="mp-btn" id="mpReset">기본값으로</button>
+            <span class="mp-msg" id="mpMsg"></span>
+        </div>
+    </div>
+</div>
+
+{# 사용자가 고치는 텍스트라 템플릿 리터럴에 직접 넣지 않는다 (${...} 가 해석된다) #}
+{{ market_prompt|json_script:"mpTemplateData" }}
 
 {% endblock %}
 
@@ -1381,6 +1482,106 @@ document.querySelectorAll('.mi-clickable').forEach(cell => {
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && modal.classList.contains('show')) close();
     });
+});
+
+// ===== AI 프롬프트 =====
+// 기본 템플릿은 코드(stocks/prompts.py)에, 고친 값은 SystemSetting 에. 편집은 이 화면에서.
+const PROMPT_KEY = '{{ market_prompt_key }}';
+const PROMPT_VARS = {{ market_prompt_vars|safe }};
+const promptModal = document.getElementById('promptEditModal');
+const promptText = document.getElementById('mpText');
+const promptMsg = document.getElementById('mpMsg');
+let promptTemplate = JSON.parse(document.getElementById('mpTemplateData').textContent);
+
+function fillPrompt(template) {
+    // 변수명에 정규식 특수문자({})가 있어 split/join 으로 바꾼다
+    return Object.entries(PROMPT_VARS).reduce(
+        (text, [name, value]) => text.split(name).join(value), template);
+}
+
+async function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+    }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+}
+
+document.getElementById('mpCopy').addEventListener('click', async function () {
+    try {
+        await copyText(fillPrompt(promptTemplate));
+        const orig = this.textContent;
+        this.textContent = '복사됨!';
+        setTimeout(() => { this.textContent = orig; }, 1500);
+    } catch (err) {
+        alert('복사 실패: ' + err.message);
+    }
+});
+
+document.getElementById('mpEdit').addEventListener('click', () => {
+    promptText.value = promptTemplate;
+    promptMsg.textContent = '';
+    promptModal.classList.add('show');
+});
+
+function closePromptEdit() { promptModal.classList.remove('show'); }
+
+// 변수 칩을 누르면 커서 위치에 끼워 넣는다
+document.querySelectorAll('.mp-var').forEach(chip => {
+    chip.addEventListener('click', () => {
+        const name = chip.dataset.var;
+        const start = promptText.selectionStart, end = promptText.selectionEnd;
+        promptText.value = promptText.value.slice(0, start) + name + promptText.value.slice(end);
+        promptText.focus();
+        promptText.selectionStart = promptText.selectionEnd = start + name.length;
+    });
+});
+
+async function savePrompt(value, message) {
+    const body = new URLSearchParams({ key: PROMPT_KEY, value: value });
+    const res = await fetch('/api/setting/save/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: body,
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || '저장 실패');
+    promptMsg.textContent = message;
+}
+
+document.getElementById('mpSave').addEventListener('click', async () => {
+    try {
+        await savePrompt(promptText.value, '저장했습니다');
+        promptTemplate = promptText.value;
+    } catch (err) {
+        promptMsg.textContent = err.message;
+    }
+});
+
+document.getElementById('mpReset').addEventListener('click', async () => {
+    if (!confirm('고친 내용을 지우고 코드에 있는 기본 프롬프트로 되돌립니다.')) return;
+    try {
+        // 빈 값으로 저장하면 서버가 코드 기본값을 쓴다
+        await savePrompt('', '기본값으로 되돌렸습니다. 새로고침하면 반영됩니다');
+    } catch (err) {
+        promptMsg.textContent = err.message;
+    }
+});
+
+document.getElementById('mpClose').addEventListener('click', closePromptEdit);
+promptModal.addEventListener('click', e => { if (e.target === promptModal) closePromptEdit(); });
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && promptModal.classList.contains('show')) closePromptEdit();
 });
 
 // 최근 변화 로그 펼치기
