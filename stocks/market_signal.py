@@ -234,9 +234,13 @@ def build_market_panel(market):
         'cards': cards,
         'events': _build_events(series, date),
         'samples': samples,
-        'disparity_detail': _build_disparity_detail(
-            rows, (dis_low, dis_high), disparity_pct, samples['disparity'], streaks
-        ),
+        # 카드 팝업 (JS 가 채운다). 카드의 action 키와 이름을 맞춰 둔다.
+        'details': {
+            'disparity-detail': _disparity_detail(
+                rows, (dis_low, dis_high), disparity_pct, samples['disparity'], streaks
+            ),
+            'ma200-detail': _ma200_detail(rows, gap_pct, samples['ma200'], streaks),
+        },
     }
 
 
@@ -326,7 +330,8 @@ def _build_cards(disparity, adr, foreign, gap, disparity_pct, foreign_pct, gap_p
                            _percentile_text(gap_pct, samples['ma200']),
                            state, badge,
                            _streak_text(streaks, 'ma200'),
-                           _zero_gauge(gap, gap_span)))
+                           _zero_gauge(gap, gap_span),
+                           action='ma200-detail'))
 
     return cards
 
@@ -352,42 +357,53 @@ def _episodes(seq, in_band, pick):
     return out
 
 
-def _build_disparity_detail(rows, dis_th, disparity_pct, sample, streaks):
+def _build_band_detail(seq, title, streak, pct, sample, bands, fmt,
+                       marks, shade=None, caution=''):
     """
-    이격도 카드 팝업.
+    지표 카드 팝업의 공용 뼈대 (이격도 · 200일선).
 
-    "111.78" 만으로는 아무 느낌이 없다. 세 가지를 붙여야 읽힌다.
+    값 하나만으로는 아무 느낌이 없는 지표들이라 세 가지를 붙인다.
       1. 분포 위치 — 최근 250일 중 이보다 높았던 날이 몇 일인가
       2. 지속성   — 지금 구간이 며칠째이고, 과거엔 보통 며칠 갔나
-      3. 추이     — 최근 120일 그림 (임계선 두 개와 함께)
+      3. 추이     — 최근 120일 그림 (임계선과 함께)
 
     2번은 수익률 예측이 아니라 지속 기간 통계다. 이력이 2년 반뿐이라
     "이랬을 때 20일 뒤 수익률" 같은 건 표본이 사실상 에피소드 1~2개라
     쓰지 않는다 (상승확률 93% 같은 숫자가 나와 오히려 부추긴다).
+
+    인자:
+      seq    : [(date, value)] 오래된 것부터, None 제거된 상태
+      streak : (상태키, 일수) — 카드 배지와 같은 값
+      bands  : [(키, 라벨, 규칙설명, 판정함수, 극값선택함수)]
+      fmt    : 값 포맷 함수
+      marks  : 스파크라인에 그을 임계선 [{'v':, 'color':, 'label':}]
+      shade  : 옅게 칠할 구간 {'from':, 'to':} 또는 None
+      caution: 백분위를 곧이곧대로 읽으면 안 되는 지표의 경고문
     """
-    low, high = dis_th
-    seq = [(r[0], r[1]) for r in rows if r[1] is not None]
     if not seq:
         return None
 
     value = seq[-1][1]
     window = seq[-PERCENTILE_WINDOW:]
+    state, streak_days = streak
 
-    state, streak_days, _ = streaks['disparity']
-    bands = [
-        ('hot', '과열', f'≥ {high:g}', _episodes(seq, lambda v: v >= high, max)),
-        ('cold', '침체', f'≤ {low:g}', _episodes(seq, lambda v: v <= low, min)),
-    ]
-
-    stats, recent = [], []
-    for key, label, rule, eps in bands:
-        # 진행 중인 구간은 길이가 잘려 있어 평균/최장을 왜곡한다. 통계는 끝난 것만.
+    stats, recent, labels = [], [], {}
+    for key, label, rule, test, pick in bands:
+        labels[key] = label
+        eps = _episodes(seq, test, pick)
+        # 진행 중인 구간은 길이가 잘려 있어 '평균'에서만 뺀다.
+        # 최장까지 빼면 오독이 심해진다 — 200일선 위 국면이 235일째인데 끝난 것만
+        # 세면 "평균 8일, 최장 9일"이 되어 오래 못 가는 상태처럼 읽힌다.
+        # 진행 중인 구간은 최소한 그만큼은 갔다는 뜻이므로 최장에는 넣고 + 를 붙인다.
         closed = [e for e in eps if not e.get('open')]
+        ongoing = next((e for e in eps if e.get('open')), None)
+        longest = max((e['days'] for e in eps), default=0)
         stats.append({
             'key': key, 'label': label, 'rule': rule,
-            'count': len(closed),
+            'count': len(eps),
             'avg': round(sum(e['days'] for e in closed) / len(closed)) if closed else 0,
-            'max': max((e['days'] for e in closed), default=0),
+            'max': longest,
+            'max_open': bool(ongoing and ongoing['days'] == longest),
         })
         for e in eps:
             recent.append({**e, 'key': key, 'label': label})
@@ -395,14 +411,17 @@ def _build_disparity_detail(rows, dis_th, disparity_pct, sample, streaks):
     recent.sort(key=lambda e: e['to'], reverse=True)
 
     return {
-        'value': f'{value:,.2f}',
-        'pct_text': _percentile_text(disparity_pct, sample),
+        'title': title,
+        'value': fmt(value),
+        'pct_text': _percentile_text(pct, sample),
         'above': sum(1 for _, v in window if v > value),
         'sample': len(window),
         'state': state,
-        'state_label': {'hot': '과열', 'cold': '침체'}.get(state, '중립'),
+        'state_label': labels.get(state, '중립'),
         'streak': streak_days,
-        'low': float(low), 'high': float(high),
+        'caution': caution,
+        'marks': marks,
+        'shade': shade,
         'stats': stats,
         'recent': [
             {
@@ -410,7 +429,7 @@ def _build_disparity_detail(rows, dis_th, disparity_pct, sample, streaks):
                 'from': e['from'].strftime('%y.%m.%d'),
                 'to': '진행 중' if e.get('open') else e['to'].strftime('%y.%m.%d'),
                 'days': e['days'],
-                'peak': f'{e["peak"]:,.2f}',
+                'peak': fmt(e['peak']),
             }
             for e in recent[:DETAIL_EPISODE_LIMIT]
         ],
@@ -424,6 +443,45 @@ def _build_disparity_detail(rows, dis_th, disparity_pct, sample, streaks):
             'days': len(seq),
         },
     }
+
+
+def _disparity_detail(rows, dis_th, pct, sample, streaks):
+    low, high = dis_th
+    state, days, _ = streaks['disparity']
+    return _build_band_detail(
+        seq=[(r[0], r[1]) for r in rows if r[1] is not None],
+        title='이격도 (20일)',
+        streak=(state, days),
+        pct=pct, sample=sample,
+        bands=[
+            ('hot', '과열', f'≥ {high:g}', lambda v: v >= high, max),
+            ('cold', '침체', f'≤ {low:g}', lambda v: v <= low, min),
+        ],
+        fmt=lambda v: f'{v:,.2f}',
+        marks=[{'v': float(high), 'color': 'up', 'label': f'{high:g}'},
+               {'v': float(low), 'color': 'down', 'label': f'{low:g}'}],
+        shade={'from': float(low), 'to': float(high)},
+    )
+
+
+def _ma200_detail(rows, pct, sample, streaks):
+    state, days, _ = streaks['ma200']
+    return _build_band_detail(
+        seq=[(r[0], r[4]) for r in rows if r[4] is not None],
+        title='200일선 대비',
+        # 카드와 같은 부호 상태를 쓰되, 색은 이격도와 통일한다 (위=빨강, 아래=파랑)
+        streak=({'plus': 'hot', 'minus': 'cold'}.get(state, state), days),
+        pct=pct, sample=sample,
+        bands=[
+            # '< 0%' 처럼 꺾쇠를 쓰면 innerHTML 에서 태그 시작으로 읽힐 수 있다
+            ('hot', '위', '0% 초과', lambda v: v > 0, max),
+            ('cold', '아래', '0% 미만', lambda v: v < 0, min),
+        ],
+        fmt=lambda v: f'{v:+,.2f}%',
+        marks=[{'v': 0.0, 'color': 'zero', 'label': '0%'}],
+        caution='200일선 이격은 추세 시계열이라 상승장에서는 백분위가 계속 '
+                '상단에 붙어 있습니다(관측 75~78%). 과열 신호로 읽지 마세요.',
+    )
 
 
 def _build_signal(streaks, series):
