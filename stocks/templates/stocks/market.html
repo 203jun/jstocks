@@ -1215,6 +1215,22 @@ const CANDLE_MARGINS = { top: 0.04, bottom: 0.42 };
 const VOLUME_MARGINS = { top: 0.47, bottom: 0.42 };
 const TREND_MARGINS  = { top: 0.66, bottom: 0.02 };
 
+// 좁은 화면에서는 세 칸(캔들·거래량·누적)이 340px 안에서 서로 눌린다.
+// 거래량을 빼고 나머지 둘에 그 자리를 나눠 준다.
+const NARROW_CANDLE_MARGINS = { top: 0.04, bottom: 0.44 };
+const NARROW_TREND_MARGINS  = { top: 0.60, bottom: 0.02 };
+
+// 화면 폭에 따른 선택은 최초 1회만 한다. 캔들과 선을 오가려면 시리즈를 다시
+// 만들어야 하는데, 이 차트는 재생성하면 오버레이 축 시리즈가 살아나지 않는다.
+const NARROW = isNarrowScreen();
+const candleMargins = NARROW ? NARROW_CANDLE_MARGINS : CANDLE_MARGINS;
+const trendMargins = NARROW ? NARROW_TREND_MARGINS : TREND_MARGINS;
+// 기본 기간. 120일 캔들을 350px 폭에 밀어 넣으면 한 봉이 2~3px 라 형태가 안 보인다.
+const DEFAULT_RANGE = NARROW ? 60 : 120;
+// 종가선 색. 이평선(20 주황 / 60 파랑 / 200 무채색)과도, 누적 순매수(보라·호박)
+// 와도 겹치지 않는 청록으로 둔다. 캔들을 그대로 쓰고 싶으면 NARROW 를 false 로.
+const CLOSE_LINE_COLOR = isDarkTheme ? '#2dd4bf' : '#0d9488';
+
 // 이평선 색은 사이트 전체에서 숫자에 고정한다 (10 초록 / 20 주황 / 60 파랑 / 120·200·12 무채색).
 // 20과 60은 색상환 정반대(주황/파랑)에 둬야 얇은 선에서도 확실히 갈린다.
 // 200(지수)·12(월봉)는 그 차트의 유일한 레짐 기준선이라 테마를 따르는 무채색.
@@ -1267,10 +1283,18 @@ function createIndexChart(chartKey) {
     const chart = LightweightCharts.createChart(container, {
         ...chartOptions,
         height: container.clientHeight || 420,
-        rightPriceScale: { visible: true, borderColor: chartBorderColor, scaleMargins: CANDLE_MARGINS },
+        rightPriceScale: { visible: true, borderColor: chartBorderColor, scaleMargins: candleMargins },
     });
 
+    // 캔들과 종가선을 둘 다 만들어 두고 하나만 보여준다.
+    // 좁은 화면에서 시가·고가·저가는 어차피 안 읽히고 선이 추세를 더 잘 보여준다.
     const candleSeries = chart.addCandlestickSeries({ ...candleColors, priceScaleId: 'right' });
+    const closeSeries = chart.addLineSeries({
+        color: CLOSE_LINE_COLOR, lineWidth: 2, priceScaleId: 'right',
+        priceLineVisible: false, crosshairMarkerVisible: false,
+    });
+    candleSeries.applyOptions({ visible: !NARROW });
+    closeSeries.applyOptions({ visible: NARROW, lastValueVisible: NARROW });
 
     maSeries[chartKey] = {};
     for (const [period, cfg] of Object.entries(maConfig)) {
@@ -1285,6 +1309,7 @@ function createIndexChart(chartKey) {
         priceLineVisible: false, lastValueVisible: false,
     });
     volumeSeries.priceScale().applyOptions({ scaleMargins: VOLUME_MARGINS });
+    volumeSeries.applyOptions({ visible: !NARROW });
 
     // 거래량과 같은 오버레이 축을 쓴다. 왼쪽 축('left')에 붙이면 데이터를 갈아끼운 뒤
     // 다시 그려지지 않아, 기간을 한 번 바꾸면 선이 사라진다.
@@ -1303,10 +1328,10 @@ function createIndexChart(chartKey) {
         priceScaleId: 'trend', priceFormat: trendPriceFormat,
         priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
     });
-    foreignSeries.priceScale().applyOptions({ scaleMargins: TREND_MARGINS });
+    foreignSeries.priceScale().applyOptions({ scaleMargins: trendMargins });
 
     const state = {
-        chart, container, candleSeries, volumeSeries,
+        chart, container, candleSeries, closeSeries, volumeSeries,
         foreignSeries, institutionSeries, zeroSeries,
         candleByTime: {}, trendByTime: {},
     };
@@ -1332,8 +1357,13 @@ function applyRange(chartKey, days) {
     const sliced = full.slice(-days);
     const slicedVolume = volumeData[chartKey].slice(-days).map(d => ({ ...d, time: timeToStr(d.time) }));
     const fromTime = sliced[0].time;
+    // setData 는 넘긴 객체의 time 을 {year,month,day} 로 바꿔 놓는다.
+    // 뒤에서 조회표 키로 쓸 날짜 문자열을 미리 떠 둔다 (안 그러면 키가 전부
+    // "[object Object]" 로 뭉개져 툴팁이 아무 날짜도 못 찾는다).
+    const times = sliced.map(d => d.time);
 
     state.candleSeries.setData(sliced);
+    state.closeSeries.setData(times.map((t, i) => ({ time: t, value: sliced[i].close })));
     // 이평선은 전체 이력으로 계산한 뒤 보이는 구간만 잘라 넘긴다.
     // 잘린 구간만으로 계산하면 20일 화면에서 60·120일선이 아예 안 나온다.
     for (const period of Object.keys(maConfig)) {
@@ -1354,13 +1384,15 @@ function applyRange(chartKey, days) {
     // 오버레이 축은 setData만으로 가격 범위를 다시 잡지 않는다. 최초 렌더가 멀쩡했던 건
     // ResizeObserver가 observe() 직후 한 번 발화하며 레이아웃을 다시 태웠기 때문이고,
     // 기간을 바꿀 때는 그 계기가 없어 선이 옛 범위에 갇힌 채 화면 밖으로 나간다.
-    state.foreignSeries.priceScale().applyOptions({ scaleMargins: TREND_MARGINS, autoScale: true });
+    state.foreignSeries.priceScale().applyOptions({ scaleMargins: trendMargins, autoScale: true });
     state.volumeSeries.priceScale().applyOptions({ scaleMargins: VOLUME_MARGINS, autoScale: true });
 
     // 툴팁이 참조하는 조회표도 같이 갱신
     state.candleByTime = {};
     sliced.forEach((d, i) => {
-        state.candleByTime[d.time] = { ...d, prevClose: i > 0 ? sliced[i - 1].close : null };
+        state.candleByTime[times[i]] = {
+            ...d, time: times[i], prevClose: i > 0 ? sliced[i - 1].close : null,
+        };
     });
     state.trendByTime = {};
     cumulative.forEach(d => { state.trendByTime[d.time] = d; });
@@ -1473,7 +1505,11 @@ function attachTooltip(chartKey, state) {
 
 ['kospi', 'kosdaq'].forEach(k => {
     charts[k] = createIndexChart(k);
-    applyRange(k, 120);
+    applyRange(k, DEFAULT_RANGE);
+    // 눌린 버튼도 실제 기간에 맞춘다
+    document.querySelectorAll(`.range-btns[data-chart="${k}"] .range-btn`).forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.days) === DEFAULT_RANGE);
+    });
 });
 
 // ===== 지표 카드 클릭 =====
@@ -1903,7 +1939,7 @@ document.querySelectorAll('.btn-refresh-trend').forEach(btn => {
             if (data.success) {
                 rawTrends[chartKey] = data.chart_data;
                 const active = document.querySelector(`.range-btns[data-chart="${chartKey}"] .range-btn.active`);
-                applyRange(chartKey, parseInt(active ? active.dataset.days : 120));
+                applyRange(chartKey, parseInt(active ? active.dataset.days : DEFAULT_RANGE));
             } else {
                 alert(data.error || '업데이트 실패');
             }
