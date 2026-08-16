@@ -14,7 +14,7 @@ from django.views.decorators.http import require_POST
 from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Nodaji, Gongsi, IndexChart, MarketTrend, InvestorTrend, ShortSelling, MarketDiary, StockDiary, StockEvent, SectorEvent, ETFEvent, DailyTrade
 from .market_signal import build_market_panel, build_prompt_vars
 from .prompts import (
-    MARKET_SIGNAL_DEFAULT, MARKET_SIGNAL_KEY, MARKET_SIGNAL_VARIABLES, get_prompt,
+    MARKET_SIGNAL_DEFAULT, MARKET_SIGNAL_KEYS, MARKET_SIGNAL_VARIABLES, get_prompt,
 )
 
 import unicodedata
@@ -2732,10 +2732,17 @@ def market(request):
     def detail_json(panel):
         return json.dumps((panel or {}).get('details') or {})
 
-    # AI 프롬프트 — 저장된 것이 있으면 그것, 없으면 코드 기본값
-    prompt_vars = build_prompt_vars(
-        {'KOSPI': kospi_panel, 'KOSDAQ': kosdaq_panel}, datetime.now().date()
-    )
+    # AI 프롬프트 — 코스피/코스닥이 각자 따로 쓴다.
+    # 저장된 것이 있으면 그것, 없으면 코드 기본값.
+    today = datetime.now().date()
+    market_prompts = {
+        market: {
+            'key': MARKET_SIGNAL_KEYS[market],
+            'template': get_prompt(MARKET_SIGNAL_KEYS[market], MARKET_SIGNAL_DEFAULT),
+            'vars': build_prompt_vars(market, panel, today),
+        }
+        for market, panel in (('KOSPI', kospi_panel), ('KOSDAQ', kosdaq_panel))
+    }
 
     context = {
         'kospi_candle_data': json.dumps(kospi_candle_data),
@@ -2760,9 +2767,7 @@ def market(request):
         'kosdaq_indicators': kosdaq_panel,
         'kospi_card_details': detail_json(kospi_panel),
         'kosdaq_card_details': detail_json(kosdaq_panel),
-        'market_prompt': get_prompt(MARKET_SIGNAL_KEY, MARKET_SIGNAL_DEFAULT),
-        'market_prompt_key': MARKET_SIGNAL_KEY,
-        'market_prompt_vars': json.dumps(prompt_vars, ensure_ascii=False),
+        'market_prompts': market_prompts,
         'market_prompt_help': MARKET_SIGNAL_VARIABLES,
     }
     return render(request, 'stocks/market.html', context)

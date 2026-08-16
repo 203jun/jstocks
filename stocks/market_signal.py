@@ -565,7 +565,17 @@ def _prompt_events(panel):
     )
 
 
-def _prompt_reading_guide():
+MARKET_NAMES = {'KOSPI': '코스피', 'KOSDAQ': '코스닥'}
+
+
+def _with_particle(word, with_batchim, without_batchim):
+    """받침 유무로 조사를 고른다 (코스피는 / 코스닥은)"""
+    last = word[-1]
+    has_batchim = '가' <= last <= '힣' and (ord(last) - 0xAC00) % 28
+    return word + (with_batchim if has_batchim else without_batchim)
+
+
+def _prompt_reading_guide(market):
     """
     화면에는 안 보이지만 값을 읽을 때 반드시 알아야 하는 규칙들.
 
@@ -574,13 +584,17 @@ def _prompt_reading_guide():
     전환이 로그에 없다고 "변화 없음"으로 단정한다.
 
     임계값이 바뀌면 문구도 같이 바뀌도록 상수에서 만들어 쓴다.
+    시장마다 프롬프트가 따로라 그 시장 임계값만 적는다.
     """
-    kospi_low, kospi_high = DISPARITY_THRESHOLDS['KOSPI']
-    kosdaq_low, kosdaq_high = DISPARITY_THRESHOLDS['KOSDAQ']
+    name = MARKET_NAMES.get(market, market)
+    low, high = DISPARITY_THRESHOLDS.get(market, DISPARITY_THRESHOLDS['KOSPI'])
     adr_low, adr_high = ADR_THRESHOLDS
+    other = 'KOSDAQ' if market == 'KOSPI' else 'KOSPI'
+    other_low, other_high = DISPARITY_THRESHOLDS[other]
     return '\n'.join([
-        f'- 이격도 임계값은 시장마다 다르다. 코스피 {kospi_low:g}/{kospi_high:g}, '
-        f'코스닥 {kosdaq_low:g}/{kosdaq_high:g} — 코스닥이 더 크게 흔들려서다.',
+        f'- 이격도 임계값은 {name} 기준 {low:g}/{high:g} 다. 시장마다 다르며 '
+        f'{_with_particle(MARKET_NAMES[other], "은", "는")} {other_low:g}/{other_high:g} 다'
+        f' — 코스닥이 더 크게 흔들려서다.',
         f'- ADR 은 등락비율이다. {adr_low:g} 이하 바닥권, {adr_high:g} 이상 과열.',
         '- 외국인 20일 누적은 최근 20거래일 순매수 합계(억원)다.',
         f'- 괄호 안 백분위는 최근 {PERCENTILE_WINDOW}거래일 중 위치다. '
@@ -589,23 +603,20 @@ def _prompt_reading_guide():
         '상단에 붙어 있다(관측 75~78%). 과열 신호로 읽지 마라.',
         f'- 상태 변화 로그는 새 상태가 {EVENT_MIN_DAYS}거래일 이상 유지돼야 올라온다. '
         f'최근 1~2일 안에 생긴 전환은 아직 안 보일 수 있다.',
-        '- 이 지표들은 시장 전체 판단용이다. 개별 종목의 좋고 나쁨은 말해주지 않는다.',
+        f'- 이 지표들은 {name} 전체 판단용이다. 개별 종목의 좋고 나쁨은 말해주지 않는다.',
     ])
 
 
-def build_prompt_vars(panels, today):
+def build_prompt_vars(market, panel, today):
     """
     {변수} -> 채워 넣을 값. 화면(JS)이 이 사전으로 치환한다.
-
-    panels: {'KOSPI': panel, 'KOSDAQ': panel}
+    코스피/코스닥이 각자 다른 프롬프트를 쓰므로 시장 하나짜리로 만든다.
     """
-    dates = [p['date'] for p in panels.values() if p]
     return {
+        '{시장}': MARKET_NAMES.get(market, market),
         '{오늘날짜}': today.strftime('%Y-%m-%d'),
-        '{기준일}': max(dates).strftime('%Y-%m-%d') if dates else '(없음)',
-        '{코스피지표}': _prompt_table(panels.get('KOSPI')),
-        '{코스닥지표}': _prompt_table(panels.get('KOSDAQ')),
-        '{코스피변화}': _prompt_events(panels.get('KOSPI')),
-        '{코스닥변화}': _prompt_events(panels.get('KOSDAQ')),
-        '{읽는법}': _prompt_reading_guide(),
+        '{기준일}': panel['date'].strftime('%Y-%m-%d') if panel else '(없음)',
+        '{지표}': _prompt_table(panel),
+        '{상태변화}': _prompt_events(panel),
+        '{읽는법}': _prompt_reading_guide(market),
     }
