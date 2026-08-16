@@ -521,22 +521,6 @@
     margin-bottom: 8px;
 }
 .range-btns, .ma-badges { display: flex; gap: 4px; }
-/* 선택한 기간의 고점·저점 대비 — 지금 위치가 그 구간 어디쯤인지 */
-.range-stat {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 14px;
-    margin: 2px 0 6px;
-    font-size: 0.74rem;
-    color: var(--text-muted);
-}
-.range-stat b {
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    margin-left: 4px;
-}
-.range-stat .rs-level { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
-
 .chart-legend {
     display: flex;
     align-items: center;
@@ -934,7 +918,6 @@
                 <span class="ma-badge ma-toggle active ma-regime" data-ma="200" data-chart="kospi">200</span>
             </div>
         </div>
-        <div class="range-stat" id="kospiRangeStat"></div>
         <div class="chart-legend">
             <span class="chart-legend-item"><i style="background:#8b5cf6;"></i>외국인 <b class="chart-legend-val" id="kospiForeignVal"></b></span>
             <span class="chart-legend-item"><i style="background:#f59e0b;"></i>기관 <b class="chart-legend-val" id="kospiInstVal"></b></span>
@@ -1048,7 +1031,6 @@
                 <span class="ma-badge ma-toggle active ma-regime" data-ma="200" data-chart="kosdaq">200</span>
             </div>
         </div>
-        <div class="range-stat" id="kosdaqRangeStat"></div>
         <div class="chart-legend">
             <span class="chart-legend-item"><i style="background:#8b5cf6;"></i>외국인 <b class="chart-legend-val" id="kosdaqForeignVal"></b></span>
             <span class="chart-legend-item"><i style="background:#f59e0b;"></i>기관 <b class="chart-legend-val" id="kosdaqInstVal"></b></span>
@@ -1330,7 +1312,7 @@ function createIndexChart(chartKey) {
     const state = {
         chart, container, candleSeries, volumeSeries,
         foreignSeries, institutionSeries, zeroSeries,
-        candleByTime: {}, trendByTime: {},
+        candleByTime: {}, trendByTime: {}, priceLines: [],
     };
 
     attachTooltip(chartKey, state);
@@ -1393,24 +1375,30 @@ function applyRange(chartKey, days) {
     state.trendByTime = {};
     cumulative.forEach(d => { state.trendByTime[d.time] = d; });
 
-    // 고른 기간의 고점·저점 대비 — "지금이 이 구간 어디쯤인가"
+    // 고른 기간의 고점·저점을 가격선으로 긋는다. 캔들만 봐서는 "이번 고점에서
+    // 얼마나 빠졌나"가 눈대중이 되므로 선 이름에 현재가 대비 %를 적는다.
     let high = sliced[0].high, low = sliced[0].low, highAt = times[0], lowAt = times[0];
     sliced.forEach((d, i) => {
         if (d.high > high) { high = d.high; highAt = times[i]; }
         if (d.low < low) { low = d.low; lowAt = times[i]; }
     });
     const lastClose = sliced[sliced.length - 1].close;
-    const statEl = document.getElementById(chartKey + 'RangeStat');
-    if (statEl) {
-        const pct = (from) => (lastClose / from - 1) * 100;
-        const md = (t) => t.slice(5).replace('-', '/');
-        const cell = (label, level, at, v) => `
-            <span>${label} <span class="rs-level">${level.toLocaleString('ko-KR',
-                { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            <span class="rs-level">(${md(at)})</span>
-            <b class="${v > 0 ? 'text-up' : v < 0 ? 'text-down' : ''}">${v > 0 ? '+' : ''}${v.toFixed(2)}%</b></span>`;
-        statEl.innerHTML = cell('고점', high, highAt, pct(high)) + cell('저점', low, lowAt, pct(low));
-    }
+    const pct = (from) => {
+        const v = (lastClose / from - 1) * 100;
+        return (v > 0 ? '+' : '') + v.toFixed(2) + '%';
+    };
+    const md = (t) => t.slice(5).replace('-', '/');
+
+    // 기간이 바뀌면 이전 선을 지우고 다시 긋는다
+    state.priceLines.forEach(line => state.candleSeries.removePriceLine(line));
+    state.priceLines = [
+        [high, upColor, `고점 ${md(highAt)} ${pct(high)}`],
+        [low, downColor, `저점 ${md(lowAt)} ${pct(low)}`],
+    ].map(([price, color, title]) => state.candleSeries.createPriceLine({
+        price, color, title,
+        lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed,
+        axisLabelVisible: true,
+    }));
 
     // 오버레이 축이라 눈금 라벨이 없으므로 기간 끝 누적값을 범례에 띄운다
     const noTrend = cumulative.length === 0;
