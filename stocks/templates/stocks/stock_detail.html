@@ -411,7 +411,7 @@
         </h5>
         <div class="d-flex gap-2" style="margin-top:6px;">
             <span class="tag-badge {% if stock.market == 'KOSPI' %}market-kospi{% else %}market-kosdaq{% endif %}">{{ stock.market }}</span>
-            {% if stock.is_holding %}
+            {% if is_holding %}
             <span class="tag-badge holding">보유</span>
             {% endif %}
             {% if stock.is_tracking %}

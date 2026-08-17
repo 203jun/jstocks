@@ -183,7 +183,7 @@
                 <tr onclick="location.href='{% url 'stocks:stock_detail' stock.code %}'">
                     <td style="padding-left: 24px;">
                         <span class="stock-name">{{ stock.name }}</span>
-                        {% if stock.is_holding %}<span class="ms-1" title="보유중">💰</span>{% endif %}
+                        {% if stock.code in holding_codes %}<span class="ms-1" title="보유중">💰</span>{% endif %}
                         {% if stock.is_tracking %}<span class="ms-1" title="추적중">👀</span>{% endif %}
                         <small class="stock-code">{{ stock.code }}</small>
                         <small class="stock-market">{{ stock.market }}</small>

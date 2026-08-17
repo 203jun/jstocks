@@ -861,11 +861,17 @@ def stock_list(request):
 
     stocks = stocks.order_by(sort)[:500]  # 상위 500개만
 
+    # 보유 표시는 자산에서 가져온다 (수동 플래그는 실제와 어긋나기 쉽다)
+    holding_codes = set(
+        Holding.objects.filter(info__isnull=False).values_list('info__code', flat=True)
+    )
+
     context = {
         'stocks': stocks,
         'query': query,
         'market': market,
         'sort': sort,
+        'holding_codes': holding_codes,
     }
     return render(request, 'stocks/stock_list.html', context)
 
@@ -891,6 +897,8 @@ def stock_detail(request, code):
     """종목 상세 페이지"""
     from django.db.models import Q
     stock = get_object_or_404(Info.objects.prefetch_related('themes__category'), code=code)
+    # 보유는 자산에서 판정한다 (Info.is_holding 수동 플래그는 더 이상 쓰지 않는다)
+    is_holding = Holding.objects.filter(info=stock).exists()
 
     # 연간 재무 데이터 (최근 6년)
     annual_financials = list(Financial.objects.filter(
@@ -1609,6 +1617,7 @@ def stock_detail(request, code):
 
     context = {
         'stock': stock,
+        'is_holding': is_holding,
         'holding': holding,
         'sectors': sectors,
         'volume_change_rate': volume_change_rate,
@@ -1812,7 +1821,6 @@ def stock_edit(request, code):
         interest_level = request.POST.get('interest_level', '')
         new_interest_level = interest_level if interest_level else None
         stock.interest_level = new_interest_level
-        stock.is_holding = request.POST.get('is_holding') == 'on'
         stock.is_tracking = request.POST.get('is_tracking') == 'on'
 
         stock.save()
