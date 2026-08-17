@@ -183,9 +183,10 @@
             </thead>
             <tbody>
                 {% for item in status_stocks %}
-                <tr class="status-row" data-level="{{ item.level }}" onclick="if(!event.target.closest('.signal-chart-btn'))location.href='{% url 'stocks:stock_detail' item.stock.code %}'" style="cursor:pointer;">
+                <tr class="status-row" data-level="{{ item.level }}" onclick="if(!event.target.closest('.signal-chart-btn'))location.href='{{ item.detail_url }}'" style="cursor:pointer;">
                     <td style="padding-left:16px;">
                         <strong>{{ item.stock.name }}</strong>
+                        {% if item.is_etf %}<span class="tag-badge" style="font-size:0.6rem;padding:1px 4px;background:var(--bg-secondary);color:var(--text-muted);">ETF</span>{% endif %}
                         {% if item.has_alert %}<button type="button" class="btn-alert-prompt" data-name="{{ item.stock.name }}" data-code="{{ item.stock.code }}" data-price="{{ item.stock.current_price|default:'' }}" data-conditions="{{ item.alert_conditions }}" data-has-perf="{% if item.recent_perf %}1{% endif %}" onclick="event.stopPropagation();" style="font-size:0.6rem;padding:1px 4px;border:1px solid var(--up-color);border-radius:3px;background:none;color:var(--up-color);cursor:pointer;margin-left:3px;vertical-align:middle;font-weight:600;">분석</button><script type="text/plain" class="recent-perf-data" data-code="{{ item.stock.code }}">{{ item.recent_perf }}</script>{% endif %}
                     </td>
                     <td style="text-align:right;">
@@ -206,7 +207,7 @@
                     </td>
                     <td style="text-align:center;font-size:0.78rem;">{% if item.inst_label %}<span style="color:var(--up-color);font-weight:600;">{{ item.inst_label }}</span>{% endif %}</td>
                     <td style="text-align:center;font-size:0.78rem;">{% if item.frgn_label %}<span style="color:var(--up-color);font-weight:600;">{{ item.frgn_label }}</span>{% endif %}</td>
-                    <td style="text-align:center;font-size:0.72rem;" onclick="event.stopPropagation();">{% if item.gongsi_cat %}<a href="{% url 'stocks:stock_detail' item.stock.code %}?tab=disclosure" style="text-decoration:none;font-weight:600;{% if item.gongsi_cat == '악재' %}color:var(--down-color);{% elif item.gongsi_cat == '호재' %}color:var(--up-color);{% else %}color:var(--text-secondary);{% endif %}" title="{{ item.gongsi_title }}">{{ item.gongsi_cat }}</a>{% endif %}</td>
+                    <td style="text-align:center;font-size:0.72rem;" onclick="event.stopPropagation();">{% if item.gongsi_cat %}<a href="{{ item.detail_url }}?tab=disclosure" style="text-decoration:none;font-weight:600;{% if item.gongsi_cat == '악재' %}color:var(--down-color);{% elif item.gongsi_cat == '호재' %}color:var(--up-color);{% else %}color:var(--text-secondary);{% endif %}" title="{{ item.gongsi_title }}">{{ item.gongsi_cat }}</a>{% endif %}</td>
                     <td style="text-align:center;">{% if item.has_report %}&#10003;{% endif %}</td>
                     <td style="text-align:right;font-size:0.78rem;">
                         {% if item.report_gap is not None %}<span class="{% if item.report_gap > 0 %}text-up{% elif item.report_gap < 0 %}text-down{% endif %}">{% if item.report_gap > 0 %}+{% endif %}{{ item.report_gap }}%</span>{% endif %}

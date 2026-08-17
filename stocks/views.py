@@ -748,6 +748,68 @@ def index(request):
         status_stocks[-1]['alert_conditions'] = ' / '.join(_alerts)
         status_stocks[-1]['recent_perf'] = _recent_perf_map.get(stock.code, '')
 
+    # 종목 행에도 링크를 실어 둔다 (ETF 와 같은 표에서 같은 방식으로 쓰기 위해)
+    for _row in status_stocks:
+        _row['is_etf'] = False
+        _row['detail_url'] = f"/stocks/{_row['stock'].code}/"
+
+    # ============ ETF 행 ============
+    # 매매하는 입장에서 ETF 도 종목 하나다. 같은 표에 같은 규칙으로 올린다.
+    # 수급·공시·리포트는 ETF 에 없으므로 빈 칸으로 둔다.
+    from .models import InfoETF, DailyChartETF
+
+    etf_holding_codes = set(
+        Holding.objects.filter(info_etf__isnull=False).values_list('info_etf__code', flat=True)
+    )
+    etf_targets = list(
+        InfoETF.objects.filter(is_active=True)
+        .filter(Q(interest_level__isnull=False) | Q(code__in=etf_holding_codes))
+        .order_by('name')
+    )
+    for etf_item in etf_targets:
+        daily = list(DailyChartETF.objects.filter(etf=etf_item).order_by('-date')[:130])
+        row = {
+            'stock': etf_item,
+            'is_etf': True,
+            'detail_url': f'/etf/{etf_item.code}/',
+            'level': 'holding' if etf_item.code in etf_holding_codes else etf_item.interest_level,
+            'ma_align': '', 'pullback': None, 'pullback_label': '',
+            'vol_high_20': False, 'vol_high_60': False, 'is_bullish': True,
+            'signal_info': None, 'inst_label': '', 'frgn_label': '',
+            'gongsi_cat': '', 'gongsi_title': '',
+            'has_report': False, 'report_gap': None,
+            'sparkline': [], 'has_alert': False, 'alert_conditions': '', 'recent_perf': '',
+        }
+        if daily:
+            today_d = daily[0]
+            today_vol = today_d.trading_volume or 0
+            row['vol_high_20'] = today_vol > 0 and today_vol >= max((d.trading_volume or 0) for d in daily[:20])
+            row['vol_high_60'] = today_vol > 0 and today_vol >= max((d.trading_volume or 0) for d in daily[:60])
+            row['is_bullish'] = today_d.closing_price >= today_d.opening_price if today_d.opening_price else True
+            row['sparkline'] = [d.closing_price for d in daily[:10]][::-1]
+
+            if len(daily) >= 125:
+                ma5 = sum(d.closing_price for d in daily[:5]) / 5
+                ma20 = sum(d.closing_price for d in daily[:20]) / 20
+                ma60 = sum(d.closing_price for d in daily[:60]) / 60
+                ma120 = sum(d.closing_price for d in daily[:120]) / 120
+                ma120_prev = sum(d.closing_price for d in daily[5:125]) / 120
+                m = 1.005
+                if ma5 > ma20 * m and ma20 > ma60 * m and ma60 > ma120 * m and ma120 > ma120_prev:
+                    row['ma_align'] = 'bull'
+                elif ma5 * m < ma20 and ma20 * m < ma60 and ma60 * m < ma120 and ma120 < ma120_prev:
+                    row['ma_align'] = 'bear'
+                else:
+                    row['ma_align'] = 'mixed'
+
+            if row['ma_align'] == 'bull' and len(daily) >= 20:
+                _ma20 = sum(d.closing_price for d in daily[:20]) / 20
+                gap = round((today_d.closing_price - _ma20) / _ma20 * 100, 1)
+                row['pullback'] = gap
+                row['pullback_label'] = ('과열' if gap > 5 else '추세중' if gap > 2
+                                         else '얕은눌림' if gap > -2 else '깊은눌림' if gap > -5 else '이탈')
+        status_stocks.append(row)
+
     # D-10 이내 이벤트 수집
     from datetime import date
     today = date.today()
