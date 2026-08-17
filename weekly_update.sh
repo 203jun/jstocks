@@ -32,8 +32,12 @@ echo "주간 업데이트 시작: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "========================================"
 
 # 재무제표 (네이버)
-echo "[1/1] 재무제표..."
+echo "[1/2] 재무제표..."
 python manage.py save_financial_naver --code all --log-level info
+
+# 컨센서스 (분기 실적이라 자주 안 바뀐다. 관심 종목만)
+echo "[2/2] 컨센서스..."
+python manage.py save_consensus --code fav --log-level info
 
 echo "========================================"
 echo "주간 업데이트 완료: $(date '+%Y-%m-%d %H:%M:%S')"
