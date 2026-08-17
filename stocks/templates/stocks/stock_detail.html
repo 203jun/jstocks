@@ -227,7 +227,23 @@
 }
 .chart-card-header {
     display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+    flex-wrap: wrap; gap: 8px;
 }
+/* 일봉/주봉/월봉 탭 — 카드 하나 안에서 갈아 끼운다 */
+.tf-tabs { display: flex; gap: 2px; }
+.tf-tab {
+    padding: 4px 12px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.tf-tab:hover { color: var(--text-secondary); }
+.tf-tab.active { background: var(--bg-secondary); color: var(--text-primary); }
+.tf-note { font-size: 0.72rem; color: var(--text-muted); }
 /* Timeline */
 .timeline { position: relative; padding-left: 24px; }
 .timeline::before { content:''; position:absolute; left:5px; top:0; bottom:0; width:2px; background:var(--border-color); }
@@ -916,53 +932,39 @@
     <h5 class="section-heading">차트</h5>
     <div class="chart-card">
         <div class="chart-card-header">
-            <span style="font-size:0.82rem;color:var(--text-secondary);">일봉</span>
+            <div class="tf-tabs">
+                <button type="button" class="tf-tab active" data-tf="daily">일봉</button>
+                <button type="button" class="tf-tab" data-tf="weekly">주봉</button>
+                <button type="button" class="tf-tab" data-tf="monthly">월봉</button>
+            </div>
             <div class="d-flex align-items-center gap-2">
-                <div class="d-flex gap-1" id="dailyRangeBtns">
+                <div class="d-flex gap-1 tf-only" data-tf="daily" id="dailyRangeBtns">
                     <button class="range-btn" data-days="20">20일</button>
                     <button class="range-btn" data-days="60">60일</button>
                     <button class="range-btn" data-days="120">120일</button>
                     <button class="range-btn active" data-days="240">240일</button>
                 </div>
-                <div style="width:1px;height:16px;background:var(--border-color);"></div>
-                <div class="d-flex gap-1">
+                <div style="width:1px;height:16px;background:var(--border-color);" class="tf-only" data-tf="daily"></div>
+                <div class="d-flex gap-1 tf-only" data-tf="daily">
                     <span class="ma-badge ma-toggle active ma-10" data-ma="10">10</span>
                     <span class="ma-badge ma-toggle active ma-20" data-ma="20">20</span>
                     <span class="ma-badge ma-toggle active ma-60" data-ma="60">60</span>
                     <span class="ma-badge ma-toggle active ma-120" data-ma="120">120</span>
                 </div>
+                <span class="tf-note tf-only" data-tf="weekly">최근 2년</span>
+                <div class="d-flex gap-1 tf-only" data-tf="weekly">
+                    <span class="ma-badge weekly-ma-toggle active ma-20" data-ma="20">20</span>
+                    <span class="ma-badge weekly-ma-toggle active ma-60" data-ma="60">60</span>
+                </div>
+                <span class="tf-note tf-only" data-tf="monthly">최근 6년</span>
+                <div class="d-flex gap-1 tf-only" data-tf="monthly">
+                    <span class="ma-badge monthly-ma-toggle active ma-regime" data-ma="12">12</span>
+                </div>
             </div>
         </div>
-        <div id="dailyChart" style="height:400px;"></div>
-    </div>
-
-    <!-- 주봉 차트 -->
-    <div class="chart-card">
-        <div class="chart-card-header">
-            <div>
-                <span style="font-size:0.82rem;color:var(--text-secondary);">주봉</span>
-                <span style="font-size:0.72rem;color:var(--text-muted);margin-left:6px;">최근 2년</span>
-            </div>
-            <div class="d-flex gap-1">
-                <span class="ma-badge weekly-ma-toggle active ma-20" data-ma="20">20</span>
-                <span class="ma-badge weekly-ma-toggle active ma-60" data-ma="60">60</span>
-            </div>
-        </div>
-        <div id="weeklyChart" style="height:400px;"></div>
-    </div>
-
-    <!-- 월봉 차트 -->
-    <div class="chart-card">
-        <div class="chart-card-header">
-            <div>
-                <span style="font-size:0.82rem;color:var(--text-secondary);">월봉</span>
-                <span style="font-size:0.72rem;color:var(--text-muted);margin-left:6px;">최근 6년</span>
-            </div>
-            <div class="d-flex gap-1">
-                <span class="ma-badge monthly-ma-toggle active ma-regime" data-ma="12">12</span>
-            </div>
-        </div>
-        <div id="monthlyChart" style="height:400px;"></div>
+        <div id="dailyChart" class="tf-pane" data-tf="daily" style="height:400px;"></div>
+        <div id="weeklyChart" class="tf-pane" data-tf="weekly" style="height:400px;display:none;"></div>
+        <div id="monthlyChart" class="tf-pane" data-tf="monthly" style="height:400px;display:none;"></div>
     </div>
 
     <!-- 업데이트 시간 -->
@@ -3370,8 +3372,7 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
     new ResizeObserver(entries => { if (entries.length) chart.applyOptions({ width: entries[0].contentRect.width }); }).observe(container);
 }
 
-// Weekly chart with MA 5/10/20
-(function() {
+function initWeeklyChart() {
     // 60주선 계산분까지 받아서, 화면에는 최근 104주만 그린다
     const fullCandle = ({{ weekly_candle_data|safe }}).map(d => ({ ...d, time: timeToStr(d.time) }));
     const candleData = fullCandle.slice(-104);
@@ -3411,10 +3412,9 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
             if (s) s.applyOptions({ visible: this.classList.toggle('active') });
         });
     });
-})();
+}
 
-// Monthly chart with MA 5/10/20
-(function() {
+function initMonthlyChart() {
     // 12개월선 계산분까지 받아서, 화면에는 최근 72개월만 그린다
     const fullCandle = ({{ monthly_candle_data|safe }}).map(d => ({ ...d, time: timeToStr(d.time) }));
     const candleData = fullCandle.slice(-72);
@@ -3454,7 +3454,30 @@ function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
             if (s) s.applyOptions({ visible: this.classList.toggle('active') });
         });
     });
-})();
+}
+
+// ===== 차트 탭 (일봉/주봉/월봉) =====
+// 숨겨진 컨테이너는 폭이 0이라 Lightweight Charts 가 그리지 못한다.
+// 그래서 탭을 처음 누를 때 그린다. 일봉은 기본 탭이라 위에서 이미 그렸다.
+const tfInit = { daily: true, weekly: false, monthly: false };
+const tfInitializers = { weekly: initWeeklyChart, monthly: initMonthlyChart };
+
+function showTimeframe(tf) {
+    document.querySelectorAll('.tf-tab').forEach(b => b.classList.toggle('active', b.dataset.tf === tf));
+    document.querySelectorAll('.tf-pane').forEach(p => { p.style.display = p.dataset.tf === tf ? '' : 'none'; });
+    // 해당 봉에만 있는 조작(기간 버튼·이평선 뱃지)도 같이 갈아 끼운다
+    document.querySelectorAll('.tf-only').forEach(el => { el.style.display = el.dataset.tf === tf ? '' : 'none'; });
+
+    if (!tfInit[tf]) {
+        tfInit[tf] = true;
+        tfInitializers[tf]();
+    }
+}
+
+document.querySelectorAll('.tf-tab').forEach(btn => {
+    btn.addEventListener('click', () => showTimeframe(btn.dataset.tf));
+});
+showTimeframe('daily');
 
 // ===== Empty content check =====
 document.querySelectorAll('.content').forEach(el => {
