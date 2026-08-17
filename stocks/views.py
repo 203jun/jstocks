@@ -3953,8 +3953,20 @@ def etf(request):
     """ETF 페이지"""
     from .models import InfoETF, DailyChartETF
 
-    # 관심 ETF 목록 (is_active=True) - ETF명 순
-    etfs = list(InfoETF.objects.filter(is_active=True).order_by('name'))
+    # 관심/대기로 분류된 ETF - 이름 순
+    etfs = list(
+        InfoETF.objects.filter(is_active=True)
+        .exclude(interest_level__isnull=True)
+        .order_by('name')
+    )
+
+    # 보유는 자산에서 파생한다 (종목과 같은 규칙 — 보유가 관심/대기보다 앞선다)
+    etf_holding_codes = set(
+        Holding.objects.filter(info_etf__isnull=False).values_list('info_etf__code', flat=True)
+    )
+
+    def etf_level_of(item):
+        return 'holding' if item.code in etf_holding_codes else item.interest_level
 
     # 모든 ETF의 250일 데이터를 미리 가져옴
     etf_daily_data_cache = {}
@@ -4019,6 +4031,7 @@ def etf(request):
 
         status_etfs.append({
             'etf': etf_item,
+            'level': etf_level_of(etf_item),
             'ma_align': ma_align,
             'vol_high_20': today_vol > 0 and today_vol >= max_vol_20,
             'vol_high_60': today_vol > 0 and today_vol >= max_vol_60,
@@ -4040,10 +4053,11 @@ def etf_detail(request, code):
 
     etf = get_object_or_404(InfoETF, code=code)
 
-    # POST 처리 - 보유 여부 저장
+    # POST 처리 - 관심 단계 저장 (보유는 자산에서 파생하므로 여기서 고르지 않는다)
     if request.method == 'POST':
-        etf.is_holding = request.POST.get('is_holding') == 'on'
-        etf.save(update_fields=['is_holding'])
+        level = request.POST.get('interest_level', '')
+        etf.interest_level = level or None
+        etf.save(update_fields=['interest_level'])
         from django.contrib import messages
         messages.success(request, '저장되었습니다.')
         return redirect('stocks:etf_detail', code=code)
@@ -4139,6 +4153,7 @@ def etf_detail(request, code):
 
     context = {
         'etf': etf,
+        'interest_choices': InfoETF._meta.get_field('interest_level').choices,
         'daily_candle_data': json.dumps(daily_candle_data),
         'daily_volume_data': json.dumps(daily_volume_data),
         'weekly_candle_data': json.dumps(weekly_candle_data),

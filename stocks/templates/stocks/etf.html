@@ -131,7 +131,8 @@
                 <tr onclick="location.href='{% url 'stocks:etf_detail' item.etf.code %}'" style="cursor:pointer;">
                     <td style="padding-left:16px;">
                         <strong>{{ item.etf.name }}</strong>
-                        {% if item.etf.is_holding %}<span title="보유중">💰</span>{% endif %}
+                        {% if item.level == 'holding' %}<span title="보유중">💰</span>
+                        {% elif item.level == 'waiting' %}<span class="tag-badge interest-waiting" style="font-size:0.66rem;">대기</span>{% endif %}
                     </td>
                     <td style="text-align:right;">
                         {% if item.etf.current_price %}{{ item.etf.current_price|intcomma }}{% else %}-{% endif %}

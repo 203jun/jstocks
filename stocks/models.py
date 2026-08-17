@@ -438,7 +438,20 @@ class InfoETF(models.Model):
         help_text='사용자 정의 섹터 (화장품, 2차전지 등)'
     )
 
-    # === 보유 여부 ===
+    # === 관심 단계 ===
+    # 종목(Info)과 같은 값을 쓴다. '보유'는 여기 없다 — 자산에서 파생되며
+    # 화면에서 관심/대기보다 앞선다.
+    interest_level = models.CharField(
+        max_length=10,
+        choices=[
+            ('normal', '관심'),
+            ('waiting', '대기'),
+        ],
+        null=True,
+        blank=True,
+        verbose_name='관심단계'
+    )
+
     is_holding = models.BooleanField(
         default=False,
         verbose_name='보유중',
