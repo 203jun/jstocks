@@ -411,6 +411,12 @@ const chartBorder = _isDarkTheme ? '#2a2e38' : '#ddd';
 // 얼마나 빠졌나"가 눈대중이 되므로 선 이름에 현재가 대비 %를 적는다.
 // rows 의 time 은 반드시 문자열이어야 한다 — setData 가 원본의 time 을
 // {year,month,day} 로 바꿔 놓으므로 그 전에 복사해 넘긴다.
+// 캔들과 거래량이 한 창을 나눠 쓴다. 캔들 축이 0~100% 를 다 쓰면 아래 20% 에
+// 그려지는 거래량과 겹쳐, 기간 저점 가격선과 이름이 막대에 파묻힌다.
+// 캔들 5~72% / 거래량 80~100% 로 갈라 두고 사이 8% 는 저점 선 이름 자리로 비운다.
+const CANDLE_MARGINS = { top: 0.05, bottom: 0.28 };
+const VOLUME_MARGINS = { top: 0.80, bottom: 0 };
+
 function addRangeLines(chart, series, rows) {
     if (!rows.length) return;
     let high = rows[0].high, low = rows[0].low, highAt = rows[0].time, lowAt = rows[0].time;
@@ -451,7 +457,7 @@ function initDailyChart(days) {
         layout: { backgroundColor: chartBg, textColor: chartText },
         grid: { vertLines:{color: chartGrid}, horzLines:{color: chartGrid} },
         crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-        rightPriceScale: { borderColor: chartBorder },
+        rightPriceScale: { borderColor: chartBorder, scaleMargins: CANDLE_MARGINS },
         timeScale: { borderColor: chartBorder, timeVisible:true, fixLeftEdge:true, fixRightEdge:true },
         handleScale: { axisPressedMouseMove:{price:false} },
     });
@@ -469,7 +475,7 @@ function initDailyChart(days) {
         dailyMaSeries[period] = s;
     }
 
-    const volumeSeries = chart.addHistogramSeries({ color:'#26a69a', priceFormat:{type:'volume'}, priceScaleId:'', scaleMargins:{top:0.8,bottom:0} });
+    const volumeSeries = chart.addHistogramSeries({ color:'#26a69a', priceFormat:{type:'volume'}, priceScaleId:'', scaleMargins:VOLUME_MARGINS });
     volumeSeries.setData(volumeData);
     chart.timeScale().fitContent();
     new ResizeObserver(entries => { if(entries.length) chart.applyOptions({width:entries[0].contentRect.width}); }).observe(container);
@@ -520,7 +526,7 @@ function createCandleChart(containerId, fullCandleRaw, fullVolumeRaw, emptyMessa
         layout: { backgroundColor: chartBg, textColor: chartText },
         grid: { vertLines:{color: chartGrid}, horzLines:{color: chartGrid} },
         crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-        rightPriceScale: { borderColor: chartBorder },
+        rightPriceScale: { borderColor: chartBorder, scaleMargins: CANDLE_MARGINS },
         timeScale: { borderColor: chartBorder, timeVisible:true, fixLeftEdge:true, fixRightEdge:true },
         handleScale: { axisPressedMouseMove:{price:false} },
     });
@@ -537,7 +543,7 @@ function createCandleChart(containerId, fullCandleRaw, fullVolumeRaw, emptyMessa
         maSeries[period] = s;
     }
 
-    const volumeSeries = chart.addHistogramSeries({ color:'#26a69a', priceFormat:{type:'volume'}, priceScaleId:'', scaleMargins:{top:0.8,bottom:0} });
+    const volumeSeries = chart.addHistogramSeries({ color:'#26a69a', priceFormat:{type:'volume'}, priceScaleId:'', scaleMargins:VOLUME_MARGINS });
     volumeSeries.setData(volumeData);
     chart.timeScale().fitContent();
     new ResizeObserver(entries => { if(entries.length) chart.applyOptions({width:entries[0].contentRect.width}); }).observe(container);
