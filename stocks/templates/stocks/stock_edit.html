@@ -195,21 +195,12 @@
         </div>
 
 
-        <!-- 컨센서스 (붙여넣기 입력 → 연간/분기 표 저장) -->
+        <!-- 컨센서스 — 주간 배치(save_consensus)가 채운다. 여기서는 보기만 한다. -->
         <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
             컨센서스
-            <span id="btnConsensusInput" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">데이터 입력</span>
+            <a href="https://comp.wisereport.co.kr/company/c1050001.aspx?cmp_cd={{ stock.code }}&cn=" target="_blank" rel="noopener"
+               style="font-size:0.72rem;color:var(--text-muted);text-decoration:none;font-weight:400;">원본 ↗</a>
         </h5>
-        <div id="consensusInputMode" class="d-none" style="margin-bottom:16px;">
-            <div class="brief-card">
-                <textarea id="consensusRawTextarea" rows="6" style="width:100%;font-family:monospace;font-size:0.8rem;margin-bottom:8px;border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:8px;color:var(--text-primary);background:var(--bg-card);" placeholder="FnGuide/companywise 컨센서스 테이블을 복사하여 붙여넣으세요."></textarea>
-                <div class="d-flex justify-content-end gap-2">
-                    <a class="btn-refresh" style="text-decoration:none;" href="https://comp.wisereport.co.kr/company/c1050001.aspx?cmp_cd={{ stock.code }}&cn=" target="_blank">companywise</a>
-                    <button type="button" id="btnConsensusCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
-                    <button type="button" id="btnConsensusSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
-                </div>
-            </div>
-        </div>
         <div class="brief-card">
             <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">연간</div>
             <div style="overflow-x:auto;">
@@ -302,27 +293,6 @@ function renderTable(tableId, rows, fields) {
         { key: 'roe', label: 'ROE(%)' },
         { key: 'ev_ebitda', label: 'EV/EBITDA(배)' },
     ];
-    const inputMode = document.getElementById('consensusInputMode');
-    const btnInput = document.getElementById('btnConsensusInput');
-    const btnCancel = document.getElementById('btnConsensusCancel');
-    const btnSave = document.getElementById('btnConsensusSave');
-    const textarea = document.getElementById('consensusRawTextarea');
-    if (!inputMode) return;
-    btnInput.addEventListener('click', () => { inputMode.classList.toggle('d-none'); if (!inputMode.classList.contains('d-none')) textarea.focus(); });
-    btnCancel.addEventListener('click', () => { inputMode.classList.add('d-none'); textarea.value = ''; });
-    btnSave.addEventListener('click', async () => {
-        const raw = textarea.value.trim();
-        if (!raw) { alert('데이터를 붙여넣어 주세요.'); return; }
-        btnSave.disabled = true; btnSave.textContent = '저장 중...';
-        try {
-            const fd = new FormData(); fd.append('raw_text', raw);
-            const resp = await fetch(`/api/stock/${stockCode}/consensus/save/`, { method: 'POST', headers: { 'X-CSRFToken': getCsrfToken() }, body: fd });
-            const data = await resp.json();
-            if (data.success) { textarea.value = ''; inputMode.classList.add('d-none'); loadConsensusData(); }
-            else { alert(data.error || '저장 실패'); }
-        } catch (e) { alert('오류: ' + e.message); }
-        finally { btnSave.disabled = false; btnSave.textContent = '저장'; }
-    });
     async function loadConsensusData() {
         try {
             const [a, q] = await Promise.all([

@@ -6480,19 +6480,6 @@ BALANCE_SHEET_FIELDS = {
     '*CAPEX': 'capex',
 }
 
-CONSENSUS_COL_MAP = {
-    '매출액': ('revenue', 'decimal'),
-    'YoY': ('yoy', 'decimal'),
-    '영업이익': ('operating_profit', 'decimal'),
-    '당기순이익': ('net_income', 'decimal'),
-    'EPS': ('eps', 'int'),
-    'BPS': ('bps', 'int'),
-    'PER': ('per', 'decimal'),
-    'PBR': ('pbr', 'decimal'),
-    'ROE': ('roe', 'decimal'),
-    'EV/EBITDA': ('ev_ebitda', 'decimal'),
-}
-
 GROWTH_FIELDS = {
     '매출액증가율': 'revenue_growth',
     '영업이익증가율': 'operating_profit_growth',
@@ -6685,106 +6672,6 @@ def balance_sheet_list(request, code):
         data.append(row)
 
     return JsonResponse({'success': True, 'data': data})
-
-
-def _parse_consensus(raw_text):
-    """컨센서스 테이블 파싱 (행=연도, 열=항목 구조)"""
-    import re
-    from decimal import Decimal, InvalidOperation
-
-    raw_text = raw_text.replace('\r\n', '\n').replace('\r', '\n')
-    lines = raw_text.strip().split('\n')
-    if not lines:
-        return []
-
-    # 헤더 찾기: '재무년월'로 시작하는 줄까지가 헤더
-    header_end = 0
-    for i, line in enumerate(lines):
-        if re.search(r'\d{4}\.\d{2}\([AE]\)', line):
-            header_end = i
-            break
-
-    # 헤더 복원
-    header_text = ''.join(lines[:header_end])
-    header_cols = header_text.split('\t')
-
-    # 컬럼 매핑
-    col_indices = {}
-    for idx, col in enumerate(header_cols):
-        # 줄바꿈 제거 후 키워드 매칭
-        col_clean = re.sub(r'\(.*?\)', '', col).strip()
-        for key, (field, _) in CONSENSUS_COL_MAP.items():
-            if col_clean == key:
-                col_indices[idx] = (field, CONSENSUS_COL_MAP[key][1])
-                break
-
-    def parse_num(s, num_type):
-        s = s.strip().replace(',', '')
-        if not s:
-            return None
-        try:
-            if num_type == 'int':
-                return int(Decimal(s))
-            return Decimal(s)
-        except (InvalidOperation, ValueError):
-            return None
-
-    # 데이터 행 파싱
-    results = []
-    for line in lines[header_end:]:
-        cols = line.split('\t')
-        if not cols:
-            continue
-        # 기간 파싱: 2022.12(A), 2026.12(E), 2025.03(A) 등
-        m = re.match(r'(\d{4})\.(\d{2})\(([AE])\)', cols[0].strip())
-        if not m:
-            continue
-        year = int(m.group(1))
-        month = int(m.group(2))
-        is_estimated = m.group(3) == 'E'
-        month_to_quarter = {3: '1Q', 6: '2Q', 9: '3Q', 12: '4Q'}
-        quarter = month_to_quarter.get(month)
-
-        row = {'year': year, 'month': month, 'quarter': quarter, 'is_estimated': is_estimated}
-        for idx, (field, num_type) in col_indices.items():
-            if idx < len(cols):
-                val = parse_num(cols[idx], num_type)
-                if val is not None:
-                    row[field] = val
-        results.append(row)
-
-    return results
-
-
-@require_POST
-def consensus_save(request, code):
-    """컨센서스 붙여넣기 파싱 후 저장"""
-    from .models import Consensus
-    stock = get_object_or_404(Info, code=code)
-    raw_text = request.POST.get('raw_text', '').strip()
-    if not raw_text:
-        return JsonResponse({'success': False, 'error': '데이터가 비어있습니다.'})
-
-    parsed = _parse_consensus(raw_text)
-    if not parsed:
-        return JsonResponse({'success': False, 'error': '파싱된 데이터가 없습니다.'})
-
-    months = set(row.get('month') for row in parsed if row.get('month'))
-    is_annual = months == {12}
-
-    c_fields = ['revenue', 'yoy', 'operating_profit', 'net_income', 'eps', 'bps', 'per', 'pbr', 'roe', 'ev_ebitda']
-    saved_count = 0
-    for row in parsed:
-        if is_annual:
-            row['quarter'] = None
-        defaults = {'is_estimated': row.get('is_estimated', False)}
-        for f in c_fields:
-            defaults[f] = row.get(f)
-        Consensus.objects.update_or_create(stock=stock, year=row['year'], quarter=row.get('quarter'), defaults=defaults)
-        saved_count += 1
-
-    period_type = '연간' if is_annual else '분기'
-    return JsonResponse({'success': True, 'saved_count': saved_count, 'period_type': period_type})
 
 
 @require_GET

@@ -22,7 +22,6 @@ urlpatterns = [
     path('api/stock/<str:code>/stability/', views.stability_list, name='stability_list'),
     path('api/stock/<str:code>/stability/save/', views.stability_save, name='stability_save'),
     path('api/stock/<str:code>/consensus/', views.consensus_list, name='consensus_list'),
-    path('api/stock/<str:code>/consensus/save/', views.consensus_save, name='consensus_save'),
     path('api/stock/<str:code>/growth/', views.growth_list, name='growth_list'),
     path('api/stock/<str:code>/growth/save/', views.growth_save, name='growth_save'),
     path('api/stock/<str:code>/profitability/', views.profitability_list, name='profitability_list'),
