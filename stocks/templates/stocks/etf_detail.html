@@ -56,6 +56,8 @@
 .tf-tab:hover { color: var(--text-secondary); }
 .tf-tab.active { background: var(--bg-secondary); color: var(--text-primary); }
 .tf-note { font-size: 0.72rem; color: var(--text-muted); }
+/* d-flex 같은 부트스트랩 유틸이 display:flex !important 라 인라인 style 로는 못 숨긴다 */
+.tf-hidden { display: none !important; }
 
 /* Tag badges */
 .tag-badge {
@@ -355,8 +357,8 @@ document.getElementById('delete-etf-btn').addEventListener('click', async functi
         </div>
     </div>
     <div id="dailyChart" class="tf-pane" data-tf="daily" style="height:400px;"></div>
-    <div id="weeklyChart" class="tf-pane" data-tf="weekly" style="height:400px;display:none;"></div>
-    <div id="monthlyChart" class="tf-pane" data-tf="monthly" style="height:400px;display:none;"></div>
+    <div id="weeklyChart" class="tf-pane tf-hidden" data-tf="weekly" style="height:400px;"></div>
+    <div id="monthlyChart" class="tf-pane tf-hidden" data-tf="monthly" style="height:400px;"></div>
 </div>
 
 <div style="text-align:right;font-size:0.75rem;color:var(--text-muted);margin-top:8px;">
@@ -533,9 +535,9 @@ const tfInitializers = {
 
 function showTimeframe(tf) {
     document.querySelectorAll('.tf-tab').forEach(b => b.classList.toggle('active', b.dataset.tf === tf));
-    document.querySelectorAll('.tf-pane').forEach(p => { p.style.display = p.dataset.tf === tf ? '' : 'none'; });
+    document.querySelectorAll('.tf-pane').forEach(p => p.classList.toggle('tf-hidden', p.dataset.tf !== tf));
     // 해당 봉에만 있는 조작(기간 버튼·이평선 뱃지)도 같이 갈아 끼운다
-    document.querySelectorAll('.tf-only').forEach(el => { el.style.display = el.dataset.tf === tf ? '' : 'none'; });
+    document.querySelectorAll('.tf-only').forEach(el => el.classList.toggle('tf-hidden', el.dataset.tf !== tf));
 
     if (!tfInit[tf]) {
         tfInit[tf] = true;
