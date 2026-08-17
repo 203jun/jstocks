@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET
 from decouple import config
 from telethon import TelegramClient
 from django.views.decorators.http import require_POST
-from .models import Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Gongsi, IndexChart, MarketTrend, MarketAnalysis, InvestorTrend, ShortSelling, MarketDiary, StockDiary, StockEvent, SectorEvent, ETFEvent, DailyTrade
+from .models import Holding, Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Gongsi, IndexChart, MarketTrend, MarketAnalysis, InvestorTrend, ShortSelling, MarketDiary, StockDiary, StockEvent, SectorEvent, ETFEvent, DailyTrade
 from .market_analysis import build_analysis_panel
 from .market_signal import build_market_panel, build_prompt_vars
 from .prompts import (
@@ -105,7 +105,7 @@ def _classify_gongsi(title):
 
 def index(request):
     """종목 대시보드 (관심종목)"""
-    from django.db.models import Max
+    from django.db.models import Max, Q
 
     # 대분류명, 소분류명 순으로 정렬 (테마 없는 종목은 맨 뒤)
     base_qs = Info.objects.filter(is_active=True).prefetch_related('themes__category')
@@ -128,8 +128,23 @@ def index(request):
     normal_stocks = sort_by_theme(base_qs.filter(interest_level='normal'))
     waiting_stocks = sort_by_theme(base_qs.filter(interest_level='waiting'))
 
+    # 보유는 고르는 값이 아니라 자산에서 정해지는 사실이다. 매일 계좌를 받아
+    # Holding 을 통째로 갈아끼우므로 여기서 파생시키면 사고팔 때 저절로 따라온다.
+    holding_codes = set(
+        Holding.objects.filter(info__isnull=False).values_list('info__code', flat=True)
+    )
+
+    def level_of(stock):
+        """화면 분류는 하나만 — 보유가 관심/대기보다 앞선다"""
+        return 'holding' if stock.code in holding_codes else stock.interest_level
+
     # ============ 대시보드 카드 ============
-    target_stocks = sort_by_theme(base_qs.filter(interest_level__in=['super', 'normal', 'waiting']))
+    # 보유 중이면 관심 등록을 안 했어도 현황에 들어와야 한다
+    target_stocks = sort_by_theme(
+        base_qs.filter(
+            Q(interest_level__in=['super', 'normal', 'waiting']) | Q(code__in=holding_codes)
+        )
+    )
 
     # 카드 A: 장기 신호 (60일 신고거래량)
     card_a_stocks = []  # 급등 (양봉, MA20 위)
@@ -561,7 +576,7 @@ def index(request):
         daily_data = list(DailyChart.objects.filter(stock=stock).order_by('-date')[:130])
         if not daily_data:
             _gc = _gongsi_map.get(stock.code)
-            status_stocks.append({'stock': stock, 'level': stock.interest_level, 'vol_high_20': False, 'vol_high_60': False, 'ma_align': '', 'pullback': None, 'pullback_label': '', 'has_report': False, 'inst_label': '', 'frgn_label': '', 'gongsi_cat': _gc[0] if _gc else '', 'gongsi_title': _gc[1] if _gc else '', 'has_alert': False, 'alert_conditions': '', 'recent_perf': _recent_perf_map.get(stock.code, '')})
+            status_stocks.append({'stock': stock, 'level': level_of(stock), 'vol_high_20': False, 'vol_high_60': False, 'ma_align': '', 'pullback': None, 'pullback_label': '', 'has_report': False, 'inst_label': '', 'frgn_label': '', 'gongsi_cat': _gc[0] if _gc else '', 'gongsi_title': _gc[1] if _gc else '', 'has_alert': False, 'alert_conditions': '', 'recent_perf': _recent_perf_map.get(stock.code, '')})
             continue
 
         today = daily_data[0]
@@ -693,7 +708,7 @@ def index(request):
         _gc = _gongsi_map.get(stock.code)
         status_stocks.append({
             'stock': stock,
-            'level': stock.interest_level,
+            'level': level_of(stock),
             'vol_high_20': today_vol > 0 and today_vol >= max_vol_20,
             'vol_high_60': today_vol > 0 and today_vol >= max_vol_60,
             'is_bullish': today.closing_price >= today.opening_price if today.opening_price else True,
@@ -740,7 +755,7 @@ def index(request):
     d10 = today + timedelta(days=10)
     upcoming_events = []
     for ev in StockEvent.objects.filter(date__gte=today, date__lte=d10).select_related('stock').order_by('date'):
-        upcoming_events.append({'type': '종목', 'name': ev.stock.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days, 'level': ev.stock.interest_level or ''})
+        upcoming_events.append({'type': '종목', 'name': ev.stock.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days, 'level': level_of(ev.stock) or ''})
     for ev in SectorEvent.objects.filter(date__gte=today, date__lte=d10).select_related('sector').order_by('date'):
         upcoming_events.append({'type': '섹터', 'name': ev.sector.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days, 'level': 'all'})
     for ev in ETFEvent.objects.filter(date__gte=today, date__lte=d10).select_related('etf').order_by('date'):
@@ -751,7 +766,7 @@ def index(request):
     prompt_status = SystemSetting.objects.filter(key='prompt_status').values_list('value', flat=True).first() or ''
 
     # 현황 데이터 블록 텍스트 생성 (레벨별)
-    status_blocks_by_level = {'super': [], 'normal': [], 'waiting': []}
+    status_blocks_by_level = {'holding': [], 'super': [], 'normal': [], 'waiting': []}
     for item in status_stocks:
         s = item['stock']
         lines = [f"종목명: {s.name}"]

@@ -111,7 +111,8 @@
 
 <!-- 대시보드 탭 -->
 <div class="dash-tabs" id="dashboardTabs">
-    <button class="market-tab active" data-filter="super" type="button">초관심</button>
+    <button class="market-tab active" data-filter="holding" type="button">보유</button>
+    <button class="market-tab" data-filter="super" type="button">초관심</button>
     <button class="market-tab" data-filter="normal" type="button">관심</button>
     <button class="market-tab" data-filter="waiting" type="button">대기</button>
 </div>
@@ -307,7 +308,7 @@ drawSparklines();
 
 // 탭별 카드 종목 개수 계산 (중복 제거)
 function updateTabCounts() {
-    const seen = { super: new Set(), normal: new Set(), waiting: new Set() };
+    const seen = { holding: new Set(), super: new Set(), normal: new Set(), waiting: new Set() };
     document.querySelectorAll('.dashboard-row').forEach(row => {
         const level = row.dataset.level;
         const code = row.dataset.code;
@@ -320,7 +321,7 @@ function updateTabCounts() {
 // 페이지 로드 시 개수 계산
 updateTabCounts();
 
-// 초기 필터 적용 (초관심)
+// 초기 필터 적용 (보유)
 function applyFilter(filter) {
     // 현황 테이블 필터링
     document.querySelectorAll('.status-row').forEach(row => {
@@ -338,8 +339,8 @@ function applyFilter(filter) {
     if (eventSection) eventSection.style.display = hasVisible ? '' : 'none';
 }
 
-// 페이지 로드 시 초관심 필터 적용
-applyFilter('super');
+// 페이지 로드 시 보유 필터 적용
+applyFilter('holding');
 
 // 대시보드 탭 필터링
 document.querySelectorAll('#dashboardTabs button').forEach(btn => {
@@ -659,11 +660,12 @@ document.getElementById('btnCopyStatusPrompt')?.addEventListener('click', async 
     if (!promptTemplate) { alert('설정 → 프롬프트 → 현황에서 프롬프트를 먼저 등록하세요.'); return; }
 
     const statusDataByLevel = {
+        holding: `{{ status_data_by_level.holding|escapejs }}`,
         super: `{{ status_data_by_level.super|escapejs }}`,
         normal: `{{ status_data_by_level.normal|escapejs }}`,
         waiting: `{{ status_data_by_level.waiting|escapejs }}`
     };
-    const activeFilter = document.querySelector('#dashboardTabs button.active')?.dataset.filter || 'super';
+    const activeFilter = document.querySelector('#dashboardTabs button.active')?.dataset.filter || 'holding';
     const statusData = statusDataByLevel[activeFilter] || '';
     if (!statusData) { alert('현재 탭에 종목 데이터가 없습니다.'); return; }
     const today = new Date().toISOString().slice(0, 10);
