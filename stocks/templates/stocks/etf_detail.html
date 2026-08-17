@@ -407,6 +407,32 @@ const chartText = _isDarkTheme ? '#9ca3af' : '#333';
 const chartGrid = _isDarkTheme ? '#2a2e38' : '#f0f0f0';
 const chartBorder = _isDarkTheme ? '#2a2e38' : '#ddd';
 
+// 고른 기간의 고점·저점을 가격선으로 긋는다. 캔들만 봐서는 "이번 고점에서
+// 얼마나 빠졌나"가 눈대중이 되므로 선 이름에 현재가 대비 %를 적는다.
+// rows 의 time 은 반드시 문자열이어야 한다 — setData 가 원본의 time 을
+// {year,month,day} 로 바꿔 놓으므로 그 전에 복사해 넘긴다.
+function addRangeLines(chart, series, rows) {
+    if (!rows.length) return;
+    let high = rows[0].high, low = rows[0].low, highAt = rows[0].time, lowAt = rows[0].time;
+    rows.forEach(d => {
+        if (d.high > high) { high = d.high; highAt = d.time; }
+        if (d.low < low) { low = d.low; lowAt = d.time; }
+    });
+    const last = rows[rows.length - 1].close;
+    const pct = from => {
+        const v = (last / from - 1) * 100;
+        return (v > 0 ? '+' : '') + v.toFixed(2) + '%';
+    };
+    const md = t => String(t).slice(5).replace('-', '/');
+    [[high, '#ef5350', `고점 ${md(highAt)} ${pct(high)}`],
+     [low, '#5b8def', `저점 ${md(lowAt)} ${pct(low)}`]].forEach(([price, color, title]) => {
+        series.createPriceLine({
+            price, color, title, lineWidth: 1,
+            lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true,
+        });
+    });
+}
+
 function initDailyChart(days) {
     const container = document.getElementById('dailyChart');
     container.innerHTML = '';
@@ -431,7 +457,9 @@ function initDailyChart(days) {
     });
 
     const candleSeries = chart.addCandlestickSeries({ upColor:'#ef5350', downColor:'#26a69a', borderUpColor:'#ef5350', borderDownColor:'#26a69a', wickUpColor:'#ef5350', wickDownColor:'#26a69a' });
+    const rangeRows = candleData.map(d => ({ high: d.high, low: d.low, close: d.close, time: d.time }));
     candleSeries.setData(candleData);
+    addRangeLines(chart, candleSeries, rangeRows);
 
     // 이평선은 전체 이력으로 계산한 뒤 보이는 구간만 잘라 넘긴다.
     // 잘린 구간만으로 계산하면 20일 화면에서 60·120일선이 아예 안 나온다.
@@ -498,7 +526,9 @@ function createCandleChart(containerId, fullCandleRaw, fullVolumeRaw, emptyMessa
     });
 
     const candleSeries = chart.addCandlestickSeries({ upColor:'#ef5350', downColor:'#26a69a', borderUpColor:'#ef5350', borderDownColor:'#26a69a', wickUpColor:'#ef5350', wickDownColor:'#26a69a' });
+    const rangeRows = candleData.map(d => ({ high: d.high, low: d.low, close: d.close, time: d.time }));
     candleSeries.setData(candleData);
+    addRangeLines(chart, candleSeries, rangeRows);
     // 이평선은 전체 이력으로 계산한 뒤 보이는 구간만 잘라 넘긴다
     const maSeries = {};
     for (const [period, cfg] of Object.entries(maCfg)) {
