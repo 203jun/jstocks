@@ -169,7 +169,6 @@
 .tag-badge.market-kosdaq { background: #ecfdf5; color: #059669; }
 .tag-badge.holding { background: #ecfdf5; color: #059669; }
 .tag-badge.tracking { background: #eff6ff; color: #2563eb; }
-.tag-badge.interest-super { background: #fef2f2; color: #dc2626; }
 .tag-badge.interest-normal { background: #fffbeb; color: #d97706; }
 .tag-badge.interest-waiting { background: #f3f4f6; color: var(--text-muted); }
 
@@ -418,9 +417,7 @@
             {% if stock.is_tracking %}
             <span class="tag-badge tracking">👀 추적</span>
             {% endif %}
-            {% if stock.interest_level == 'super' %}
-            <span class="tag-badge interest-super">초관심</span>
-            {% elif stock.interest_level == 'normal' %}
+            {% if stock.interest_level == 'normal' %}
             <span class="tag-badge interest-normal">관심</span>
             {% elif stock.interest_level == 'waiting' %}
             <span class="tag-badge interest-waiting">대기</span>

@@ -112,7 +112,6 @@
 <!-- 대시보드 탭 -->
 <div class="dash-tabs" id="dashboardTabs">
     <button class="market-tab active" data-filter="holding" type="button">보유</button>
-    <button class="market-tab" data-filter="super" type="button">초관심</button>
     <button class="market-tab" data-filter="normal" type="button">관심</button>
     <button class="market-tab" data-filter="waiting" type="button">대기</button>
 </div>
@@ -308,7 +307,7 @@ drawSparklines();
 
 // 탭별 카드 종목 개수 계산 (중복 제거)
 function updateTabCounts() {
-    const seen = { holding: new Set(), super: new Set(), normal: new Set(), waiting: new Set() };
+    const seen = { holding: new Set(), normal: new Set(), waiting: new Set() };
     document.querySelectorAll('.dashboard-row').forEach(row => {
         const level = row.dataset.level;
         const code = row.dataset.code;
@@ -661,7 +660,6 @@ document.getElementById('btnCopyStatusPrompt')?.addEventListener('click', async 
 
     const statusDataByLevel = {
         holding: `{{ status_data_by_level.holding|escapejs }}`,
-        super: `{{ status_data_by_level.super|escapejs }}`,
         normal: `{{ status_data_by_level.normal|escapejs }}`,
         waiting: `{{ status_data_by_level.waiting|escapejs }}`
     };

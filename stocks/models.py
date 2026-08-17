@@ -136,14 +136,14 @@ class Info(models.Model):
     interest_level = models.CharField(
         max_length=10,
         choices=[
-            ('super', '초관심'),
             ('normal', '관심'),
             ('waiting', '대기'),
         ],
         null=True,
         blank=True,
         verbose_name='관심단계',
-        help_text='투자 관심 단계 (초관심 > 관심 > 대기)'
+        help_text='내가 고르는 단계 (관심 > 대기). 보유는 여기 없다 — '
+                  '자산에서 파생되며 화면에서 관심/대기보다 앞선다.'
     )
     fav_sync_status = models.CharField(
         max_length=20,

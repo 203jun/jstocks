@@ -124,7 +124,6 @@ def index(request):
         result.sort(key=lambda x: (x[0], x[1]))
         return [item[2] for item in result]
 
-    super_stocks = sort_by_theme(base_qs.filter(interest_level='super'))
     normal_stocks = sort_by_theme(base_qs.filter(interest_level='normal'))
     waiting_stocks = sort_by_theme(base_qs.filter(interest_level='waiting'))
 
@@ -142,7 +141,7 @@ def index(request):
     # 보유 중이면 관심 등록을 안 했어도 현황에 들어와야 한다
     target_stocks = sort_by_theme(
         base_qs.filter(
-            Q(interest_level__in=['super', 'normal', 'waiting']) | Q(code__in=holding_codes)
+            Q(interest_level__in=['normal', 'waiting']) | Q(code__in=holding_codes)
         )
     )
 
@@ -766,7 +765,7 @@ def index(request):
     prompt_status = SystemSetting.objects.filter(key='prompt_status').values_list('value', flat=True).first() or ''
 
     # 현황 데이터 블록 텍스트 생성 (레벨별)
-    status_blocks_by_level = {'holding': [], 'super': [], 'normal': [], 'waiting': []}
+    status_blocks_by_level = {'holding': [], 'normal': [], 'waiting': []}
     for item in status_stocks:
         s = item['stock']
         lines = [f"종목명: {s.name}"]
@@ -826,7 +825,6 @@ def index(request):
     status_data_by_level = {k: '\n\n---\n\n'.join(v) for k, v in status_blocks_by_level.items()}
 
     context = {
-        'super_stocks': super_stocks,
         'normal_stocks': normal_stocks,
         'waiting_stocks': waiting_stocks,
         'card_a_stocks': card_a_stocks,
