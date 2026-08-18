@@ -188,14 +188,35 @@ class Command(BaseCommand):
         except (ValueError, AttributeError):
             return None
 
-    def _parse_decimal(self, value):
-        """문자열을 Decimal로 변환 (부호 포함)"""
+    def _parse_decimal(self, value, field=None):
+        """
+        문자열을 Decimal로 변환 (부호 포함).
+
+        field 를 주면 그 칼럼에 담기는 값인지 확인하고, 넘치면 버린다.
+        키움 응답이 드물게 깨진 값을 준다 — 제일바이오(052670)가 등락률로
+        29948.08 을 받았고 DecimalField(6,2)의 한계 9999.99 를 넘겼다.
+        저장은 되지만 읽을 때 decimal.InvalidOperation 이 나서 그 종목의
+        상세 페이지가 통째로 500 이 됐다.
+
+        빈 칸은 눈에 띄고 지나가면 그만이지만, 못 읽는 행은 페이지를 죽인다.
+        의심스러우면 안 넣는 쪽이 낫다.
+        """
         if not value:
             return None
         try:
-            return Decimal(value.replace(',', '').replace('+', ''))
+            parsed = Decimal(str(value).replace(',', '').replace('+', ''))
         except (InvalidOperation, AttributeError):
             return None
+        if field and not self._fits(parsed, field):
+            self.log.error(f'{field} 값이 칼럼 범위를 벗어나 버림: {parsed}')
+            return None
+        return parsed
+
+    @staticmethod
+    def _fits(value, field):
+        """모델이 정한 자릿수 안에 들어오는 값인지. 한계는 모델에서 읽어온다."""
+        meta = Info._meta.get_field(field)
+        return abs(value) < Decimal(10) ** (meta.max_digits - meta.decimal_places)
 
     def save_to_db(self, data, silent=False):
         """API 응답 데이터를 DB에 저장
@@ -227,14 +248,14 @@ class Command(BaseCommand):
         info.name = stock_name
         info.listed_shares = self._parse_int(data.get('flo_stk'))
         info.market_cap = self._parse_int(data.get('mac'))
-        info.listed_ratio = self._parse_decimal(data.get('dstr_rt'))
-        info.credit_ratio = self._parse_decimal(data.get('crd_rt'))
-        info.foreign_exhaustion = self._parse_decimal(data.get('for_exh_rt'))
-        info.per = self._parse_decimal(data.get('per'))
+        info.listed_ratio = self._parse_decimal(data.get('dstr_rt'), 'listed_ratio')
+        info.credit_ratio = self._parse_decimal(data.get('crd_rt'), 'credit_ratio')
+        info.foreign_exhaustion = self._parse_decimal(data.get('for_exh_rt'), 'foreign_exhaustion')
+        info.per = self._parse_decimal(data.get('per'), 'per')
         info.eps = self._parse_int(data.get('eps'))
-        info.roe = self._parse_decimal(data.get('roe'))
-        info.pbr = self._parse_decimal(data.get('pbr'))
-        info.ev = self._parse_decimal(data.get('ev'))
+        info.roe = self._parse_decimal(data.get('roe'), 'roe')
+        info.pbr = self._parse_decimal(data.get('pbr'), 'pbr')
+        info.ev = self._parse_decimal(data.get('ev'), 'ev')
         info.bps = self._parse_int(data.get('bps'))
         info.sales = self._parse_int(data.get('sale_amt'))
         info.operating_profit = self._parse_int(data.get('bus_pro'))
@@ -248,9 +269,9 @@ class Command(BaseCommand):
         info.low_price = self._parse_int(data.get('low_pric'), absolute=True)
         info.current_price = self._parse_int(data.get('cur_prc'), absolute=True)
         info.price_change = self._parse_int(data.get('pred_pre'))
-        info.change_rate = self._parse_decimal(data.get('flu_rt'))
+        info.change_rate = self._parse_decimal(data.get('flu_rt'), 'change_rate')
         info.volume = self._parse_int(data.get('trde_qty'))
-        info.volume_change = self._parse_decimal(data.get('trde_pre'))
+        info.volume_change = self._parse_decimal(data.get('trde_pre'), 'volume_change')
 
         # 시가총액 체크 (활성화/비활성화 처리)
         result = 'created' if created else 'updated'

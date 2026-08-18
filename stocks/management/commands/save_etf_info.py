@@ -191,6 +191,13 @@ ETF 정보 업데이트 (네이버 금융 크롤링)
             update_fields.append('current_price')
             changes.append(f'현재가={current_price:,}')
 
+        # 칼럼이 담을 수 있는 값인지 본다. DecimalField 한계를 넘긴 값은 저장은
+        # 되지만 읽을 때 decimal.InvalidOperation 이 나서 그 종목 페이지가
+        # 통째로 500 이 된다. (종목 쪽에서 실제로 겪었다 — save_stock_info 참고)
+        if change_rate is not None and abs(change_rate) >= 10000:
+            self.log.error(f'등락률이 칼럼 범위를 벗어나 버림: {change_rate}')
+            change_rate = None
+
         if change_rate is not None:
             etf.change_rate = change_rate
             update_fields.append('change_rate')
