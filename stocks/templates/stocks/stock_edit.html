@@ -195,23 +195,6 @@
         </div>
 
 
-        <!-- 컨센서스 — 주간 배치(save_consensus)가 채운다. 여기서는 보기만 한다. -->
-        <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
-            컨센서스
-            <a href="https://comp.wisereport.co.kr/company/c1050001.aspx?cmp_cd={{ stock.code }}&cn=" target="_blank" rel="noopener"
-               style="font-size:0.72rem;color:var(--text-muted);text-decoration:none;font-weight:400;">원본 ↗</a>
-        </h5>
-        <div class="brief-card">
-            <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">연간</div>
-            <div style="overflow-x:auto;">
-                <table class="modern-table" id="consensusAnnualTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
-            </div>
-        </div>
-        <div class="brief-card" style="margin-top:12px;">
-            <div style="font-size:0.78rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">분기</div>
-            <div style="overflow-x:auto;">
-                <table class="modern-table" id="consensusQuarterTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
-            </div>
         </div>
 
         <div style="display:flex; gap:8px; margin-top:20px;">
@@ -237,75 +220,6 @@ function getCsrfToken() {
     }
     return '';
 }
-
-// ===== 컨센서스 표 렌더 (차트 버튼 없는 간소 버전) =====
-function renderTable(tableId, rows, fields) {
-    const table = document.getElementById(tableId);
-    if (!rows.length) {
-        table.innerHTML = '<thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>';
-        return;
-    }
-    const periods = rows.map(r => r.period + (r.is_estimated ? '(E)' : ''));
-    let html = '<thead><tr><th style="text-align:left;">항목</th>';
-    periods.forEach(p => { html += `<th style="text-align:right;">${p}</th>`; });
-    html += '</tr></thead><tbody>';
-    fields.forEach(f => {
-        html += `<tr><td style="font-weight:500;white-space:nowrap;">${f.label}</td>`;
-        rows.forEach((r, idx) => {
-            const val = r[f.key];
-            let display = '-', valColor = '', changeHtml = '';
-            if (val !== null && val !== undefined) {
-                const num = parseFloat(val);
-                display = f.key === 'eps' ? num.toLocaleString() : num.toLocaleString(undefined, {minimumFractionDigits:1, maximumFractionDigits:1});
-                if (num < 0) valColor = 'color:#dc2626;';
-                if (idx > 0) {
-                    const prevVal = rows[idx - 1][f.key];
-                    if (prevVal !== null && prevVal !== undefined) {
-                        const prev = parseFloat(prevVal);
-                        if (prev !== 0) {
-                            const rate = ((num - prev) / Math.abs(prev) * 100).toFixed(1);
-                            const rateColor = rate > 0 ? '#dc2626' : rate < 0 ? '#2962ff' : 'var(--text-muted)';
-                            const sign = rate > 0 ? '+' : '';
-                            changeHtml = `<div style="font-size:0.68rem;color:${rateColor};">${sign}${rate}%</div>`;
-                        }
-                    }
-                }
-            }
-            html += `<td style="text-align:right;${valColor}">${display}${changeHtml}</td>`;
-        });
-        html += '</tr>';
-    });
-    html += '</tbody>';
-    table.innerHTML = html;
-}
-
-// ===== 컨센서스 (붙여넣기 입력 + 연간/분기 표) =====
-(function() {
-    const fields = [
-        { key: 'revenue', label: '매출액(억원)' },
-        { key: 'yoy', label: 'YoY(%)' },
-        { key: 'operating_profit', label: '영업이익(억원)' },
-        { key: 'net_income', label: '당기순이익(억원)' },
-        { key: 'eps', label: 'EPS(원)' },
-        { key: 'bps', label: 'BPS(원)' },
-        { key: 'per', label: 'PER(배)' },
-        { key: 'pbr', label: 'PBR(배)' },
-        { key: 'roe', label: 'ROE(%)' },
-        { key: 'ev_ebitda', label: 'EV/EBITDA(배)' },
-    ];
-    async function loadConsensusData() {
-        try {
-            const [a, q] = await Promise.all([
-                fetch(`/api/stock/${stockCode}/consensus/?period_type=annual`),
-                fetch(`/api/stock/${stockCode}/consensus/?period_type=quarter`)
-            ]);
-            const annual = await a.json(); const quarter = await q.json();
-            if (annual.success) renderTable('consensusAnnualTable', annual.data, fields);
-            if (quarter.success) renderTable('consensusQuarterTable', quarter.data, fields);
-        } catch (e) { console.error('컨센서스 로딩 오류:', e); }
-    }
-    loadConsensusData();
-})();
 
 // ============ 종목분류 프롬프트 복사 ============
 document.getElementById('btnCopyClassifyPrompt')?.addEventListener('click', async function() {
