@@ -403,8 +403,6 @@
 /* Performance chart layout */
 .perf-charts { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
 @media (max-width: 768px) { .perf-charts { grid-template-columns: 1fr; } }
-.consensus-charts { display: grid; grid-template-columns: 1fr; gap: 12px; }
-.consensus-charts > .chart-card { min-width: 0; }
 .consensus-charts .modern-table { font-size: 0.74rem; white-space: nowrap; }
 .consensus-charts .modern-table th, .consensus-charts .modern-table td { padding: 6px 10px; }
 @media (max-width: 768px) {
@@ -915,18 +913,18 @@
         <a href="https://comp.wisereport.co.kr/company/c1050001.aspx?cmp_cd={{ stock.code }}&cn=" target="_blank" rel="noopener"
            style="font-size:0.72rem;font-weight:400;color:var(--text-muted);text-decoration:none;">원본 ↗</a>
     </h5>
-    <div class="consensus-charts">
-        <div class="chart-card" style="margin-bottom:0;">
-            <div class="chart-card-header"><span style="font-size:0.82rem;color:var(--text-secondary);">연간</span></div>
-            <div style="overflow-x:auto;">
-                <table class="modern-table" id="consensusAnnualTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
+    <div class="chart-card consensus-charts" style="margin-bottom:0;">
+        <div class="chart-card-header">
+            <div class="tf-tabs">
+                <button type="button" class="tf-tab cs-tab active" data-cs="annual">연간</button>
+                <button type="button" class="tf-tab cs-tab" data-cs="quarter">분기</button>
             </div>
         </div>
-        <div class="chart-card" style="margin-bottom:0;">
-            <div class="chart-card-header"><span style="font-size:0.82rem;color:var(--text-secondary);">분기</span></div>
-            <div style="overflow-x:auto;">
-                <table class="modern-table" id="consensusQuarterTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
-            </div>
+        <div class="cs-pane" data-cs="annual" style="overflow-x:auto;">
+            <table class="modern-table" id="consensusAnnualTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
+        </div>
+        <div class="cs-pane tf-hidden" data-cs="quarter" style="overflow-x:auto;">
+            <table class="modern-table" id="consensusQuarterTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
         </div>
     </div>
     <div style="font-size:0.72rem;color:var(--text-muted);margin:8px 2px 0;line-height:1.6;">
@@ -3642,6 +3640,15 @@ new Chart(document.getElementById('quarterlyChart'), {
         { key: 'pbr', label: 'PBR(배)' },
         { key: 'roe', label: 'ROE(%)' },
     ];
+    // 연간/분기 탭 — 표는 이미 채워져 있으니 보이는 것만 바꾼다
+    document.querySelectorAll('.cs-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const cs = btn.dataset.cs;
+            document.querySelectorAll('.cs-tab').forEach(b => b.classList.toggle('active', b.dataset.cs === cs));
+            document.querySelectorAll('.cs-pane').forEach(p => p.classList.toggle('tf-hidden', p.dataset.cs !== cs));
+        });
+    });
+
     renderConsensusTable('consensusAnnualTable', {{ consensus_annual_rows|safe }}, fields);
     renderConsensusTable('consensusQuarterTable', {{ consensus_quarter_rows|safe }}, fields);
 })();
