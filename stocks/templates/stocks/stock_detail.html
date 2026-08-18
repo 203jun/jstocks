@@ -1691,6 +1691,8 @@
 {{ briefing_data|json_script:"briefing-data-json" }}
 {{ news_prompt_vars|json_script:"news-prompt-vars" }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- 리포트 차트의 x 축을 날짜로 쓰려면 date 어댑터가 필요하다 -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 const stockName = "{{ stock.name }}";
@@ -3503,55 +3505,69 @@ if (investorChartDataDaum && investorChartDataDaum.length > 0) {
     }
 }
 
-// ===== Price vs Target chart =====
+// ===== 주가 vs 목표가 =====
+// 목표가는 날짜별로 묶어 평균 하나만 찍고, 최저~최고를 밴드로 두른다.
+// 같은 날 증권사끼리 24만원까지 갈리므로 개별 점을 선으로 이으면 지그재그가 된다.
 const priceChartData = {{ price_chart_data|safe }};
 const targetChartData = {{ target_chart_data|safe }};
-const gapChartData = {{ gap_chart_data|safe }};
 let priceTargetChart = null;
 
 function initPriceTargetChart() {
     if (priceTargetChart) return;
-    if (priceChartData.length === 0) return;
+    if (!targetChartData.length) return;
     const ctx = document.getElementById('priceTargetChart');
     if (!ctx) return;
 
-    const labels = priceChartData.map(d => d.x);
-    const priceValues = priceChartData.map(d => d.y);
-    const targetValues = targetChartData.map(d => d.y);
-    const gapValues = gapChartData.map(d => d.y);
-
+    const band = 'rgba(220, 53, 69, 0.12)';
     priceTargetChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
             datasets: [
-                { label: '주가', data: priceValues, borderColor: '#0d6efd', borderWidth: 2, pointRadius: 3, fill: false, yAxisID: 'y' },
-                { label: '목표가', data: targetValues, borderColor: '#dc3545', borderWidth: 2, pointRadius: 3, fill: false, yAxisID: 'y' }
+                // 밴드: 최고선이 바로 다음 데이터셋(최저선)까지 채운다
+                { label: '목표가 최고', data: targetChartData.map(d => ({ x: d.x, y: d.high })),
+                  borderWidth: 0, pointRadius: 0, fill: '+1', backgroundColor: band, order: 3 },
+                { label: '목표가 최저', data: targetChartData.map(d => ({ x: d.x, y: d.low })),
+                  borderWidth: 0, pointRadius: 0, fill: false, order: 3 },
+                { label: '목표가 평균', data: targetChartData.map(d => ({ x: d.x, y: d.avg })),
+                  borderColor: '#dc3545', borderWidth: 2, pointRadius: 3, fill: false, order: 1 },
+                { label: '주가', data: priceChartData,
+                  borderColor: '#0d6efd', borderWidth: 2, pointRadius: 0, fill: false, order: 2 },
             ]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
+            interaction: { mode: 'nearest', axis: 'x', intersect: false },
             plugins: {
-                legend: { position: 'bottom' },
+                legend: {
+                    position: 'bottom',
+                    // 밴드는 범례에서 뺀다 (평균·주가만 남긴다)
+                    labels: { filter: item => !item.text.startsWith('목표가 최') },
+                },
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
-                            const idx = context.dataIndex;
-                            const label = context.dataset.label;
-                            const value = context.raw;
-                            if (label === '목표가') {
-                                const gap = gapValues[idx];
-                                return `${label}: ${value.toLocaleString()}원 (괴리율: ${gap > 0 ? '+' : ''}${gap}%)`;
+                        label: function(ctx) {
+                            const v = ctx.raw.y;
+                            if (ctx.dataset.label !== '목표가 평균') {
+                                return `${ctx.dataset.label}: ${v.toLocaleString()}원`;
                             }
-                            return `${label}: ${value.toLocaleString()}원`;
+                            const d = targetChartData[ctx.dataIndex];
+                            const lines = [`목표가 평균: ${v.toLocaleString()}원 (${d.count}건)`];
+                            if (d.low !== d.high) {
+                                lines.push(`  범위: ${d.low.toLocaleString()} ~ ${d.high.toLocaleString()}`);
+                            }
+                            if (d.gap !== null) {
+                                lines.push(`  괴리율: ${d.gap > 0 ? '+' : ''}${d.gap}%`);
+                            }
+                            return lines;
                         }
                     }
                 }
             },
             scales: {
+                x: { type: 'time', time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd',
+                                           displayFormats: { day: 'MM/dd' } },
+                     ticks: { maxTicksLimit: 8 } },
                 y: { ticks: { callback: v => v.toLocaleString() } },
-                x: { ticks: { maxTicksLimit: 10 } }
             }
         }
     });

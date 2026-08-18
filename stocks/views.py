@@ -1600,26 +1600,52 @@ def stock_detail(request, code):
     ).values_list('target_price', flat=True)
     avg_target_price_3m = round(sum(recent_target_prices) / len(recent_target_prices)) if recent_target_prices else None
 
-    # 주가 vs 목표가 차트 데이터 (리포트 탭용)
-    price_chart_data = []
+    # 주가 vs 목표가 차트 (리포트 탭)
+    #
+    # x 축은 날짜다. 예전에는 리포트 순번을 축으로 써서, 같은 날 5건이 나오면
+    # 그 하루가 화면에서 5칸을 차지하고 한 달 공백은 한 칸으로 붙었다.
+    #
+    # 같은 날 여러 증권사가 내는 목표가는 하루 안에서 24만원까지 갈리므로
+    # 선으로 이으면 지그재그가 된다. 날짜별로 묶어 평균 하나로 찍고,
+    # 최저~최고를 밴드로 둘러 이견의 폭을 함께 보여준다.
+    TARGET_CHART_DAYS = 20   # 리포트 건수가 아니라 '날짜' 20개
+
     target_chart_data = []
-    gap_chart_data = []
-    if reports:
-        # 리포트 목표가와 해당 날짜의 종가 데이터
-        report_dates = [r.date for r in reports if r.date]
-        daily_price_map = {
+    price_chart_data = []
+    with_target = Report.objects.filter(
+        stock=stock, target_price__isnull=False, date__isnull=False
+    ).values_list('date', 'target_price')
+
+    by_date = {}
+    for d, tp in with_target:
+        by_date.setdefault(d, []).append(int(tp))
+
+    if by_date:
+        dates = sorted(by_date, reverse=True)[:TARGET_CHART_DAYS]
+        dates.sort()
+        closes = {
             dc.date: dc.closing_price
-            for dc in DailyChart.objects.filter(stock=stock, date__in=report_dates)
+            for dc in DailyChart.objects.filter(stock=stock, date__gte=dates[0])
         }
-        for r in reversed(reports):
-            if r.date and r.target_price:
-                date_str = r.date.strftime('%Y-%m-%d')
-                closing = daily_price_map.get(r.date)
-                if closing:
-                    price_chart_data.append({'x': date_str, 'y': closing})
-                    target_chart_data.append({'x': date_str, 'y': r.target_price})
-                    gap = round((r.target_price - closing) / closing * 100, 1)
-                    gap_chart_data.append({'x': date_str, 'y': gap})
+        for d in dates:
+            prices = by_date[d]
+            avg = round(sum(prices) / len(prices))
+            close = closes.get(d)
+            target_chart_data.append({
+                'x': d.strftime('%Y-%m-%d'),
+                'avg': avg,
+                'low': min(prices),
+                'high': max(prices),
+                'count': len(prices),
+                # 휴장일 등으로 그날 종가가 없을 수 있다. 목표가는 유효하므로
+                # 점은 찍고 괴리율만 비운다.
+                'gap': round((avg - close) / close * 100, 1) if close else None,
+            })
+        # 주가선은 리포트가 있는 날만이 아니라 일봉 전체로 그린다
+        price_chart_data = [
+            {'x': d.strftime('%Y-%m-%d'), 'y': c}
+            for d, c in sorted(closes.items())
+        ]
 
     # 키움 ka01690 보유 현황 (Holding) + 어제 대비 diff 계산
     # 보조 계좌는 자산 페이지 전용이므로 여기서는 주계좌 보유분만 본다
@@ -1722,7 +1748,6 @@ def stock_detail(request, code):
         'total_summary_count': total_summary_count,
         'price_chart_data': json.dumps(price_chart_data),
         'target_chart_data': json.dumps(target_chart_data),
-        'gap_chart_data': json.dumps(gap_chart_data),
         'saved_prompts': {s.key: s.value for s in SystemSetting.objects.filter(key__startswith='prompt_')},
         'news_prompt_vars': news_prompt_vars,
         'ma10_value': ma10_value,
