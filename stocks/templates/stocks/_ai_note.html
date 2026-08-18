@@ -1,0 +1,39 @@
+{% comment %}
+AI 판단 — 시황·리포트·수급·공시가 같이 쓰는 조각.
+
+    {% include 'stocks/_ai_note.html' with kind='report' key=stock.code note=report_note note_id='ai-note-report' %}
+
+note 는 ai_note.build_note_panel(kind, key) 의 결과다. 없으면 붙여넣기 버튼만
+나온다. 날짜별 전문을 전부 들고 있어서, 날짜 칩을 눌러도 서버에 다시 묻지 않는다.
+
+편집 창과 JS 는 화면당 하나면 되므로 여기 넣지 않는다 —
+_ai_note_modal.html 을 화면 끝에 한 번 include 한다.
+{% endcomment %}
+<div class="ma-block ai-note" data-kind="{{ kind }}" data-key="{{ key }}">
+    {% if note %}
+    <button type="button" class="ms-log-head ma-head" aria-expanded="false">
+        <span class="ms-log-title">AI 판단</span>
+        <span class="ma-stance ma-stance-{{ note.latest.stance }}" data-role="stance"{% if not note.latest.stance %} hidden{% endif %}>{{ note.latest.stance }}</span>
+        <span class="ma-when{% if note.latest.stale %} ma-when-stale{% endif %}" data-role="when">{{ note.latest.label }}{% if note.latest.behind_text %} · {% if note.latest.stale %}⚠️ {% endif %}{{ note.latest.behind_text }}{% endif %}</span>
+        <span class="ms-log-caret">⌄</span>
+    </button>
+    <div class="ma-headline" data-role="headline">{{ note.latest.headline }}</div>
+    <div class="ma-body" data-role="body" hidden>{{ note.latest.content_html|safe }}</div>
+    <div class="ma-actions">
+        <button type="button" class="mp-btn" data-ma-edit>붙여넣기</button>
+        {% if note.entries|length > 1 %}
+        <span class="ma-dates">
+            {% for e in note.entries %}
+            <button type="button" class="ma-date{% if forloop.first %} active{% endif %}" data-date="{{ e.date }}">{{ e.label }}</button>
+            {% endfor %}
+        </span>
+        {% endif %}
+    </div>
+    {{ note.entries|json_script:note_id }}
+    {% else %}
+    <div class="ma-empty">
+        <span>AI 판단이 없습니다</span>
+        <button type="button" class="mp-btn" data-ma-edit>붙여넣기</button>
+    </div>
+    {% endif %}
+</div>

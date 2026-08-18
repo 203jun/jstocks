@@ -217,101 +217,6 @@
 }
 .dd-tag.dd-hot { background: rgba(220, 53, 69, 0.14); color: var(--up-color); }
 .dd-tag.dd-cold { background: rgba(41, 98, 255, 0.14); color: var(--down-color); }
-/* AI 판단 — 붙여넣어 저장한 판단 */
-.ma-block { border-top: 1px solid var(--border-color); }
-.ma-head .ms-log-title { flex: none; }
-.ma-stance {
-    font-size: 0.7rem;
-    font-weight: 700;
-    padding: 1px 7px;
-    border-radius: 999px;
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
-}
-/* 말리는 쪽(관망·신중)이 눈에 띄어야 한다 */
-.ma-stance-관망 { background: rgba(220, 53, 69, 0.14); color: var(--up-color); }
-.ma-stance-신중 { background: rgba(245, 158, 11, 0.16); color: #b45309; }
-.ma-stance-공격적 { background: rgba(41, 98, 255, 0.14); color: var(--down-color); }
-.ma-when { margin-left: auto; font-size: 0.72rem; color: var(--text-muted); }
-.ma-when-stale { color: var(--up-color); font-weight: 600; }
-/* 머리글이 제목 줄이므로 본문은 바로 아래에 붙인다 */
-.ma-head { padding-bottom: 4px; }
-.ma-headline {
-    padding: 0 20px 12px;
-    font-size: 0.86rem;
-    font-weight: 600;
-    line-height: 1.6;
-    color: var(--text-primary);
-    word-break: keep-all;
-}
-.ma-body {
-    padding: 4px 20px 12px;
-    font-size: 0.8rem;
-    line-height: 1.7;
-    color: var(--text-secondary);
-    white-space: pre-line;
-    word-break: keep-all;
-    border-top: 1px solid var(--border-color);
-    margin-top: 4px;
-}
-.ma-body strong { color: var(--text-primary); font-weight: 700; }
-.ma-body mark {
-    padding: 1px 3px;
-    border-radius: 3px;
-    background: rgba(245, 158, 11, 0.22);
-    color: var(--text-primary);
-}
-.ma-actions { display: flex; gap: 6px; padding: 0 20px 12px; }
-.ma-empty {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 20px;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-/* 이력 목록 */
-.ma-hist-row {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    width: 100%;
-    padding: 9px 8px;
-    border: none;
-    border-bottom: 1px solid var(--border-color);
-    background: none;
-    text-align: left;
-    font-size: 0.78rem;
-    color: var(--text-secondary);
-    cursor: pointer;
-}
-.ma-hist-row:hover { background: var(--bg-secondary); }
-.ma-hist-date { color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.ma-hist-line { flex: 1; word-break: keep-all; }
-/* 붙여넣기 폼 */
-.ma-form-row { display: flex; gap: 8px; margin-top: 10px; }
-.ma-form-row input, .ma-form-row select {
-    padding: 7px 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background: var(--bg-page);
-    color: var(--text-primary);
-    font-family: inherit;
-    font-size: 0.8rem;
-}
-.ma-form-row input:focus, .ma-form-row select:focus {
-    outline: none;
-    border-color: var(--text-muted);
-}
-.ma-form-row input { flex: 1; min-width: 0; }
-.ma-form-row select { flex: none; }
-
-@media (max-width: 520px) {
-    /* 좁은 화면에서는 결론과 스탠스를 두 줄로 */
-    .ma-form-row { flex-direction: column; }
-    .ma-form-row select { width: 100%; }
-}
-
 @media (max-width: 768px) {
     .ma-headline, .ma-body, .ma-actions { padding-left: 12px; padding-right: 12px; }
     .ma-empty { padding-left: 12px; padding-right: 12px; }
@@ -785,32 +690,8 @@
     {% endif %}
     {% endif %}
 
-    {# AI 판단 — 붙여넣어 저장한 것. 없으면 붙여넣기 버튼만 #}
-    <div class="ma-block">
-        {% if analysis %}
-        <button type="button" class="ms-log-head ma-head" aria-expanded="false" data-toggle=".ma-body">
-            <span class="ms-log-title">AI 판단</span>
-            {% if analysis.latest.stance %}<span class="ma-stance ma-stance-{{ analysis.latest.stance }}">{{ analysis.latest.stance }}</span>{% endif %}
-            <span class="ma-when{% if analysis.stale %} ma-when-stale{% endif %}">
-                {{ analysis.latest.date|date:"n/j" }} 기준{% if analysis.behind %} · {% if analysis.stale %}⚠️ {% endif %}지표 {{ analysis.behind }}거래일 갱신됨{% endif %}
-            </span>
-            <span class="ms-log-caret">⌄</span>
-        </button>
-        <div class="ma-headline">{{ analysis.headline }}</div>
-        <div class="ma-body" hidden>{{ analysis.content_html }}</div>
-        <div class="ma-actions">
-            <button type="button" class="mp-btn" data-ma-edit="{{ market_code }}">답변 갱신</button>
-            {% if analysis.history|length > 1 %}
-            <button type="button" class="mp-btn" data-ma-history="{{ market_code }}">이력 {{ analysis.history|length }}건</button>
-            {% endif %}
-        </div>
-        {% else %}
-        <div class="ma-empty">
-            <span>AI 판단이 없습니다</span>
-            <button type="button" class="mp-btn" data-ma-edit="{{ market_code }}">답변 붙여넣기</button>
-        </div>
-        {% endif %}
-    </div>
+    {# AI 판단 — 시황·리포트·수급·공시가 같은 조각을 쓴다 #}
+    {% include 'stocks/_ai_note.html' with kind='market' key=market_code note=analysis note_id='ai-note-kospi' %}
     {% endwith %}
     <div class="hero-chart">
         <div class="hero-sub">차트</div>
@@ -898,32 +779,8 @@
     {% endif %}
     {% endif %}
 
-    {# AI 판단 — 붙여넣어 저장한 것. 없으면 붙여넣기 버튼만 #}
-    <div class="ma-block">
-        {% if analysis %}
-        <button type="button" class="ms-log-head ma-head" aria-expanded="false" data-toggle=".ma-body">
-            <span class="ms-log-title">AI 판단</span>
-            {% if analysis.latest.stance %}<span class="ma-stance ma-stance-{{ analysis.latest.stance }}">{{ analysis.latest.stance }}</span>{% endif %}
-            <span class="ma-when{% if analysis.stale %} ma-when-stale{% endif %}">
-                {{ analysis.latest.date|date:"n/j" }} 기준{% if analysis.behind %} · {% if analysis.stale %}⚠️ {% endif %}지표 {{ analysis.behind }}거래일 갱신됨{% endif %}
-            </span>
-            <span class="ms-log-caret">⌄</span>
-        </button>
-        <div class="ma-headline">{{ analysis.headline }}</div>
-        <div class="ma-body" hidden>{{ analysis.content_html }}</div>
-        <div class="ma-actions">
-            <button type="button" class="mp-btn" data-ma-edit="{{ market_code }}">답변 갱신</button>
-            {% if analysis.history|length > 1 %}
-            <button type="button" class="mp-btn" data-ma-history="{{ market_code }}">이력 {{ analysis.history|length }}건</button>
-            {% endif %}
-        </div>
-        {% else %}
-        <div class="ma-empty">
-            <span>AI 판단이 없습니다</span>
-            <button type="button" class="mp-btn" data-ma-edit="{{ market_code }}">답변 붙여넣기</button>
-        </div>
-        {% endif %}
-    </div>
+    {# AI 판단 — 시황·리포트·수급·공시가 같은 조각을 쓴다 #}
+    {% include 'stocks/_ai_note.html' with kind='market' key=market_code note=analysis note_id='ai-note-kosdaq' %}
     {% endwith %}
     <div class="hero-chart">
         <div class="hero-sub">차트</div>
@@ -1033,43 +890,10 @@
 </div>
 
 <!-- AI 판단 붙여넣기 -->
-<div class="modal-overlay" id="maEditModal">
-    <div class="modal-box" style="max-width:680px;">
-        <div class="modal-header-custom">
-            <h6 id="maEditTitle">AI 판단</h6>
-            <button type="button" class="modal-close-btn" id="maEditClose">&times;</button>
-        </div>
-        <div class="td-note" style="margin:0 0 8px;">AI 답변을 통째로 붙여넣으세요. 한 줄 결론과 스탠스는 자동으로 뽑습니다.</div>
-        <textarea id="maContent" spellcheck="false" placeholder="여기에 붙여넣기"></textarea>
-        <div class="ma-form-row">
-            <input type="text" id="maHeadline" placeholder="한 줄 결론">
-            <select id="maStance">
-                <option value="">스탠스 없음</option>
-                {% for value, label in analysis_stances %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
-            </select>
-        </div>
-        <div class="mp-foot">
-            <button type="button" class="mp-save" id="maSave">저장</button>
-            <span class="mp-msg" id="maMsg"></span>
-        </div>
-    </div>
-</div>
-
-<!-- AI 판단 이력 -->
-<div class="modal-overlay" id="maHistoryModal">
-    <div class="modal-box" style="max-width:560px;">
-        <div class="modal-header-custom">
-            <h6 id="maHistoryTitle">AI 판단 이력</h6>
-            <button type="button" class="modal-close-btn" id="maHistoryClose">&times;</button>
-        </div>
-        <div class="td-scroll" id="maHistoryList"></div>
-        <div class="ma-body" id="maHistoryDetail" hidden></div>
-    </div>
-</div>
+{% include 'stocks/_ai_note_modal.html' %}
 
 {# 사용자가 고치는 텍스트라 템플릿 리터럴에 직접 넣지 않는다 (${...} 가 해석된다) #}
 {{ market_prompts|json_script:"mpPromptData" }}
-{{ analysis_history|json_script:"maHistoryData" }}
 
 {% endblock %}
 
@@ -1686,121 +1510,10 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && promptModal.classList.contains('show')) closePromptEdit();
 });
 
-// ===== AI 판단 =====
-// 붙여넣으면 서버가 한 줄 결론·스탠스를 뽑아준다. 사람이 고치면 그 값이 우선.
-const MA_HISTORY = JSON.parse(document.getElementById('maHistoryData').textContent);
-const maEditModal = document.getElementById('maEditModal');
-const maHistModal = document.getElementById('maHistoryModal');
-const maContent = document.getElementById('maContent');
-const maHeadline = document.getElementById('maHeadline');
-const maStance = document.getElementById('maStance');
-const maMsg = document.getElementById('maMsg');
-let maMarket = null;
-let maTouched = false;   // 사람이 결론·스탠스를 직접 건드렸는지
-
-const maPost = (url, data) => fetch(url, {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-CSRFToken': '{{ csrf_token }}',
-    },
-    body: new URLSearchParams(data),
-}).then(r => r.json());
-
-document.querySelectorAll('[data-ma-edit]').forEach(btn => {
-    btn.addEventListener('click', function () {
-        maMarket = this.dataset.maEdit;
-        maTouched = false;
-        document.getElementById('maEditTitle').textContent = `${maMarket} AI 판단`;
-        maContent.value = '';
-        maHeadline.value = '';
-        maStance.value = '';
-        maMsg.textContent = '';
-        maEditModal.classList.add('show');
-        maContent.focus();
-    });
-});
-
-[maHeadline, maStance].forEach(el => el.addEventListener('input', () => { maTouched = true; }));
-
-// 붙여넣는 즉시 뽑아서 미리 채운다 (사람이 이미 손댔으면 건드리지 않는다)
-let maTimer = null;
-maContent.addEventListener('input', () => {
-    clearTimeout(maTimer);
-    maTimer = setTimeout(async () => {
-        if (maTouched || !maContent.value.trim()) return;
-        try {
-            const data = await maPost('/api/market/analysis/parse/', { content: maContent.value });
-            if (data.success && !maTouched) {
-                maHeadline.value = data.headline || '';
-                maStance.value = data.stance || '';
-            }
-        } catch (err) { /* 미리보기 실패는 저장을 막지 않는다 */ }
-    }, 400);
-});
-
-document.getElementById('maSave').addEventListener('click', async () => {
-    if (!maContent.value.trim()) { maMsg.textContent = '답변을 붙여넣으세요'; return; }
-    try {
-        const data = await maPost('/api/market/analysis/save/', {
-            market: maMarket,
-            content: maContent.value,
-            headline: maHeadline.value,
-            stance: maStance.value,
-        });
-        if (!data.success) { maMsg.textContent = data.error; return; }
-        maMsg.textContent = `${data.date} 기준으로 저장했습니다`;
-        setTimeout(() => location.reload(), 700);
-    } catch (err) {
-        maMsg.textContent = err.message;
-    }
-});
-
-document.querySelectorAll('[data-ma-history]').forEach(btn => {
-    btn.addEventListener('click', function () {
-        const market = this.dataset.maHistory;
-        document.getElementById('maHistoryTitle').textContent = `${market} AI 판단 이력`;
-        document.getElementById('maHistoryDetail').hidden = true;
-        document.getElementById('maHistoryList').innerHTML =
-            (MA_HISTORY[market] || []).map(h => `
-                <button type="button" class="ma-hist-row" data-market="${market}" data-date="${h.date}">
-                    <span class="ma-hist-date">${h.date.slice(5).replace('-', '/')}</span>
-                    ${h.stance ? `<span class="ma-stance ma-stance-${h.stance}">${h.stance}</span>` : ''}
-                    <span class="ma-hist-line">${h.headline}</span>
-                </button>`).join('');
-        maHistModal.classList.add('show');
-    });
-});
-
-// 이력 한 줄을 누르면 그날 전문을 불러온다
-document.getElementById('maHistoryList').addEventListener('click', async e => {
-    const row = e.target.closest('.ma-hist-row');
-    if (!row) return;
-    const detail = document.getElementById('maHistoryDetail');
-    detail.textContent = '불러오는 중...';
-    detail.hidden = false;
-    const params = new URLSearchParams({ market: row.dataset.market, date: row.dataset.date });
-    try {
-        const data = await (await fetch(`/api/market/analysis/detail/?${params}`)).json();
-        // 서버가 이스케이프한 뒤 굵게/강조만 넣어 준 HTML 이다
-        if (data.success) detail.innerHTML = data.content_html;
-        else detail.textContent = data.error;
-    } catch (err) {
-        detail.textContent = '불러오지 못했습니다: ' + err.message;
-    }
-});
-
-[[maEditModal, 'maEditClose'], [maHistModal, 'maHistoryClose']].forEach(([modal, closeId]) => {
-    const close = () => modal.classList.remove('show');
-    document.getElementById(closeId).addEventListener('click', close);
-    modal.addEventListener('click', e => { if (e.target === modal) close(); });
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape' && modal.classList.contains('show')) close();
-    });
-});
-
 // 최근 변화 로그 펼치기
-document.querySelectorAll('.ms-log-head').forEach(head => {
+// AI 판단(.ma-head)은 제 조각이 직접 다룬다. 여기서 같이 잡으면 두 번
+// 토글돼 아무 일도 안 일어난 것처럼 보인다.
+document.querySelectorAll('.ms-log-head:not(.ma-head)').forEach(head => {
     head.addEventListener('click', () => {
         // 보통은 바로 다음 요소를 접지만, AI 판단처럼 사이에 다른 게 끼면
         // data-toggle 로 접을 대상을 직접 가리킨다

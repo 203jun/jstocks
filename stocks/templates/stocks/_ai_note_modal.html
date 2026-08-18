@@ -1,0 +1,146 @@
+{% comment %}
+AI 판단 편집 창 + 조작. 화면 끝에 한 번만 include 한다.
+같은 화면에 _ai_note.html 이 여러 개 있어도 이 창 하나를 같이 쓴다.
+{% endcomment %}
+<div class="modal-overlay" id="maEditModal">
+    <div class="modal-box" style="max-width:680px;">
+        <div class="modal-header-custom">
+            <h6 id="maEditTitle">AI 판단</h6>
+            <button type="button" class="modal-close-btn" id="maEditClose">&times;</button>
+        </div>
+        <div class="td-note" style="margin:0 0 8px;">AI 답변을 통째로 붙여넣으세요. 한 줄 결론과 스탠스는 자동으로 뽑습니다.</div>
+        <textarea id="maContent" spellcheck="false" placeholder="여기에 붙여넣기"></textarea>
+        <div class="ma-form-row">
+            <input type="text" id="maHeadline" placeholder="한 줄 결론">
+            <select id="maStance">
+                <option value="">스탠스 없음</option>
+                {% for value, label in analysis_stances %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="mp-foot">
+            <button type="button" class="mp-save" id="maSave">저장</button>
+            <span class="mp-msg" id="maMsg"></span>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===== AI 판단 =====
+//
+// 한 화면에 여러 개가 놓인다(시황은 코스피·코스닥, 종목은 리포트·수급·공시).
+// 블록마다 kind/key 를 달고 있고, 편집 창은 하나를 돌려 쓴다.
+//
+// 기준일은 서버가 정한다. 사람이 고르게 하면 어제 것을 오늘로 적는 실수가
+// 난다. 같은 기준일에 다시 저장하면 덮어쓴다.
+(function () {
+    const modal = document.getElementById('maEditModal');
+    if (!modal) return;
+    const content = document.getElementById('maContent');
+    const headline = document.getElementById('maHeadline');
+    const stance = document.getElementById('maStance');
+    const msg = document.getElementById('maMsg');
+    let editing = null;   // 지금 편집 중인 .ai-note 블록
+
+    function entriesOf(block) {
+        const holder = block.querySelector('script[type="application/json"]');
+        if (!holder) return [];
+        try { return JSON.parse(holder.textContent) || []; } catch { return []; }
+    }
+
+    async function post(url, data) {
+        const body = new URLSearchParams(data);
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: body,
+        });
+        return res.json();
+    }
+
+    // 날짜 칩 — 고른 날의 전문으로 갈아끼운다. 서버에 다시 묻지 않는다.
+    document.addEventListener('click', function (e) {
+        const chip = e.target.closest('.ma-date');
+        if (!chip) return;
+        const block = chip.closest('.ai-note');
+        const entry = entriesOf(block).find(x => x.date === chip.dataset.date);
+        if (!entry) return;
+
+        block.querySelectorAll('.ma-date').forEach(c => c.classList.toggle('active', c === chip));
+        const set = role => block.querySelector(`[data-role="${role}"]`);
+        set('headline').textContent = entry.headline;
+        set('body').innerHTML = entry.content_html;
+        const st = set('stance');
+        st.textContent = entry.stance;
+        st.className = 'ma-stance ma-stance-' + entry.stance;
+        st.hidden = !entry.stance;
+        const when = set('when');
+        when.textContent = entry.label + (entry.behind_text ? ` · ${entry.stale ? '⚠️ ' : ''}${entry.behind_text}` : '');
+        when.classList.toggle('ma-when-stale', !!entry.stale);
+    });
+
+    // 붙여넣기 — 지금 고른 날의 내용을 채워 연다. 새로 쓰든 고치든 같은 문이다.
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-ma-edit]');
+        if (!btn) return;
+        e.stopPropagation();
+        editing = btn.closest('.ai-note');
+        const active = editing.querySelector('.ma-date.active');
+        const entries = entriesOf(editing);
+        const entry = active ? entries.find(x => x.date === active.dataset.date) : entries[0];
+        content.value = entry ? entry.content : '';
+        headline.value = entry ? entry.headline : '';
+        stance.value = entry ? entry.stance : '';
+        msg.textContent = '';
+        modal.classList.add('show');
+        content.focus();
+    });
+
+    // 붙여넣는 순간 한 줄 결론·스탠스를 미리 뽑아 보여준다
+    content.addEventListener('input', async function () {
+        if (!content.value.trim() || headline.value.trim()) return;
+        try {
+            const data = await post('/api/ai-note/parse/', { content: content.value });
+            if (!data.success) return;
+            if (!headline.value.trim()) headline.value = data.headline || '';
+            if (!stance.value) stance.value = data.stance || '';
+        } catch {}
+    });
+
+    document.getElementById('maSave').addEventListener('click', async function () {
+        if (!editing) return;
+        this.disabled = true;
+        try {
+            const data = await post('/api/ai-note/save/', {
+                kind: editing.dataset.kind,
+                key: editing.dataset.key,
+                content: content.value,
+                headline: headline.value,
+                stance: stance.value,
+            });
+            if (!data.success) { msg.textContent = data.error || '저장 실패'; return; }
+            // 화면 곳곳이 같이 바뀌므로(날짜 칩·낡음 표시) 새로 그린다
+            msg.textContent = '저장했습니다';
+            setTimeout(() => location.reload(), 400);
+        } catch (err) {
+            msg.textContent = '저장 실패: ' + err.message;
+        } finally {
+            this.disabled = false;
+        }
+    });
+
+    document.getElementById('maEditClose').addEventListener('click', () => modal.classList.remove('show'));
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
+
+    // 제목 줄을 누르면 본문을 편다
+    document.addEventListener('click', function (e) {
+        const head = e.target.closest('.ai-note .ma-head');
+        if (!head || e.target.closest('[data-ma-edit], .ma-date')) return;
+        const open = head.getAttribute('aria-expanded') === 'true';
+        head.setAttribute('aria-expanded', open ? 'false' : 'true');
+        head.closest('.ai-note').querySelector('[data-role="body"]').hidden = open;
+    });
+})();
+</script>

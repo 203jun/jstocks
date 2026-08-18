@@ -97,9 +97,9 @@ urlpatterns = [
     path('api/setting/get/', views.get_setting, name='get_setting'),
     path('api/setting/save/', views.save_setting, name='save_setting'),
     # 시장 AI 판단
-    path('api/market/analysis/parse/', views.market_analysis_parse, name='market_analysis_parse'),
-    path('api/market/analysis/save/', views.market_analysis_save, name='market_analysis_save'),
-    path('api/market/analysis/detail/', views.market_analysis_detail, name='market_analysis_detail'),
+    # AI 판단 (시황·리포트·수급·공시가 같이 쓴다)
+    path('api/ai-note/parse/', views.ai_note_parse, name='ai_note_parse'),
+    path('api/ai-note/save/', views.ai_note_save, name='ai_note_save'),
     # 리서치 프롬프트
     path('api/research-prompt/', views.research_prompt_list, name='research_prompt_list'),
     path('api/research-prompt/add/', views.research_prompt_add, name='research_prompt_add'),

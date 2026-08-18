@@ -1152,6 +1152,10 @@
 
 <!-- ========== 수급 탭 ========== -->
 <div id="supply-content" class="tab-panel" style="display:none;">
+    <h5 class="section-heading" style="margin-top:0;">AI 판단</h5>
+    <div class="brief-card" style="padding:0;overflow:hidden;">
+        {% include 'stocks/_ai_note.html' with kind='supply' key=stock.code note=supply_note note_id='ai-note-supply' %}
+    </div>
 
     <!-- 수급 대시보드 -->
     <h5 class="section-heading">수급 대시보드</h5>
@@ -1520,6 +1524,11 @@
 
 <!-- ========== 공시 탭 ========== -->
 <div id="disclosure-content" class="tab-panel" style="display:none;">
+    <h5 class="section-heading" style="margin-top:0;">AI 판단</h5>
+    <div class="brief-card" style="padding:0;overflow:hidden;">
+        {% include 'stocks/_ai_note.html' with kind='gongsi' key=stock.code note=gongsi_note note_id='ai-note-gongsi' %}
+    </div>
+
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">DART 공시<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);display:flex;align-items:center;gap:8px;">{% prompt_gear "prompt_gongsi" title="공시 프롬프트 편집" %}전자공시시스템</span></h5>
     <div class="brief-card">
         {% if gongsi_list %}
@@ -1595,6 +1604,11 @@
         {% endif %}
     </div>
     {% endif %}
+
+    <h5 class="section-heading">AI 판단</h5>
+    <div class="brief-card" style="padding:0;overflow:hidden;">
+        {% include 'stocks/_ai_note.html' with kind='report' key=stock.code note=report_note note_id='ai-note-report' %}
+    </div>
 
     {% if reports %}
     <h5 class="section-heading">주가 vs 목표가</h5>
@@ -1719,6 +1733,7 @@
     </div>
 </div>
 
+{% include 'stocks/_ai_note_modal.html' %}
 {% endblock %}
 
 {% block extra_js %}

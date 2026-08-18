@@ -271,6 +271,115 @@
         }
 
 
+        /* AI 판단 — 붙여넣어 저장한 판단 */
+        .ma-block { border-top: 1px solid var(--border-color); }
+        /* 카드 하나로 홀로 놓일 때는 위 선이 필요 없다 (종목 리포트·수급·공시) */
+        .ma-block:first-child { border-top: none; }
+        .ma-head .ms-log-title { flex: none; }
+        .ma-stance {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 1px 7px;
+            border-radius: 999px;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+        }
+        /* 말리는 쪽(관망·신중)이 눈에 띄어야 한다 */
+        .ma-stance-관망 { background: rgba(220, 53, 69, 0.14); color: var(--up-color); }
+        .ma-stance-신중 { background: rgba(245, 158, 11, 0.16); color: #b45309; }
+        .ma-stance-공격적 { background: rgba(41, 98, 255, 0.14); color: var(--down-color); }
+        .ma-when { margin-left: auto; font-size: 0.72rem; color: var(--text-muted); }
+        .ma-when-stale { color: var(--up-color); font-weight: 600; }
+        /* 머리글이 제목 줄이므로 본문은 바로 아래에 붙인다 */
+        .ma-head { padding-bottom: 4px; }
+        .ma-headline {
+            padding: 0 20px 12px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            line-height: 1.6;
+            color: var(--text-primary);
+            word-break: keep-all;
+        }
+        .ma-body {
+            padding: 4px 20px 12px;
+            font-size: 0.8rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            white-space: pre-line;
+            word-break: keep-all;
+            border-top: 1px solid var(--border-color);
+            margin-top: 4px;
+        }
+        .ma-body strong { color: var(--text-primary); font-weight: 700; }
+        .ma-body mark {
+            padding: 1px 3px;
+            border-radius: 3px;
+            background: rgba(245, 158, 11, 0.22);
+            color: var(--text-primary);
+        }
+        .ma-actions { display: flex; gap: 6px; padding: 0 20px 12px; }
+        .ma-empty {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        /* 이력 목록 */
+        .ma-hist-row {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            width: 100%;
+            padding: 9px 8px;
+            border: none;
+            border-bottom: 1px solid var(--border-color);
+            background: none;
+            text-align: left;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+        .ma-hist-row:hover { background: var(--bg-secondary); }
+        .ma-hist-date { color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .ma-hist-line { flex: 1; word-break: keep-all; }
+        /* 붙여넣기 폼 */
+        .ma-form-row { display: flex; gap: 8px; margin-top: 10px; }
+        .ma-form-row input, .ma-form-row select {
+            padding: 7px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-page);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.8rem;
+        }
+        .ma-form-row input:focus, .ma-form-row select:focus {
+            outline: none;
+            border-color: var(--text-muted);
+        }
+        .ma-form-row input { flex: 1; min-width: 0; }
+        .ma-form-row select { flex: none; }
+
+        @media (max-width: 520px) {
+            /* 좁은 화면에서는 결론과 스탠스를 두 줄로 */
+            .ma-form-row { flex-direction: column; }
+            .ma-form-row select { width: 100%; }
+        }
+
+
+        /* 날짜 칩 — 저장된 날짜를 줄로 늘어놓고 고른다.
+           표로 만들면 읽을 게 날짜뿐이라 표가 아깝다. */
+        .ma-dates { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+        .ma-date {
+            padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border-color);
+            background: none; color: var(--text-muted);
+            font-family: inherit; font-size: 0.7rem; cursor: pointer;
+        }
+        .ma-date:hover { color: var(--text-primary); }
+        .ma-date.active { background: var(--text-primary); color: var(--bg-card); border-color: var(--text-primary); }
+
         /* 차트 범례 — 시황·종목이 같은 규격을 쓴다.
            Chart.js 기본 범례(네모 상자·아래쪽) 대신 차트 위에 HTML 로 둔다. */
         .chart-legend {

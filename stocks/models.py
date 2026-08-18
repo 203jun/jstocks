@@ -2443,22 +2443,29 @@ class MarketIndicator(models.Model):
         return f"{self.market} - {self.date} (이격도: {self.disparity}, ADR: {self.adr})"
 
 
-class MarketAnalysis(models.Model):
+class AiNote(models.Model):
     """
-    시장 지표를 AI에게 물어보고 받은 판단 (KOSPI, KOSDAQ)
+    AI 에게 물어보고 받은 판단. 시황·리포트·수급·공시가 같은 표를 쓴다.
 
-    화면의 [AI 프롬프트] 버튼으로 복사 -> 외부 AI -> 답변을 도로 붙여넣어 저장한다.
+    화면의 [프롬프트]로 복사 -> 외부 AI -> 답변을 도로 붙여넣어 저장한다.
     저장하지 않으면 판단이 창을 닫는 순간 사라지고 화면에는 다시 숫자만 남는다.
 
-    ※ date 는 저장한 날이 아니라 '판단의 근거가 된 지표 기준일'이다.
+    ※ date 는 저장한 날이 아니라 '판단의 근거가 된 데이터의 날짜'다.
       토요일에 물어봐도 데이터는 금요일 것이라 저장일로 잡으면 어긋난다.
       같은 기준일에 다시 저장하면 덮어쓰고, 새 거래일 데이터로 물어보면
       새 행이 쌓인다 — "7/31엔 침체라 했는데 2주 만에 과열까지 왔네"가 보인다.
+      기준일을 무엇으로 잡을지는 자리마다 다르다(stocks/ai_note.py 의 KINDS).
 
-    ※ headline/stance 는 답변 형식에서 뽑아낸 것이다(stocks/market_analysis.py).
-      AI 가 형식을 어길 수 있으므로 저장 전에 사람이 고칠 수 있게 한다.
+    ※ headline/stance 는 답변 형식에서 뽑아낸 것이다. AI 가 형식을 어길 수
+      있으므로 저장 전에 사람이 고칠 수 있게 한다.
     """
 
+    KINDS = [
+        ('market', '시황'),
+        ('report', '리포트'),
+        ('supply', '수급'),
+        ('gongsi', '공시'),
+    ]
     STANCES = [
         ('공격적', '공격적'),
         ('보통', '보통'),
@@ -2466,16 +2473,20 @@ class MarketAnalysis(models.Model):
         ('관망', '관망'),
     ]
 
-    market = models.CharField(
-        max_length=10,
-        verbose_name='시장',
-        help_text='KOSPI, KOSDAQ',
-        db_index=True
+    kind = models.CharField(
+        max_length=20,
+        choices=KINDS,
+        verbose_name='자리',
+        help_text='어느 화면의 판단인지'
+    )
+    key = models.CharField(
+        max_length=20,
+        verbose_name='대상',
+        help_text='KOSPI/KOSDAQ 또는 종목코드'
     )
     date = models.DateField(
-        verbose_name='지표 기준일',
-        help_text='판단의 근거가 된 지표 날짜 (저장일이 아니다)',
-        db_index=True
+        verbose_name='기준일',
+        help_text='판단의 근거가 된 데이터 날짜 (저장일이 아니다)'
     )
     headline = models.CharField(
         max_length=300,
@@ -2496,17 +2507,17 @@ class MarketAnalysis(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
 
     class Meta:
-        db_table = 'market_analysis'
-        verbose_name = '시장 AI 판단'
-        verbose_name_plural = '시장 AI 판단'
-        ordering = ['-date', 'market']
-        unique_together = [('market', 'date')]
+        db_table = 'ai_note'
+        verbose_name = 'AI 판단'
+        verbose_name_plural = 'AI 판단'
+        ordering = ['-date', 'kind', 'key']
+        unique_together = [('kind', 'key', 'date')]
         indexes = [
-            models.Index(fields=['market', '-date']),
+            models.Index(fields=['kind', 'key', '-date']),
         ]
 
     def __str__(self):
-        return f"{self.market} - {self.date} ({self.stance or '-'})"
+        return f"{self.kind}:{self.key} - {self.date} ({self.stance or '-'})"
 
 
 class MarketYoutubeVideo(models.Model):
