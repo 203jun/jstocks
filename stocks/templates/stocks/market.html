@@ -27,20 +27,6 @@
     display: flex;
     flex-direction: column;
 }
-.index-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-.index-badge .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #22c55e;
-}
 .price-main {
     font-size: 1.3rem;
     font-weight: 700;
@@ -56,12 +42,15 @@
 }
 /* 종합 신호 — 정보가 아니라 행동을 말하게 한다 */
 .ms-log { border-bottom: 1px solid var(--border-color); }
+/* 제목 줄과 내용 줄을 나눈다. 한 줄에 몰아넣으니 제목·내용·날짜가 같은
+   크기로 붙어 있어 어디부터 읽어야 할지 알 수가 없었다. */
 .ms-log-head {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    gap: 4px 8px;
     width: 100%;
-    padding: 8px 20px;
+    padding: 12px 20px 11px;
     background: transparent;
     border: none;
     color: inherit;
@@ -71,13 +60,24 @@
     cursor: pointer;
 }
 .ms-log-head:hover { background: var(--bg-hover, rgba(0,0,0,0.03)); }
-.ms-log-title { color: var(--text-muted); flex: none; }
+/* 카드 안의 작은 제목 */
+.ms-log-title {
+    flex: none;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+}
 .ms-log-latest {
+    flex-basis: 100%;
+    font-size: 0.86rem;
+    line-height: 1.5;
     color: var(--text-primary);
     font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    word-break: keep-all;
 }
 .ms-log-ago { color: var(--text-muted); margin-left: auto; flex: none; }
 .ms-log-caret { color: var(--text-muted); flex: none; transition: transform 0.15s; }
@@ -85,7 +85,7 @@
 .ms-log-head[aria-expanded="true"] .ms-log-latest { display: none; }
 .ms-log-list {
     margin: 0;
-    padding: 0 20px 10px;
+    padding: 0 20px 12px;
     list-style: none;
     font-size: 0.75rem;
 }
@@ -219,11 +219,13 @@
 .ma-stance-공격적 { background: rgba(41, 98, 255, 0.14); color: var(--down-color); }
 .ma-when { margin-left: auto; font-size: 0.72rem; color: var(--text-muted); }
 .ma-when-stale { color: var(--up-color); font-weight: 600; }
+/* 머리글이 제목 줄이므로 본문은 바로 아래에 붙인다 */
+.ma-head { padding-bottom: 4px; }
 .ma-headline {
-    padding: 0 20px 8px;
+    padding: 0 20px 12px;
     font-size: 0.86rem;
     font-weight: 600;
-    line-height: 1.5;
+    line-height: 1.6;
     color: var(--text-primary);
     word-break: keep-all;
 }
@@ -709,13 +711,10 @@
 {% endblock %}
 
 {% block content %}
-<!-- 차트 -->
-<h5 class="section-heading" style="margin-top: 0;">차트</h5>
-
 <!-- KOSPI -->
+<h5 class="section-heading" style="margin-top: 0;">KOSPI</h5>
 <div class="hero-card">
     <div class="hero-info-line">
-        <span class="index-badge">KOSPI</span>
         {% if kospi_latest %}
         <span class="price-main">{{ kospi_latest.closing_price|floatformat:2 }}</span>
         <span class="price-change {% if kospi_change_rate > 0 %}text-up{% elif kospi_change_rate < 0 %}text-down{% endif %}">
@@ -825,9 +824,9 @@
 </div>
 
 <!-- KOSDAQ -->
+<h5 class="section-heading">KOSDAQ</h5>
 <div class="hero-card">
     <div class="hero-info-line">
-        <span class="index-badge">KOSDAQ</span>
         {% if kosdaq_latest %}
         <span class="price-main">{{ kosdaq_latest.closing_price|floatformat:2 }}</span>
         <span class="price-change {% if kosdaq_change_rate > 0 %}text-up{% elif kosdaq_change_rate < 0 %}text-down{% endif %}">
