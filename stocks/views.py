@@ -17,6 +17,7 @@ from .market_signal import build_market_panel, build_prompt_vars
 from .prompts import (
     MARKET_SIGNAL_DEFAULT, MARKET_SIGNAL_KEYS, MARKET_SIGNAL_VARIABLES, get_prompt,
 )
+from .report_signal import gap_band
 
 import unicodedata
 import re as _re
@@ -1125,6 +1126,7 @@ def stock_detail(request, code):
                 r.gap_rate = round((r.target_price / closing - 1) * 100, 1)
             else:
                 r.gap_rate = None
+            r.gap_band = gap_band(r.gap_rate)
 
     # 공시 (최근 20개) + 호재/악재/검토 분류
     _raw_gongsi = list(Gongsi.objects.filter(stock=stock).order_by('-date')[:20])
