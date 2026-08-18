@@ -265,6 +265,39 @@
         }
 
 
+        /* 차트 범례 — 시황·종목이 같은 규격을 쓴다.
+           Chart.js 기본 범례(네모 상자·아래쪽) 대신 차트 위에 HTML 로 둔다. */
+        .chart-legend {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 6px;
+            font-size: 0.74rem;
+            color: var(--text-muted);
+        }
+        .chart-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+        .chart-legend i {
+            width: 12px;
+            height: 2px;
+            border-radius: 1px;
+            display: inline-block;
+        }
+        .chart-legend-val { font-weight: 700; font-variant-numeric: tabular-nums; }
+        .chart-legend-muted { color: var(--text-muted); }
+        .chart-legend-warn { color: #f59e0b; opacity: 1; }
+        .chart-legend-note { margin-left: auto; font-size: 0.7rem; opacity: 0.8; }
+        /* 목표가 범위 밴드는 선이 아니라 면이라 조각도 면으로 보인다 */
+        .chart-legend i.legend-band {
+            height: 8px; background: rgba(220, 53, 69, 0.22);
+            border: 1px solid rgba(220, 53, 69, 0.4); border-radius: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .chart-legend { gap: 10px; font-size: 0.7rem; }
+            .chart-legend-note { display: none; }
+            .chart-legend-warn { display: inline; }
+        }
+
         /* 프롬프트 짝 — 복사와 편집은 늘 같이 다니므로 한 덩어리로 묶는다.
            채운 버튼은 화면에 이것 하나뿐이다. 빨강·파랑은 가격, 초록·주황·보라는
            이미 배지들이 쓰고 있어서, 색을 하나 더 고르는 대신 '채움'으로 가른다. */

@@ -1599,7 +1599,13 @@
     {% if reports %}
     <h5 class="section-heading">주가 vs 목표가</h5>
     <div class="chart-card">
-        <div style="position:relative;height:300px;">
+        <div class="chart-legend">
+            <span class="chart-legend-item"><i style="background:var(--up-color);"></i>목표가 평균</span>
+            <span class="chart-legend-item"><i class="legend-band"></i>목표가 범위</span>
+            <span class="chart-legend-item"><i style="background:var(--down-color);"></i>주가</span>
+            <span class="chart-legend-note">점 = 리포트가 나온 날</span>
+        </div>
+        <div style="position:relative;height:320px;">
             <canvas id="priceTargetChart"></canvas>
         </div>
     </div>
@@ -3084,7 +3090,8 @@ function initPriceTargetChart() {
     const ctx = document.getElementById('priceTargetChart');
     if (!ctx) return;
 
-    const band = 'rgba(220, 53, 69, 0.12)';
+    // 시장·종목 차트와 같은 규칙으로 맞춘다. 빨강은 목표가, 파랑은 주가.
+    const band = _isDarkTheme ? 'rgba(220, 53, 69, 0.16)' : 'rgba(220, 53, 69, 0.10)';
     priceTargetChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -3096,10 +3103,12 @@ function initPriceTargetChart() {
                   borderWidth: 0, pointRadius: 0, fill: false, order: 3 },
                 // 툴팁은 이 점에서만 뜬다. 점은 작게 두고 잡히는 범위만 넓힌다.
                 { label: '목표가 평균', data: targetChartData.map(d => ({ x: d.x, y: d.avg })),
-                  borderColor: '#dc3545', borderWidth: 2, pointRadius: 4, pointHitRadius: 14,
+                  borderColor: '#dc3545', borderWidth: 2,
+                  pointRadius: 3, pointHitRadius: 14,
+                  pointBackgroundColor: '#dc3545', pointBorderColor: chartBg, pointBorderWidth: 1.5,
                   fill: false, order: 1 },
                 { label: '주가', data: priceChartData,
-                  borderColor: '#0d6efd', borderWidth: 2, pointRadius: 0, fill: false, order: 2 },
+                  borderColor: '#2962ff', borderWidth: 1.5, pointRadius: 0, fill: false, order: 2 },
             ]
         },
         options: {
@@ -3108,12 +3117,14 @@ function initPriceTargetChart() {
             // 툴팁은 읽을 게 없어 오히려 방해가 된다.
             interaction: { mode: 'point', intersect: true },
             plugins: {
-                legend: {
-                    position: 'bottom',
-                    // 밴드는 범례에서 뺀다 (평균·주가만 남긴다)
-                    labels: { filter: item => !item.text.startsWith('목표가 최') },
-                },
+                // 범례는 차트 위에 HTML 로 둔다. Chart.js 기본 범례는 네모 상자에
+                // 아래쪽이라 다른 차트들과 결이 달랐다.
+                legend: { display: false },
                 tooltip: {
+                    backgroundColor: _isDarkTheme ? '#22262f' : 'rgba(255,255,255,0.96)',
+                    titleColor: chartText, bodyColor: chartText,
+                    borderColor: chartBorder, borderWidth: 1,
+                    padding: 10, displayColors: false,
                     // 주가선과 밴드에는 툴팁을 붙이지 않는다
                     filter: item => item.dataset.label === '목표가 평균',
                     callbacks: {
@@ -3136,9 +3147,14 @@ function initPriceTargetChart() {
             },
             scales: {
                 x: { type: 'time', time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd',
-                                           displayFormats: { day: 'MM/dd' } },
-                     ticks: { maxTicksLimit: 8 } },
-                y: { ticks: { callback: v => v.toLocaleString() } },
+                                           displayFormats: { day: 'yy.MM' } },
+                     grid: { color: chartGrid },
+                     border: { color: chartBorder },
+                     ticks: { maxTicksLimit: 8, color: chartText, font: { size: 10 } } },
+                y: { grid: { color: chartGrid },
+                     border: { display: false },
+                     ticks: { callback: v => v.toLocaleString(),
+                              color: chartText, font: { size: 10 } } },
             }
         }
     });

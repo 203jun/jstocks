@@ -436,25 +436,6 @@
     margin-bottom: 8px;
 }
 .range-btns, .ma-badges { display: flex; gap: 4px; }
-.chart-legend {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 6px;
-    font-size: 0.74rem;
-    color: var(--text-muted);
-}
-.chart-legend-item { display: inline-flex; align-items: center; gap: 5px; }
-.chart-legend i {
-    width: 12px;
-    height: 2px;
-    border-radius: 1px;
-    display: inline-block;
-}
-.chart-legend-val { font-weight: 700; font-variant-numeric: tabular-nums; }
-.chart-legend-muted { color: var(--text-muted); }
-.chart-legend-warn { color: #f59e0b; opacity: 1; }
-.chart-legend-note { margin-left: auto; font-size: 0.7rem; opacity: 0.8; }
 .index-chart-wrap { position: relative; overflow: hidden; }
 /* 세 칸(캔들·거래량·누적)을 세로로 겹쳐 쓰므로 넉넉히 잡는다.
    높이를 줄이면 캔들이 제일 먼저 눌린다. */
@@ -721,9 +702,6 @@
     .mi-strip { grid-template-columns: repeat(2, 1fr); }
     .mi-cell { padding: 10px 12px 8px; }
     .mi-value { font-size: 1.02rem; }
-    .chart-legend { gap: 10px; font-size: 0.7rem; }
-    .chart-legend-note { display: none; }
-    .chart-legend-warn { display: inline; }
     .index-chart { height: 480px; }
     .index-tooltip { min-width: 175px; font-size: 0.72rem; }
 }
