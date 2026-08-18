@@ -266,7 +266,8 @@
 
 
         /* 프롬프트 짝 — 복사와 편집은 늘 같이 다니므로 한 덩어리로 묶는다.
-           다른 버튼들과 성격이 달라(AI 에게 줄 것) 모양도 따로 간다. */
+           채운 버튼은 화면에 이것 하나뿐이다. 빨강·파랑은 가격, 초록·주황·보라는
+           이미 배지들이 쓰고 있어서, 색을 하나 더 고르는 대신 '채움'으로 가른다. */
         .prompt-pair {
             display: inline-flex; align-items: stretch; vertical-align: middle;
             border-radius: 6px; overflow: hidden; line-height: 1;
@@ -274,18 +275,23 @@
         }
         .prompt-pair > * {
             display: inline-flex; align-items: center;
-            background: #ecfdf5; color: #059669;
+            background: #1f2937; color: #fff;
             border: none; padding: 5px 10px; cursor: pointer;
             font-size: inherit; font-weight: inherit; font-family: inherit;
             text-decoration: none; white-space: nowrap;
             transition: background 0.15s;
         }
-        .prompt-pair > *:hover { background: #d1fae5; }
-        /* 둘째 칸(설정)은 가름선으로만 나눈다. 칸이 하나뿐이어도 모양이 유지된다. */
-        .prompt-pair > * + * { border-left: 1px solid rgba(5,150,105,0.28); padding: 5px 8px; }
-        [data-theme="dark"] .prompt-pair > * { background: #0e2a1f; color: #4ade80; }
-        [data-theme="dark"] .prompt-pair > *:hover { background: #143a2b; }
-        [data-theme="dark"] .prompt-pair > * + * { border-left-color: rgba(74,222,128,0.28); }
+        .prompt-pair > *:hover { background: #374151; }
+        /* 둘째 칸(⚙)은 가름선으로만 나눈다. 칸이 하나뿐이어도 모양이 유지된다. */
+        .prompt-pair > * + * { border-left: 1px solid rgba(255,255,255,0.22); padding: 5px 8px; }
+        /* 표 안처럼 줄이 빽빽한 자리에서는 한 치수 작게 */
+        .prompt-pair-sm { font-size: 0.66rem; }
+        .prompt-pair-sm > * { padding: 3px 7px; }
+        .prompt-pair-sm > * + * { padding: 3px 6px; }
+        [data-theme="dark"] .prompt-pair > * { background: #e5e7eb; color: #111827; }
+        [data-theme="dark"] .prompt-pair > *:hover { background: #f3f4f6; }
+        [data-theme="dark"] .prompt-pair > * + * { border-left-color: rgba(17,24,39,0.22); }
+
 
         .text-down { color: var(--down-color) !important; }
 
