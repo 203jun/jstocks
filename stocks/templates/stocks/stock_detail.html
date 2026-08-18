@@ -4064,13 +4064,9 @@ document.querySelectorAll('.btn-gongsi-prompt').forEach(btn => {
             prompt = prompt.replace(/\{공시링크\}/g, link);
             prompt = prompt.replace(/\{현재가\}/g, '{{ stock.current_price|default:""|escapejs }}');
 
-            // 길이 체크 (10만자 초과 시 경고)
-            if (prompt.length > 100000) {
-                if (!confirm(`프롬프트가 ${prompt.length.toLocaleString()}자입니다. LLM 입력 제한을 초과할 수 있습니다.\n그래도 복사하시겠습니까?`)) {
-                    btn.textContent = '프롬프트복사';
-                    return;
-                }
-            }
+            // 길이 확인은 서버에서 한다. 여기서 confirm 을 띄우면 그 뒤의
+            // navigator.clipboard.writeText 가 '문서에 포커스가 없다'며 거부한다.
+            // 확인을 눌러도 복사가 안 되던 이유가 이것이었다.
 
             // 클립보드 복사 (HTTPS fallback 포함)
             if (navigator.clipboard && navigator.clipboard.writeText) {

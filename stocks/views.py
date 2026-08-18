@@ -3406,8 +3406,12 @@ DART_USER_AGENT = (
 
 # 사업보고서는 최상위 노드 17개에 원문이 4MB 를 넘고, 그중 '재무에 관한 사항'
 # 하나가 3.5MB 다. 상한이 없으면 그걸 다 받아 100만 자를 만든다.
+#
+# 넘치면 잘라서 주지 않고 아예 거절한다. 반기·사업보고서를 프롬프트로 옮겨
+# 읽을 일이 없는데, 잘라 주면 앞부분만 든 채로 다 봤다고 착각하게 된다.
+# 투자설명서 71,280자 · 주주총회소집공고 52,295자 는 통과하는 선이다.
 DART_MAX_NODES = 30
-DART_MAX_CHARS = 150_000
+DART_MAX_CHARS = 100_000
 
 _DART_VIEWDOC_RE = _re.compile(
     r'viewDoc\(\s*"(\d+)"\s*,\s*"(\d+)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"'
@@ -3488,13 +3492,10 @@ def fetch_dart_document(request, rcept_no):
         nodes = [{'text': '', 'rcpNo': rcp, 'dcmNo': dcm, 'eleId': ele,
                   'offset': off, 'length': length, 'dtd': dtd}]
 
-    truncated = len(nodes) > DART_MAX_NODES
+    too_long = len(nodes) > DART_MAX_NODES
     parts, total = [], 0
     try:
         for node in nodes[:DART_MAX_NODES]:
-            if total >= DART_MAX_CHARS:
-                truncated = True
-                break
             text = _dart_viewer_text(session, {
                 'rcpNo': node['rcpNo'] or rcp, 'dcmNo': node['dcmNo'],
                 'eleId': node['eleId'], 'offset': node['offset'],
@@ -3502,30 +3503,30 @@ def fetch_dart_document(request, rcept_no):
             })
             if not text:
                 continue
-            room = DART_MAX_CHARS - total
-            if len(text) > room:
-                text, truncated = text[:room], True
             parts.append(text)
             total += len(text)
+            if total > DART_MAX_CHARS:
+                # 더 받아봐야 어차피 거절한다. 여기서 멈춘다.
+                too_long = True
+                break
     except requests.RequestException as exc:
-        if not parts:
-            return JsonResponse({'error': f'본문 조회 실패: {exc}'}, status=500)
-        truncated = True
+        return JsonResponse({'error': f'본문 조회 실패: {exc}'}, status=500)
+
+    if too_long:
+        return JsonResponse({
+            'error': f'본문이 너무 깁니다 ({total:,}자 이상, 한도 {DART_MAX_CHARS:,}자). '
+                     f'반기·사업보고서처럼 긴 문서는 프롬프트로 옮기지 않습니다. '
+                     f'DART 원문에서 읽으세요.',
+        }, status=413)
 
     if not parts:
         return JsonResponse({'error': '문서 내용을 추출할 수 없습니다.'}, status=404)
 
     content = '\n\n'.join(parts)
-    if truncated:
-        content += (f'\n\n[※ 본문이 길어 여기까지만 담았습니다 — '
-                    f'최대 {DART_MAX_NODES}개 절 / {DART_MAX_CHARS:,}자. '
-                    f'전체는 DART 원문에서 확인하세요.]')
-
     return JsonResponse({
         'success': True,
         'rcept_no': rcept_no,
         'content_length': len(content),
-        'truncated': truncated,
         'content': content,
     })
 
