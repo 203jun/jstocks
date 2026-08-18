@@ -317,7 +317,7 @@
             background: rgba(245, 158, 11, 0.22);
             color: var(--text-primary);
         }
-        .ma-actions { display: flex; gap: 6px; padding: 0 20px 12px; }
+        .ma-actions { display: flex; align-items: center; gap: 6px; padding: 0 20px 12px; min-width: 0; }
         .ma-empty {
             display: flex;
             align-items: center;
@@ -371,8 +371,14 @@
 
         /* 날짜 칩 — 저장된 날짜를 줄로 늘어놓고 고른다.
            표로 만들면 읽을 게 날짜뿐이라 표가 아깝다. */
-        .ma-dates { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+        .ma-dates {
+            display: flex; gap: 4px; margin-left: auto;
+            overflow-x: auto; scrollbar-width: none; max-width: 100%;
+        }
+        .ma-dates::-webkit-scrollbar { display: none; }
+        .ma-date-more { color: var(--text-muted); font-size: 0.7rem; align-self: center; padding: 0 2px; }
         .ma-date {
+            flex: none;
             padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border-color);
             background: none; color: var(--text-muted);
             font-family: inherit; font-size: 0.7rem; cursor: pointer;

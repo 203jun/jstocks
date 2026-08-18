@@ -176,7 +176,12 @@ def basis_date(kind, key):
     return spec['basis'](key) if spec else None
 
 
-def build_note_panel(kind, key, limit=12):
+# 칩으로 늘어놓을 날짜 개수. 전문까지 같이 실어 보내므로 무한정 늘릴 수는
+# 없다. 과거 판단은 거의 다시 안 보고, 넘치면 끝에 '…' 로 알린다.
+HISTORY_LIMIT = 30
+
+
+def build_note_panel(kind, key, limit=HISTORY_LIMIT):
     """
     화면에 뿌릴 판단들. 날짜별 전문을 다 담아 보낸다 —
     날짜를 고를 때마다 서버에 다시 묻지 않기 위해서다.
@@ -186,9 +191,11 @@ def build_note_panel(kind, key, limit=12):
     spec = KINDS.get(kind)
     if not spec:
         return None
-    rows = list(AiNote.objects.filter(kind=kind, key=key).order_by('-date')[:limit])
+    qs = AiNote.objects.filter(kind=kind, key=key).order_by('-date')
+    rows = list(qs[:limit])
     if not rows:
         return None
+    more = qs.count() - len(rows)
 
     entries = []
     for row in rows:
@@ -205,4 +212,4 @@ def build_note_panel(kind, key, limit=12):
             'behind_text': spec['unit'].format(n=behind) if behind else '',
             'stale': behind >= spec['threshold'],
         })
-    return {'entries': entries, 'latest': entries[0]}
+    return {'entries': entries, 'latest': entries[0], 'more': more}
