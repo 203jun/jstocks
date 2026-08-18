@@ -1520,7 +1520,7 @@
 
 <!-- ========== 공시 탭 ========== -->
 <div id="disclosure-content" class="tab-panel" style="display:none;">
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">DART 공시<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);display:flex;align-items:center;gap:8px;"><a class="prompt-edit" href="{% url 'stocks:settings' %}#gongsi-prompt-panel" target="_blank" rel="noopener" title="공시 프롬프트 편집">프롬프트 설정</a>전자공시시스템</span></h5>
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">DART 공시<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);display:flex;align-items:center;gap:8px;"><button type="button" class="mp-btn mp-btn-icon" data-prompt-edit="prompt_gongsi" title="공시 프롬프트 편집">⚙</button>전자공시시스템</span></h5>
     <div class="brief-card">
         {% if gongsi_list %}
         <table class="modern-table">
@@ -1696,10 +1696,28 @@
     </div>
 </div>
 
+
+<!-- 공시 프롬프트 편집 (설정 화면에 안 가고 여기서 고친다) -->
+<div class="modal-overlay" id="promptEditModal">
+    <div class="modal-box" style="max-width:680px;">
+        <div class="modal-header-custom">
+            <h6 id="mpTitle">프롬프트</h6>
+            <button type="button" class="modal-close-btn" id="mpClose">&times;</button>
+        </div>
+        <div class="mp-vars" id="mpVars"></div>
+        <textarea id="mpText" spellcheck="false"></textarea>
+        <div class="mp-foot">
+            <button type="button" class="mp-save" id="mpSave">저장</button>
+            <span class="mp-msg" id="mpMsg"></span>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 {{ briefing_data|json_script:"briefing-data-json" }}
+{{ saved_prompts.prompt_gongsi|default:""|json_script:"gongsi-prompt-json" }}
 {{ news_prompt_vars|json_script:"news-prompt-vars" }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <!-- 리포트 차트의 x 축을 날짜로 쓰려면 date 어댑터가 필요하다 -->
@@ -4020,13 +4038,84 @@ function renderTable(tableId, rows, fields) {
 })();
 
 
+// ===== 프롬프트 편집 (설정 화면에 안 가고 이 자리에서 고친다) =====
+//
+// escapejs 로 템플릿 리터럴에 박으면 프롬프트 안의 ${...} 가 살아남아 터진다.
+// json_script 로 넘긴다. 저장하면 이 값이 바뀌므로 복사 버튼이 새 프롬프트를
+// 바로 쓴다 — 고치고 새로고침하러 가는 일이 없게.
+const PROMPT_EDIT = {
+    prompt_gongsi: {
+        title: '공시 프롬프트',
+        value: JSON.parse(document.getElementById('gongsi-prompt-json').textContent) || '',
+        vars: [
+            ['{종목명}', ''], ['{종목코드}', ''], ['{현재가}', ''],
+            ['{공시제목}', ''], ['{공시일자}', ''], ['{공시분류}', '호재/악재/검토'],
+            ['{공시내용}', 'DART 본문'], ['{공시링크}', ''],
+        ],
+    },
+};
+
+const mpModal = document.getElementById('promptEditModal');
+const mpText = document.getElementById('mpText');
+const mpMsg = document.getElementById('mpMsg');
+let mpEditingKey = null;
+
+document.querySelectorAll('[data-prompt-edit]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        mpEditingKey = btn.dataset.promptEdit;
+        const spec = PROMPT_EDIT[mpEditingKey];
+        document.getElementById('mpTitle').textContent = spec.title;
+        document.getElementById('mpVars').innerHTML = spec.vars.map(([name, desc]) =>
+            `<button type="button" class="mp-var" data-var="${name}" title="누르면 커서 위치에 넣습니다">${name}${desc ? `<small>${desc}</small>` : ''}</button>`
+        ).join('');
+        mpText.value = spec.value;
+        mpMsg.textContent = '';
+        mpModal.classList.add('show');
+    });
+});
+
+// 변수 칩을 누르면 커서 자리에 끼워 넣는다
+document.getElementById('mpVars').addEventListener('click', (e) => {
+    const chip = e.target.closest('.mp-var');
+    if (!chip) return;
+    const name = chip.dataset.var;
+    const start = mpText.selectionStart, end = mpText.selectionEnd;
+    mpText.value = mpText.value.slice(0, start) + name + mpText.value.slice(end);
+    mpText.focus();
+    mpText.selectionStart = mpText.selectionEnd = start + name.length;
+});
+
+document.getElementById('mpClose').addEventListener('click', () => mpModal.classList.remove('show'));
+mpModal.addEventListener('click', (e) => { if (e.target === mpModal) mpModal.classList.remove('show'); });
+
+document.getElementById('mpSave').addEventListener('click', async function () {
+    this.disabled = true;
+    try {
+        const body = new FormData();
+        body.append('key', mpEditingKey);
+        body.append('value', mpText.value);
+        const res = await fetch('/api/setting/save/', {
+            method: 'POST', body, headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || '저장 실패');
+        PROMPT_EDIT[mpEditingKey].value = mpText.value;
+        mpMsg.textContent = '저장했습니다';
+    } catch (err) {
+        mpMsg.textContent = '저장 실패: ' + err.message;
+    } finally {
+        this.disabled = false;
+    }
+});
+
 // ===== 공시 프롬프트 버튼 =====
 document.querySelectorAll('.btn-gongsi-prompt').forEach(btn => {
     btn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const promptTemplate = `{{ saved_prompts.prompt_gongsi|default:""|escapejs }}`;
+        const promptTemplate = PROMPT_EDIT.prompt_gongsi.value;
         if (!promptTemplate) {
-            alert('설정 → 프롬프트 → 공시에서 프롬프트를 먼저 등록하세요.');
+            alert('옆의 ⚙ 를 눌러 공시 프롬프트를 먼저 등록하세요.');
             return;
         }
         const link = btn.dataset.link;
