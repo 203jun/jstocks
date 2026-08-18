@@ -393,6 +393,24 @@
 #btnRefreshStock.spin { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
+/* 목표가 카드 (리포트 탭) */
+.tgt-head { display:flex; align-items:baseline; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+.tgt-price { font-size:1.35rem; font-weight:700; }
+.tgt-src { font-size:0.72rem; color:var(--text-muted); }
+.tgt-rows { display:flex; flex-direction:column; gap:7px; }
+.tgt-row { display:flex; align-items:baseline; flex-wrap:wrap; gap:8px; font-size:0.85rem; }
+.tgt-label { width:44px; flex:none; color:var(--text-muted); font-size:0.78rem; }
+.tgt-value { font-weight:600; }
+.tgt-note { font-size:0.72rem; color:var(--text-muted); }
+.tgt-reading {
+    margin-top:12px; padding-top:12px; border-top:1px solid var(--border-color);
+    font-size:0.82rem; line-height:1.65; color:var(--text-secondary);
+}
+@media (max-width: 768px) {
+    /* 라벨과 값은 한 줄에 두고, 설명만 아래로 흘린다 */
+    .tgt-note { width:100%; padding-left:52px; margin-top:-3px; }
+}
+
 /* 리포트 괴리율 강조 — 흔한 가운데는 흐리게, 드문 양끝만 세운다 (stocks/report_signal.py) */
 .gap-strong { color: var(--up-color); font-weight: 700; }    /* 이례적으로 센 콜 */
 .gap-thin   { color: #e8590c; font-weight: 700; }            /* 여력 거의 없음 = 돌려 말한 매도 */
@@ -465,7 +483,6 @@
     <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;line-height:2;">
         <span><span style="color:var(--text-muted);">거래량</span> <span id="volume">{% if stock.volume %}{{ stock.volume|intcomma }}{% else %}-{% endif %}</span>{% if volume_change_rate is not None %} <span class="{% if volume_change_rate > 0 %}text-up{% elif volume_change_rate < 0 %}text-down{% endif %}" id="volumeChange">({% if volume_change_rate > 0 %}+{% endif %}{{ volume_change_rate }}%)</span>{% endif %}</span>
         <span><span style="color:var(--text-muted);">시가총액</span> {% if stock.market_cap %}{{ stock.market_cap|intcomma }}억{% else %}-{% endif %}</span>
-        <span><span style="color:var(--text-muted);">괴리율</span> {% if latest_report_gap is not None %}<span class="{{ latest_report_gap_band }}">{% if latest_report_gap > 0 %}+{% endif %}{{ latest_report_gap }}%</span>{% help_icon "report_gap_now" %} <span style="color:var(--text-muted);font-size:0.72rem;">{{ latest_report_gap_date|date:"y.m.d" }}{% if latest_report_gap_issued is not None %} 발행시 {% if latest_report_gap_issued > 0 %}+{% endif %}{{ latest_report_gap_issued }}%{% endif %}{% if latest_report_price_move is not None %} · 주가 {% if latest_report_price_move > 0 %}+{% endif %}{{ latest_report_price_move }}%{% endif %}</span>{% else %}<span style="color:var(--text-muted);">-</span>{% endif %}</span>
     </div>
     <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;line-height:2;">
         <span><span style="color:var(--text-muted);">수급</span> {% if latest_investor %}<span class="{% if latest_investor.foreign > 0 %}text-up{% elif latest_investor.foreign < 0 %}text-down{% endif %}">외{% if latest_investor.foreign > 0 %}+{% endif %}{{ latest_investor.foreign|intcomma }}</span> <span class="{% if latest_investor.institution > 0 %}text-up{% elif latest_investor.institution < 0 %}text-down{% endif %}">기{% if latest_investor.institution > 0 %}+{% endif %}{{ latest_investor.institution|intcomma }}</span>{% else %}<span style="color:var(--text-muted);">-</span>{% endif %}</span>
@@ -1514,6 +1531,49 @@
 
 <!-- ========== 리포트 탭 ========== -->
 <div id="report-content" class="tab-panel" style="display:none;">
+    {% if target_panel %}
+    <h5 class="section-heading" style="margin-top:0;">목표가 {% help_icon "target_panel" %}</h5>
+    <div class="brief-card tgt-card">
+        <div class="tgt-head">
+            <div class="tgt-price">{{ target_panel.target|intcomma }}원</div>
+            <div class="tgt-src">{{ target_panel.date|date:"y.m.d" }}{% if target_panel.provider %} · {{ target_panel.provider }}{% endif %}</div>
+        </div>
+        <div class="tgt-rows">
+            <div class="tgt-row">
+                <span class="tgt-label">괴리율</span>
+                {% if target_panel.gap_now is not None %}
+                <span class="tgt-value {{ target_panel.gap_band }}">{% if target_panel.gap_now > 0 %}+{% endif %}{{ target_panel.gap_now }}%</span>
+                <span class="tgt-note">{% if target_panel.gap_issued is not None %}발행시 {% if target_panel.gap_issued > 0 %}+{% endif %}{{ target_panel.gap_issued }}%{% endif %}{% if target_panel.price_move is not None %} · 그 뒤 주가 {% if target_panel.price_move > 0 %}+{% endif %}{{ target_panel.price_move }}%{% endif %}</span>
+                {% else %}<span class="tgt-value" style="color:var(--text-muted);">-</span>{% endif %}
+            </div>
+            {% if target_panel.recent_n %}
+            <div class="tgt-row">
+                <span class="tgt-label">컨센</span>
+                <span class="tgt-value">{{ target_panel.consensus|intcomma }}원</span>
+                <span class="tgt-note">최근 {{ target_panel.window }}일 · 증권사 {{ target_panel.providers }}곳{% if target_panel.consensus_gap is not None %} · 이 목표가는 평균 {% if target_panel.consensus_gap > 0 %}+{% endif %}{{ target_panel.consensus_gap }}%{% endif %}{% if target_panel.outlier %} <strong class="gap-thin">혼자 튐</strong>{% endif %}</span>
+            </div>
+            <div class="tgt-row">
+                <span class="tgt-label">방향</span>
+                <span class="tgt-value">
+                    <span class="{% if target_panel.up %}text-up{% endif %}">▲{{ target_panel.up }}</span>
+                    <span style="color:var(--text-muted);">—{{ target_panel.flat }}</span>
+                    <span class="{% if target_panel.down %}text-down{% endif %}">▼{{ target_panel.down }}</span>
+                </span>
+                <span class="tgt-note">최근 {{ target_panel.window }}일 · 같은 증권사의 직전 목표가 대비</span>
+            </div>
+            {% else %}
+            <div class="tgt-row">
+                <span class="tgt-label"></span>
+                <span class="tgt-value" style="color:var(--text-muted);font-weight:400;">최근 {{ target_panel.window }}일 새 리포트 없음 — 컨센·방향을 낼 수 없다</span>
+            </div>
+            {% endif %}
+        </div>
+        {% if target_panel.reading %}
+        <div class="tgt-reading">{{ target_panel.reading }}</div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     {% if reports %}
     <h5 class="section-heading">주가 vs 목표가</h5>
     <div class="chart-card">
