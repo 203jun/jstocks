@@ -1154,7 +1154,7 @@
 <div id="supply-content" class="tab-panel" style="display:none;">
     <h5 class="section-heading" style="margin-top:0;">AI 판단</h5>
     <div class="brief-card" style="padding:0;overflow:hidden;">
-        {% include 'stocks/_ai_note.html' with kind='supply' key=stock.code note=supply_note note_id='ai-note-supply' %}
+        {% include 'stocks/_ai_note.html' with kind='supply' key=stock.code note=supply_note note_id='ai-note-supply' prompt_key='prompt_supply_demand_analysis' prompt_id='btnCopySdAnalysisPrompt' %}
     </div>
 
     <!-- 수급 대시보드 -->
@@ -1511,7 +1511,6 @@
         <div id="sdAnalysisEditMode" class="d-none">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
                 <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">수급분석</div>
-                {% prompt_pair "prompt_supply_demand_analysis" id="btnCopySdAnalysisPrompt" %}
             </div>
             <textarea class="form-control" id="sdAnalysisTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.supply_demand_analysis }}</textarea>
             <div class="d-flex justify-content-end gap-2">
