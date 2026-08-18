@@ -190,6 +190,36 @@ def _report_gap(market=None):
     ])
 
 
+def _report_gap_now(market=None):
+    from .report_signal import GAP_OVERSHOOT, GAP_THIN
+
+    return '\n'.join([
+        '가장 최근 리포트의 목표가 ÷ 현재가 - 100',
+        '',
+        '리포트 표의 괴리율과 다른 값이다. 표는 발행일 종가로 굳은 기록이고 '
+        '여기는 오늘 주가로 다시 잰 것이다. 목록·핵심브리핑에 나오는 괴리율도 '
+        '이 값과 같다.',
+        '',
+        '── 옆에 붙은 것 ──',
+        '',
+        '발행시  그날의 괴리율. 애널리스트가 얼마나 세게 말했는지.',
+        '주가    발행일 종가 대비 지금까지의 등락.',
+        '',
+        '한 리포트 안에서 목표가는 바뀌지 않는다. 그래서 "발행시 +58% → 지금 '
+        '-1%"는 목표가를 내린 것이 아니라 주가가 60% 올라 목표가를 따라잡은 '
+        '것이다. 반대로 괴리율이 벌어졌다면 주가가 빠진 것이다.',
+        '',
+        '── 색이 붙는 기준 ──',
+        '',
+        f'{GAP_THIN:g}% 이하 (주황) · {GAP_OVERSHOOT:g}% 미만 (파랑)',
+        '  목표가에 다 왔거나 넘어섰다.',
+        '',
+        '위쪽은 일부러 색을 안 준다. 괴리율이 큰 것은 목표가가 높아서가 아니라 '
+        '주가가 빠져서인 경우가 대부분이라, 강조하면 많이 떨어진 종목이 상승 '
+        '여력으로 보인다. 목표가는 주가에 후행해 뒤늦게 내려온다.',
+    ])
+
+
 HELP_TEXTS = {
     'disparity': {'title': '이격도 (20일)', 'body': _disparity},
     'adr': {'title': 'ADR', 'body': _adr},
@@ -198,4 +228,5 @@ HELP_TEXTS = {
     'events': {'title': '최근 변화', 'body': _events},
     'cumulative': {'title': '누적 순매수', 'body': _cumulative},
     'report_gap': {'title': '괴리율 (발행 시점)', 'body': _report_gap},
+    'report_gap_now': {'title': '괴리율 (현재가 기준)', 'body': _report_gap_now},
 }

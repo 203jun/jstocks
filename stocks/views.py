@@ -17,7 +17,7 @@ from .market_signal import build_market_panel, build_prompt_vars
 from .prompts import (
     MARKET_SIGNAL_DEFAULT, MARKET_SIGNAL_KEYS, MARKET_SIGNAL_VARIABLES, get_prompt,
 )
-from .report_signal import gap_band
+from .report_signal import current_gap_band, gap_band
 
 import unicodedata
 import re as _re
@@ -1585,14 +1585,45 @@ def stock_detail(request, code):
             'weight': short_sellings[0].trading_weight,
         }
 
-    # 최근 리포트 괴리율 (값이 있는 가장 최근 리포트)
-    latest_report_gap = None
+    # 최근 리포트 괴리율 — 여기만 '지금' 기준이다.
+    #
+    # 표의 괴리율은 발행일 종가로 굳는다. 그날의 확신도 기록이라 오늘 살지
+    # 말지를 말해주지 않는다. 카드 위의 한 줄은 그 자리라서 현재가로 다시 잰다.
+    # 목록과 핵심브리핑도 현재가 기준이니 이렇게 해야 같은 이름의 숫자가
+    # 화면마다 어긋나지 않는다.
+    #
+    # 한 리포트 안에서 목표가는 고정이므로 발행시와 지금의 차이는 전부 주가
+    # 때문이다. 그래서 주가가 그동안 얼마나 움직였는지를 같이 들고 나간다.
+    # 그게 없으면 "+58%가 왜 -1%가 됐나"를 목표가 하향으로 오해하게 된다.
+    latest_report_gap = None          # 현재가 기준
+    latest_report_gap_band = ''
+    latest_report_gap_issued = None   # 발행 시점 (표에 있는 값과 같다)
+    latest_report_price_move = None   # 발행일 종가 대비 주가 변동
     latest_report_gap_date = None
-    for r in reports:
-        if hasattr(r, 'gap_rate') and r.gap_rate is not None:
-            latest_report_gap = r.gap_rate
-            latest_report_gap_date = r.date
-            break
+    #
+    # 대상 리포트는 목록(index)과 똑같은 질의로 고른다. 화면에 보이는 최근
+    # 20건 안에서 찾으면, 그 20건에 목표가가 하나도 없을 때 목록과 다른
+    # 리포트를 집게 된다.
+    #
+    # 발행일 종가가 없어도(휴장일 발행, 일봉이 아직 안 들어온 오늘자 리포트)
+    # 현재가 기준 괴리율은 나온다. 목표가와 현재가면 충분하다. 곁들이는
+    # 발행시·주가만 종가가 있을 때 붙는다.
+    latest_report = (Report.objects
+                     .filter(stock=stock, target_price__isnull=False)
+                     .order_by('-date').first())
+    if latest_report and stock.current_price:
+        latest_report_gap_date = latest_report.date
+        latest_report_gap = round(
+            (latest_report.target_price / stock.current_price - 1) * 100, 1)
+        latest_report_gap_band = current_gap_band(latest_report_gap)
+        closing = (DailyChart.objects
+                   .filter(stock=stock, date=latest_report.date)
+                   .values_list('closing_price', flat=True).first())
+        if closing:
+            latest_report_gap_issued = round(
+                (latest_report.target_price / closing - 1) * 100, 1)
+            latest_report_price_move = round(
+                (stock.current_price / closing - 1) * 100, 1)
 
     # 3개월 평균 목표주가 (컨센서스 프롬프트용)
     from datetime import timedelta
@@ -1693,6 +1724,9 @@ def stock_detail(request, code):
         'latest_investor': latest_investor,
         'latest_short': latest_short,
         'latest_report_gap': latest_report_gap,
+        'latest_report_gap_band': latest_report_gap_band,
+        'latest_report_gap_issued': latest_report_gap_issued,
+        'latest_report_price_move': latest_report_price_move,
         'latest_report_gap_date': latest_report_gap_date,
         'annual_labels': json.dumps(annual_labels),
         'annual_revenue': json.dumps(annual_revenue),

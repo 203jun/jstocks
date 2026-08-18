@@ -37,3 +37,25 @@ def gap_band(gap):
     if gap >= GAP_STRONG:
         return 'gap-strong'
     return 'gap-plain'
+
+
+def current_gap_band(gap):
+    """
+    현재가 기준 괴리율 -> 강조 등급. 아래쪽 경계는 발행 시점과 같지만
+    위쪽(GAP_STRONG)은 일부러 세우지 않는다.
+
+    한 리포트 안에서 목표가는 고정이므로, 발행 시점 대비 괴리율이 벌어졌다면
+    그건 100% 주가가 빠졌다는 뜻이다. 그걸 빨갛게 칠하면 '많이 떨어진 종목'이
+    상승 여력으로 보이게 된다. 목표가는 주가에 후행해서 뒤늦게 내려오는
+    경우가 많아 더 그렇다.
+
+    그래서 여기서는 목표가에 다다른 쪽만 세운다. 살지 말지를 묻는 자리에서
+    쓸모 있는 경고는 '이미 다 왔다' 뿐이다.
+    """
+    if gap is None:
+        return ''
+    if gap < GAP_OVERSHOOT:
+        return 'gap-over'
+    if gap <= GAP_THIN:
+        return 'gap-thin'
+    return 'gap-plain'
