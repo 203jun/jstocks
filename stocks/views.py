@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET
 from decouple import config
 from telethon import TelegramClient
 from django.views.decorators.http import require_POST
-from .models import Holding, Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Gongsi, IndexChart, MarketTrend, MarketAnalysis, InvestorTrend, ShortSelling, MarketDiary, StockDiary, StockEvent, SectorEvent, ETFEvent, DailyTrade
+from .models import Holding, Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Gongsi, IndexChart, MarketTrend, MarketAnalysis, InvestorTrend, ShortSelling, MarketDiary, StockEvent, SectorEvent, ETFEvent
 from .market_analysis import build_analysis_panel
 from .market_signal import build_market_panel, build_prompt_vars
 from .prompts import (
@@ -936,23 +936,6 @@ def stock_list(request):
         'holding_codes': holding_codes,
     }
     return render(request, 'stocks/stock_list.html', context)
-
-
-def _build_pending_trades(stock):
-    """StockDiary가 아직 작성되지 않은 DailyTrade 건을 매수/매도 별로 분리"""
-    pending = []
-    for t in DailyTrade.objects.filter(info=stock, stock_diary__isnull=True).select_related('diary').order_by('-diary__date'):
-        base = {
-            'id': t.id, 'date': t.diary.date.strftime('%Y-%m-%d'), 'stk_nm': t.stk_nm,
-            'buy_qty': t.buy_qty, 'buy_avg_price': t.buy_avg_price, 'buy_amount': t.buy_amount,
-            'sell_qty': t.sell_qty, 'sell_avg_price': t.sell_avg_price, 'sell_amount': t.sell_amount,
-            'pl_amount': t.pl_amount, 'profit_rate': str(t.profit_rate) if t.profit_rate else None,
-        }
-        if (t.buy_qty or 0) > 0:
-            pending.append({**base, 'type': 'buy'})
-        if (t.sell_qty or 0) > 0:
-            pending.append({**base, 'type': 'sell'})
-    return pending
 
 
 def stock_detail(request, code):
@@ -2853,164 +2836,9 @@ def diary_delete(request, diary_id):
     return JsonResponse({'success': True})
 
 
-@require_GET
-def stock_diary_list(request, code):
-    """종목별 투자일지 목록 API"""
-    limit = int(request.GET.get('limit', 20))
-    offset = int(request.GET.get('offset', 0))
-    total = StockDiary.objects.filter(stock_id=code).count()
-    entries = StockDiary.objects.filter(stock_id=code)[offset:offset + limit]
-
-    results = []
-    for entry in entries:
-        result = {
-            'id': entry.id,
-            'date': entry.date.strftime('%Y-%m-%d'),
-            'trade_type': entry.trade_type,
-            'updated_at': entry.updated_at.strftime('%Y-%m-%d %H:%M'),
-        }
-        if entry.trade_type == 'buy':
-            result.update({
-                'setup_type': entry.get_setup_type_display() if entry.setup_type else '',
-                'setup_type_key': entry.setup_type,
-                'entry_reason': entry.entry_reason,
-                'planned_stop_price': entry.planned_stop_price,
-                'target_price_1': entry.target_price_1,
-                'invalidation_condition': entry.invalidation_condition,
-                'entry_confidence': entry.entry_confidence,
-                'position_size': entry.get_position_size_display() if entry.position_size else '',
-                'position_size_key': entry.position_size,
-                'entry_emotion': entry.get_entry_emotion_display() if entry.entry_emotion else '',
-                'entry_emotion_key': entry.entry_emotion,
-                'is_planned': entry.is_planned,
-            })
-        else:
-            result.update({
-                'sell_reason_type': entry.get_sell_reason_type_display() if entry.sell_reason_type else '',
-                'sell_reason_type_key': entry.sell_reason_type,
-                'stop_compliance': entry.get_stop_compliance_display() if entry.stop_compliance else '',
-                'stop_compliance_key': entry.stop_compliance,
-                'entry_validity': entry.get_entry_validity_display() if entry.entry_validity else '',
-                'entry_validity_key': entry.entry_validity,
-                'plan_compliance': entry.get_plan_compliance_display() if entry.plan_compliance else '',
-                'plan_compliance_key': entry.plan_compliance,
-                'exit_emotion': entry.get_exit_emotion_display() if entry.exit_emotion else '',
-                'exit_emotion_key': entry.exit_emotion,
-                'process_evaluation': entry.get_process_evaluation_display() if entry.process_evaluation else '',
-                'process_evaluation_key': entry.process_evaluation,
-                'lesson': entry.lesson,
-            })
-        if entry.trade:
-            t = entry.trade
-            result['trade_data'] = {
-                'buy_qty': t.buy_qty, 'buy_avg_price': t.buy_avg_price, 'buy_amount': t.buy_amount,
-                'sell_qty': t.sell_qty, 'sell_avg_price': t.sell_avg_price, 'sell_amount': t.sell_amount,
-                'pl_amount': t.pl_amount, 'profit_rate': str(t.profit_rate) if t.profit_rate else None,
-            }
-        results.append(result)
-
-    return JsonResponse({
-        'success': True,
-        'results': results,
-        'total': total,
-        'has_more': offset + limit < total,
-    })
-
-
 def _parse_bool(val):
     return str(val).lower() in ('1', 'true', 'on', 'yes')
 
-
-@require_POST
-def stock_diary_save(request, code):
-    """종목별 투자일지 저장 API"""
-    date_str = request.POST.get('date', '').strip()
-    trade_type = request.POST.get('trade_type', '').strip()
-
-    if not date_str or trade_type not in ('buy', 'sell'):
-        return JsonResponse({'error': '날짜와 매매 구분을 입력하세요.'}, status=400)
-
-    try:
-        date_val = datetime.strptime(date_str, '%Y-%m-%d').date()
-    except ValueError:
-        return JsonResponse({'error': '올바른 날짜 형식이 아닙니다.'}, status=400)
-
-    stock = get_object_or_404(Info, code=code)
-
-    # DailyTrade 자동 연결 시도
-    trade = None
-    trade_id = request.POST.get('trade_id', '').strip()
-    if trade_id:
-        from .models import DailyTrade
-        trade = DailyTrade.objects.filter(id=trade_id).first()
-
-    fields = {'stock': stock, 'date': date_val, 'trade_type': trade_type, 'trade': trade}
-
-    if trade_type == 'buy':
-        fields.update({
-            'setup_type': request.POST.get('setup_type', ''),
-            'entry_reason': request.POST.get('entry_reason', ''),
-            'planned_stop_price': int(request.POST['planned_stop_price']) if request.POST.get('planned_stop_price', '').strip() else None,
-            'invalidation_condition': request.POST.get('invalidation_condition', ''),
-            'target_price_1': int(request.POST['target_price_1']) if request.POST.get('target_price_1', '').strip() else None,
-            'entry_confidence': int(request.POST['entry_confidence']) if request.POST.get('entry_confidence', '').strip() else None,
-            'position_size': request.POST.get('position_size', ''),
-            'entry_emotion': request.POST.get('entry_emotion', ''),
-            'is_planned': request.POST.get('is_planned', 'true').lower() in ('true', '1', 'on'),
-        })
-    else:
-        fields.update({
-            'sell_reason_type': request.POST.get('sell_reason_type', ''),
-            'stop_compliance': request.POST.get('stop_compliance', ''),
-            'entry_validity': request.POST.get('entry_validity', ''),
-            'plan_compliance': request.POST.get('plan_compliance', ''),
-            'exit_emotion': request.POST.get('exit_emotion', ''),
-            'process_evaluation': request.POST.get('process_evaluation', ''),
-            'lesson': request.POST.get('lesson', ''),
-        })
-
-    entry = StockDiary.objects.create(**fields)
-    return JsonResponse({'success': True, 'id': entry.id})
-
-
-@require_POST
-def stock_diary_update(request, code, diary_id):
-    """종목별 투자일지 수정 API"""
-    entry = get_object_or_404(StockDiary, id=diary_id, stock_id=code)
-
-    if entry.trade_type == 'buy':
-        for field in ['setup_type', 'entry_reason', 'invalidation_condition', 'position_size', 'entry_emotion']:
-            if field in request.POST:
-                setattr(entry, field, request.POST.get(field, ''))
-        if 'planned_stop_price' in request.POST:
-            val = request.POST['planned_stop_price'].strip()
-            entry.planned_stop_price = int(val) if val else None
-        if 'target_price_1' in request.POST:
-            val = request.POST['target_price_1'].strip()
-            entry.target_price_1 = int(val) if val else None
-        if 'entry_confidence' in request.POST:
-            val = request.POST['entry_confidence'].strip()
-            entry.entry_confidence = int(val) if val else None
-        if 'is_planned' in request.POST:
-            entry.is_planned = request.POST['is_planned'].lower() in ('true', '1', 'on')
-    else:
-        for field in ['sell_reason_type', 'stop_compliance', 'entry_validity', 'plan_compliance', 'exit_emotion', 'process_evaluation', 'lesson']:
-            if field in request.POST:
-                setattr(entry, field, request.POST.get(field, ''))
-
-    entry.save()
-    return JsonResponse({'success': True})
-
-
-@require_POST
-def stock_diary_delete(request, code, diary_id):
-    """종목별 투자일지 삭제 API"""
-    entry = get_object_or_404(StockDiary, id=diary_id, stock_id=code)
-    entry.delete()
-    return JsonResponse({'success': True})
-
-
-# ===== 종목별 이벤트 =====
 
 @require_GET
 def stock_event_list(request, code):
@@ -4238,68 +4066,6 @@ def etf_memo_save(request, code):
         etf.memo_updated_at = date.today()
         etf.save(update_fields=['memo', 'memo_updated_at'])
     return JsonResponse({'success': True, 'updated_at': etf.memo_updated_at.strftime('%Y-%m-%d') if etf.memo_updated_at else ''})
-
-
-@require_GET
-def etf_diary_list(request, code):
-    """ETF 투자일지 목록 API"""
-    from .models import ETFDiary
-    limit = int(request.GET.get('limit', 20))
-    offset = int(request.GET.get('offset', 0))
-    total = ETFDiary.objects.filter(etf_id=code).count()
-    entries = ETFDiary.objects.filter(etf_id=code)[offset:offset + limit]
-    results = [{'id': e.id, 'date': e.date.strftime('%Y-%m-%d'), 'content': e.content, 'updated_at': e.updated_at.strftime('%Y-%m-%d %H:%M')} for e in entries]
-    return JsonResponse({'success': True, 'results': results, 'total': total, 'has_more': offset + limit < total})
-
-
-@require_POST
-def etf_diary_save(request, code):
-    """ETF 투자일지 저장 API"""
-    from .models import InfoETF, ETFDiary
-    date_str = request.POST.get('date', '').strip()
-    content = request.POST.get('content', '').strip()
-    if not date_str or not content:
-        return JsonResponse({'error': '날짜와 내용을 입력하세요.'}, status=400)
-    try:
-        date_val = datetime.strptime(date_str, '%Y-%m-%d').date()
-    except ValueError:
-        return JsonResponse({'error': '올바른 날짜 형식이 아닙니다.'}, status=400)
-    etf = get_object_or_404(InfoETF, code=code)
-    if ETFDiary.objects.filter(etf=etf, date=date_val).exists():
-        return JsonResponse({'error': '해당 날짜에 이미 일지가 있습니다.'}, status=400)
-    entry = ETFDiary.objects.create(etf=etf, date=date_val, content=content)
-    return JsonResponse({'success': True, 'id': entry.id})
-
-
-@require_POST
-def etf_diary_update(request, code, diary_id):
-    """ETF 투자일지 수정 API"""
-    from .models import ETFDiary
-    entry = get_object_or_404(ETFDiary, id=diary_id, etf_id=code)
-    content = request.POST.get('content', '').strip()
-    date_str = request.POST.get('date', '').strip()
-    if not content:
-        return JsonResponse({'error': '내용을 입력하세요.'}, status=400)
-    if date_str:
-        try:
-            new_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-            if new_date != entry.date and ETFDiary.objects.filter(etf_id=code, date=new_date).exists():
-                return JsonResponse({'error': '해당 날짜에 이미 일지가 있습니다.'}, status=400)
-            entry.date = new_date
-        except ValueError:
-            pass
-    entry.content = content
-    entry.save()
-    return JsonResponse({'success': True})
-
-
-@require_POST
-def etf_diary_delete(request, code, diary_id):
-    """ETF 투자일지 삭제 API"""
-    from .models import ETFDiary
-    entry = get_object_or_404(ETFDiary, id=diary_id, etf_id=code)
-    entry.delete()
-    return JsonResponse({'success': True})
 
 
 @require_GET

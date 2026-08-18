@@ -39,10 +39,6 @@ urlpatterns = [
     path('api/etf/<str:code>/signal-chart/', views.etf_signal_chart_data, name='etf_signal_chart_data'),
     # ETF 메모/매매근거/투자일지/이벤트
     path('api/etf/<str:code>/memo/', views.etf_memo_save, name='etf_memo_save'),
-    path('api/etf/<str:code>/diary/', views.etf_diary_list, name='etf_diary_list'),
-    path('api/etf/<str:code>/diary/save/', views.etf_diary_save, name='etf_diary_save'),
-    path('api/etf/<str:code>/diary/<int:diary_id>/update/', views.etf_diary_update, name='etf_diary_update'),
-    path('api/etf/<str:code>/diary/<int:diary_id>/delete/', views.etf_diary_delete, name='etf_diary_delete'),
     path('api/etf/<str:code>/event/', views.etf_event_list, name='etf_event_list'),
     path('api/etf/<str:code>/event/save/', views.etf_event_save, name='etf_event_save'),
     path('api/etf/<str:code>/event/<int:event_id>/update/', views.etf_event_update, name='etf_event_update'),
@@ -65,10 +61,6 @@ urlpatterns = [
     path('api/diary/<int:diary_id>/update/', views.diary_update, name='diary_update'),
     path('api/diary/<int:diary_id>/delete/', views.diary_delete, name='diary_delete'),
     # 종목별 투자일지
-    path('api/stock/<str:code>/diary/', views.stock_diary_list, name='stock_diary_list'),
-    path('api/stock/<str:code>/diary/save/', views.stock_diary_save, name='stock_diary_save'),
-    path('api/stock/<str:code>/diary/<int:diary_id>/update/', views.stock_diary_update, name='stock_diary_update'),
-    path('api/stock/<str:code>/diary/<int:diary_id>/delete/', views.stock_diary_delete, name='stock_diary_delete'),
     # 종목별 이벤트
     path('api/stock/<str:code>/event/', views.stock_event_list, name='stock_event_list'),
     path('api/stock/<str:code>/event/save/', views.stock_event_save, name='stock_event_save'),
