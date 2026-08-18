@@ -44,7 +44,6 @@ urlpatterns = [
     path('api/etf/<str:code>/event/<int:event_id>/update/', views.etf_event_update, name='etf_event_update'),
     path('api/etf/<str:code>/event/<int:event_id>/delete/', views.etf_event_delete, name='etf_event_delete'),
     path('api/etf/<str:code>/event/<int:event_id>/move/', views.etf_event_move, name='etf_event_move'),
-    path('report/<int:report_id>/summary/', views.report_summary, name='report_summary'),
     path('api/report/<str:code>/more/', views.fetch_more_reports, name='fetch_more_reports'),
     path('api/stock/search/', views.search_stock, name='search_stock'),
     path('api/stock/<str:code>/prompt-data/', views.fetch_stock_prompt_data, name='fetch_stock_prompt_data'),
@@ -92,7 +91,6 @@ urlpatterns = [
     path('news/<int:news_id>/summary/', views.news_summary, name='news_summary'),
     path('api/news/save/', views.news_save, name='news_save'),
     # 애널리스트 리포트
-    path('report/<int:report_id>/summary/', views.report_summary, name='report_summary'),
     path('api/report/<int:report_id>/file/delete/', views.report_file_delete, name='report_file_delete'),
     path('api/news/save-by-link/', views.news_save_by_link, name='news_save_by_link'),
     path('api/news/<int:news_id>/delete/', views.news_delete, name='news_delete'),

@@ -1804,14 +1804,6 @@ def _build_briefing_data(stock, question_reports, reports, common_question_repor
         data['event_analysis'] = qr_map.get('향후 이벤트', '')
         data['competitor_analysis'] = qr_map.get('경쟁사', '')
 
-        # 리포트 요약
-        report_parts = []
-        for r in reports[:10]:
-            if r.summary:
-                date_str = r.date.strftime('%Y-%m-%d') if r.date else '-'
-                report_parts.append(f"[{date_str}] {r.provider or ''} - {r.title or ''}\n{r.summary}")
-        data['report_summary'] = '\n\n---\n\n'.join(report_parts)
-
         return data
     except Exception:
         return {}
@@ -2967,25 +2959,6 @@ def stock_event_move(request, code, event_id):
         if ev.order != i:
             StockEvent.objects.filter(id=ev.id).update(order=i)
     return JsonResponse({'success': True})
-
-
-def report_summary(request, report_id):
-    """리포트 요약 저장 API"""
-    report = get_object_or_404(Report, id=report_id)
-
-    if request.method == 'POST':
-        summary = request.POST.get('summary', '')
-        report.summary = summary
-        report.save()
-
-        # AJAX 요청이면 JSON 응답
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/x-www-form-urlencoded':
-            return JsonResponse({'success': True})
-
-        messages.success(request, '요약이 저장되었습니다.')
-        return redirect('stocks:stock_edit', code=report.stock.code)
-
-    return JsonResponse({'error': 'POST 요청만 가능합니다.'}, status=405)
 
 
 @require_GET
@@ -6950,48 +6923,6 @@ def news_summary(request, news_id):
 
     return render(request, 'stocks/news_summary.html', {
         'news': news,
-        'prompt_summary': prompt_summary,
-    })
-
-
-def report_summary(request, report_id):
-    """애널리스트 리포트 요약 페이지"""
-    from .models import Report, SystemSetting
-
-    report = get_object_or_404(Report, id=report_id)
-
-    if request.method == 'POST':
-        report.summary = request.POST.get('summary', '')
-        report.report_url = request.POST.get('report_url', '')
-        report.news_url = request.POST.get('news_url', '')
-        report.my_opinion = request.POST.get('my_opinion', '')
-
-        # 파일 업로드 처리
-        if 'file' in request.FILES:
-            uploaded_file = request.FILES['file']
-            # 기존 파일 삭제
-            if report.file:
-                report.file.delete(save=False)
-            report.file = uploaded_file
-
-        report.save()
-        from django.contrib import messages
-        messages.success(request, '저장되었습니다.')
-        return redirect('stocks:report_summary', report_id=report_id)
-
-    # 프롬프트 가져오기
-    saved_prompt = ''
-    try:
-        setting = SystemSetting.objects.get(key='prompt_report_summary')
-        saved_prompt = setting.value
-    except SystemSetting.DoesNotExist:
-        pass
-
-    prompt_summary = SystemSetting.objects.filter(key='prompt_summary').values_list('value', flat=True).first() or ''
-
-    return render(request, 'stocks/report_summary.html', {
-        'report': report,
-        'saved_prompt': saved_prompt,
         'prompt_summary': prompt_summary,
     })
 

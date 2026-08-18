@@ -1528,7 +1528,6 @@
                         <th style="width:90px;" class="d-none d-md-table-cell">증권사</th>
                         <th style="width:90px;text-align:right;">목표가</th>
                         <th style="width:70px;text-align:right;">괴리율</th>
-                        <th style="width:50px;text-align:center;">요약</th>
                     </tr>
                 </thead>
                 <tbody id="reportTableBody">
@@ -1552,13 +1551,6 @@
                                 {% if report.gap_rate > 0 %}+{% endif %}{{ report.gap_rate }}%
                             </span>
                             {% else %}<span style="color:var(--text-muted);">-</span>{% endif %}
-                        </td>
-                        <td style="text-align:center;">
-                            <a href="{% url 'stocks:report_summary' report.id %}" style="text-decoration:none;">
-                                {% if report.summary %}<span class="status-badge done">요약</span>
-                                {% elif report.has_attachment %}<span class="status-badge info">요약</span>
-                                {% else %}<span class="status-badge pending">요약</span>{% endif %}
-                            </a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -2194,17 +2186,10 @@ btnCopyBriefingPrompt.addEventListener('click', async () => {
     // 저장된 프롬프트가 CRLF 인 경우가 있어 \r 을 함께 허용한다
     prompt = prompt.replace(/\[노다지[^\]]*\]\r?\n.*\r?\n※[^\r\n]*\r?\n?/g, '');
 
-    // 리포트 요약
-    if (briefingData.report_summary) {
-        prompt = prompt.replace(/\{리포트요약\}/g, briefingData.report_summary);
-    } else {
-        prompt = prompt.replace(/\[리포트[^\]]*\]\n.*\n※[^\n]*\n?/g, '');
-    }
-
-    // 직접 수집 자료 섹션: 리포트가 비어있으면 삭제
-    if (!briefingData.report_summary) {
-        prompt = prompt.replace(/## 직접 수집 자료[\s\S]*?(?=---\n\n## 출력)/g, '');
-    }
+    // 리포트 요약은 더 이상 쓰지 않는다. 옛 프롬프트에 남아 있으면 그 절만 걷어낸다.
+    prompt = prompt.replace(/\{리포트요약\}/g, '');
+    prompt = prompt.replace(/\[리포트[^\]]*\]\r?\n.*\r?\n※[^\r\n]*\r?\n?/g, '');
+    prompt = prompt.replace(/## 직접 수집 자료[\s\S]*?(?=---\r?\n\r?\n## 출력)/g, '');
 
     warnMissingVars(prompt);
     try {
