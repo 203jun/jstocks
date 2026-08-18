@@ -1530,9 +1530,6 @@ def stock_detail(request, code):
 
     # 업로드 리포트
     from .models import SystemSetting
-    # 리포트 요약 개수 (탭 배지)
-    total_summary_count = sum(1 for r in reports if r.summary)
-
     # 거래량 변동률 계산 (전일 대비)
     volume_change_rate = None
     if len(daily_charts) >= 2:
@@ -1725,7 +1722,6 @@ def stock_detail(request, code):
         'waiting_question_reports': waiting_question_reports,
         'custom_question_reports': custom_question_reports,
         'research_prompts': research_prompts,
-        'total_summary_count': total_summary_count,
         'price_chart_data': json.dumps(price_chart_data),
         'target_chart_data': json.dumps(target_chart_data),
         'saved_prompts': {s.key: s.value for s in SystemSetting.objects.filter(key__startswith='prompt_')},
