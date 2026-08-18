@@ -1,3 +1,4 @@
+from urllib.parse import urlparse
 from django.db import models
 
 
@@ -1756,6 +1757,66 @@ class SectorUploadedReport(models.Model):
         return f"{self.sector.name}: {self.original_filename}"
 
 
+class Material(models.Model):
+    """
+    종목 자료 — 다시 읽을 만하다고 판단한 링크와 그 요약.
+
+    예전에는 뉴스와 유튜브를 따로 두고 제목·썸네일·조회수·게시일·채널까지
+    받아 적었다. 173건을 모았지만 다시 열어본 적이 없다. 한 건 저장하는 데
+    화면을 두 번 옮겨야 했고, 결국 넉 달간 한 건도 안 쌓였다.
+
+    그래서 링크와 내용 둘만 남겼다. 내용은 AI 요약을 붙여넣는 자리다.
+    제목 칸이 없는 이유는 요약 첫 줄이 제목 노릇을 하기 때문이다(head).
+    뉴스인지 유튜브인지도 저장하지 않는다 — 링크를 보면 알 수 있는 것을
+    고르게 하면 입력 단계만 하나 는다(kind).
+    """
+
+    stock = models.ForeignKey(
+        Info,
+        on_delete=models.CASCADE,
+        related_name='materials',
+        verbose_name='종목',
+    )
+    link = models.URLField(
+        max_length=1000,
+        blank=True,
+        verbose_name='링크',
+        help_text='원문 주소. 링크 없이 내용만 적어도 된다.',
+    )
+    content = models.TextField(
+        verbose_name='내용',
+        help_text='AI 요약을 붙여넣는 자리. 첫 줄이 목록의 제목이 된다.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='저장일시')
+
+    class Meta:
+        db_table = 'material'
+        verbose_name = '자료'
+        verbose_name_plural = '자료'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.stock.name} - {self.head[:30]}"
+
+    @property
+    def kind(self):
+        """링크만 보고 무엇인지 정한다. news / youtube / etc."""
+        host = urlparse(self.link).hostname or '' if self.link else ''
+        host = host.lower()
+        if 'youtube.com' in host or 'youtu.be' in host:
+            return 'youtube'
+        return 'news' if host else 'etc'
+
+    @property
+    def head(self):
+        """목록에 보일 한 줄. 마크다운 머리표를 걷어낸 요약 첫 줄이다."""
+        for line in (self.content or '').splitlines():
+            line = line.strip().strip('#*-').strip()
+            if line:
+                return line
+        return self.link or ''
+
+
 class Report(models.Model):
     """
     애널리스트 리포트 데이터
@@ -2448,136 +2509,6 @@ class MarketAnalysis(models.Model):
         return f"{self.market} - {self.date} ({self.stance or '-'})"
 
 
-class ExcludedYoutubeChannel(models.Model):
-    """
-    유튜브 검색 제외 채널
-
-    유튜브 검색 시 해당 채널의 영상을 결과에서 제외
-    """
-
-    name = models.CharField(
-        max_length=100,
-        unique=True,
-        verbose_name='채널명',
-        help_text='제외할 유튜브 채널명'
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='등록일시'
-    )
-
-    class Meta:
-        db_table = 'excluded_youtube_channel'
-        verbose_name = '유튜브 제외 채널'
-        verbose_name_plural = '유튜브 제외 채널'
-        ordering = ['name']
-
-    def __str__(self):
-        return self.name
-
-
-class PreferredYoutubeChannel(models.Model):
-    """
-    유튜브 선호 채널
-
-    선호 모드 검색 시 해당 채널에서만 검색
-    """
-
-    name = models.CharField(
-        max_length=100,
-        unique=True,
-        verbose_name='채널명',
-        help_text='선호 유튜브 채널명'
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='등록일시'
-    )
-
-    class Meta:
-        db_table = 'preferred_youtube_channel'
-        verbose_name = '유튜브 선호 채널'
-        verbose_name_plural = '유튜브 선호 채널'
-        ordering = ['name']
-
-    def __str__(self):
-        return self.name
-
-
-class YoutubeVideo(models.Model):
-    """
-    저장된 유튜브 영상
-
-    종목별로 관심 영상을 저장
-    """
-
-    stock = models.ForeignKey(
-        Info,
-        on_delete=models.CASCADE,
-        related_name='youtube_videos',
-        verbose_name='종목'
-    )
-    video_id = models.CharField(
-        max_length=20,
-        verbose_name='영상ID',
-        help_text='유튜브 영상 고유 ID'
-    )
-    title = models.CharField(
-        max_length=200,
-        verbose_name='제목'
-    )
-    channel = models.CharField(
-        max_length=100,
-        verbose_name='채널명'
-    )
-    thumbnail = models.URLField(
-        max_length=500,
-        blank=True,
-        verbose_name='썸네일'
-    )
-    duration = models.CharField(
-        max_length=20,
-        blank=True,
-        verbose_name='재생시간'
-    )
-    views = models.CharField(
-        max_length=50,
-        blank=True,
-        verbose_name='조회수'
-    )
-    published = models.CharField(
-        max_length=50,
-        blank=True,
-        verbose_name='업로드일'
-    )
-    my_opinion = models.TextField(
-        blank=True, default='', verbose_name='내생각'
-    )
-    summary = models.TextField(
-        blank=True,
-        verbose_name='요약',
-        help_text='영상 요약 내용'
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='저장일시'
-    )
-
-    class Meta:
-        db_table = 'youtube_video'
-        verbose_name = '유튜브 영상'
-        verbose_name_plural = '유튜브 영상'
-        ordering = ['-created_at']
-        unique_together = [('stock', 'video_id')]
-
-    def __str__(self):
-        return f"{self.stock.name} - {self.title}"
-
-    @property
-    def link(self):
-        return f'https://www.youtube.com/watch?v={self.video_id}'
-
-
 class MarketYoutubeVideo(models.Model):
     """시황 유튜브 영상 - 시장 전체 관련 유튜브 요약"""
 
@@ -2814,67 +2745,6 @@ class StockEvent(models.Model):
 
     def __str__(self):
         return f"{self.stock.name} {self.date_text} {self.title}"
-
-
-class News(models.Model):
-    """
-    저장된 뉴스 기사
-
-    종목별로 관심 뉴스를 저장
-    """
-
-    stock = models.ForeignKey(
-        Info,
-        on_delete=models.CASCADE,
-        related_name='news_articles',
-        verbose_name='종목'
-    )
-    title = models.CharField(
-        max_length=500,
-        blank=True,
-        verbose_name='제목'
-    )
-    link = models.URLField(
-        max_length=1000,
-        blank=True,
-        verbose_name='링크'
-    )
-    content = models.TextField(
-        blank=True,
-        verbose_name='내용',
-        help_text='텔레그램 메시지 등 본문'
-    )
-    source = models.CharField(
-        max_length=100,
-        blank=True,
-        verbose_name='출처'
-    )
-    published = models.CharField(
-        max_length=50,
-        blank=True,
-        verbose_name='게시일'
-    )
-    summary = models.TextField(
-        blank=True,
-        verbose_name='요약',
-        help_text='뉴스 요약 내용'
-    )
-    my_opinion = models.TextField(
-        blank=True, default='', verbose_name='내생각'
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='저장일시'
-    )
-
-    class Meta:
-        db_table = 'news'
-        verbose_name = '뉴스'
-        verbose_name_plural = '뉴스'
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return f"{self.stock.name} - {self.title or self.content[:30]}"
 
 
 class TelegramMessage(models.Model):

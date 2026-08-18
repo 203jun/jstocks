@@ -1285,20 +1285,9 @@ def stock_detail(request, code):
                 'short_weight': float(s.trading_weight or 0) if s else 0,
             })
 
-    # 저장된 뉴스 (게시일 최신순)
-    from .models import News
-    def parse_news_date_detail(news):
-        try:
-            pub = (news.published or '').strip()
-            date_part = pub.split(' ')[0] if pub else ''
-            if date_part:
-                parts = date_part.split('-')
-                if len(parts) == 3:
-                    return (int(parts[0]), int(parts[1]), int(parts[2]))
-            return (0, 0, 0)
-        except:
-            return (0, 0, 0)
-    news_articles = sorted(News.objects.filter(stock=stock), key=parse_news_date_detail, reverse=True)
+    # 저장된 자료 (최신순)
+    from .models import Material
+    materials = list(Material.objects.filter(stock=stock))
 
     # 저장된 텔레그램 메시지 (최신순)
     from .models import TelegramMessage, Schedule
@@ -1376,7 +1365,6 @@ def stock_detail(request, code):
     waiting_question_reports.sort(key=lambda q: waiting_order.index(q.question) if q.question in waiting_order else 99)
 
     # 전체내용 생성 (DB에 있는 모든 분석 데이터)
-    from .models import YoutubeVideo
     all_content_sections = []
 
     # 주가 통계
@@ -1528,23 +1516,13 @@ def stock_detail(request, code):
                 line += f"\n{r.summary}"
             report_parts.append(line)
         all_content_sections.append("## 리포트\n" + '\n\n'.join(report_parts))
-    # 뉴스 (요약이 있는 것만)
-    news_parts = []
-    for n in news_articles:
-        if n.summary or n.my_opinion:
-            title = f"[{n.published or ''}] {n.title or ''}"
-            content = n.my_opinion or n.summary
-            news_parts.append(f"{title}\n{content}")
-    if news_parts:
-        all_content_sections.append("## 뉴스\n" + '\n\n'.join(news_parts))
-    # 유튜브 (요약이 있는 것만)
-    youtube_videos = YoutubeVideo.objects.filter(stock=stock).order_by('-id')
-    yt_parts = []
-    for v in youtube_videos:
-        if v.summary:
-            yt_parts.append(f"[{v.published or ''}] {v.channel} - {v.title}\n{v.summary}")
-    if yt_parts:
-        all_content_sections.append("## 유튜브\n" + '\n\n'.join(yt_parts))
+    # 자료 (내가 다시 읽을 만하다고 저장해둔 것)
+    material_parts = []
+    for m in materials:
+        head = f"[{m.created_at:%Y-%m-%d}] {m.head}"
+        material_parts.append(f"{head}\n{m.content}" if m.content != m.head else head)
+    if material_parts:
+        all_content_sections.append("## 자료\n" + '\n\n'.join(material_parts))
     # 향후 이벤트
     if future_events_text:
         all_content_sections.append(f"## 향후 이벤트\n{future_events_text}")
@@ -1737,7 +1715,7 @@ def stock_detail(request, code):
         'supply_dashboard': supply_dashboard,
         'supply_dashboard_chart': json.dumps(supply_dashboard_chart),
         'supply_dashboard_reason': supply_dashboard_reason,
-        'news_articles': news_articles,
+        'materials': materials,
         'telegram_messages': telegram_messages,
         'question_reports': question_reports,
         'common_core_reports': common_core_reports,
@@ -2967,7 +2945,7 @@ def fetch_stock_data_loader(request, code):
     """종목 데이터 불러오기 API (선택적 데이터 로드)"""
     import re
     from bs4 import BeautifulSoup
-    from .models import YoutubeVideo, News, TelegramMessage, StockQuestionReport
+    from .models import Material, TelegramMessage, StockQuestionReport
 
     stock = get_object_or_404(Info, code=code)
 
@@ -3051,28 +3029,15 @@ def fetch_stock_data_loader(request, code):
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
 
-    # 유튜브 (저장된 링크, 제목 최대 10개)
-    if 'youtube' in types:
-        lines.append("## 유튜브 (최대 10개)")
-        youtube_list = YoutubeVideo.objects.filter(stock=stock).order_by('-id')[:10]
-        if youtube_list:
-            for v in youtube_list:
-                lines.append(f"- {v.title}")
-                lines.append(f"  링크: {v.link}")
-                if v.channel:
-                    lines.append(f"  채널: {v.channel}")
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
-
-    # 뉴스 (최대 10개)
-    if 'news' in types:
-        lines.append("## 뉴스 (최대 10개)")
-        news_list = News.objects.filter(stock=stock).order_by('-id')[:10]
-        if news_list:
-            for n in news_list:
-                lines.append(f"- {n.title}")
-                lines.append(f"  링크: {n.link}")
+    # 자료 (최대 10개)
+    if 'material' in types:
+        lines.append("## 자료 (최대 10개)")
+        material_list = Material.objects.filter(stock=stock)[:10]
+        if material_list:
+            for m in material_list:
+                lines.append(f"- {m.head}")
+                if m.link:
+                    lines.append(f"  링크: {m.link}")
         else:
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
@@ -3132,7 +3097,7 @@ def search_stock(request):
 @require_GET
 def fetch_stock_prompt_data(request, code):
     """종목 프롬프트 데이터 조회 API"""
-    from .models import YoutubeVideo
+    from .models import Material
 
     stock = get_object_or_404(Info, code=code)
 
@@ -3147,8 +3112,8 @@ def fetch_stock_prompt_data(request, code):
             if len(reports) >= 5:
                 break
 
-    # 유튜브 저장된 영상 (최근 5개)
-    youtube_videos = YoutubeVideo.objects.filter(stock=stock).order_by('-id')[:5]
+    # 저장한 자료 (최근 5개)
+    materials = Material.objects.filter(stock=stock)[:5]
 
     # 텍스트 형식으로 변환
     lines = []
@@ -3164,13 +3129,13 @@ def fetch_stock_prompt_data(request, code):
         lines.append("- 없음")
     lines.append("")
 
-    # 유튜브
-    lines.append("## 유튜브 (최근 5개)")
-    if youtube_videos:
-        for v in youtube_videos:
-            lines.append(f"- {v.title}")
-            lines.append(f"  링크: {v.link}")
-            lines.append(f"  채널: {v.channel}, {v.published}")
+    # 자료
+    lines.append("## 자료 (최근 5개)")
+    if materials:
+        for m in materials:
+            lines.append(f"- {m.head}")
+            if m.link:
+                lines.append(f"  링크: {m.link}")
     else:
         lines.append("- 없음")
     lines.append("")
@@ -3225,28 +3190,15 @@ def fetch_stock_prompt_data(request, code):
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
 
-    # 유튜브 (저장된 링크, 제목 최대 10개)
-    if 'youtube' in types:
-        lines.append("## 유튜브 (최대 10개)")
-        youtube_list = YoutubeVideo.objects.filter(stock=stock).order_by('-id')[:10]
-        if youtube_list:
-            for v in youtube_list:
-                lines.append(f"- {v.title}")
-                lines.append(f"  링크: {v.link}")
-                if v.channel:
-                    lines.append(f"  채널: {v.channel}")
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
-
-    # 뉴스 (최대 10개)
-    if 'news' in types:
-        lines.append("## 뉴스 (최대 10개)")
-        news_list = News.objects.filter(stock=stock).order_by('-id')[:10]
-        if news_list:
-            for n in news_list:
-                lines.append(f"- {n.title}")
-                lines.append(f"  링크: {n.link}")
+    # 자료 (최대 10개)
+    if 'material' in types:
+        lines.append("## 자료 (최대 10개)")
+        material_list = Material.objects.filter(stock=stock)[:10]
+        if material_list:
+            for m in material_list:
+                lines.append(f"- {m.head}")
+                if m.link:
+                    lines.append(f"  링크: {m.link}")
         else:
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
@@ -3289,7 +3241,7 @@ def fetch_stock_data_loader_with_summary(request, code):
     """
     import re
     from bs4 import BeautifulSoup
-    from .models import YoutubeVideo, News, TelegramMessage, StockQuestionReport, StockUploadedReport, SystemSetting
+    from .models import Material, TelegramMessage, StockQuestionReport, StockUploadedReport, SystemSetting
 
     stock = get_object_or_404(Info, code=code)
 
@@ -3355,36 +3307,16 @@ def fetch_stock_data_loader_with_summary(request, code):
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
 
-    # 5. 유튜브 (요약 포함, 최대 10개)
-    if 'youtube' in data_types:
-        lines.append("## 유튜브 (최대 10개)")
-        youtube_list = YoutubeVideo.objects.filter(stock=stock).order_by('-id')[:10]
-        if youtube_list:
-            for v in youtube_list:
-                lines.append(f"\n### {v.title}")
-                if v.channel:
-                    lines.append(f"채널: {v.channel}")
-                if v.summary:
-                    summary_text = html_to_text(v.summary)
-                    lines.append(f"요약:\n{summary_text}")
-                else:
-                    lines.append("요약: (요약 없음)")
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
-
-    # 6. 뉴스 (요약 포함, 최대 10개)
-    if 'news' in data_types:
-        lines.append("## 뉴스 (최대 10개)")
-        news_list = News.objects.filter(stock=stock).order_by('-id')[:10]
-        if news_list:
-            for n in news_list:
-                lines.append(f"\n### {n.title}")
-                if n.summary:
-                    summary_text = html_to_text(n.summary)
-                    lines.append(f"요약:\n{summary_text}")
-                else:
-                    lines.append("요약: (요약 없음)")
+    # 5. 자료 (최대 10개)
+    if 'material' in data_types:
+        lines.append("## 자료 (최대 10개)")
+        material_list = Material.objects.filter(stock=stock)[:10]
+        if material_list:
+            for m in material_list:
+                lines.append(f"\n### {m.head}")
+                if m.link:
+                    lines.append(f"링크: {m.link}")
+                lines.append(html_to_text(m.content))
         else:
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
@@ -3443,185 +3375,6 @@ def fetch_stock_data_loader_with_summary(request, code):
     return JsonResponse({
         'success': True,
         'data': '\n'.join(lines)
-    })
-
-
-def _fetch_stock_data_loader_with_summary_valuation_REMOVED():
-    """종목 데이터 불러오기 API (가치평가용) - REMOVED
-
-    가치평가 프롬프트 만들기용
-    - 설정 페이지에서 선택한 데이터 타입만 불러오기
-    - 데이터 먼저, 프롬프트 나중에
-    """
-    import re
-    from bs4 import BeautifulSoup
-    from .models import YoutubeVideo, News, TelegramMessage, StockQuestionReport, StockUploadedReport, SystemSetting
-
-    stock = get_object_or_404(Info, code=code)
-
-    # 저장된 데이터 타입 가져오기
-    try:
-        saved_types = SystemSetting.objects.get(key='valuation_data_types').value
-        data_types = [t for t in saved_types.split(',') if t]
-        if not data_types:
-            data_types = ['analysis', 'key_briefing', 'report', 'youtube', 'news', 'telegram', 'memo']
-    except SystemSetting.DoesNotExist:
-        data_types = ['analysis', 'key_briefing', 'report', 'youtube', 'news', 'telegram', 'memo']
-
-    def html_to_text(html):
-        """HTML을 텍스트로 변환"""
-        if not html:
-            return ''
-        soup = BeautifulSoup(html, 'html.parser')
-        text = soup.get_text(separator='\n')
-        text = re.sub(r'\n\s*\n+', '\n\n', text)
-        text = re.sub(r'\[cite_start\]', '', text)
-        text = re.sub(r'\[cite_end\]', '', text)
-        text = re.sub(r'\[cite:\s*[\d,\s]+\]', '', text)
-        text = re.sub(r'\[/cite\]', '', text)
-        return text.strip()
-
-    lines = []
-    lines.append(f"=== {stock.name} ({stock.code}) 데이터 ===\n")
-
-    if 'key_briefing' in data_types:
-        lines.append("## 핵심 브리핑")
-        if stock.key_briefing:
-            lines.append(stock.key_briefing)
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
-
-
-    if 'report' in data_types:
-        lines.append("## 애널리스트 리포트 (최신 10개)")
-        all_reports = Report.objects.filter(stock=stock).order_by('-date')
-        seen_dates = set()
-        reports = []
-        for r in all_reports:
-            if r.date not in seen_dates:
-                reports.append(r)
-                seen_dates.add(r.date)
-                if len(reports) >= 10:
-                    break
-        if reports:
-            for r in reports:
-                date_str = r.date.strftime('%Y-%m-%d') if r.date else '-'
-                lines.append(f"\n### [{date_str}] {r.title}")
-                lines.append(f"작성자: {r.author} / 증권사: {r.provider}")
-                if r.summary:
-                    summary_text = html_to_text(r.summary)
-                    lines.append(f"요약:\n{summary_text}")
-                else:
-                    lines.append("요약: (요약 없음)")
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
-
-    if 'youtube' in data_types:
-        lines.append("## 유튜브 (최대 10개)")
-        youtube_list = YoutubeVideo.objects.filter(stock=stock).order_by('-id')[:10]
-        if youtube_list:
-            for v in youtube_list:
-                lines.append(f"\n### {v.title}")
-                if v.channel:
-                    lines.append(f"채널: {v.channel}")
-                if v.summary:
-                    summary_text = html_to_text(v.summary)
-                    lines.append(f"요약:\n{summary_text}")
-                else:
-                    lines.append("요약: (요약 없음)")
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
-
-    if 'news' in data_types:
-        lines.append("## 뉴스 (최대 10개)")
-        news_list = News.objects.filter(stock=stock).order_by('-id')[:10]
-        if news_list:
-            for n in news_list:
-                lines.append(f"\n### {n.title}")
-                if n.summary:
-                    summary_text = html_to_text(n.summary)
-                    lines.append(f"요약:\n{summary_text}")
-                else:
-                    lines.append("요약: (요약 없음)")
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
-
-    if 'telegram' in data_types:
-        lines.append("## 텔레그램 (최대 10개)")
-        telegram_list = TelegramMessage.objects.filter(stock=stock).order_by('-id')[:10]
-        if telegram_list:
-            for t in telegram_list:
-                channel_name = t.channel_name or t.channel
-                lines.append(f"\n### {channel_name}")
-                lines.append(t.text[:500] if t.text else '')
-                if t.summary:
-                    summary_text = html_to_text(t.summary)
-                    lines.append(f"요약:\n{summary_text}")
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
-
-    if 'memo' in data_types:
-        lines.append("## 메모")
-        if stock.memo:
-            lines.append(html_to_text(stock.memo))
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
-
-    if 'research' in data_types:
-        lines.append("## 리서치 (최대 10개)")
-        qr_list = StockQuestionReport.objects.filter(stock=stock).order_by('-id')[:10]
-        if qr_list:
-            for qr in qr_list:
-                lines.append(f"\n### Q: {qr.question}")
-                if qr.report:
-                    if qr.report_type == 'markdown':
-                        lines.append(qr.report)
-                    else:
-                        lines.append(html_to_text(qr.report))
-        else:
-            lines.append("- 저장된 데이터가 없습니다.")
-        lines.append("")
-
-    # 프롬프트 추가 (데이터 뒤에, {종목명} 치환)
-    try:
-        saved_prompt = SystemSetting.objects.get(key='prompt_valuation').value
-        if saved_prompt:
-            import re as re_mod
-            saved_prompt = re_mod.sub(r'\{종목명[^}]*\}', stock.name, saved_prompt)
-            lines.append("\n---\n")
-            lines.append(saved_prompt)
-    except SystemSetting.DoesNotExist:
-        pass
-
-    return JsonResponse({
-        'success': True,
-        'data': '\n'.join(lines)
-    })
-
-
-def youtube_summary(request, video_id):
-    """유튜브 영상 요약 편집 페이지"""
-    from .models import YoutubeVideo, SystemSetting
-    video = get_object_or_404(YoutubeVideo, id=video_id)
-
-    if request.method == 'POST':
-        video.summary = request.POST.get('summary', '')
-        video.my_opinion = request.POST.get('my_opinion', '')
-        video.save()
-        messages.success(request, '요약이 저장되었습니다.')
-        return redirect('stocks:youtube_summary', video_id=video_id)
-
-    prompt_summary = SystemSetting.objects.filter(key='prompt_summary').values_list('value', flat=True).first() or ''
-
-    return render(request, 'stocks/youtube_summary.html', {
-        'video': video,
-        'prompt_summary': prompt_summary,
     })
 
 
@@ -3748,11 +3501,9 @@ def fetch_dart(request, code):
 
 def settings(request):
     """설정 페이지"""
-    from .models import ThemeCategory, ExcludedYoutubeChannel, PreferredYoutubeChannel, SystemSetting
+    from .models import ThemeCategory, SystemSetting
 
     categories = ThemeCategory.objects.prefetch_related('themes').all()
-    excluded_channels = ExcludedYoutubeChannel.objects.all()
-    preferred_channels = PreferredYoutubeChannel.objects.all()
 
     # 저장된 프롬프트 불러오기
     saved_prompts = {}
@@ -3771,8 +3522,6 @@ def settings(request):
 
     context = {
         'categories': categories,
-        'excluded_channels': excluded_channels,
-        'preferred_channels': preferred_channels,
         'saved_prompts': saved_prompts,
         'briefing_data_types': briefing_data_types,
         'telegram_channels': {str(k): v for k, v in TELEGRAM_CHANNELS.items()},
@@ -4649,140 +4398,6 @@ def theme_resolve(request):
 
 
 @require_GET
-def search_google_news(request):
-    """Google News 검색 API - Playwright 사용"""
-    from urllib.parse import quote
-
-    keyword = request.GET.get('keyword', '')
-
-    if not keyword:
-        return JsonResponse({'error': '검색어가 필요합니다.'}, status=400)
-
-    url = f'https://news.google.com/search?q={quote(keyword)}&hl=ko&gl=KR&ceid=KR%3Ako'
-
-    try:
-        from playwright.sync_api import sync_playwright
-        from bs4 import BeautifulSoup
-
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(url, wait_until='networkidle', timeout=30000)
-
-            # 충분히 대기
-            page.wait_for_timeout(3000)
-
-            html = page.content()
-            browser.close()
-
-            soup = BeautifulSoup(html, 'html.parser')
-            results = []
-
-            # Google News: div.UW0SDc 내에서 기사 링크 찾기
-            container = soup.select_one('div.UW0SDc')
-            if not container:
-                container = soup
-
-            # 모든 기사 링크 찾기 (./articles/ 또는 ./read/로 시작하는 링크)
-            all_links = container.find_all('a', href=True)
-            seen_titles = set()
-
-            for a in all_links:
-                href = a.get('href', '')
-                text = a.get_text(strip=True)
-
-                # 기사 링크만 처리
-                if not (href.startswith('./articles/') or href.startswith('./read/')):
-                    continue
-                if len(text) < 10:  # 제목은 최소 10자
-                    continue
-                if text in seen_titles:  # 중복 제거
-                    continue
-
-                seen_titles.add(text)
-                title = text
-                link = 'https://news.google.com' + href[1:]
-
-                # 상위 요소들에서 출처와 시간 찾기
-                source = ''
-                date = ''
-
-                # 여러 단계의 부모 요소 탐색
-                current = a
-                for _ in range(10):
-                    current = current.find_parent()
-                    if not current:
-                        break
-
-                    # 시간 찾기
-                    if not date:
-                        time_el = current.find('time')
-                        if time_el:
-                            datetime_attr = time_el.get('datetime', '')
-                            if datetime_attr:
-                                try:
-                                    dt = datetime.fromisoformat(datetime_attr.replace('Z', '+00:00'))
-                                    date = dt.strftime('%Y-%m-%d %H:%M')
-                                except:
-                                    date = time_el.get_text(strip=True)
-                            else:
-                                date = time_el.get_text(strip=True)
-
-                    # 출처 찾기 (보통 이미지 옆에 있거나 별도 div에 있음)
-                    if not source:
-                        for el in current.find_all(['div', 'span', 'a'], recursive=False):
-                            el_text = el.get_text(strip=True)
-                            # '더보기' 제거
-                            el_text = el_text.replace('더보기', '').strip()
-                            if el_text and 2 <= len(el_text) <= 20 and el_text != title:
-                                if not any(x in el_text for x in ['시간', '분 전', '일 전', '주 전', '검색', '관련']):
-                                    # 제목의 일부가 아닌지 확인
-                                    if el_text not in title:
-                                        source = el_text
-                                        break
-
-                    # 둘 다 찾았으면 종료
-                    if date and source:
-                        break
-
-                results.append({
-                    'title': title,
-                    'source': source,
-                    'date': date,
-                    'link': link,
-                })
-
-                if len(results) >= 15:
-                    break
-
-            # 날짜순 정렬 (최신순)
-            def parse_news_date(item):
-                date_str = (item.get('date', '') or '').strip()
-                if not date_str:
-                    return datetime.min
-                try:
-                    if '-' in date_str and ':' in date_str:
-                        return datetime.strptime(date_str[:16], '%Y-%m-%d %H:%M')
-                    if '-' in date_str:
-                        return datetime.strptime(date_str[:10], '%Y-%m-%d')
-                except:
-                    pass
-                return datetime.min
-
-            results.sort(key=parse_news_date, reverse=True)
-
-        return JsonResponse({
-            'success': True,
-            'keyword': keyword,
-            'results': results,
-        })
-
-    except Exception as e:
-        import traceback
-        return JsonResponse({'error': str(e), 'trace': traceback.format_exc()}, status=500)
-
-
-@require_GET
 def search_google(request):
     """Google 웹 검색 API - Playwright 사용"""
     from urllib.parse import quote
@@ -4851,596 +4466,6 @@ def search_google(request):
     except Exception as e:
         import traceback
         return JsonResponse({'error': str(e), 'trace': traceback.format_exc()}, status=500)
-
-
-@require_GET
-def search_youtube(request):
-    """유튜브 검색 API"""
-    import requests as http_requests
-    import re
-    from .models import ExcludedYoutubeChannel
-
-    keyword = request.GET.get('keyword', '')
-    limit = int(request.GET.get('limit', 10))
-    min_views = int(request.GET.get('min_views', 1000))
-
-    if not keyword:
-        return JsonResponse({'error': '검색어가 필요합니다.'}, status=400)
-
-    # 제외 채널 목록 가져오기
-    excluded_channels = set(ExcludedYoutubeChannel.objects.values_list('name', flat=True))
-
-    def parse_views(views_text):
-        """조회수 텍스트를 숫자로 변환 (예: '조회수 1.2만회' -> 12000)"""
-        if not views_text:
-            return 0
-        # 숫자와 단위 추출
-        match = re.search(r'([\d,.]+)\s*(만|천)?', views_text)
-        if not match:
-            return 0
-        num_str = match.group(1).replace(',', '')
-        try:
-            num = float(num_str)
-            unit = match.group(2)
-            if unit == '만':
-                num *= 10000
-            elif unit == '천':
-                num *= 1000
-            return int(num)
-        except:
-            return 0
-
-    try:
-        from urllib.parse import quote
-        # sp=CAI%253D: 업로드 날짜순 정렬 (최신순)
-        url = f'https://www.youtube.com/results?search_query={quote(keyword)}&sp=CAI%253D'
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept-Language': 'ko-KR,ko;q=0.9',
-        }
-
-        response = http_requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-
-        # ytInitialData JSON 추출
-        import json
-        data = None
-
-        # var ytInitialData = { 시작점 찾기
-        start_marker = 'var ytInitialData = '
-        start_idx = response.text.find(start_marker)
-        if start_idx != -1:
-            start_idx += len(start_marker)
-            # JSON 끝점 찾기 (중첩 괄호 처리)
-            brace_count = 0
-            end_idx = start_idx
-            for i, char in enumerate(response.text[start_idx:], start_idx):
-                if char == '{':
-                    brace_count += 1
-                elif char == '}':
-                    brace_count -= 1
-                    if brace_count == 0:
-                        end_idx = i + 1
-                        break
-
-            if end_idx > start_idx:
-                try:
-                    json_str = response.text[start_idx:end_idx]
-                    data = json.loads(json_str)
-                except json.JSONDecodeError:
-                    pass
-
-        if not data:
-            return JsonResponse({'error': 'YouTube 데이터를 파싱할 수 없습니다.'}, status=500)
-
-        # 비디오 정보 추출
-        videos = []
-        try:
-            contents = data['contents']['twoColumnSearchResultsRenderer']['primaryContents']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents']
-
-            for item in contents:
-                if 'videoRenderer' not in item:
-                    continue
-
-                video = item['videoRenderer']
-                video_id = video.get('videoId', '')
-                title = video.get('title', {}).get('runs', [{}])[0].get('text', '')
-                channel = video.get('ownerText', {}).get('runs', [{}])[0].get('text', '')
-                views_text = video.get('viewCountText', {}).get('simpleText', '') or video.get('viewCountText', {}).get('runs', [{}])[0].get('text', '')
-                published = video.get('publishedTimeText', {}).get('simpleText', '')
-                duration = video.get('lengthText', {}).get('simpleText', '')
-                thumbnail = video.get('thumbnail', {}).get('thumbnails', [{}])[-1].get('url', '')
-
-                # 조회수 파싱 및 필터링
-                views_num = parse_views(views_text)
-                if views_num < min_views:
-                    continue
-
-                # 제외 채널 필터링
-                if channel in excluded_channels:
-                    continue
-
-                if video_id and title:
-                    videos.append({
-                        'title': title,
-                        'link': f'https://www.youtube.com/watch?v={video_id}',
-                        'channel': channel,
-                        'duration': duration,
-                        'views': views_text,
-                        'views_num': views_num,
-                        'published': published,
-                        'thumbnail': thumbnail,
-                    })
-
-        except (KeyError, IndexError):
-            pass
-
-        return JsonResponse({
-            'success': True,
-            'keyword': keyword,
-            'min_views': min_views,
-            'results': videos,
-        })
-
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-
-@require_POST
-def youtube_channel_add(request):
-    """유튜브 제외 채널 추가 API"""
-    from .models import ExcludedYoutubeChannel
-
-    name = request.POST.get('name', '').strip()
-
-    if not name:
-        return JsonResponse({'error': '채널명을 입력해주세요.'}, status=400)
-
-    if len(name) > 100:
-        return JsonResponse({'error': '채널명은 100자 이하로 입력해주세요.'}, status=400)
-
-    if ExcludedYoutubeChannel.objects.filter(name=name).exists():
-        return JsonResponse({'error': '이미 등록된 채널입니다.'}, status=400)
-
-    channel = ExcludedYoutubeChannel.objects.create(name=name)
-
-    return JsonResponse({
-        'success': True,
-        'id': channel.id,
-        'name': channel.name,
-    })
-
-
-@require_POST
-def youtube_channel_delete(request, channel_id):
-    """유튜브 제외 채널 삭제 API"""
-    from .models import ExcludedYoutubeChannel
-
-    channel = get_object_or_404(ExcludedYoutubeChannel, id=channel_id)
-    channel.delete()
-
-    return JsonResponse({'success': True})
-
-
-@require_POST
-def preferred_channel_add(request):
-    """유튜브 선호 채널 추가 API"""
-    from .models import PreferredYoutubeChannel
-
-    name = request.POST.get('name', '').strip()
-
-    if not name:
-        return JsonResponse({'error': '채널명을 입력해주세요.'}, status=400)
-
-    if len(name) > 100:
-        return JsonResponse({'error': '채널명은 100자 이하로 입력해주세요.'}, status=400)
-
-    if PreferredYoutubeChannel.objects.filter(name=name).exists():
-        return JsonResponse({'error': '이미 등록된 채널입니다.'}, status=400)
-
-    channel = PreferredYoutubeChannel.objects.create(name=name)
-
-    return JsonResponse({
-        'success': True,
-        'id': channel.id,
-        'name': channel.name,
-    })
-
-
-@require_POST
-def preferred_channel_delete(request, channel_id):
-    """유튜브 선호 채널 삭제 API"""
-    from .models import PreferredYoutubeChannel
-
-    channel = get_object_or_404(PreferredYoutubeChannel, id=channel_id)
-    channel.delete()
-
-    return JsonResponse({'success': True})
-
-
-@require_GET
-def search_youtube_preferred(request):
-    """유튜브 선호 채널 검색 API - 각 선호 채널별로 검색"""
-    import requests as http_requests
-    import re
-    from .models import PreferredYoutubeChannel
-
-    keyword = request.GET.get('keyword', '')
-    min_views = int(request.GET.get('min_views', 1000))
-
-    if not keyword:
-        return JsonResponse({'error': '검색어가 필요합니다.'}, status=400)
-
-    # 선호 채널 목록 가져오기
-    preferred_channels = list(PreferredYoutubeChannel.objects.values_list('name', flat=True))
-
-    if not preferred_channels:
-        return JsonResponse({
-            'success': True,
-            'keyword': keyword,
-            'results': [],
-            'message': '선호 채널이 등록되어 있지 않습니다. 설정에서 선호 채널을 추가해주세요.'
-        })
-
-    def parse_views(views_text):
-        """조회수 텍스트를 숫자로 변환 (예: '조회수 1.2만회' -> 12000)"""
-        if not views_text:
-            return 0
-        match = re.search(r'([\d,.]+)\s*(만|천)?', views_text)
-        if not match:
-            return 0
-        num_str = match.group(1).replace(',', '')
-        try:
-            num = float(num_str)
-            unit = match.group(2)
-            if unit == '만':
-                num *= 10000
-            elif unit == '천':
-                num *= 1000
-            return int(num)
-        except:
-            return 0
-
-    all_videos = []
-    from urllib.parse import quote
-    import json
-
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'ko-KR,ko;q=0.9',
-    }
-
-    # 각 선호 채널별로 검색
-    for channel_name in preferred_channels:
-        try:
-            search_query = f'{keyword} {channel_name}'
-            # sp=CAI%253D: 업로드 날짜순 정렬 (최신순)
-            url = f'https://www.youtube.com/results?search_query={quote(search_query)}&sp=CAI%253D'
-
-            response = http_requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
-
-            # ytInitialData JSON 추출
-            data = None
-            start_marker = 'var ytInitialData = '
-            start_idx = response.text.find(start_marker)
-            if start_idx != -1:
-                start_idx += len(start_marker)
-                brace_count = 0
-                end_idx = start_idx
-                for i, char in enumerate(response.text[start_idx:], start_idx):
-                    if char == '{':
-                        brace_count += 1
-                    elif char == '}':
-                        brace_count -= 1
-                        if brace_count == 0:
-                            end_idx = i + 1
-                            break
-
-                if end_idx > start_idx:
-                    try:
-                        json_str = response.text[start_idx:end_idx]
-                        data = json.loads(json_str)
-                    except json.JSONDecodeError:
-                        pass
-
-            if not data:
-                continue
-
-            # 비디오 정보 추출
-            try:
-                contents = data['contents']['twoColumnSearchResultsRenderer']['primaryContents']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents']
-
-                for item in contents:
-                    if 'videoRenderer' not in item:
-                        continue
-
-                    video = item['videoRenderer']
-                    video_id = video.get('videoId', '')
-                    title = video.get('title', {}).get('runs', [{}])[0].get('text', '')
-                    channel = video.get('ownerText', {}).get('runs', [{}])[0].get('text', '')
-                    views_text = video.get('viewCountText', {}).get('simpleText', '') or video.get('viewCountText', {}).get('runs', [{}])[0].get('text', '')
-                    published = video.get('publishedTimeText', {}).get('simpleText', '')
-                    duration = video.get('lengthText', {}).get('simpleText', '')
-                    thumbnail = video.get('thumbnail', {}).get('thumbnails', [{}])[-1].get('url', '')
-
-                    # 조회수 파싱 및 필터링
-                    views_num = parse_views(views_text)
-                    if views_num < min_views:
-                        continue
-
-                    if video_id and title:
-                        # 중복 체크 (같은 video_id가 이미 있으면 스킵)
-                        if not any(v['link'].endswith(video_id) for v in all_videos):
-                            all_videos.append({
-                                'title': title,
-                                'link': f'https://www.youtube.com/watch?v={video_id}',
-                                'channel': channel,
-                                'duration': duration,
-                                'views': views_text,
-                                'views_num': views_num,
-                                'published': published,
-                                'thumbnail': thumbnail,
-                            })
-
-            except (KeyError, IndexError):
-                pass
-
-        except Exception:
-            continue
-
-    # 날짜 파싱 함수 (정렬용)
-    def parse_published(text):
-        """업로드 시간 텍스트를 정렬용 숫자로 변환"""
-        if not text:
-            return float('inf')
-        # "1시간 전", "2일 전", "3주 전", "1개월 전", "1년 전" 형식 처리
-        import re
-        match = re.search(r'(\d+)\s*(분|시간|일|주|개월|년)\s*전', text)
-        if not match:
-            return float('inf')
-        num = int(match.group(1))
-        unit = match.group(2)
-        multipliers = {'분': 1, '시간': 60, '일': 1440, '주': 10080, '개월': 43200, '년': 525600}
-        return num * multipliers.get(unit, float('inf'))
-
-    # 최신순으로 정렬
-    all_videos.sort(key=lambda x: parse_published(x['published']))
-
-    return JsonResponse({
-        'success': True,
-        'keyword': keyword,
-        'min_views': min_views,
-        'channels_searched': preferred_channels,
-        'results': all_videos,
-    })
-
-
-@require_POST
-def youtube_video_save(request):
-    """유튜브 영상 저장 API"""
-    from .models import YoutubeVideo, Info
-
-    stock_code = request.POST.get('stock_code', '').strip()
-    video_id = request.POST.get('video_id', '').strip()
-    title = request.POST.get('title', '').strip()
-    channel = request.POST.get('channel', '').strip()
-    thumbnail = request.POST.get('thumbnail', '').strip()
-    duration = request.POST.get('duration', '').strip()
-    views = request.POST.get('views', '').strip()
-    published = request.POST.get('published', '').strip()
-
-    if not stock_code or not video_id or not title:
-        return JsonResponse({'error': '필수 정보가 누락되었습니다.'}, status=400)
-
-    stock = get_object_or_404(Info, code=stock_code)
-
-    # 이미 저장된 영상인지 확인
-    if YoutubeVideo.objects.filter(stock=stock, video_id=video_id).exists():
-        return JsonResponse({'error': '이미 저장된 영상입니다.'}, status=400)
-
-    video = YoutubeVideo.objects.create(
-        stock=stock,
-        video_id=video_id,
-        title=title,
-        channel=channel,
-        thumbnail=thumbnail,
-        duration=duration,
-        views=views,
-        published=published,
-    )
-
-    return JsonResponse({
-        'success': True,
-        'id': video.id,
-        'video_id': video.video_id,
-        'title': video.title,
-    })
-
-
-@require_POST
-def youtube_video_save_by_link(request):
-    """유튜브 링크로 영상 저장 API"""
-    import requests as http_requests
-    import re
-    import json
-    from .models import YoutubeVideo, Info
-
-    stock_code = request.POST.get('stock_code', '').strip()
-    link = request.POST.get('link', '').strip()
-
-    if not stock_code or not link:
-        return JsonResponse({'error': '필수 정보가 누락되었습니다.'}, status=400)
-
-    # video_id 추출
-    video_id = None
-    # youtube.com/watch?v=VIDEO_ID
-    match = re.search(r'[?&]v=([^&]+)', link)
-    if match:
-        video_id = match.group(1)
-    else:
-        # youtu.be/VIDEO_ID
-        match = re.search(r'youtu\.be/([^?&]+)', link)
-        if match:
-            video_id = match.group(1)
-        else:
-            # youtube.com/embed/VIDEO_ID
-            match = re.search(r'embed/([^?&]+)', link)
-            if match:
-                video_id = match.group(1)
-            else:
-                # youtube.com/shorts/VIDEO_ID
-                match = re.search(r'shorts/([^?&]+)', link)
-                if match:
-                    video_id = match.group(1)
-
-    if not video_id:
-        return JsonResponse({'error': '올바른 유튜브 링크가 아닙니다.'}, status=400)
-
-    stock = get_object_or_404(Info, code=stock_code)
-
-    # 이미 저장된 영상이면 기존 id 반환 (저장 모달 등에서 바로 이동 가능)
-    existing = YoutubeVideo.objects.filter(stock=stock, video_id=video_id).first()
-    if existing:
-        return JsonResponse({'success': True, 'id': existing.id, 'duplicate': True})
-
-    # 유튜브 페이지에서 영상 정보 가져오기
-    try:
-        url = f'https://www.youtube.com/watch?v={video_id}'
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept-Language': 'ko-KR,ko;q=0.9',
-        }
-        response = http_requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-
-        # ytInitialPlayerResponse에서 정보 추출
-        title = ''
-        channel = ''
-        thumbnail = ''
-        views = ''
-        published = ''
-
-        # 유니코드 이스케이프 디코딩 함수
-        def decode_unicode(s):
-            try:
-                return json.loads(f'"{s}"')
-            except:
-                return s
-
-        # 제목 추출
-        title_match = re.search(r'"title":"([^"]+)"', response.text)
-        if title_match:
-            title = decode_unicode(title_match.group(1))
-
-        # 채널명 추출
-        channel_match = re.search(r'"ownerChannelName":"([^"]+)"', response.text)
-        if channel_match:
-            channel = decode_unicode(channel_match.group(1))
-
-        # 썸네일
-        thumbnail = f'https://i.ytimg.com/vi/{video_id}/hqdefault.jpg'
-
-        # 조회수 추출
-        views_match = re.search(r'"viewCount":"(\d+)"', response.text)
-        if views_match:
-            view_count = int(views_match.group(1))
-            if view_count >= 10000:
-                views = f'조회수 {view_count // 10000}만회'
-            elif view_count >= 1000:
-                views = f'조회수 {view_count // 1000}천회'
-            else:
-                views = f'조회수 {view_count}회'
-
-        # 업로드 날짜 추출 (여러 패턴 시도)
-        date_match = re.search(r'"publishDate":"(\d{4}-\d{2}-\d{2})"', response.text)
-        if date_match:
-            published = date_match.group(1)
-        else:
-            # 대체 패턴 1: uploadDate
-            date_match = re.search(r'"uploadDate":"(\d{4}-\d{2}-\d{2})"', response.text)
-            if date_match:
-                published = date_match.group(1)
-            else:
-                # 대체 패턴 2: dateText (절대 날짜)
-                date_match = re.search(r'"dateText":\{"simpleText":"([^"]+)"\}', response.text)
-                if date_match:
-                    published = date_match.group(1)
-                else:
-                    # 대체 패턴 3: publishedTimeText (상대 시간 "1일 전" 등)
-                    date_match = re.search(r'"publishedTimeText":\{"simpleText":"([^"]+)"\}', response.text)
-                    if date_match:
-                        published = date_match.group(1)
-
-        if not title:
-            return JsonResponse({'error': '영상 정보를 가져올 수 없습니다.'}, status=400)
-
-        summary = request.POST.get('summary', '').strip()
-
-        video = YoutubeVideo.objects.create(
-            stock=stock,
-            video_id=video_id,
-            title=title,
-            channel=channel,
-            thumbnail=thumbnail,
-            views=views,
-            published=published,
-            summary=summary,
-        )
-
-        return JsonResponse({
-            'success': True,
-            'id': video.id,
-            'video_id': video.video_id,
-            'title': video.title,
-            'channel': video.channel,
-            'thumbnail': video.thumbnail,
-            'views': video.views,
-            'published': video.published,
-        })
-
-    except Exception as e:
-        return JsonResponse({'error': f'영상 정보를 가져오는 중 오류: {str(e)}'}, status=500)
-
-
-@require_GET
-def youtube_video_list(request, code):
-    """종목 유튜브 목록 API (페이지네이션)"""
-    from .models import YoutubeVideo
-    stock = get_object_or_404(Info, code=code)
-    limit = int(request.GET.get('limit', 30))
-    offset = int(request.GET.get('offset', 0))
-    qs = YoutubeVideo.objects.filter(stock=stock)
-    total = qs.count()
-    videos = qs[offset:offset + limit]
-    results = []
-    for v in videos:
-        results.append({
-            'id': v.id,
-            'video_id': v.video_id,
-            'title': v.title,
-            'channel': v.channel,
-            'note': v.my_opinion,
-            'summary': v.summary,
-            'url': v.link,
-            'date': v.created_at.strftime('%Y-%m-%d'),
-        })
-    return JsonResponse({'success': True, 'results': results, 'total': total, 'has_more': offset + limit < total})
-
-
-@require_POST
-def youtube_video_update(request, video_id):
-    """유튜브 영상 수정 API"""
-    from .models import YoutubeVideo
-    video = get_object_or_404(YoutubeVideo, id=video_id)
-    note = request.POST.get('note')
-    if note is not None:
-        video.my_opinion = note.strip()
-    summary = request.POST.get('summary')
-    if summary is not None:
-        video.summary = summary.strip()
-    video.save()
-    return JsonResponse({'success': True})
 
 
 def _compute_technical_indicators(stock):
@@ -6679,6 +5704,78 @@ def stock_supply_demand_analysis_save(request, code):
 
 
 @require_POST
+def material_save(request, code):
+    """
+    자료 저장 API. 링크와 내용을 받는다.
+
+    같은 링크를 다시 저장하면 내용을 덮어쓴다. 요약을 다시 떠서 붙여넣는
+    일이 흔한데, 그때마다 줄이 하나씩 늘면 목록이 금방 지저분해진다.
+    """
+    from .models import Material
+
+    stock = get_object_or_404(Info, code=code)
+    link = (request.POST.get('link') or '').strip()
+    content = (request.POST.get('content') or '').strip()
+    if not content:
+        return JsonResponse({'success': False, 'error': '내용을 입력하세요.'})
+
+    existing = Material.objects.filter(stock=stock, link=link).first() if link else None
+    if existing:
+        existing.content = content
+        existing.save(update_fields=['content'])
+        material, replaced = existing, True
+    else:
+        material = Material.objects.create(stock=stock, link=link, content=content)
+        replaced = False
+
+    return JsonResponse({
+        'success': True, 'replaced': replaced,
+        'material': _material_json(material),
+        'count': Material.objects.filter(stock=stock).count(),
+    })
+
+
+@require_POST
+def material_update(request, material_id):
+    """자료 내용 수정 API. 목록에서 펼친 자리에서 그대로 고친다."""
+    from .models import Material
+
+    material = get_object_or_404(Material, id=material_id)
+    content = (request.POST.get('content') or '').strip()
+    if not content:
+        return JsonResponse({'success': False, 'error': '내용을 입력하세요.'})
+    material.content = content
+    material.save(update_fields=['content'])
+    return JsonResponse({'success': True, 'material': _material_json(material)})
+
+
+@require_POST
+def material_delete(request, material_id):
+    """자료 삭제 API"""
+    from .models import Material
+
+    material = get_object_or_404(Material, id=material_id)
+    code = material.stock.code
+    material.delete()
+    return JsonResponse({
+        'success': True,
+        'count': Material.objects.filter(stock__code=code).count(),
+    })
+
+
+def _material_json(material):
+    """저장 직후 화면에 줄을 그리는 데 필요한 것만."""
+    return {
+        'id': material.id,
+        'link': material.link,
+        'content': material.content,
+        'head': material.head,
+        'kind': material.kind,
+        'date': material.created_at.strftime('%y.%m.%d'),
+    }
+
+
+@require_POST
 def stock_memo_save(request, code):
     """종목 메모 저장 API"""
     from datetime import date
@@ -6689,198 +5786,6 @@ def stock_memo_save(request, code):
         stock.memo_updated_at = date.today()
         stock.save(update_fields=['memo', 'memo_updated_at'])
     return JsonResponse({'success': True, 'updated_at': stock.memo_updated_at.strftime('%Y-%m-%d') if stock.memo_updated_at else ''})
-
-
-@require_POST
-def youtube_video_delete(request, video_id):
-    """유튜브 영상 삭제 API"""
-    from .models import YoutubeVideo
-
-    video = get_object_or_404(YoutubeVideo, id=video_id)
-    video.delete()
-
-    return JsonResponse({'success': True})
-
-
-@require_POST
-def news_save(request):
-    """뉴스 저장 API (검색 결과에서)"""
-    from .models import News, Info
-
-    stock_code = request.POST.get('stock_code', '').strip()
-    link = request.POST.get('link', '').strip()
-    title = request.POST.get('title', '').strip()
-    source = request.POST.get('source', '').strip()
-    published = request.POST.get('published', '').strip()
-
-    if not stock_code or not link or not title:
-        return JsonResponse({'error': '필수 정보가 누락되었습니다.'}, status=400)
-
-    stock = get_object_or_404(Info, code=stock_code)
-
-    # 이미 저장된 뉴스인지 확인
-    if News.objects.filter(stock=stock, link=link).exists():
-        return JsonResponse({'error': '이미 저장된 뉴스입니다.'}, status=400)
-
-    news = News.objects.create(
-        stock=stock,
-        title=title,
-        link=link,
-        source=source,
-        published=published,
-    )
-
-    return JsonResponse({
-        'success': True,
-        'id': news.id,
-        'title': news.title,
-        'link': news.link,
-        'source': news.source,
-        'published': news.published,
-    })
-
-
-@require_POST
-def news_save_by_link(request):
-    """뉴스 저장 API (링크 또는 내용)"""
-    import requests as http_requests
-    from bs4 import BeautifulSoup
-    from .models import News, Info
-
-    stock_code = request.POST.get('stock_code', '').strip()
-    link = request.POST.get('link', '').strip()
-    content = request.POST.get('content', '').strip()
-
-    if not stock_code or (not link and not content):
-        return JsonResponse({'error': '링크 또는 내용을 입력해 주세요.'}, status=400)
-
-    stock = get_object_or_404(Info, code=stock_code)
-
-    if link and News.objects.filter(stock=stock, link=link).exists():
-        return JsonResponse({'error': '이미 저장된 링크입니다.'}, status=400)
-
-    title = ''
-    source = ''
-    published = ''
-
-    if link:
-        try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            }
-            response = http_requests.get(link, headers=headers, timeout=10)
-            response.raise_for_status()
-
-            soup = BeautifulSoup(response.text, 'html.parser')
-
-            og_title = soup.find('meta', property='og:title')
-            if og_title and og_title.get('content'):
-                title = og_title['content']
-            elif soup.title:
-                title = soup.title.string or ''
-            title = title.strip()
-
-            og_site = soup.find('meta', property='og:site_name')
-            if og_site and og_site.get('content'):
-                source = og_site['content']
-
-            date_metas = [
-                ('meta', {'property': 'article:published_time'}),
-                ('meta', {'property': 'og:article:published_time'}),
-                ('meta', {'name': 'article:published_time'}),
-                ('meta', {'name': 'publishdate'}),
-                ('meta', {'name': 'date'}),
-                ('meta', {'property': 'og:regDate'}),
-            ]
-            for tag, attrs in date_metas:
-                meta = soup.find(tag, attrs)
-                if meta and meta.get('content'):
-                    published = meta['content'][:10]
-                    break
-
-            if not published:
-                import json
-                for script in soup.find_all('script', type='application/ld+json'):
-                    try:
-                        data = json.loads(script.string or '')
-                        if isinstance(data, dict):
-                            date_val = data.get('datePublished') or data.get('dateCreated')
-                            if date_val:
-                                published = str(date_val)[:10]
-                                break
-                        elif isinstance(data, list):
-                            for item in data:
-                                if isinstance(item, dict):
-                                    date_val = item.get('datePublished') or item.get('dateCreated')
-                                    if date_val:
-                                        published = str(date_val)[:10]
-                                        break
-                    except:
-                        pass
-        except Exception as e:
-            if not content:
-                return JsonResponse({'error': f'뉴스 정보를 가져오는 중 오류: {str(e)}'}, status=500)
-
-    if link:
-        news = News.objects.create(
-            stock=stock,
-            title=title,
-            link=link,
-            content=content,
-            source=source,
-            published=published,
-        )
-    else:
-        news = News.objects.create(
-            stock=stock,
-            title='',
-            link='',
-            content='',
-            summary=content,
-            source=source,
-            published=published,
-        )
-
-    return JsonResponse({
-        'success': True,
-        'id': news.id,
-        'title': news.title,
-        'link': news.link,
-        'content': news.content,
-        'summary': news.summary,
-        'source': news.source,
-        'published': news.published,
-    })
-
-
-@require_POST
-def news_delete(request, news_id):
-    """뉴스 삭제 API"""
-    from .models import News
-
-    news = get_object_or_404(News, id=news_id)
-    news.delete()
-
-    return JsonResponse({'success': True})
-
-
-def news_summary(request, news_id):
-    """뉴스 요약 페이지"""
-    from .models import News, SystemSetting
-
-    news = get_object_or_404(News, id=news_id)
-
-    if request.method == 'POST':
-        news.summary = request.POST.get('summary', '')
-        news.my_opinion = request.POST.get('my_opinion', '')
-        news.save()
-
-    prompt_summary = SystemSetting.objects.filter(key='prompt_summary').values_list('value', flat=True).first() or ''
-
-    return render(request, 'stocks/news_summary.html', {
-        'news': news,
-        'prompt_summary': prompt_summary,
-    })
 
 
 @require_POST
