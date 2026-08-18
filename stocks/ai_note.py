@@ -176,9 +176,9 @@ def basis_date(kind, key):
     return spec['basis'](key) if spec else None
 
 
-# 칩으로 늘어놓을 날짜 개수. 전문까지 같이 실어 보내므로 무한정 늘릴 수는
-# 없다. 과거 판단은 거의 다시 안 보고, 넘치면 끝에 '…' 로 알린다.
-HISTORY_LIMIT = 30
+# 칩으로 늘어놓을 날짜 개수. 과거 판단은 거의 다시 안 본다 — 어제·그제
+# 뭐라고 했는지 견주는 정도다. 넘치면 끝에 '…' 로 몇 건 더 있는지 알린다.
+HISTORY_LIMIT = 5
 
 
 def build_note_panel(kind, key, limit=HISTORY_LIMIT):
