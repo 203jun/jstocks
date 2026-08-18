@@ -1520,7 +1520,7 @@
 
 <!-- ========== 공시 탭 ========== -->
 <div id="disclosure-content" class="tab-panel" style="display:none;">
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">DART 공시<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);display:flex;align-items:center;gap:8px;"><button type="button" class="mp-btn mp-btn-icon" data-prompt-edit="prompt_gongsi" title="공시 프롬프트 편집">⚙</button>전자공시시스템</span></h5>
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">DART 공시<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);display:flex;align-items:center;gap:8px;">{% prompt_gear "prompt_gongsi" title="공시 프롬프트 편집" %}전자공시시스템</span></h5>
     <div class="brief-card">
         {% if gongsi_list %}
         <table class="modern-table">

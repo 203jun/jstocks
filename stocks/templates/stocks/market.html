@@ -747,8 +747,7 @@
         <span class="price-date">{{ kospi_latest.date|date:"m.d" }} 기준</span>
         {% endif %}
         <button type="button" class="btn-refresh btn-refresh-trend" data-market="KOSPI" title="매매동향 새로고침">새로고침</button>
-        <button type="button" class="mp-btn" data-prompt-copy="KOSPI">프롬프트</button>
-        <button type="button" class="mp-btn mp-btn-icon" data-prompt-edit="KOSPI" title="프롬프트 편집">⚙</button>
+        <span class="prompt-pair"><span role="button" data-prompt-copy="KOSPI">프롬프트</span><button type="button" data-prompt-edit="KOSPI" title="프롬프트 편집">⚙</button></span>
     </div>
     {% with ind=kospi_indicators analysis=kospi_analysis market_code="KOSPI" %}{% if ind %}
     <div class="mi-strip">
@@ -860,8 +859,7 @@
         <span class="price-date">{{ kosdaq_latest.date|date:"m.d" }} 기준</span>
         {% endif %}
         <button type="button" class="btn-refresh btn-refresh-trend" data-market="KOSDAQ" title="매매동향 새로고침">새로고침</button>
-        <button type="button" class="mp-btn" data-prompt-copy="KOSDAQ">프롬프트</button>
-        <button type="button" class="mp-btn mp-btn-icon" data-prompt-edit="KOSDAQ" title="프롬프트 편집">⚙</button>
+        <span class="prompt-pair"><span role="button" data-prompt-copy="KOSDAQ">프롬프트</span><button type="button" data-prompt-edit="KOSDAQ" title="프롬프트 편집">⚙</button></span>
     </div>
     {% with ind=kosdaq_indicators analysis=kosdaq_analysis market_code="KOSDAQ" %}{% if ind %}
     <div class="mi-strip">

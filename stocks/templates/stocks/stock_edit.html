@@ -1,5 +1,6 @@
 {% extends 'stocks/base.html' %}
 {% load humanize %}
+{% load prompt_tags %}
 
 {% block title %}{{ stock.name }} 편집 - JStocks{% endblock %}
 
@@ -163,7 +164,7 @@
         <h5 class="section-heading" style="display:flex; align-items:baseline; gap:8px;">
             업종
             <a href="{% url 'stocks:settings' %}" style="color:var(--text-muted); font-size:0.78rem; text-decoration:none;" target="_blank">관리</a>
-            <span class="prompt-badge" role="button" id="btnCopyClassifyPrompt" style="margin-left:auto; font-weight:400;">프롬프트</span><a class="prompt-edit" href="{% url 'stocks:settings' %}#stock-classify-panel" target="_blank" rel="noopener" title="이 프롬프트 편집">설정</a>
+            <span style="margin-left:auto;">{% prompt_pair "prompt_classify" id="btnCopyClassifyPrompt" %}</span>
         </h5>
         <div class="brief-card">
             <!-- 선택된 테마 표시 -->
