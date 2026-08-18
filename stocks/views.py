@@ -3378,108 +3378,154 @@ def fetch_stock_data_loader_with_summary(request, code):
     })
 
 
-# DART 가 돌려주는 상태코드 중 내가 손쓸 수 있는 것들. 메시지만으로는
-# 무엇을 해야 할지 모르는 경우가 있어 한 마디씩 붙여둔다.
-DART_ERROR_HINTS = {
-    '010': '.env 의 DART_API_KEY 가 잘못되었다.',
-    '011': '키가 일시 정지됐다. DART 사이트에서 상태를 확인하라.',
-    '012': '이 서버 IP 에서 접근이 막혔다.',
-    '013': '이 접수번호에는 내려받을 원문이 없다.',
-    '014': '원문 파일이 없다.',
-    '020': '하루 요청 한도(2만 건)를 넘겼다. 내일 다시 된다.',
-    '100': '요청 값이 잘못됐다. 접수번호를 확인하라.',
-    '800': 'DART 가 점검 중이다.',
-    # 901 은 문서 문제가 아니라 계정 문제다. DART 는 개인정보 보유기간이 지나면
-    # 키를 잠근다. opendart.fss.or.kr 에 로그인해 기간을 연장하면 다시 살아난다.
-    '901': 'DART 계정의 개인정보 보유기간이 끝났다. opendart.fss.or.kr 에 로그인해 연장하면 된다.',
-}
+# ── DART 공시 본문 ──────────────────────────────────────────────────
+#
+# 예전에는 OpenAPI(document.xml)로 원문 ZIP 을 받았다. 그런데 그 키가 계정의
+# 개인정보 보유기간이 지나면 잠긴다(코드 901). 주기적으로 갱신해 주지 않으면
+# 조용히 죽는 구조라, 실제로 죽어 있는 것을 한참 뒤에야 알았다.
+#
+# 그래서 사람이 보는 뷰어 페이지를 그대로 읽는다. 키도 쿠키도 Referer 도
+# 필요 없다. 대신 DART 의 HTML/JS 모양에 기대므로, 못 읽으면 왜 못 읽었는지를
+# 화면에 그대로 올린다.
+#
+#   1) dsaf001/main.do?rcpNo=...  안에 문서 좌표가 JS 로 박혀 있다
+#        viewDoc("20260421900330", "11338085", "0", "0", "0", "HTML", "")
+#   2) report/viewer.do?rcpNo=&dcmNo=&eleId=&offset=&length=&dtd=  가 본문
+#
+# 문서는 두 모양이다.
+#   dtd=HTML       수시공시. 1) 의 좌표 하나로 본문이 통째로 나온다.
+#   dtd=dart4.xsd  정기보고서류. 1) 은 목차뿐이고 본문은 treeData 에 절 단위로
+#                  쪼개져 있어 노드마다 받아야 한다. 하위 노드는 상위에 이미
+#                  들어 있으므로 최상위만 받는다.
+
+DART_VIEWER_BASE = 'https://dart.fss.or.kr'
+DART_USER_AGENT = (
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
+    '(KHTML, like Gecko) Chrome/126.0 Safari/537.36'
+)
+
+# 사업보고서는 최상위 노드 17개에 원문이 4MB 를 넘고, 그중 '재무에 관한 사항'
+# 하나가 3.5MB 다. 상한이 없으면 그걸 다 받아 100만 자를 만든다.
+DART_MAX_NODES = 30
+DART_MAX_CHARS = 150_000
+
+_DART_VIEWDOC_RE = _re.compile(
+    r'viewDoc\(\s*"(\d+)"\s*,\s*"(\d+)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"'
+    r'\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"')
+# treeData 는 깊이마다 var 이름이 다르다(node1 이 최상위). 최상위 블록만 훑는다.
+_DART_NODE_RE = _re.compile(
+    r'var node1 = \{\};(.*?)(?=var node\d+ = \{\};|treeData\.push)', _re.S)
 
 
-def _dart_error(text):
-    """DART 에러 XML -> (상태코드, 메시지). 형식이 다르면 원문 앞부분을 돌려준다."""
-    import re as _re
+def _dart_node_field(block, key):
+    m = _re.search(r"\['" + key + r"'\]\s*=\s*\"([^\"]*)\"", block)
+    return m.group(1) if m else ''
 
-    code = _re.search(r'<status>(\d+)</status>', text or '')
-    message = _re.search(r'<message>(.*?)</message>', text or '', _re.S)
-    return (code.group(1) if code else '',
-            message.group(1).strip() if message else (text or '')[:200])
+
+def _dart_top_nodes(html):
+    """정기보고서류의 최상위 목차 노드들. 수시공시면 빈 목록."""
+    nodes = []
+    for m in _DART_NODE_RE.finditer(html):
+        block = m.group(1)
+        if not _dart_node_field(block, 'dcmNo'):
+            continue
+        nodes.append({key: _dart_node_field(block, key)
+                      for key in ('text', 'rcpNo', 'dcmNo', 'eleId', 'offset', 'length', 'dtd')})
+    return nodes
+
+
+def _dart_viewer_text(session, params):
+    """viewer.do 한 조각 -> 본문 텍스트. 인코딩은 cp949 다."""
+    from bs4 import BeautifulSoup
+
+    resp = session.get(f'{DART_VIEWER_BASE}/report/viewer.do', params=params, timeout=30)
+    resp.raise_for_status()
+    raw = resp.content
+    text = None
+    for enc in ('cp949', 'euc-kr', 'utf-8'):
+        try:
+            text = raw.decode(enc)
+            break
+        except UnicodeDecodeError:
+            continue
+    if text is None:
+        return ''
+
+    soup = BeautifulSoup(text, 'html.parser')
+    for tag in soup(['style', 'script']):
+        tag.decompose()
+    body = soup.find('body') or soup
+    return _re.sub(r'\n{3,}', '\n\n', body.get_text('\n', strip=True))
 
 
 @require_GET
 def fetch_dart_document(request, rcept_no):
-    """DART OpenAPI로 공시 본문 조회"""
+    """DART 뷰어 페이지에서 공시 본문 조회 (인증키 없이 동작한다)"""
     import requests
-    import zipfile
-    import io
-    from bs4 import BeautifulSoup
 
-    api_key = config('DART_API_KEY', default='')
-    if not api_key:
-        return JsonResponse({'error': 'DART_API_KEY가 설정되지 않았습니다. .env를 확인하세요.'},
-                            status=500)
+    session = requests.Session()
+    session.headers['User-Agent'] = DART_USER_AGENT
 
     try:
-        resp = requests.get(
-            'https://opendart.fss.or.kr/api/document.xml',
-            params={'crtfc_key': api_key, 'rcept_no': rcept_no},
-            timeout=60,
-        )
+        main = session.get(f'{DART_VIEWER_BASE}/dsaf001/main.do',
+                           params={'rcpNo': rcept_no}, timeout=30)
+        main.raise_for_status()
     except requests.RequestException as exc:
         return JsonResponse({'error': f'DART 접속 실패: {exc}'}, status=500)
 
-    if resp.status_code != 200:
-        return JsonResponse({'error': f'문서 다운로드 실패: HTTP {resp.status_code}'}, status=500)
-
-    # 실패해도 HTTP 200 으로 온다. 성공이면 ZIP, 실패면 XML 이라 앞 4바이트로 가른다.
-    # Content-Type 을 믿었더니 이유를 통째로 버리고 'DART API 에러'만 남았다.
-    if not resp.content.startswith(b'PK\x03\x04'):
-        code, message = _dart_error(resp.text)
-        hint = DART_ERROR_HINTS.get(code, '')
+    call = _DART_VIEWDOC_RE.search(main.text)
+    if not call:
+        # 문서가 없거나 DART 가 화면 구조를 바꿨거나 둘 중 하나다.
         return JsonResponse({
-            'error': f'DART: {message}' + (f' — {hint}' if hint else '')
-                     + (f' (코드 {code})' if code else ''),
-        }, status=500)
+            'error': '이 공시에서 본문 위치를 찾지 못했습니다. '
+                     '원문이 없는 공시이거나 DART 화면 구조가 바뀌었습니다.',
+        }, status=404)
 
+    rcp, dcm, ele, off, length, dtd = call.groups()
+    nodes = _dart_top_nodes(main.text)
+    if not nodes:
+        # 수시공시 — 좌표 하나가 곧 본문이다
+        nodes = [{'text': '', 'rcpNo': rcp, 'dcmNo': dcm, 'eleId': ele,
+                  'offset': off, 'length': length, 'dtd': dtd}]
+
+    truncated = len(nodes) > DART_MAX_NODES
+    parts, total = [], 0
     try:
-        zf = zipfile.ZipFile(io.BytesIO(resp.content))
-    except Exception as e:
-        return JsonResponse({'error': f'ZIP 오류: {e}'}, status=500)
-
-    # 모든 파일에서 텍스트 추출
-    all_text = []
-    for fname in zf.namelist():
-        raw = zf.read(fname)
-        text = None
-        for enc in ['utf-8', 'euc-kr', 'cp949']:
-            try:
-                text = raw.decode(enc)
+        for node in nodes[:DART_MAX_NODES]:
+            if total >= DART_MAX_CHARS:
+                truncated = True
                 break
-            except (UnicodeDecodeError, LookupError):
+            text = _dart_viewer_text(session, {
+                'rcpNo': node['rcpNo'] or rcp, 'dcmNo': node['dcmNo'],
+                'eleId': node['eleId'], 'offset': node['offset'],
+                'length': node['length'], 'dtd': node['dtd'],
+            })
+            if not text:
                 continue
-        if not text:
-            continue
+            room = DART_MAX_CHARS - total
+            if len(text) > room:
+                text, truncated = text[:room], True
+            parts.append(text)
+            total += len(text)
+    except requests.RequestException as exc:
+        if not parts:
+            return JsonResponse({'error': f'본문 조회 실패: {exc}'}, status=500)
+        truncated = True
 
-        soup = BeautifulSoup(text, 'html.parser')
-        body = soup.find('body')
-        if body:
-            plain = body.get_text(separator='\n', strip=True)
-        else:
-            plain = soup.get_text(separator='\n', strip=True)
-
-        if plain:
-            # 연속 빈줄 정리
-            import re as _re2
-            plain = _re2.sub(r'\n{3,}', '\n\n', plain)
-            all_text.append(plain)
-
-    if not all_text:
+    if not parts:
         return JsonResponse({'error': '문서 내용을 추출할 수 없습니다.'}, status=404)
 
-    content = '\n\n---\n\n'.join(all_text)
+    content = '\n\n'.join(parts)
+    if truncated:
+        content += (f'\n\n[※ 본문이 길어 여기까지만 담았습니다 — '
+                    f'최대 {DART_MAX_NODES}개 절 / {DART_MAX_CHARS:,}자. '
+                    f'전체는 DART 원문에서 확인하세요.]')
+
     return JsonResponse({
         'success': True,
         'rcept_no': rcept_no,
         'content_length': len(content),
+        'truncated': truncated,
         'content': content,
     })
 
