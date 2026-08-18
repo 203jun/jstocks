@@ -3378,6 +3378,31 @@ def fetch_stock_data_loader_with_summary(request, code):
     })
 
 
+# DART 가 돌려주는 상태코드 중 내가 손쓸 수 있는 것들. 메시지만으로는
+# 무엇을 해야 할지 모르는 경우가 있어 한 마디씩 붙여둔다.
+DART_ERROR_HINTS = {
+    '010': '.env 의 DART_API_KEY 가 잘못되었다.',
+    '011': '키가 일시 정지됐다. DART 사이트에서 상태를 확인하라.',
+    '012': '이 서버 IP 에서 접근이 막혔다.',
+    '013': '이 접수번호에는 내려받을 원문이 없다.',
+    '014': '원문 파일이 없다.',
+    '020': '하루 요청 한도(2만 건)를 넘겼다. 내일 다시 된다.',
+    '100': '요청 값이 잘못됐다. 접수번호를 확인하라.',
+    '800': 'DART 가 점검 중이다.',
+    '901': 'DART 에서 이 문서의 열람을 막았다.',
+}
+
+
+def _dart_error(text):
+    """DART 에러 XML -> (상태코드, 메시지). 형식이 다르면 원문 앞부분을 돌려준다."""
+    import re as _re
+
+    code = _re.search(r'<status>(\d+)</status>', text or '')
+    message = _re.search(r'<message>(.*?)</message>', text or '', _re.S)
+    return (code.group(1) if code else '',
+            message.group(1).strip() if message else (text or '')[:200])
+
+
 @require_GET
 def fetch_dart_document(request, rcept_no):
     """DART OpenAPI로 공시 본문 조회"""
@@ -3388,20 +3413,30 @@ def fetch_dart_document(request, rcept_no):
 
     api_key = config('DART_API_KEY', default='')
     if not api_key:
-        return JsonResponse({'error': 'DART_API_KEY가 설정되지 않았습니다.'}, status=500)
+        return JsonResponse({'error': 'DART_API_KEY가 설정되지 않았습니다. .env를 확인하세요.'},
+                            status=500)
 
-    resp = requests.get(
-        'https://opendart.fss.or.kr/api/document.xml',
-        params={'crtfc_key': api_key, 'rcept_no': rcept_no},
-        timeout=60,
-    )
+    try:
+        resp = requests.get(
+            'https://opendart.fss.or.kr/api/document.xml',
+            params={'crtfc_key': api_key, 'rcept_no': rcept_no},
+            timeout=60,
+        )
+    except requests.RequestException as exc:
+        return JsonResponse({'error': f'DART 접속 실패: {exc}'}, status=500)
+
     if resp.status_code != 200:
-        return JsonResponse({'error': f'문서 다운로드 실패: {resp.status_code}'}, status=500)
+        return JsonResponse({'error': f'문서 다운로드 실패: HTTP {resp.status_code}'}, status=500)
 
-    # ZIP이 아닌 경우 (에러 XML 응답)
-    content_type = resp.headers.get('Content-Type', '')
-    if 'xml' in content_type or 'text' in content_type:
-        return JsonResponse({'error': 'DART API 에러', 'detail': resp.text[:500]}, status=500)
+    # 실패해도 HTTP 200 으로 온다. 성공이면 ZIP, 실패면 XML 이라 앞 4바이트로 가른다.
+    # Content-Type 을 믿었더니 이유를 통째로 버리고 'DART API 에러'만 남았다.
+    if not resp.content.startswith(b'PK\x03\x04'):
+        code, message = _dart_error(resp.text)
+        hint = DART_ERROR_HINTS.get(code, '')
+        return JsonResponse({
+            'error': f'DART: {message}' + (f' — {hint}' if hint else '')
+                     + (f' (코드 {code})' if code else ''),
+        }, status=500)
 
     try:
         zf = zipfile.ZipFile(io.BytesIO(resp.content))
