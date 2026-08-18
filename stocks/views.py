@@ -1756,11 +1756,6 @@ def stock_detail(request, code):
         'ma60_value': ma60_value,
         'briefing_data': _build_briefing_data(stock, question_reports, reports, common_core_reports + common_extra_reports, update_core_reports + update_extra_reports),
         'avg_target_price_3m': avg_target_price_3m,
-        'diary_trades_json': json.dumps([
-            {'date': d.date.strftime('%Y-%m-%d'), 'is_buy': d.trade_type == 'buy', 'is_sell': d.trade_type == 'sell'}
-            for d in StockDiary.objects.filter(stock=stock).only('date', 'trade_type')
-        ]),
-        'pending_trades_json': json.dumps(_build_pending_trades(stock)),
     }
     return render(request, 'stocks/stock_detail.html', context)
 
