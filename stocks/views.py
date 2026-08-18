@@ -1639,6 +1639,7 @@ def stock_detail(request, code):
                 'count': len(prices),
                 # 휴장일 등으로 그날 종가가 없을 수 있다. 목표가는 유효하므로
                 # 점은 찍고 괴리율만 비운다.
+                'close': close,
                 'gap': round((avg - close) / close * 100, 1) if close else None,
             })
         # 주가선은 리포트가 있는 날만이 아니라 일봉 전체로 그린다

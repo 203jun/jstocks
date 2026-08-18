@@ -3528,15 +3528,19 @@ function initPriceTargetChart() {
                   borderWidth: 0, pointRadius: 0, fill: '+1', backgroundColor: band, order: 3 },
                 { label: '목표가 최저', data: targetChartData.map(d => ({ x: d.x, y: d.low })),
                   borderWidth: 0, pointRadius: 0, fill: false, order: 3 },
+                // 툴팁은 이 점에서만 뜬다. 점은 작게 두고 잡히는 범위만 넓힌다.
                 { label: '목표가 평균', data: targetChartData.map(d => ({ x: d.x, y: d.avg })),
-                  borderColor: '#dc3545', borderWidth: 2, pointRadius: 3, fill: false, order: 1 },
+                  borderColor: '#dc3545', borderWidth: 2, pointRadius: 4, pointHitRadius: 14,
+                  fill: false, order: 1 },
                 { label: '주가', data: priceChartData,
                   borderColor: '#0d6efd', borderWidth: 2, pointRadius: 0, fill: false, order: 2 },
             ]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            interaction: { mode: 'nearest', axis: 'x', intersect: false },
+            // 목표가가 있는 날에만 툴팁을 띄운다. 목표가 없는 날의 주가만 보는
+            // 툴팁은 읽을 게 없어 오히려 방해가 된다.
+            interaction: { mode: 'point', intersect: true },
             plugins: {
                 legend: {
                     position: 'bottom',
@@ -3544,19 +3548,20 @@ function initPriceTargetChart() {
                     labels: { filter: item => !item.text.startsWith('목표가 최') },
                 },
                 tooltip: {
+                    // 주가선과 밴드에는 툴팁을 붙이지 않는다
+                    filter: item => item.dataset.label === '목표가 평균',
                     callbacks: {
                         label: function(ctx) {
-                            const v = ctx.raw.y;
-                            if (ctx.dataset.label !== '목표가 평균') {
-                                return `${ctx.dataset.label}: ${v.toLocaleString()}원`;
-                            }
                             const d = targetChartData[ctx.dataIndex];
-                            const lines = [`목표가 평균: ${v.toLocaleString()}원 (${d.count}건)`];
+                            const lines = [`목표가 평균 ${d.avg.toLocaleString()}원 (${d.count}건)`];
                             if (d.low !== d.high) {
-                                lines.push(`  범위: ${d.low.toLocaleString()} ~ ${d.high.toLocaleString()}`);
+                                lines.push(`범위 ${d.low.toLocaleString()} ~ ${d.high.toLocaleString()}`);
+                            }
+                            if (d.close) {
+                                lines.push(`주가 ${d.close.toLocaleString()}원`);
                             }
                             if (d.gap !== null) {
-                                lines.push(`  괴리율: ${d.gap > 0 ? '+' : ''}${d.gap}%`);
+                                lines.push(`괴리율 ${d.gap > 0 ? '+' : ''}${d.gap}%`);
                             }
                             return lines;
                         }
