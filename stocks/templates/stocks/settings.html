@@ -939,14 +939,33 @@ function showConfirm(message, { confirmText = '삭제', cancelText = '취소' } 
 })();
 
 // 프롬프트 서브탭 전환
+function showPromptPanel(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel || !panel.classList.contains('prompt-panel')) return false;
+    document.querySelectorAll('.prompt-panel').forEach(p => p.style.display = 'none');
+    panel.style.display = 'block';
+    // 탭 버튼이 없는 패널도 있다(재무분석·컨센서스분석은 버튼이 주석 처리돼 있다).
+    // 그래서 패널을 먼저 열고, 짝이 되는 버튼이 있으면 그때 표시만 맞춘다.
+    document.querySelectorAll('.prompt-sub-tab').forEach(t => t.classList.remove('active'));
+    const tab = document.querySelector(`.prompt-sub-tab[data-target="${panelId}"]`);
+    if (tab) tab.classList.add('active');
+    return true;
+}
+
 document.querySelectorAll('.prompt-sub-tab').forEach(tab => {
     tab.addEventListener('click', function() {
-        document.querySelectorAll('.prompt-sub-tab').forEach(t => t.classList.remove('active'));
-        this.classList.add('active');
-        document.querySelectorAll('.prompt-panel').forEach(p => p.style.display = 'none');
-        document.getElementById(this.dataset.target).style.display = 'block';
+        showPromptPanel(this.dataset.target);
     });
 });
+
+// 화면 곳곳의 '설정' 링크가 /settings/#패널id 로 들어온다. 그 프롬프트를
+// 바로 펴서 보여준다 — 여기까지 와서 탭을 다시 찾게 하면 링크의 뜻이 없다.
+if (location.hash.length > 1) {
+    const target = decodeURIComponent(location.hash.slice(1));
+    if (showPromptPanel(target)) {
+        document.getElementById('promptSubTabs')?.scrollIntoView({ block: 'start' });
+    }
+}
 
 // 정보 서브탭 전환
 document.querySelectorAll('.info-sub-tab').forEach(tab => {

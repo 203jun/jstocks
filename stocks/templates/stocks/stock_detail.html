@@ -1,6 +1,7 @@
 {% extends 'stocks/base.html' %}
 {% load humanize %}
 {% load help_tags %}
+{% load prompt_tags %}
 
 {% block title %}{{ stock.name }} - JStocks{% endblock %}
 
@@ -668,7 +669,7 @@
         <div id="briefingEditMode" class="d-none">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
                 <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">핵심 브리핑</div>
-                <span class="prompt-badge" role="button" id="btnCopyBriefingPrompt">프롬프트 복사</span>
+                {% prompt_pair "prompt_briefing" id="btnCopyBriefingPrompt" %}
             </div>
             <textarea class="form-control" id="briefingTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.key_briefing }}</textarea>
             <div class="d-flex justify-content-end gap-2">
@@ -886,7 +887,7 @@
         </div>
         <div id="finAnalysisV2EditMode" class="d-none">
             <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-                <span class="prompt-badge" role="button" id="btnCopyFinAnalysisPrompt">프롬프트 복사</span>
+                {% prompt_pair "prompt_fin_analysis" id="btnCopyFinAnalysisPrompt" %}
             </div>
             <textarea class="form-control" id="finAnalysisV2Textarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.financial_analysis_v2 }}</textarea>
             <div class="d-flex justify-content-end gap-2">
@@ -910,7 +911,7 @@
         </div>
         <div id="consensusAnalysisEditMode" class="d-none">
             <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-                <span class="prompt-badge" role="button" id="btnCopyConsensusAnalysisPrompt">프롬프트 복사</span>
+                {% prompt_pair "prompt_consensus_analysis" id="btnCopyConsensusAnalysisPrompt" %}
             </div>
             <textarea class="form-control" id="consensusAnalysisTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.consensus_analysis }}</textarea>
             <div class="d-flex justify-content-end gap-2">
@@ -1506,7 +1507,7 @@
         <div id="sdAnalysisEditMode" class="d-none">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
                 <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">수급분석</div>
-                <span class="prompt-badge" role="button" id="btnCopySdAnalysisPrompt">프롬프트 복사</span>
+                {% prompt_pair "prompt_supply_demand_analysis" id="btnCopySdAnalysisPrompt" %}
             </div>
             <textarea class="form-control" id="sdAnalysisTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="마크다운 형식으로 입력하세요...">{{ stock.supply_demand_analysis }}</textarea>
             <div class="d-flex justify-content-end gap-2">
@@ -1519,7 +1520,7 @@
 
 <!-- ========== 공시 탭 ========== -->
 <div id="disclosure-content" class="tab-panel" style="display:none;">
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">DART 공시<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">전자공시시스템</span></h5>
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">DART 공시<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);display:flex;align-items:center;gap:8px;"><a class="prompt-edit" href="{% url 'stocks:settings' %}#gongsi-prompt-panel" target="_blank" rel="noopener" title="공시 프롬프트 편집">프롬프트 설정</a>전자공시시스템</span></h5>
     <div class="brief-card">
         {% if gongsi_list %}
         <table class="modern-table">
@@ -1537,7 +1538,7 @@
                     <td>
                         <a href="{{ gongsi.link }}" target="_blank" style="text-decoration:none;color:var(--text-primary);">{{ gongsi.title }}</a>
                         {% if gongsi.cat %}<span style="display:inline-block;font-size:0.65rem;font-weight:600;padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle;{% if gongsi.cat == '악재' %}background:rgba(255,75,75,0.15);color:var(--down-color);{% elif gongsi.cat == '호재' %}background:rgba(46,204,113,0.15);color:var(--up-color);{% else %}background:var(--bg-hover);color:var(--text-secondary);{% endif %}">{{ gongsi.cat }}</span>{% endif %}
-                        <button type="button" class="btn-gongsi-prompt" data-link="{{ gongsi.link }}" data-title="{{ gongsi.title }}" data-date="{{ gongsi.date|date:'Y-m-d'|default:'' }}" data-cat="{{ gongsi.cat|default:'' }}" style="font-size:0.65rem;padding:1px 5px;border:1px solid var(--border-color);border-radius:3px;background:none;color:var(--text-muted);cursor:pointer;margin-left:4px;vertical-align:middle;">프롬프트복사</button>
+                        <button type="button" class="btn-gongsi-prompt" data-link="{{ gongsi.link }}" data-title="{{ gongsi.title }}" data-date="{{ gongsi.date|date:'Y-m-d'|default:'' }}" data-cat="{{ gongsi.cat|default:'' }}" style="font-size:0.65rem;padding:1px 5px;border:1px solid var(--border-color);border-radius:3px;background:none;color:var(--text-muted);cursor:pointer;margin-left:4px;vertical-align:middle;">프롬프트</button>
                     </td>
                     <td style="font-size:0.78rem;" class="d-none d-md-table-cell">{{ gongsi.submitter }}</td>
                 </tr>
@@ -3421,10 +3422,10 @@ document.getElementById('btnCopyConsensusAnalysisPrompt').addEventListener('clic
         warnMissingVars(prompt);
         await copyToClipboard(prompt);
         btn.textContent = '복사됨!';
-        setTimeout(() => { btn.textContent = '프롬프트 복사'; }, 1500);
+        setTimeout(() => { btn.textContent = '프롬프트'; }, 1500);
     } catch (err) {
         alert('복사 실패: ' + err.message);
-        btn.textContent = '프롬프트 복사';
+        btn.textContent = '프롬프트';
     }
 });
 
@@ -3576,10 +3577,10 @@ document.getElementById('btnCopyFinAnalysisPrompt').addEventListener('click', as
         warnMissingVars(prompt);
         await copyToClipboard(prompt);
         btn.textContent = '복사됨!';
-        setTimeout(() => { btn.textContent = '프롬프트 복사'; }, 1500);
+        setTimeout(() => { btn.textContent = '프롬프트'; }, 1500);
     } catch (err) {
         alert('복사 실패: ' + err.message);
-        btn.textContent = '프롬프트 복사';
+        btn.textContent = '프롬프트';
     }
 });
 
@@ -4085,7 +4086,7 @@ document.querySelectorAll('.btn-gongsi-prompt').forEach(btn => {
             btn.style.borderColor = '#28a745';
             btn.style.color = '#28a745';
             setTimeout(() => {
-                btn.textContent = '프롬프트복사';
+                btn.textContent = '프롬프트';
                 btn.style.borderColor = '';
                 btn.style.color = '';
             }, 1500);

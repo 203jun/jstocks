@@ -172,3 +172,26 @@ def get_prompt(key, default=''):
     if row and row.value.strip():
         return row.value
     return default
+
+
+# 프롬프트 키 -> 설정 화면에서 그 프롬프트를 편집하는 패널의 id.
+#
+# 화면마다 '프롬프트' 버튼이 있는데, 정작 그 프롬프트를 고치려면 설정으로
+# 가서 여러 탭 중 맞는 것을 찾아야 했다. 버튼 옆에 '설정'을 붙여 바로 그
+# 자리로 보낸다. 짝이 되는 두 동작이라 항상 같이 둔다.
+#
+# 탭 id 가 아니라 패널 id 인 이유: 재무분석·컨센서스분석은 탭 버튼이 주석
+# 처리돼 있고 패널만 살아 있다. 패널 id 로 가리키면 그런 것도 열린다.
+PROMPT_PANELS = {
+    'prompt_classify': 'stock-classify-panel',
+    'prompt_signal_analysis': 'signal-analysis-prompt-panel',
+    'prompt_briefing': 'data-loader-panel',
+    'prompt_fin_analysis': 'fin-analysis-prompt-panel',
+    'prompt_consensus_analysis': 'consensus-analysis-prompt-panel',
+    'prompt_supply_demand_analysis': 'supply-demand-analysis-prompt-panel',
+    'prompt_summary': 'summary-prompt-panel',
+    'prompt_status': 'status-prompt-panel',
+    'prompt_gongsi': 'gongsi-prompt-panel',
+    'prompt_youtube': 'youtube-prompt-panel',
+    'prompt_news': 'news-prompt-panel',
+}

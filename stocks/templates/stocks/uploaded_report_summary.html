@@ -120,7 +120,7 @@
         <div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                 <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">요약</div>
-                <span class="prompt-badge btn-copy-summary-prompt" role="button" data-source="summary">프롬프트 복사</span>
+                <span class="prompt-badge btn-copy-summary-prompt" role="button" data-source="summary">프롬프트</span><a class="prompt-edit" href="{% url 'stocks:settings' %}#summary-prompt-panel" target="_blank" rel="noopener" title="이 프롬프트 편집">설정</a>
             </div>
             <textarea name="my_opinion" rows="3" style="width:100%;font-family:monospace;font-size:0.85rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;color:var(--text-primary);background:var(--bg-card);line-height:1.7;resize:vertical;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ report.my_opinion }}</textarea>
         </div>
