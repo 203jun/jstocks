@@ -26,6 +26,15 @@
     padding: 12px 20px 16px;
     display: flex;
     flex-direction: column;
+    border-top: 1px solid var(--border-color);
+}
+/* 카드 안의 작은 제목. 최근 변화·AI 판단의 제목과 같은 크기로 맞춘다. */
+.hero-sub {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
 }
 .price-main {
     font-size: 1.3rem;
@@ -40,8 +49,9 @@
     font-size: 0.75rem;
     color: var(--text-muted);
 }
-/* 종합 신호 — 정보가 아니라 행동을 말하게 한다 */
-.ms-log { border-bottom: 1px solid var(--border-color); }
+/* 최근 변화 — 아래 선은 두지 않는다. 바로 뒤의 .ma-block 이 위 선을 가지고
+   있어 맞닿으면 2px 로 겹친다. */
+.ms-log { }
 /* 제목 줄과 내용 줄을 나눈다. 한 줄에 몰아넣으니 제목·내용·날짜가 같은
    크기로 붙어 있어 어디부터 읽어야 할지 알 수가 없었다. */
 .ms-log-head {
@@ -79,7 +89,12 @@
     white-space: nowrap;
     word-break: keep-all;
 }
-.ms-log-ago { color: var(--text-muted); margin-left: auto; flex: none; }
+/* DOM 은 제목·내용·경과·꺾쇠 순이지만, 내용이 한 줄을 다 쓰므로 그대로 두면
+   경과·꺾쇠가 셋째 줄로 밀린다. 자리만 order 로 바꿔 제목 줄 오른쪽에 붙인다. */
+.ms-log-title { order: 0; }
+.ms-log-ago { order: 1; color: var(--text-muted); margin-left: auto; flex: none; }
+.ms-log-caret { order: 2; }
+.ms-log-latest { order: 3; }
 .ms-log-caret { color: var(--text-muted); flex: none; transition: transform 0.15s; }
 .ms-log-head[aria-expanded="true"] .ms-log-caret { transform: rotate(180deg); }
 .ms-log-head[aria-expanded="true"] .ms-log-latest { display: none; }
@@ -798,6 +813,7 @@
     </div>
     {% endwith %}
     <div class="hero-chart">
+        <div class="hero-sub">차트</div>
         <div class="chart-toolbar">
             <div class="range-btns" data-chart="kospi">
                 <button class="range-btn" data-days="20">20일</button>
@@ -910,6 +926,7 @@
     </div>
     {% endwith %}
     <div class="hero-chart">
+        <div class="hero-sub">차트</div>
         <div class="chart-toolbar">
             <div class="range-btns" data-chart="kosdaq">
                 <button class="range-btn" data-days="20">20일</button>
