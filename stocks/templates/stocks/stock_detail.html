@@ -231,7 +231,10 @@
 }
 /* 일봉/주봉/월봉 탭 — 카드 하나 안에서 갈아 끼운다 */
 .tf-tabs { display: flex; gap: 2px; }
-.tf-tab {
+/* 컨센 탭도 같은 생김새를 쓰되 클래스는 나눈다 — 차트 탭 핸들러가
+   .tf-tab 전체에 걸려 있어, 같은 클래스를 쓰면 컨센을 눌렀을 때
+   showTimeframe(undefined) 가 돌아 차트가 통째로 숨겨진다 */
+.tf-tab, .cs-tab {
     padding: 4px 12px;
     border: none;
     border-radius: 6px;
@@ -241,8 +244,8 @@
     font-weight: 600;
     cursor: pointer;
 }
-.tf-tab:hover { color: var(--text-secondary); }
-.tf-tab.active { background: var(--bg-secondary); color: var(--text-primary); }
+.tf-tab:hover, .cs-tab:hover { color: var(--text-secondary); }
+.tf-tab.active, .cs-tab.active { background: var(--bg-secondary); color: var(--text-primary); }
 .tf-note { font-size: 0.72rem; color: var(--text-muted); }
 /* d-flex 같은 부트스트랩 유틸이 display:flex !important 라 인라인 style 로는 못 숨긴다 */
 .tf-hidden { display: none !important; }
@@ -916,8 +919,8 @@
     <div class="chart-card consensus-charts" style="margin-bottom:0;">
         <div class="chart-card-header">
             <div class="tf-tabs">
-                <button type="button" class="tf-tab cs-tab active" data-cs="annual">연간</button>
-                <button type="button" class="tf-tab cs-tab" data-cs="quarter">분기</button>
+                <button type="button" class="cs-tab active" data-cs="annual">연간</button>
+                <button type="button" class="cs-tab" data-cs="quarter">분기</button>
             </div>
         </div>
         <div class="cs-pane" data-cs="annual" style="overflow-x:auto;">
@@ -3481,6 +3484,7 @@ const tfInit = { daily: true, weekly: false, monthly: false };
 const tfInitializers = { weekly: initWeeklyChart, monthly: initMonthlyChart };
 
 function showTimeframe(tf) {
+    if (!(tf in tfInit)) return;   // 모르는 값이면 건드리지 않는다
     document.querySelectorAll('.tf-tab').forEach(b => b.classList.toggle('active', b.dataset.tf === tf));
     document.querySelectorAll('.tf-pane').forEach(p => p.classList.toggle('tf-hidden', p.dataset.tf !== tf));
     // 해당 봉에만 있는 조작(기간 버튼·이평선 뱃지)도 같이 갈아 끼운다
