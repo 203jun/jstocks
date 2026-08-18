@@ -1241,11 +1241,11 @@
                         label: '외국인',
                         type: 'line',
                         data: foreignCum,
-                        borderColor: '#198754',
-                        backgroundColor: '#198754',
+                        borderColor: INVESTOR_COLORS.foreign,
+                        backgroundColor: INVESTOR_COLORS.foreign,
                         borderWidth: 2,
                         pointRadius: 2,
-                        pointBackgroundColor: '#198754',
+                        pointBackgroundColor: INVESTOR_COLORS.foreign,
                         tension: 0.3,
                         fill: false,
                         yAxisID: 'y',
@@ -1255,11 +1255,11 @@
                         label: '기관',
                         type: 'line',
                         data: instCum,
-                        borderColor: '#dc3545',
-                        backgroundColor: '#dc3545',
+                        borderColor: INVESTOR_COLORS.institution,
+                        backgroundColor: INVESTOR_COLORS.institution,
                         borderWidth: 2,
                         pointRadius: 2,
-                        pointBackgroundColor: '#dc3545',
+                        pointBackgroundColor: INVESTOR_COLORS.institution,
                         tension: 0.3,
                         fill: false,
                         yAxisID: 'y',
@@ -1333,9 +1333,9 @@
             <div class="chart-card-header">
                 <span style="font-size:0.82rem;color:var(--text-secondary);">누적 순매수</span>
                 <div class="d-flex gap-3">
-                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:#198754;"></span>외국인</span>
-                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:#dc3545;"></span>기관</span>
-                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:rgba(13,110,253,0.4);"></span>주가</span>
+                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:var(--investor-foreign);"></span>외국인</span>
+                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:var(--investor-institution);"></span>기관</span>
+                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:var(--down-color);opacity:0.55;"></span>주가</span>
                 </div>
             </div>
             <div style="height:280px;">
@@ -1390,9 +1390,9 @@
             <div class="chart-card-header">
                 <span style="font-size:0.82rem;color:var(--text-secondary);">누적 순매수</span>
                 <div class="d-flex gap-3">
-                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:#ffc107;"></span>개인</span>
-                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:#198754;"></span>외국인</span>
-                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:#dc3545;"></span>기관</span>
+                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:var(--investor-individual);"></span>개인</span>
+                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:var(--investor-foreign);"></span>외국인</span>
+                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:var(--investor-institution);"></span>기관</span>
                 </div>
             </div>
             <div style="height:280px;">
@@ -3016,9 +3016,9 @@ if (investorChartData && investorChartData.length > 0) {
             data: {
                 labels: investorChartData.map(d => d.date),
                 datasets: [
-                    { label: '개인', data: investorChartData.map(d => d.individual), borderColor: '#ffc107', borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false },
-                    { label: '외국인', data: investorChartData.map(d => d.foreign), borderColor: '#198754', borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false },
-                    { label: '기관', data: investorChartData.map(d => d.institution), borderColor: '#dc3545', borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false }
+                    { label: '개인', data: investorChartData.map(d => d.individual), borderColor: INVESTOR_COLORS.individual, borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false },
+                    { label: '외국인', data: investorChartData.map(d => d.foreign), borderColor: INVESTOR_COLORS.foreign, borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false },
+                    { label: '기관', data: investorChartData.map(d => d.institution), borderColor: INVESTOR_COLORS.institution, borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false }
                 ]
             },
             options: {
@@ -3047,9 +3047,9 @@ if (investorChartDataDaum && investorChartDataDaum.length > 0) {
             data: {
                 labels: investorChartDataDaum.map(d => d.date),
                 datasets: [
-                    { label: '외국인', data: investorChartDataDaum.map(d => d.foreign), borderColor: '#198754', borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false, yAxisID: 'y' },
-                    { label: '기관', data: investorChartDataDaum.map(d => d.institution), borderColor: '#dc3545', borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false, yAxisID: 'y' },
-                    { label: '주가', data: investorChartDataDaum.map(d => d.price), borderColor: 'rgba(13, 110, 253, 0.4)', borderWidth: 1.5, tension: 0.3, pointRadius: 1, fill: false, yAxisID: 'y1' }
+                    { label: '외국인', data: investorChartDataDaum.map(d => d.foreign), borderColor: INVESTOR_COLORS.foreign, borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false, yAxisID: 'y' },
+                    { label: '기관', data: investorChartDataDaum.map(d => d.institution), borderColor: INVESTOR_COLORS.institution, borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false, yAxisID: 'y' },
+                    { label: '주가', data: investorChartDataDaum.map(d => d.price), borderColor: 'rgba(41, 98, 255, 0.45)', borderWidth: 1.5, tension: 0.3, pointRadius: 1, fill: false, yAxisID: 'y1' }
                 ]
             },
             options: {

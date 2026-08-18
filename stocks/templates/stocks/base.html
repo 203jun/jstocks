@@ -26,6 +26,12 @@
             --radius-sm: 8px;
             --up-color: #dc3545;
             --down-color: #2962ff;
+            /* 투자자별 수급 — 시황·종목·ETF 가 같은 색을 쓴다.
+               빨강·파랑은 가격이 이미 가져갔으므로 여기서는 쓰지 않는다.
+               예전에 기관이 빨강이라 '기관이 오른 것'처럼 읽혔다. */
+            --investor-foreign: #8b5cf6;
+            --investor-institution: #f59e0b;
+            --investor-individual: #14b8a6;
         }
 
         [data-theme="dark"] {
@@ -576,6 +582,14 @@
             <div class="hlp-body" id="helpBody"></div>
         </div>
     </div>
+    <script>
+    // 위 CSS 변수와 같은 값. 차트 라이브러리에는 문자열로 넘겨야 해서 한 번 더 적는다.
+    const INVESTOR_COLORS = {
+        foreign: '#8b5cf6',
+        institution: '#f59e0b',
+        individual: '#14b8a6',
+    };
+    </script>
     <script>
     // ⓘ 아이콘은 어느 화면에서든 나중에 추가될 수 있으므로 위임으로 받는다.
     (function () {

@@ -813,8 +813,8 @@
             </div>
         </div>
         <div class="chart-legend">
-            <span class="chart-legend-item"><i style="background:#8b5cf6;"></i>외국인 <b class="chart-legend-val" id="kospiForeignVal"></b></span>
-            <span class="chart-legend-item"><i style="background:#f59e0b;"></i>기관 <b class="chart-legend-val" id="kospiInstVal"></b></span>
+            <span class="chart-legend-item"><i style="background:var(--investor-foreign);"></i>외국인 <b class="chart-legend-val" id="kospiForeignVal"></b></span>
+            <span class="chart-legend-item"><i style="background:var(--investor-institution);"></i>기관 <b class="chart-legend-val" id="kospiInstVal"></b></span>
             <span class="chart-legend-note" id="kospiTrendNote">기간 첫날 = 0</span>{% help_icon "cumulative" %}
         </div>
         <div class="index-chart-wrap">
@@ -925,8 +925,8 @@
             </div>
         </div>
         <div class="chart-legend">
-            <span class="chart-legend-item"><i style="background:#8b5cf6;"></i>외국인 <b class="chart-legend-val" id="kosdaqForeignVal"></b></span>
-            <span class="chart-legend-item"><i style="background:#f59e0b;"></i>기관 <b class="chart-legend-val" id="kosdaqInstVal"></b></span>
+            <span class="chart-legend-item"><i style="background:var(--investor-foreign);"></i>외국인 <b class="chart-legend-val" id="kosdaqForeignVal"></b></span>
+            <span class="chart-legend-item"><i style="background:var(--investor-institution);"></i>기관 <b class="chart-legend-val" id="kosdaqInstVal"></b></span>
             <span class="chart-legend-note" id="kosdaqTrendNote">기간 첫날 = 0</span>{% help_icon "cumulative" %}
         </div>
         <div class="index-chart-wrap">
@@ -1074,8 +1074,8 @@ const chartGridColor = isDarkTheme ? '#2a2e38' : '#f3f4f6';
 const chartBorderColor = isDarkTheme ? '#2a2e38' : '#e5e7eb';
 const upColor = isDarkTheme ? '#ef5350' : '#dc3545';
 const downColor = isDarkTheme ? '#5b8def' : '#2962ff';
-const FOREIGN_COLOR = '#8b5cf6';
-const INSTITUTION_COLOR = '#f59e0b';
+const FOREIGN_COLOR = INVESTOR_COLORS.foreign;
+const INSTITUTION_COLOR = INVESTOR_COLORS.institution;
 
 function isNarrowScreen() {
     return window.matchMedia('(max-width: 768px)').matches;
