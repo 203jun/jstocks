@@ -1549,16 +1549,9 @@ def stock_detail(request, code):
     news_prompt_vars['all_content'] = '\n\n---\n\n'.join(all_content_sections) if all_content_sections else ''
 
     # 업로드 리포트
-    from .models import StockUploadedReport, SystemSetting
-    uploaded_reports = StockUploadedReport.objects.filter(stock=stock).order_by('-created_at')
-
-    # 리포트 요약 개수 (애널리스트 리포트 + 파일 리포트)
-    report_summary_count = sum(1 for r in reports if r.summary)
-    report_attachment_count = sum(1 for r in reports if not r.summary and r.has_attachment)
-    uploaded_summary_count = sum(1 for r in uploaded_reports if r.summary)
-    uploaded_attachment_count = sum(1 for r in uploaded_reports if not r.summary and r.has_attachment)
-    total_summary_count = report_summary_count + uploaded_summary_count
-    total_attachment_count = report_attachment_count + uploaded_attachment_count
+    from .models import SystemSetting
+    # 리포트 요약 개수 (탭 배지)
+    total_summary_count = sum(1 for r in reports if r.summary)
 
     # 거래량 변동률 계산 (전일 대비)
     volume_change_rate = None
@@ -1726,9 +1719,7 @@ def stock_detail(request, code):
         'waiting_question_reports': waiting_question_reports,
         'custom_question_reports': custom_question_reports,
         'research_prompts': research_prompts,
-        'uploaded_reports': uploaded_reports,
         'total_summary_count': total_summary_count,
-        'total_attachment_count': total_attachment_count,
         'price_chart_data': json.dumps(price_chart_data),
         'target_chart_data': json.dumps(target_chart_data),
         'gap_chart_data': json.dumps(gap_chart_data),
