@@ -44,7 +44,6 @@ urlpatterns = [
     path('api/etf/<str:code>/event/<int:event_id>/update/', views.etf_event_update, name='etf_event_update'),
     path('api/etf/<str:code>/event/<int:event_id>/delete/', views.etf_event_delete, name='etf_event_delete'),
     path('api/etf/<str:code>/event/<int:event_id>/move/', views.etf_event_move, name='etf_event_move'),
-    path('api/report/<str:code>/more/', views.fetch_more_reports, name='fetch_more_reports'),
     path('api/stock/search/', views.search_stock, name='search_stock'),
     path('api/stock/<str:code>/prompt-data/', views.fetch_stock_prompt_data, name='fetch_stock_prompt_data'),
     path('api/stock/<str:code>/data-loader/', views.fetch_stock_data_loader, name='fetch_stock_data_loader'),

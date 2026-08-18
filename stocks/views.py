@@ -2963,51 +2963,6 @@ def stock_event_move(request, code, event_id):
 
 
 @require_GET
-def fetch_more_reports(request, code):
-    """리포트 더 가져오기 API"""
-    stock = get_object_or_404(Info, code=code)
-    offset = int(request.GET.get('offset', 20))
-    limit = int(request.GET.get('limit', 20))
-
-    reports = Report.objects.filter(stock=stock).order_by('-date')[offset:offset + limit]
-
-    # 괴리율 계산을 위한 일봉 데이터
-    report_dates = [r.date for r in reports]
-    if report_dates:
-        daily_prices = DailyChart.objects.filter(
-            stock=stock,
-            date__in=report_dates
-        ).values('date', 'closing_price')
-        price_by_date = {d['date']: d['closing_price'] for d in daily_prices}
-    else:
-        price_by_date = {}
-
-    result = []
-    for r in reports:
-        gap_rate = None
-        if r.target_price and r.date in price_by_date:
-            closing = price_by_date[r.date]
-            gap_rate = round((r.target_price / closing - 1) * 100, 1)
-
-        result.append({
-            'id': r.id,
-            'date': r.date.strftime('%y/%m/%d'),
-            'title': r.title,
-            'author': r.author,
-            'provider': r.provider,
-            'target_price': r.target_price,
-            'gap_rate': gap_rate,
-            'summary': r.summary or '',
-        })
-
-    return JsonResponse({
-        'success': True,
-        'reports': result,
-        'has_more': Report.objects.filter(stock=stock).count() > offset + limit
-    })
-
-
-@require_GET
 def fetch_stock_data_loader(request, code):
     """종목 데이터 불러오기 API (선택적 데이터 로드)"""
     import re

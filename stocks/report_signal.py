@@ -154,10 +154,25 @@ def build_target_panel(stock, today):
 
 
 def _reading(p):
-    """숫자 셋을 한 줄로. 화면에 그대로 나가는 문장이다."""
+    """
+    카드 맨 아래 한 줄. 화면에 그대로 나가는 문장이다.
+
+    쓰는 순서는 낡음 -> 괴리율 -> 방향이다. 카드에서 눈이 지나가는 순서와
+    같게 두었다. 다만 방향이 괴리율과 어긋날 때는 그 자리에서 어느 쪽을
+    믿어야 하는지 말한다 — 여러 곳이 목표가를 내리는 중이라면 남은 여력이
+    얼마든 그게 먼저다.
+
+    할 말이 없으면 아무 말도 안 한다. '보통 수준이라 읽을 것이 없다' 같은
+    문장을 매번 붙이면 정작 읽어야 할 때도 그러려니 하고 넘기게 된다.
+    """
     gap, move = p['gap_now'], p['price_move']
     if gap is None:
         return ''
+
+    up, down, flat = p['up'], p['down'], p['flat']
+    enough = up + down + flat >= 3
+    falling = enough and down > up
+    rising = enough and up >= 3 and up > down * 2
 
     parts = []
     # 오래된 리포트는 지금 상황을 안 담고 있다. 괴리율을 읽기 전에 말해줘야
@@ -175,25 +190,28 @@ def _reading(p):
         parts.append('여력이 커 보이지만 발행 뒤 주가가 빠져서 벌어진 것이다. '
                      '목표가는 주가에 후행해 뒤늦게 내려온다.')
     elif gap >= GAP_STRONG:
-        parts.append('발행 때부터 크게 지른 콜인데 주가가 아직 안 따라왔다. '
-                     '시장이 논거를 아직 안 받아들이고 있다는 뜻이기도 하다.')
+        parts.append('발행 때부터 크게 지른 콜이고 주가는 아직 안 따라왔다.')
+
+    # 방향과 컨센을 같이 말한다. 다들 내리는 중인데 이 목표가만 평균 위라면
+    # 그 둘을 따로 읽어서는 무슨 상황인지 알 수가 없다.
+    if falling and p['outlier'] and p['consensus_gap'] > 0:
+        parts.append(f'최근 {CYCLE_DAYS}일 하향 {down}건 · 상향 {up}건으로 목표가를 '
+                     f'내리는 중인데, 이 목표가만 증권사 {p["providers"]}곳 평균보다 '
+                     f'{abs(p["consensus_gap"]):.0f}% 높다. 혼자 남은 강세론이다.')
+    elif falling:
+        parts.append(f'최근 {CYCLE_DAYS}일 목표가는 하향 {down}건이 상향 {up}건보다 '
+                     f'많다. 남은 여력보다 이 방향을 먼저 봐야 한다.')
     else:
-        parts.append('한국 리포트의 보통 수준이다. 이 숫자만으로는 읽을 것이 없다.')
-
-    if p['outlier']:
-        side = '위' if p['consensus_gap'] > 0 else '아래'
-        parts.append(f'다만 이 목표가는 증권사 {p["providers"]}곳 평균보다 '
-                     f'{abs(p["consensus_gap"]):.0f}% {side}라 혼자 튄 값이다.')
-
-    up, down, flat = p['up'], p['down'], p['flat']
-    if up + down + flat >= 3:
-        if down > up:
-            parts.append(f'최근 {CYCLE_DAYS}일 목표가는 하향 {down}건이 상향 {up}건보다 '
-                         f'많다. 괴리율보다 이 방향을 먼저 봐야 한다.')
-        elif up >= 3 and up > down * 2:
-            parts.append(f'최근 {CYCLE_DAYS}일 목표가는 상향 {up}건으로 우세하다. '
-                         f'논거가 아직 살아 있다.')
-        else:
-            parts.append(f'최근 {CYCLE_DAYS}일 목표가 방향은 상향 {up} · 하향 {down}으로 '
+        if p['outlier']:
+            side = '위' if p['consensus_gap'] > 0 else '아래'
+            head = '다만 이' if parts else '이'   # 앞 문장이 없으면 '다만'이 뜬다
+            parts.append(f'{head} 목표가는 증권사 {p["providers"]}곳 평균보다 '
+                         f'{abs(p["consensus_gap"]):.0f}% {side}라 혼자 튄 값이다. '
+                         f'여럿이 부르는 값이 아니면 노이즈에 가깝다.')
+        if rising:
+            parts.append(f'최근 {CYCLE_DAYS}일 상향 {up}건 · 하향 {down}건으로 목표가가 '
+                         f'올라가는 중이다.')
+        elif enough:
+            parts.append(f'최근 {CYCLE_DAYS}일 목표가 방향은 상향 {up}건 · 하향 {down}건으로 '
                          f'뚜렷하지 않다.')
     return ' '.join(parts)
