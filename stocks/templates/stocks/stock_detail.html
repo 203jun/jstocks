@@ -1561,8 +1561,13 @@
 
 <!-- ========== 리포트 탭 ========== -->
 <div id="report-content" class="tab-panel" style="display:none;">
+    <h5 class="section-heading" style="margin-top:0;">AI 판단</h5>
+    <div class="brief-card" style="padding:0;overflow:hidden;">
+        {% include 'stocks/_ai_note.html' with kind='report' key=stock.code note=report_note note_id='ai-note-report' %}
+    </div>
+
     {% if target_panel %}
-    <h5 class="section-heading" style="margin-top:0;">목표가 {% help_icon "target_panel" %}</h5>
+    <h5 class="section-heading">목표가 {% help_icon "target_panel" %}</h5>
     <div class="brief-card tgt-card">
         <div class="tgt-head">
             <div class="tgt-price">{{ target_panel.target|intcomma }}원</div>
@@ -1603,11 +1608,6 @@
         {% endif %}
     </div>
     {% endif %}
-
-    <h5 class="section-heading">AI 판단</h5>
-    <div class="brief-card" style="padding:0;overflow:hidden;">
-        {% include 'stocks/_ai_note.html' with kind='report' key=stock.code note=report_note note_id='ai-note-report' %}
-    </div>
 
     {% if reports %}
     <h5 class="section-heading">주가 vs 목표가</h5>
