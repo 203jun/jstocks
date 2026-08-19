@@ -1583,7 +1583,7 @@
 <div id="report-content" class="tab-panel" style="display:none;">
     <h5 class="section-heading" style="margin-top:0;">AI 판단</h5>
     <div class="brief-card" style="padding:0;overflow:hidden;">
-        {% include 'stocks/_ai_note.html' with kind='report' key=stock.code note=report_note note_id='ai-note-report' %}
+        {% include 'stocks/_ai_note.html' with kind='report' key=stock.code note=report_note note_id='ai-note-report' prompt_key='prompt_report' prompt_id='btnCopyReportPrompt' prompt_inline=True %}
     </div>
 
     {% if target_panel %}
@@ -1760,6 +1760,7 @@
 {{ briefing_data|json_script:"briefing-data-json" }}
 {{ gongsi_prompt|json_script:"gongsi-prompt-data" }}
 {{ gongsi_all_prompt|json_script:"gongsi-all-prompt-data" }}
+{{ report_prompt|json_script:"report-prompt-data" }}
 {{ supply_prompt|json_script:"supply-prompt-data" }}
 {{ news_prompt_vars|json_script:"news-prompt-vars" }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -2062,6 +2063,7 @@ document.getElementById('btnSdAnalysisSave').addEventListener('click', async () 
 const supplyPromptData = JSON.parse(document.getElementById('supply-prompt-data').textContent);
 const gongsiPromptData = JSON.parse(document.getElementById('gongsi-prompt-data').textContent);
 const gongsiAllPromptData = JSON.parse(document.getElementById('gongsi-all-prompt-data').textContent);
+const reportPromptData = JSON.parse(document.getElementById('report-prompt-data').textContent);
 
 // 수급 프롬프트 — 값은 서버가 만든다. 화면에서 합계를 내면 대시보드와
 // 계산이 갈라진다. 여기서는 치환과 복사만 한다.
@@ -4037,6 +4039,11 @@ const PROMPT_EDIT = {
         value: gongsiPromptData.template || '',
         vars: gongsiPromptData.help || [],
     },
+    prompt_report: {
+        title: '리포트 프롬프트',
+        value: reportPromptData.template || '',
+        vars: reportPromptData.help || [],
+    },
     prompt_gongsi_all: {
         title: '공시 프롬프트 (탭 전체)',
         value: gongsiAllPromptData.template || '',
@@ -4098,6 +4105,24 @@ document.getElementById('mpSave').addEventListener('click', async function () {
         mpMsg.textContent = '저장 실패: ' + err.message;
     } finally {
         this.disabled = false;
+    }
+});
+
+// ===== 리포트 프롬프트 =====
+document.getElementById('btnCopyReportPrompt')?.addEventListener('click', async function () {
+    const template = PROMPT_EDIT.prompt_report.value;
+    if (!template) { alert('옆의 ⚙ 를 눌러 리포트 프롬프트를 먼저 등록하세요.'); return; }
+    const text = Object.entries(reportPromptData.vars || {})
+        .reduce((acc, [name, value]) => acc.split(name).join(value), template);
+    const missing = text.match(/\{[가-힣]+\}/g);
+    if (missing) alert('채우지 못한 변수: ' + [...new Set(missing)].join(', '));
+    try {
+        await copyToClipboard(text);
+        const orig = this.textContent;
+        this.textContent = '복사됨!';
+        setTimeout(() => { this.textContent = orig; }, 1500);
+    } catch (err) {
+        alert('복사 실패: ' + err.message);
     }
 });
 

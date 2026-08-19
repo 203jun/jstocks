@@ -16,6 +16,7 @@ from .ai_note import build_note_panel
 from .market_signal import build_market_panel, build_prompt_vars
 from .prompts import (
     GONGSI_ALL_PROMPT_DEFAULT, GONGSI_ALL_PROMPT_KEY,
+    REPORT_PROMPT_DEFAULT, REPORT_PROMPT_KEY,
     GONGSI_PROMPT_DEFAULT, GONGSI_PROMPT_KEY,
     MARKET_SIGNAL_DEFAULT, MARKET_SIGNAL_KEYS, MARKET_SIGNAL_VARIABLES,
     SUPPLY_PROMPT_DEFAULT, SUPPLY_PROMPT_KEY, get_prompt,
@@ -25,6 +26,7 @@ from .gongsi_prompt import (
     build_gongsi_all_prompt_vars, build_gongsi_prompt_vars, gongsi_body_targets,
 )
 from .gongsi_signal import classify as _classify_gongsi
+from .report_prompt import REPORT_VARIABLES, build_report_prompt_vars
 from .report_signal import build_target_panel, gap_band
 from .supply_signal import (
     FLOW_LONG_DAYS, FLOW_SHORT_DAYS, flow_band, short_z_band, turn,
@@ -1039,10 +1041,12 @@ def stock_detail(request, code):
     # 섹터 (업종) - 고유한 이름만 추출
     sectors = stock.sectors.values('code', 'name').distinct().order_by('name')
 
-# 리포트 (최근 20개)
+# 리포트 — 화면에는 최근 20건, 프롬프트는 180일치를 훑는다.
+    # 한 번에 넉넉히 읽어 두 곳이 나눠 쓴다.
     reports_queryset = Report.objects.filter(stock=stock).order_by('-date')
     total_reports = reports_queryset.count()
-    reports = list(reports_queryset[:20])
+    reports_all = list(reports_queryset[:120])
+    reports = reports_all[:20]
 
     # 리포트별 괴리율 계산 (목표가 vs 해당일 종가)
     if reports:
@@ -1514,6 +1518,16 @@ def stock_detail(request, code):
 
     target_panel = build_target_panel(stock, _today)
 
+    # 리포트 프롬프트 — 세 탭 중 여기만 1차 자료(원문)가 없다.
+    # 진짜 재료는 숫자에 있으므로(방향·갈리는 폭·괴리율) 검색이 실패해도
+    # 판단이 무너지지 않는다.
+    report_prompt_vars = build_report_prompt_vars(
+        stock, target_panel, reports_all,
+        _cons_annual[-3:][::-1] + _cons_quarter[-4:][::-1],
+        sorted(daily_charts, key=lambda c: c.date), _today,
+    )
+
+
     # 수급 프롬프트 입력값.
     #
     # 값은 서버에서 만든다. 화면(JS)에서 합계를 내면 계산이 갈라지고, 대시보드가
@@ -1629,6 +1643,12 @@ def stock_detail(request, code):
         # 변수 목록도 같은 덩어리에 실어 보낸다. 따로 |safe 로 뿌리면 파이썬
         # 튜플 표기가 그대로 나가고, JS 는 ('a','b') 를 쉼표 연산자로 읽어
         # 빈 문자열로 만들어 버린다.
+        'report_prompt': {
+            'key': REPORT_PROMPT_KEY,
+            'template': get_prompt(REPORT_PROMPT_KEY, REPORT_PROMPT_DEFAULT),
+            'vars': report_prompt_vars,
+            'help': REPORT_VARIABLES,
+        },
         'gongsi_all_prompt': {
             'key': GONGSI_ALL_PROMPT_KEY,
             'template': get_prompt(GONGSI_ALL_PROMPT_KEY, GONGSI_ALL_PROMPT_DEFAULT),
