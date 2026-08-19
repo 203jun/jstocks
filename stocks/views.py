@@ -1222,29 +1222,46 @@ def stock_detail(request, code):
 
         latest = trends_asc[-1]
 
-        # 외국인/기관 누적 (순매수 '주식 수')
+        # 외국인/기관 — 순매수 '주식 수'를 지분율로 바꿔 본다.
         #
         # 주식 수를 그대로 보여주면 종목 크기에 따라 뜻이 달라진다. 10만 주는
-        # 삼성전자엔 티끌이고 소형주엔 사건이다. 상장주식수로 나눠 '지분율이
-        # 몇 %p 움직였나'로 바꾼다 — 그래야 종목끼리 견줄 수 있다.
-        # listed_shares 는 천주 단위다(시총/주식수 = 주가×1000 으로 확인).
-        foreign_cum = sum(t.daum_foreign or 0 for t in trends_asc[-window:])
-        inst_cum = sum(t.daum_institution or 0 for t in trends_asc[-window:])
+        # 삼성전자엔 티끌이고 소형주엔 사건이다. 상장주식수로 나눠야 종목끼리
+        # 견줄 수 있다. listed_shares 는 천주 단위다(시총/주식수 = 주가×1000).
+        #
+        # 60일과 20일을 같이 본다. 둘의 상관이 0.7 이라 겹치긴 하지만 부호가
+        # 엇갈리는 경우가 네 번에 한 번이고, 그 엇갈림이 가장 큰 신호다 —
+        # '석 달 팔다가 최근 한 달 사는 중'이 이후 20거래일 +14.9% 로 가장
+        # 좋았고, 그 반대가 +4.3% 로 가장 나빴다(외국인 기준, 표본 2,165).
         shares = (stock.listed_shares or 0) * 1000
-        foreign_pct = round(foreign_cum / shares * 100, 2) if shares else None
-        inst_pct = round(inst_cum / shares * 100, 2) if shares else None
+        w60 = min(60, daum_count)
+        w20 = min(20, daum_count)
 
-        # 곁들여 보여줄 금액. 주식 수는 몇 천만 주라고 해봐야 감이 안 온다.
-        # 그날 종가로 곱해 더한다 — 하루하루 산 값을 그날 값으로 세는 셈이다.
-        def _amount(field):
-            total = 0
-            for t in trends_asc[-window:]:
+        def _flow(field, days):
+            """(지분율 %, 금액 억원). 금액은 그날 종가로 곱해 더한다."""
+            rows = trends_asc[-days:]
+            volume = sum(getattr(t, field) or 0 for t in rows)
+            amount = 0
+            for t in rows:
                 dc = daily_charts_map.get(t.date)
                 if dc and dc.closing_price:
-                    total += (getattr(t, field) or 0) * dc.closing_price
-            return round(total / 100000000)      # 억원
-        foreign_amt = _amount('daum_foreign')
-        inst_amt = _amount('daum_institution')
+                    amount += (getattr(t, field) or 0) * dc.closing_price
+            pct = round(volume / shares * 100, 2) if shares else None
+            return pct, round(amount / 100000000)
+
+        def _turn(long_pct, short_pct):
+            """긴 흐름과 최근 흐름이 엇갈릴 때만 이름을 붙인다."""
+            if long_pct is None or short_pct is None:
+                return ''
+            if long_pct <= 0 < short_pct:
+                return '도는 중'
+            if short_pct <= 0 < long_pct:
+                return '식는 중'
+            return ''
+
+        foreign_pct, foreign_amt = _flow('daum_foreign', w60)
+        foreign_pct20, foreign_amt20 = _flow('daum_foreign', w20)
+        inst_pct, inst_amt = _flow('daum_institution', w60)
+        inst_pct20, inst_amt20 = _flow('daum_institution', w20)
 
         # 공매도 비중
         short_weights = [float(s.trading_weight or 0) for s in shorts_asc[-window:]]
@@ -1254,12 +1271,16 @@ def stock_detail(request, code):
         z_score = round((today_short_weight - short_avg) / short_std, 2) if short_std > 0 else 0
 
         supply_dashboard = {
-            'foreign_cum': foreign_cum,
-            'inst_cum': inst_cum,
+            'window60': w60,
+            'window20': w20,
             'foreign_pct': foreign_pct,
-            'inst_pct': inst_pct,
             'foreign_amt': foreign_amt,
+            'foreign_pct20': foreign_pct20,
+            'foreign_turn': _turn(foreign_pct, foreign_pct20),
+            'inst_pct': inst_pct,
             'inst_amt': inst_amt,
+            'inst_pct20': inst_pct20,
+            'inst_turn': _turn(inst_pct, inst_pct20),
             'short_weight': round(today_short_weight, 1),
             'z_score': z_score,
             'window': window,

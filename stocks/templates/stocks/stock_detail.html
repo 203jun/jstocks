@@ -403,6 +403,19 @@
 .sd-label { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 4px; }
 .sd-value { font-size: 1.1rem; font-weight: 700; }
 .sd-sub { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+/* 최근 20일 — 60일 흐름 아래에 한 줄 더. 둘이 엇갈릴 때가 가장 큰 신호다 */
+.sd-second {
+    margin-top: 6px; padding-top: 6px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.74rem; color: var(--text-muted);
+}
+.sd-second b { font-weight: 700; }
+.sd-turn {
+    display: inline-block; margin-left: 4px; padding: 1px 6px;
+    border-radius: 999px; font-size: 0.66rem; font-weight: 600;
+}
+.sd-turn-up { background: rgba(220, 53, 69, 0.14); color: var(--up-color); }
+.sd-turn-down { background: rgba(41, 98, 255, 0.14); color: var(--down-color); }
 
 /* 자료 탭 */
 .mt-row { margin-bottom: 10px; }
@@ -1177,26 +1190,36 @@
     <div class="brief-card" style="padding:16px;">
         <div class="sd-cells">
             <div class="sd-cell">
-                <div class="sd-label">외국인 {{ supply_dashboard.window }}일 {% help_icon "supply_investor" %}</div>
+                <div class="sd-label">외국인 {% help_icon "supply_investor" %}</div>
                 {% if supply_dashboard.foreign_pct is not None %}
                 <div class="sd-value {% if supply_dashboard.foreign_pct >= 3 %}text-up{% elif supply_dashboard.foreign_pct <= -3 %}text-down{% endif %}">
                     {% if supply_dashboard.foreign_pct > 0 %}+{% endif %}{{ supply_dashboard.foreign_pct }}%
                 </div>
-                <div class="sd-sub">{% if supply_dashboard.foreign_amt > 0 %}+{% endif %}{{ supply_dashboard.foreign_amt|intcomma }}억</div>
+                <div class="sd-sub">{{ supply_dashboard.window60 }}일 · {% if supply_dashboard.foreign_amt > 0 %}+{% endif %}{{ supply_dashboard.foreign_amt|intcomma }}억</div>
+                <div class="sd-second">
+                    {{ supply_dashboard.window20 }}일
+                    <b class="{% if supply_dashboard.foreign_pct20 > 0 %}text-up{% elif supply_dashboard.foreign_pct20 < 0 %}text-down{% endif %}">{% if supply_dashboard.foreign_pct20 > 0 %}+{% endif %}{{ supply_dashboard.foreign_pct20 }}%</b>
+                    {% if supply_dashboard.foreign_turn %}<span class="sd-turn sd-turn-{% if supply_dashboard.foreign_turn == '도는 중' %}up{% else %}down{% endif %}">{{ supply_dashboard.foreign_turn }}</span>{% endif %}
+                </div>
                 {% else %}
-                <div class="sd-value">{% if supply_dashboard.foreign_cum > 0 %}+{% endif %}{{ supply_dashboard.foreign_cum|intcomma }}</div>
+                <div class="sd-value">-</div>
                 <div class="sd-sub">상장주식수 없음</div>
                 {% endif %}
             </div>
             <div class="sd-cell">
-                <div class="sd-label">기관 {{ supply_dashboard.window }}일 {% help_icon "supply_investor" %}</div>
+                <div class="sd-label">기관 {% help_icon "supply_investor" %}</div>
                 {% if supply_dashboard.inst_pct is not None %}
                 <div class="sd-value {% if supply_dashboard.inst_pct >= 3 %}text-up{% elif supply_dashboard.inst_pct <= -3 %}text-down{% endif %}">
                     {% if supply_dashboard.inst_pct > 0 %}+{% endif %}{{ supply_dashboard.inst_pct }}%
                 </div>
-                <div class="sd-sub">{% if supply_dashboard.inst_amt > 0 %}+{% endif %}{{ supply_dashboard.inst_amt|intcomma }}억</div>
+                <div class="sd-sub">{{ supply_dashboard.window60 }}일 · {% if supply_dashboard.inst_amt > 0 %}+{% endif %}{{ supply_dashboard.inst_amt|intcomma }}억</div>
+                <div class="sd-second">
+                    {{ supply_dashboard.window20 }}일
+                    <b class="{% if supply_dashboard.inst_pct20 > 0 %}text-up{% elif supply_dashboard.inst_pct20 < 0 %}text-down{% endif %}">{% if supply_dashboard.inst_pct20 > 0 %}+{% endif %}{{ supply_dashboard.inst_pct20 }}%</b>
+                    {% if supply_dashboard.inst_turn %}<span class="sd-turn sd-turn-{% if supply_dashboard.inst_turn == '도는 중' %}up{% else %}down{% endif %}">{{ supply_dashboard.inst_turn }}</span>{% endif %}
+                </div>
                 {% else %}
-                <div class="sd-value">{% if supply_dashboard.inst_cum > 0 %}+{% endif %}{{ supply_dashboard.inst_cum|intcomma }}</div>
+                <div class="sd-value">-</div>
                 <div class="sd-sub">상장주식수 없음</div>
                 {% endif %}
             </div>
