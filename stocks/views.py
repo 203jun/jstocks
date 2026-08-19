@@ -15,12 +15,14 @@ from .models import Holding, Info, Financial, DailyChart, WeeklyChart, MonthlyCh
 from .ai_note import build_note_panel
 from .market_signal import build_market_panel, build_prompt_vars
 from .prompts import (
-    MARKET_SIGNAL_DEFAULT, MARKET_SIGNAL_KEYS, MARKET_SIGNAL_VARIABLES, get_prompt,
+    MARKET_SIGNAL_DEFAULT, MARKET_SIGNAL_KEYS, MARKET_SIGNAL_VARIABLES,
+    SUPPLY_PROMPT_DEFAULT, SUPPLY_PROMPT_KEY, get_prompt,
 )
 from .report_signal import build_target_panel, gap_band
 from .supply_signal import (
     FLOW_LONG_DAYS, FLOW_SHORT_DAYS, flow_band, short_z_band, turn,
 )
+from .supply_prompt import SUPPLY_VARIABLES, build_supply_prompt_vars
 
 import unicodedata
 import re as _re
@@ -1577,6 +1579,19 @@ def stock_detail(request, code):
     # 하나도 없을 때 목록과 다른 리포트를 집게 된다.
     target_panel = build_target_panel(stock, _today)
 
+    # 수급 프롬프트 입력값.
+    #
+    # 값은 서버에서 만든다. 화면(JS)에서 합계를 내면 계산이 갈라지고, 대시보드가
+    # 이미 정규화해둔 값을 다시 만들게 된다.
+    supply_prompt_vars = {}
+    if supply_dashboard:
+        supply_prompt_vars = build_supply_prompt_vars(
+            stock, supply_dashboard, target_panel,
+            trends_asc, shorts_asc, sorted(daily_charts, key=lambda c: c.date),
+            reports, _today,
+        )
+
+
     # 3개월 평균 목표주가 (컨센서스 프롬프트용)
     from datetime import timedelta
     three_months_ago = _today - timedelta(days=90)
@@ -1676,6 +1691,12 @@ def stock_detail(request, code):
         'latest_investor': latest_investor,
         'latest_short': latest_short,
         'target_panel': target_panel,
+        'supply_prompt': {
+            'key': SUPPLY_PROMPT_KEY,
+            'template': get_prompt(SUPPLY_PROMPT_KEY, SUPPLY_PROMPT_DEFAULT),
+            'vars': supply_prompt_vars,
+        },
+        'supply_prompt_help': SUPPLY_VARIABLES,
         # AI 판단 — 리포트·수급·공시가 시황과 같은 조각을 쓴다
         'report_note': build_note_panel('report', stock.code),
         'supply_note': build_note_panel('supply', stock.code),

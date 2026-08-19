@@ -18,7 +18,8 @@ from .supply_signal import (
 SUPPLY_VARIABLES = [
     ('{종목명}', ''),
     ('{종목코드}', ''),
-    ('{오늘날짜}', '데이터 기준일'),
+    ('{기준일}', '데이터가 계산된 마지막 거래일'),
+    ('{오늘날짜}', '오늘 날짜'),
     ('{현재가}', '현재가 · 등락률 · 거래량 전일비'),
     ('{수급요약}', '외국인·기관의 60일/20일 지분율과 전환 — 여러 줄'),
     ('{공매도요약}', '오늘 비중 · Z · 60일 통계 — 여러 줄'),
@@ -178,10 +179,22 @@ def _report_block(target_panel, reports):
     if p['recent_n']:
         lines.append(f'최근 {p["window"]}일 목표가 방향  '
                      f'상향 {p["up"]} · 유지 {p["flat"]} · 하향 {p["down"]}')
-    if reports:
+    # 증권사별로 최신 한 건씩만. 같은 곳이 네 번 나오면 컨센이 아니라 한
+    # 애널리스트 목소리의 반복인데, 읽는 쪽은 그만큼 무게를 더 준다.
+    # 상향/하향 개수는 전체 리포트로 세므로 여기서 줄여도 셈이 흔들리지 않는다.
+    seen = set()
+    picked = []
+    for r in reports:
+        if r.provider in seen:
+            continue
+        seen.add(r.provider)
+        picked.append(r)
+        if len(picked) >= 5:
+            break
+    if picked:
         lines.append('')
-        lines.append('최근 리포트')
-        for r in reports[:5]:
+        lines.append('최근 리포트 (증권사별 최신 1건)')
+        for r in picked:
             target = f'{r.target_price:,}' if r.target_price else '-'
             lines.append(f'  {r.date:%y.%m.%d} {r.provider} {target}'
                          f' {r.recommendation or ""} {r.title}'.rstrip())
@@ -212,6 +225,22 @@ def _how_to_read():
         '',
         '수급 수치는 모두 순매수 "주식 수"다. 금액이 필요하면 종가를 곱해 '
         '추정하되, 그 값을 근거로 삼지는 마라.',
+        '',
+        '공매도 평균단가는 그 기간 공매도 세력의 평균 진입가다. 현재가가 '
+        '이보다 위면 그들이 손실 구간이라 되사려는(숏커버) 압력이 잠재한다. '
+        '다만 60일간 판 물량이 아직 다 남아 있다고 친 어림값이고, 이 값과 '
+        '이후 20거래일 수익률의 관측 상관은 +0.04로 사실상 없었다. 상황 '
+        '설명에는 쓰되 매수 근거로 삼지 마라.',
+        '',
+        '목표가는 컨센(증권사 평균)과 최근 90일 방향(상향/하향 개수)으로 '
+        '읽어라. [혼자 튐] 이 붙은 목표가는 한 증권사의 튀는 의견이니 근거로 '
+        '쓰지 마라. 괴리율이 크다는 것만으로 저평가로 읽어서도 안 된다 — '
+        '목표가는 주가에 후행해서 주가가 빠지면 저절로 커진다.',
+        '',
+        '주체별 성격이 다르다. 금융투자는 프로그램·단기 성격이라 노이즈에 '
+        '가깝고, 연기금은 장기 자금이라 방향의 무게가 크며, 투신·사모는 그 '
+        '중간이다. 기관 합계가 플러스라도 연기금·투신이 팔고 금융투자만 사는 '
+        '구조라면 실질은 기관 이탈에 가깝다.',
     ])
 
 
@@ -231,7 +260,10 @@ def build_supply_prompt_vars(stock, dashboard, target_panel, trends_asc,
     return {
         '{종목명}': stock.name,
         '{종목코드}': stock.code,
-        '{오늘날짜}': f'{latest.date:%Y-%m-%d}' if latest else f'{today:%Y-%m-%d}',
+        # 주말에 복사하면 데이터는 금요일 건데 오늘은 일요일이다. 둘을 나눠
+        # 주지 않으면 AI 가 이틀 묵은 값을 오늘 값으로 읽는다.
+        '{기준일}': f'{latest.date:%Y-%m-%d}' if latest else f'{today:%Y-%m-%d}',
+        '{오늘날짜}': f'{today:%Y-%m-%d}',
         '{현재가}': price,
         '{수급요약}': _supply_summary(dashboard),
         '{공매도요약}': _short_summary(dashboard, shorts_asc),

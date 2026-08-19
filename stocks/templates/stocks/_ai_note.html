@@ -9,6 +9,7 @@ AI 판단 — 시황·리포트·수급·공시가 같이 쓰는 조각.
 
     prompt_copy / prompt_edit   시황처럼 data-속성으로 붙는 경우
     prompt_key / prompt_id      종목처럼 id 로 잡아 쓰는 경우
+                                prompt_inline=True 면 ⚙ 가 그 자리에서 창을 연다
 
 note 는 ai_note.build_note_panel(kind, key) 의 결과다. 없으면 붙여넣기 버튼만
 나온다. 날짜별 전문을 전부 들고 있어서, 날짜 칩을 눌러도 서버에 다시 묻지 않는다.
@@ -28,7 +29,7 @@ _ai_note_modal.html 을 화면 끝에 한 번 include 한다.
     <div class="ma-headline" data-role="headline">{{ note.latest.headline }}</div>
     <div class="ma-body" data-role="body" hidden>{{ note.latest.content_html|safe }}</div>
     <div class="ma-actions">
-        {% if prompt_copy %}<span class="prompt-pair"><span role="button" data-prompt-copy="{{ prompt_copy }}">프롬프트</span><button type="button" data-prompt-edit="{{ prompt_edit|default:prompt_copy }}" title="프롬프트 편집">⚙</button></span>{% elif prompt_key %}{% prompt_pair prompt_key id=prompt_id %}{% endif %}
+        {% if prompt_copy %}<span class="prompt-pair"><span role="button" data-prompt-copy="{{ prompt_copy }}">프롬프트</span><button type="button" data-prompt-edit="{{ prompt_edit|default:prompt_copy }}" title="프롬프트 편집">⚙</button></span>{% elif prompt_key %}{% prompt_pair prompt_key id=prompt_id inline=prompt_inline %}{% endif %}
         <button type="button" class="mp-btn" data-ma-edit>붙여넣기</button>
         {% if note.entries|length > 1 %}
         {# 한 줄에 고정하고 옆으로 민다. 접어 내리면 날짜가 늘수록 줄이 쌓인다. #}
@@ -44,7 +45,7 @@ _ai_note_modal.html 을 화면 끝에 한 번 include 한다.
     {% else %}
     <div class="ma-empty">
         <span>AI 판단이 없습니다</span>
-        {% if prompt_copy %}<span class="prompt-pair"><span role="button" data-prompt-copy="{{ prompt_copy }}">프롬프트</span><button type="button" data-prompt-edit="{{ prompt_edit|default:prompt_copy }}" title="프롬프트 편집">⚙</button></span>{% elif prompt_key %}{% prompt_pair prompt_key id=prompt_id %}{% endif %}
+        {% if prompt_copy %}<span class="prompt-pair"><span role="button" data-prompt-copy="{{ prompt_copy }}">프롬프트</span><button type="button" data-prompt-edit="{{ prompt_edit|default:prompt_copy }}" title="프롬프트 편집">⚙</button></span>{% elif prompt_key %}{% prompt_pair prompt_key id=prompt_id inline=prompt_inline %}{% endif %}
         <button type="button" class="mp-btn" data-ma-edit>붙여넣기</button>
     </div>
     {% endif %}

@@ -170,22 +170,7 @@ if (opinionRaw && opinionPreview) {
 }
 
 // 요약 프롬프트 복사
-function copyToClipboard(text) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        return navigator.clipboard.writeText(text);
-    }
-    return new Promise((resolve, reject) => {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        try { document.execCommand('copy'); resolve(); }
-        catch (err) { reject(err); }
-        finally { document.body.removeChild(ta); }
-    });
-}
+// copyToClipboard 는 base.html 에 있다
 function warnMissingVars(prompt) {
     const missing = prompt.match(/\{[^}]+\}/g);
     if (missing) {

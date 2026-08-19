@@ -1173,7 +1173,7 @@
 <div id="supply-content" class="tab-panel" style="display:none;">
     <h5 class="section-heading" style="margin-top:0;">AI 판단</h5>
     <div class="brief-card" style="padding:0;overflow:hidden;">
-        {% include 'stocks/_ai_note.html' with kind='supply' key=stock.code note=supply_note note_id='ai-note-supply' prompt_key='prompt_supply_demand_analysis' prompt_id='btnCopySdAnalysisPrompt' %}
+        {% include 'stocks/_ai_note.html' with kind='supply' key=stock.code note=supply_note note_id='ai-note-supply' prompt_key='prompt_supply_demand_analysis' prompt_id='btnCopySdAnalysisPrompt' prompt_inline=True %}
     </div>
 
     <!-- 수급 대시보드 -->
@@ -1759,6 +1759,7 @@
 {% block extra_js %}
 {{ briefing_data|json_script:"briefing-data-json" }}
 {{ saved_prompts.prompt_gongsi|default:""|json_script:"gongsi-prompt-json" }}
+{{ supply_prompt|json_script:"supply-prompt-data" }}
 {{ news_prompt_vars|json_script:"news-prompt-vars" }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <!-- 리포트 차트의 x 축을 날짜로 쓰려면 date 어댑터가 필요하다 -->
@@ -2057,95 +2058,26 @@ document.getElementById('btnSdAnalysisSave').addEventListener('click', async () 
     }
 });
 
-// 수급분석 프롬프트 복사
-const sdPromptData = {{ supply_demand_prompt_data|safe }};
-const ssPromptData = {{ short_selling_prompt_data|safe }};
-document.getElementById('btnCopySdAnalysisPrompt').addEventListener('click', async () => {
-    const btn = document.getElementById('btnCopySdAnalysisPrompt');
-    const promptTemplate = `{{ saved_prompts.prompt_supply_demand_analysis|default:""|escapejs }}`;
-    if (!promptTemplate) { alert('설정 → 프롬프트 → 수급분석에서 프롬프트를 먼저 등록하세요.'); return; }
+// 수급 프롬프트 — 값은 서버가 만든다. 화면에서 합계를 내면 대시보드와
+// 계산이 갈라진다. 여기서는 치환과 복사만 한다.
+const supplyPrompt = JSON.parse(document.getElementById('supply-prompt-data').textContent);
 
-    // === 수급 데이터 ===
-    const data60 = sdPromptData.slice(0, 60);
-    const dataAsc = [...data60].reverse();
+document.getElementById('btnCopySdAnalysisPrompt')?.addEventListener('click', async function () {
+    const template = PROMPT_EDIT.prompt_supply_demand_analysis.value;
+    if (!template) { alert('옆의 ⚙ 를 눌러 수급 프롬프트를 먼저 등록하세요.'); return; }
+    const vars = supplyPrompt.vars || {};
+    if (!Object.keys(vars).length) { alert('수급 데이터가 아직 모자라 프롬프트를 만들 수 없습니다.'); return; }
 
-    const foreignTotal = data60.reduce((s, d) => s + d.foreign, 0);
-    const institutionTotal = data60.reduce((s, d) => s + d.institution, 0);
+    // 변수명에 정규식 특수문자({})가 있어 split/join 으로 바꾼다
+    let text = Object.entries(vars).reduce((acc, [name, value]) => acc.split(name).join(value), template);
+    const missing = text.match(/\{[가-힣]+\}/g);
+    if (missing) alert('채우지 못한 변수: ' + [...new Set(missing)].join(', '));
 
-    // 주별 합산
-    const weeks = [];
-    for (let i = 0; i < dataAsc.length; i += 7) {
-        const chunk = dataAsc.slice(i, i + 7);
-        const startDate = chunk[0].date;
-        const endDate = chunk[chunk.length - 1].date;
-        const wForeign = chunk.reduce((s, d) => s + d.foreign, 0);
-        const wInstitution = chunk.reduce((s, d) => s + d.institution, 0);
-        weeks.push(`${startDate}~${endDate.slice(5)}, ${wForeign.toLocaleString()}, ${wInstitution.toLocaleString()}`);
-    }
-    const weeklyText = weeks.join('\n');
-
-    const recent5 = data60.slice(0, 5).reverse();
-    const dailyText = recent5.map(d =>
-        `${d.date}, ${d.foreign.toLocaleString()}, ${d.institution.toLocaleString()}, ${d.volume.toLocaleString()}`
-    ).join('\n');
-
-    // === 공매도 데이터 ===
-    const ss60 = ssPromptData.slice(0, 60);
-    const ssAsc = [...ss60].reverse();
-
-    // 요약 통계
-    const avgWeight = ss60.length ? (ss60.reduce((s, d) => s + d.trading_weight, 0) / ss60.length).toFixed(2) : '0';
-    let maxWeight = 0, maxDate = '', minWeight = 999, minDate = '';
-    ss60.forEach(d => {
-        if (d.trading_weight > maxWeight) { maxWeight = d.trading_weight; maxDate = d.date; }
-        if (d.trading_weight < minWeight) { minWeight = d.trading_weight; minDate = d.date; }
-    });
-    const totalShortValue = ss60.reduce((s, d) => s + d.short_trading_value, 0);
-
-    // 주별 합산
-    const ssWeeks = [];
-    for (let i = 0; i < ssAsc.length; i += 7) {
-        const chunk = ssAsc.slice(i, i + 7);
-        const startDate = chunk[0].date;
-        const endDate = chunk[chunk.length - 1].date;
-        const wVolume = chunk.reduce((s, d) => s + d.short_volume, 0);
-        const wAvgWeight = (chunk.reduce((s, d) => s + d.trading_weight, 0) / chunk.length).toFixed(2);
-        ssWeeks.push(`${startDate}~${endDate.slice(5)}, ${wVolume.toLocaleString()}, ${wAvgWeight}%`);
-    }
-    const ssWeeklyText = ssWeeks.join('\n');
-
-    // 최근 5일 일별
-    const ssRecent5 = ss60.slice(0, 5).reverse();
-    const ssDailyText = ssRecent5.map(d =>
-        `${d.date}, ${d.short_volume.toLocaleString()}, ${d.trading_weight}%, ${d.short_trading_value.toLocaleString()}, ${d.short_average_price.toLocaleString()}`
-    ).join('\n');
-
-    // === 치환 ===
-    const currentPrice = (document.getElementById('currentPrice')?.textContent || '').trim();
-    const latestDate = data60.length ? data60[0].date : '';
-
-    let prompt = promptTemplate.replace(/\{종목명[^}]*\}/g, stockName);
-    prompt = prompt.replace(/\{현재가[^}]*\}/g, currentPrice);
-    prompt = prompt.replace(/\{오늘날짜[^}]*\}/g, latestDate);
-    prompt = prompt.replace(/\{외국인누적\}/g, foreignTotal.toLocaleString());
-    prompt = prompt.replace(/\{기관누적\}/g, institutionTotal.toLocaleString());
-    prompt = prompt.replace(/\{주별수급데이터\}/g, weeklyText);
-    prompt = prompt.replace(/\{일별수급데이터\}/g, dailyText);
-    prompt = prompt.replace(/\{공매도평균비중\}/g, avgWeight);
-    prompt = prompt.replace(/\{공매도최고비중\}/g, String(maxWeight));
-    prompt = prompt.replace(/\{공매도최고일자\}/g, maxDate);
-    prompt = prompt.replace(/\{공매도최저비중\}/g, String(minWeight));
-    prompt = prompt.replace(/\{공매도최저일자\}/g, minDate);
-    prompt = prompt.replace(/\{공매도누적대금\}/g, totalShortValue.toLocaleString());
-    prompt = prompt.replace(/\{주별공매도데이터\}/g, ssWeeklyText);
-    prompt = prompt.replace(/\{일별공매도데이터\}/g, ssDailyText);
-
-    warnMissingVars(prompt);
     try {
-        await copyToClipboard(prompt);
-        const original = btn.textContent;
-        btn.textContent = '복사됨!';
-        setTimeout(() => { btn.textContent = original; }, 1500);
+        await copyToClipboard(text);
+        const orig = this.textContent;
+        this.textContent = '복사됨!';
+        setTimeout(() => { this.textContent = orig; }, 1500);
     } catch (err) {
         alert('복사 실패: ' + err.message);
     }
@@ -4095,6 +4027,11 @@ function renderTable(tableId, rows, fields) {
 // json_script 로 넘긴다. 저장하면 이 값이 바뀌므로 복사 버튼이 새 프롬프트를
 // 바로 쓴다 — 고치고 새로고침하러 가는 일이 없게.
 const PROMPT_EDIT = {
+    prompt_supply_demand_analysis: {
+        title: '수급 프롬프트',
+        value: JSON.parse(document.getElementById('supply-prompt-data').textContent).template || '',
+        vars: {{ supply_prompt_help|safe }},
+    },
     prompt_gongsi: {
         title: '공시 프롬프트',
         value: JSON.parse(document.getElementById('gongsi-prompt-json').textContent) || '',
