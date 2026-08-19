@@ -15,11 +15,15 @@ from .models import Holding, Info, Financial, DailyChart, WeeklyChart, MonthlyCh
 from .ai_note import build_note_panel
 from .market_signal import build_market_panel, build_prompt_vars
 from .prompts import (
+    GONGSI_ALL_PROMPT_DEFAULT, GONGSI_ALL_PROMPT_KEY,
     GONGSI_PROMPT_DEFAULT, GONGSI_PROMPT_KEY,
     MARKET_SIGNAL_DEFAULT, MARKET_SIGNAL_KEYS, MARKET_SIGNAL_VARIABLES,
     SUPPLY_PROMPT_DEFAULT, SUPPLY_PROMPT_KEY, get_prompt,
 )
-from .gongsi_prompt import GONGSI_VARIABLES, build_gongsi_prompt_vars
+from .gongsi_prompt import (
+    GONGSI_ALL_VARIABLES, GONGSI_VARIABLES,
+    build_gongsi_all_prompt_vars, build_gongsi_prompt_vars,
+)
 from .gongsi_signal import classify as _classify_gongsi
 from .report_signal import build_target_panel, gap_band
 from .supply_signal import (
@@ -1055,11 +1059,12 @@ def stock_detail(request, code):
                 r.gap_rate = None
             r.gap_band = gap_band(r.gap_rate)
 
-    # 공시 (최근 20개) + 호재/악재/검토 분류
-    _raw_gongsi = list(Gongsi.objects.filter(stock=stock).order_by('-date')[:20])
-    for g in _raw_gongsi:
+    # 공시 — 화면에는 최근 20건, 탭 프롬프트는 180일치를 훑는다.
+    # 한 번에 넉넉히 읽어 두 곳이 나눠 쓴다.
+    gongsi_window = list(Gongsi.objects.filter(stock=stock).order_by('-date')[:200])
+    for g in gongsi_window:
         g.cat = _classify_gongsi(g.title)
-    gongsi_list = _raw_gongsi
+    gongsi_list = gongsi_window[:20]
 
     # 수급 (투자자별 매매동향, 최근 60일)
     investor_trends = list(InvestorTrend.objects.filter(stock=stock).order_by('-date')[:60])
@@ -1499,9 +1504,13 @@ def stock_detail(request, code):
     # 대상 리포트는 목록(index)과 똑같이 '목표가가 있는 가장 최근 것'으로
     # 고른다. 화면에 보이는 최근 20건 안에서 찾으면, 그 20건에 목표가가
     # 하나도 없을 때 목록과 다른 리포트를 집게 된다.
-    # 공시 프롬프트 — 종목마다 한 번이면 되는 값. 공시별 값은 화면이 채운다.
-    gongsi_prompt_vars = build_gongsi_prompt_vars(
-        stock, sorted(daily_charts, key=lambda c: c.date), _today)
+    # 공시 프롬프트 두 벌.
+    #   행 단위 — 한 건 깊이. 공시별 값(제목·본문·링크)은 화면이 채운다.
+    #   탭 단위 — 최근 180일을 훑는다. 목록까지 서버가 만든다.
+    _charts_asc = sorted(daily_charts, key=lambda c: c.date)
+    gongsi_prompt_vars = build_gongsi_prompt_vars(stock, _charts_asc, _today)
+    gongsi_all_prompt_vars = build_gongsi_all_prompt_vars(
+        stock, gongsi_window, _charts_asc, _today)
 
     target_panel = build_target_panel(stock, _today)
 
@@ -1620,6 +1629,12 @@ def stock_detail(request, code):
         # 변수 목록도 같은 덩어리에 실어 보낸다. 따로 |safe 로 뿌리면 파이썬
         # 튜플 표기가 그대로 나가고, JS 는 ('a','b') 를 쉼표 연산자로 읽어
         # 빈 문자열로 만들어 버린다.
+        'gongsi_all_prompt': {
+            'key': GONGSI_ALL_PROMPT_KEY,
+            'template': get_prompt(GONGSI_ALL_PROMPT_KEY, GONGSI_ALL_PROMPT_DEFAULT),
+            'vars': gongsi_all_prompt_vars,
+            'help': GONGSI_ALL_VARIABLES,
+        },
         'gongsi_prompt': {
             'key': GONGSI_PROMPT_KEY,
             'template': get_prompt(GONGSI_PROMPT_KEY, GONGSI_PROMPT_DEFAULT),
