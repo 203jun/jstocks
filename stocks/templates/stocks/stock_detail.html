@@ -2290,10 +2290,7 @@ function renderChannelContent(channel, channelName, channelData, keyword) {
     return html;
 }
 
-const savedPrompts = {
-    prompt_news: `{{ saved_prompts.prompt_news|default:""|escapejs }}`,
-    prompt_youtube: `{{ saved_prompts.prompt_youtube|default:""|escapejs }}`
-};
+// 뉴스·유튜브 프롬프트는 자료 탭으로 합치면서 쓰이지 않게 됐다
 const newsPromptVars = JSON.parse(document.getElementById('news-prompt-vars').textContent);
 
 // 전체내용복사
