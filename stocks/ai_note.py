@@ -193,9 +193,11 @@ def build_note_panel(kind, key, limit=HISTORY_LIMIT):
         return None
     qs = AiNote.objects.filter(kind=kind, key=key).order_by('-date')
     rows = list(qs[:limit])
-    if not rows:
-        return None
     more = qs.count() - len(rows)
+    # 저장된 판단이 없어도 기준일은 알려줘야 한다. 붙여넣기 창이 '어느 날짜로
+    # 저장되는지'를 보여주지 않으면, 오늘 쓴 것이 어제 자리에 덮이는지 새로
+    # 쌓이는지 알 수가 없다.
+    basis = spec['basis'](key)
 
     entries = []
     for row in rows:
@@ -212,4 +214,12 @@ def build_note_panel(kind, key, limit=HISTORY_LIMIT):
             'behind_text': spec['unit'].format(n=behind) if behind else '',
             'stale': behind >= spec['threshold'],
         })
-    return {'entries': entries, 'latest': entries[0], 'more': more}
+    return {
+        'entries': entries,
+        'latest': entries[0] if entries else None,
+        'more': more,
+        'basis': basis,
+        # 오늘 붙여넣으면 새로 쌓이는지, 있던 것을 덮는지
+        'basis_exists': any(e['date'] == (basis.strftime('%Y-%m-%d') if basis else '')
+                            for e in entries),
+    }

@@ -16,8 +16,9 @@ note 는 ai_note.build_note_panel(kind, key) 의 결과다. 없으면 붙여넣�
 편집 창과 JS 는 화면당 하나면 되므로 여기 넣지 않는다 —
 _ai_note_modal.html 을 화면 끝에 한 번 include 한다.
 {% endcomment %}
-<div class="ma-block ai-note" data-kind="{{ kind }}" data-key="{{ key }}">
-    {% if note %}
+<div class="ma-block ai-note" data-kind="{{ kind }}" data-key="{{ key }}"
+     data-basis="{{ note.basis|date:"n/j" }}" data-basis-exists="{% if note.basis_exists %}1{% endif %}">
+    {% if note.entries %}
     <button type="button" class="ms-log-head ma-head" aria-expanded="false">
         <span class="ms-log-title">AI 판단</span>
         <span class="ma-stance ma-stance-{{ note.latest.stance }}" data-role="stance"{% if not note.latest.stance %} hidden{% endif %}>{{ note.latest.stance }}</span>
