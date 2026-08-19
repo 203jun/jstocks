@@ -241,36 +241,43 @@ def _target_panel(market=None):
 
 
 def _supply_investor(market=None):
+    from .supply_signal import FLOW_LONG_DAYS, FLOW_SHORT_DAYS, FLOW_STRONG
+
     return '\n'.join([
         '외국인(또는 기관)이 이 회사 지분을 얼마나 사고팔았는지.',
         '',
         '"1,000억어치 샀다"만으로는 큰일인지 알 수 없다. 삼성전자에는 흔한 '
         '하루고 작은 회사에는 사건이다. 그래서 회사 지분의 몇 %인지로 본다.',
         '',
-        '큰 숫자가 <b>60일</b>, 아래 줄이 최근 <b>20일</b>이다.',
+        f'큰 숫자가 <b>{FLOW_LONG_DAYS}일</b>, 아래 줄이 최근 '
+        f'<b>{FLOW_SHORT_DAYS}일</b>이다.',
         '',
         '── 색 ──',
         '',
-        '60일이 크게 움직인 종목에만 색이 붙는다. 열에 한 번쯤 나온다.',
+        f'{FLOW_LONG_DAYS}일 값이 <b>± {FLOW_STRONG}%</b>를 넘을 때만 붙는다. '
+        f'열에 한 번쯤 나오는 크기다.',
         '',
-        '<span class="text-up">+6.2%</span> &nbsp; 지분이 그만큼 들어왔다',
-        '<span class="text-down">-5.4%</span> &nbsp; 그만큼 빠져나갔다',
+        f'<span class="text-up">+6.2%</span> &nbsp; {FLOW_STRONG}% 넘게 '
+        f'들어왔다',
+        f'<span class="text-down">-5.4%</span> &nbsp; {FLOW_STRONG}% 넘게 '
+        f'빠져나갔다',
         '<span style="color:var(--text-muted)">+1.8%</span> &nbsp; 늘 오가는 수준',
         '',
-        '20일에는 색을 주지 않는다. 최근 방향이 중요해지는 것은 60일과 '
-        '엇갈릴 때인데, 그건 아래 표식이 맡는다.',
+        f'{FLOW_SHORT_DAYS}일에는 색을 주지 않는다. 최근 방향이 중요해지는 '
+        f'것은 {FLOW_LONG_DAYS}일과 엇갈릴 때인데, 그건 아래 표식이 맡는다.',
         '',
         '── 표식 ──',
         '',
-        '오래된 방향과 최근 방향이 반대일 때만 붙는다. 네 번에 한 번쯤 나온다.',
+        f'{FLOW_SHORT_DAYS}일 값 <b>바로 옆</b>에 붙는다. {FLOW_LONG_DAYS}일과 '
+        f'{FLOW_SHORT_DAYS}일의 방향이 반대일 때만 나온다 — 네 번에 한 번쯤이다.',
         '',
-        '<span class="sd-turn sd-turn-up">도는 중</span> &nbsp; 오래 팔다가 '
-        '최근 사기 시작했다',
-        '<span class="sd-turn sd-turn-down">식는 중</span> &nbsp; 오래 사다가 '
-        '최근 팔기 시작했다',
+        f'{FLOW_SHORT_DAYS}일 +0.8% <span class="sd-turn sd-turn-up">도는 중'
+        f'</span> &nbsp; 오래 팔다가 최근 사기 시작했다',
+        f'{FLOW_SHORT_DAYS}일 -0.3% <span class="sd-turn sd-turn-down">식는 중'
+        f'</span> &nbsp; 오래 사다가 최근 팔기 시작했다',
         '',
-        '한 기간만 보면 안 보인다. 60일만 보면 "아직 파는 중"으로 읽고 '
-        '지나친다.',
+        f'한 기간만 보면 안 보인다. {FLOW_LONG_DAYS}일만 보면 "아직 파는 '
+        f'중"으로 읽고 지나친다.',
         '',
         '── 외국인과 기관을 같이 ──',
         '',
@@ -287,6 +294,8 @@ def _supply_investor(market=None):
 
 
 def _supply_short_z(market=None):
+    from .supply_signal import SHORT_Z_STRONG
+
     return '\n'.join([
         '오늘 공매도가 이 종목의 평소보다 많았는지 적었는지.',
         '',
@@ -297,7 +306,7 @@ def _supply_short_z(market=None):
         '',
         '── 색 ──',
         '',
-        '평소에서 크게 벗어난 날에만 붙는다. 열흘에 하루쯤이다.',
+        f'<b>± {SHORT_Z_STRONG}</b>를 넘을 때만 붙는다. 열흘에 하루쯤이다.',
         '',
         '<span class="text-down">Z 2.4</span> &nbsp; 평소보다 훨씬 많다 '
         '— 누가 세게 걸었다',

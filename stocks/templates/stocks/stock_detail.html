@@ -1188,7 +1188,7 @@
             <div class="sd-cell">
                 <div class="sd-label">외국인 {% help_icon "supply_investor" %}</div>
                 {% if supply_dashboard.foreign_pct is not None %}
-                <div class="sd-value {% if supply_dashboard.foreign_pct >= 5 %}text-up{% elif supply_dashboard.foreign_pct <= -5 %}text-down{% endif %}">
+                <div class="sd-value {{ supply_dashboard.foreign_band }}">
                     {% if supply_dashboard.foreign_pct > 0 %}+{% endif %}{{ supply_dashboard.foreign_pct }}%
                 </div>
                 <div class="sd-sub">{{ supply_dashboard.window60 }}일 · {% if supply_dashboard.foreign_amt > 0 %}+{% endif %}{{ supply_dashboard.foreign_amt|intcomma }}억</div>
@@ -1205,7 +1205,7 @@
             <div class="sd-cell">
                 <div class="sd-label">기관 {% help_icon "supply_investor" %}</div>
                 {% if supply_dashboard.inst_pct is not None %}
-                <div class="sd-value {% if supply_dashboard.inst_pct >= 5 %}text-up{% elif supply_dashboard.inst_pct <= -5 %}text-down{% endif %}">
+                <div class="sd-value {{ supply_dashboard.inst_band }}">
                     {% if supply_dashboard.inst_pct > 0 %}+{% endif %}{{ supply_dashboard.inst_pct }}%
                 </div>
                 <div class="sd-sub">{{ supply_dashboard.window60 }}일 · {% if supply_dashboard.inst_amt > 0 %}+{% endif %}{{ supply_dashboard.inst_amt|intcomma }}억</div>
@@ -1221,7 +1221,7 @@
             </div>
             <div class="sd-cell">
                 <div class="sd-label">공매도 강도 {% help_icon "supply_short_z" %}</div>
-                <div class="sd-value {% if supply_dashboard.z_score <= -2 %}text-up{% elif supply_dashboard.z_score >= 2 %}text-down{% endif %}">Z {{ supply_dashboard.z_score }}</div>
+                <div class="sd-value {{ supply_dashboard.z_band }}">Z {{ supply_dashboard.z_score }}</div>
                 <div class="sd-sub">오늘 {{ supply_dashboard.short_weight }}%</div>
             </div>
         </div>

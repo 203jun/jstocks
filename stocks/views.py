@@ -18,6 +18,9 @@ from .prompts import (
     MARKET_SIGNAL_DEFAULT, MARKET_SIGNAL_KEYS, MARKET_SIGNAL_VARIABLES, get_prompt,
 )
 from .report_signal import build_target_panel, gap_band
+from .supply_signal import (
+    FLOW_LONG_DAYS, FLOW_SHORT_DAYS, flow_band, short_z_band, turn,
+)
 
 import unicodedata
 import re as _re
@@ -1233,8 +1236,8 @@ def stock_detail(request, code):
         # '석 달 팔다가 최근 한 달 사는 중'이 이후 20거래일 +14.9% 로 가장
         # 좋았고, 그 반대가 +4.3% 로 가장 나빴다(외국인 기준, 표본 2,165).
         shares = (stock.listed_shares or 0) * 1000
-        w60 = min(60, daum_count)
-        w20 = min(20, daum_count)
+        w60 = min(FLOW_LONG_DAYS, daum_count)
+        w20 = min(FLOW_SHORT_DAYS, daum_count)
 
         def _flow(field, days):
             """(지분율 %, 금액 억원). 금액은 그날 종가로 곱해 더한다."""
@@ -1247,16 +1250,6 @@ def stock_detail(request, code):
                     amount += (getattr(t, field) or 0) * dc.closing_price
             pct = round(volume / shares * 100, 2) if shares else None
             return pct, round(amount / 100000000)
-
-        def _turn(long_pct, short_pct):
-            """긴 흐름과 최근 흐름이 엇갈릴 때만 이름을 붙인다."""
-            if long_pct is None or short_pct is None:
-                return ''
-            if long_pct <= 0 < short_pct:
-                return '도는 중'
-            if short_pct <= 0 < long_pct:
-                return '식는 중'
-            return ''
 
         foreign_pct, foreign_amt = _flow('daum_foreign', w60)
         foreign_pct20, foreign_amt20 = _flow('daum_foreign', w20)
@@ -1276,13 +1269,16 @@ def stock_detail(request, code):
             'foreign_pct': foreign_pct,
             'foreign_amt': foreign_amt,
             'foreign_pct20': foreign_pct20,
-            'foreign_turn': _turn(foreign_pct, foreign_pct20),
+            'foreign_band': flow_band(foreign_pct),
+            'foreign_turn': turn(foreign_pct, foreign_pct20),
             'inst_pct': inst_pct,
             'inst_amt': inst_amt,
             'inst_pct20': inst_pct20,
-            'inst_turn': _turn(inst_pct, inst_pct20),
+            'inst_band': flow_band(inst_pct),
+            'inst_turn': turn(inst_pct, inst_pct20),
             'short_weight': round(today_short_weight, 1),
             'z_score': z_score,
+            'z_band': short_z_band(z_score),
             'window': window,
         }
 
