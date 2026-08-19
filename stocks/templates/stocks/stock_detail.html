@@ -1205,13 +1205,6 @@
                 <div class="sd-value {% if supply_dashboard.z_score < -1 %}text-up{% elif supply_dashboard.z_score > 1 %}text-down{% endif %}">Z {{ supply_dashboard.z_score }}</div>
                 <div class="sd-sub">오늘 {{ supply_dashboard.short_weight }}%</div>
             </div>
-            <div class="sd-cell">
-                <div class="sd-label">숏 손익률 {% help_icon "supply_short_pnl" %}</div>
-                <div class="sd-value {% if supply_dashboard.short_pnl > 5 %}text-up{% elif supply_dashboard.short_pnl < -5 %}text-down{% endif %}">
-                    {% if supply_dashboard.short_pnl > 0 %}+{% endif %}{{ supply_dashboard.short_pnl }}%
-                </div>
-                <div class="sd-sub">평균가 {{ supply_dashboard.short_avg_price|intcomma }}</div>
-            </div>
         </div>
 
         <!-- 이중축 차트 -->

@@ -284,23 +284,6 @@ def _supply_short_z(market=None):
     ])
 
 
-def _supply_short_pnl(market=None):
-    return '\n'.join([
-        '공매도 세력이 지금 이익인지 손해인지.',
-        '',
-        '아래 작은 글씨가 그들의 평균 매도가다. 지금 주가가 그보다 높으면 +, '
-        '낮으면 - 다.',
-        '',
-        '  +   싸게 팔았는데 주가가 올랐다 — 되사야 할 압력',
-        '  -   비싸게 팔아 이익 중',
-        '',
-        '── 어림값이다 ──',
-        '',
-        '60일 동안 판 물량이 아직 다 남아 있다고 치고 계산한다. 그 사이 갚은 '
-        '물량은 빠지지 않는다. 실제 잔고와 다르므로 방향만 참고한다.',
-    ])
-
-
 def _material(market=None):
     return '\n'.join([
         '다시 읽을 만하다고 판단한 링크와 그 요약을 모아두는 곳이다.',
@@ -344,5 +327,4 @@ HELP_TEXTS = {
     'material': {'title': '자료', 'body': _material},
     'supply_investor': {'title': '외국인·기관 지분율 변화', 'body': _supply_investor},
     'supply_short_z': {'title': '공매도 강도 (Z)', 'body': _supply_short_z},
-    'supply_short_pnl': {'title': '숏 손익률', 'body': _supply_short_pnl},
 }

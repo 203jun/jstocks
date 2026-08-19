@@ -1221,8 +1221,6 @@ def stock_detail(request, code):
         window = min(60, daum_count, short_count)
 
         latest = trends_asc[-1]
-        latest_dc = daily_charts_map.get(latest.date)
-        current_price = latest_dc.closing_price if latest_dc else (stock.current_price or 0)
 
         # 외국인/기관 누적 (순매수 '주식 수')
         #
@@ -1255,12 +1253,6 @@ def stock_detail(request, code):
         today_short_weight = short_weights[-1] if short_weights else 0
         z_score = round((today_short_weight - short_avg) / short_std, 2) if short_std > 0 else 0
 
-        # 숏 손익률 (short_trading_value는 천원 단위이므로 ×1000)
-        cum_short_value = sum((s.short_trading_value or 0) * 1000 for s in shorts_asc[-window:])
-        cum_short_vol = sum(s.short_volume or 0 for s in shorts_asc[-window:])
-        short_avg_price = cum_short_value / cum_short_vol if cum_short_vol > 0 else 0
-        short_pnl = round((current_price - short_avg_price) / short_avg_price * 100, 1) if short_avg_price > 0 else 0
-
         supply_dashboard = {
             'foreign_cum': foreign_cum,
             'inst_cum': inst_cum,
@@ -1270,8 +1262,6 @@ def stock_detail(request, code):
             'inst_amt': inst_amt,
             'short_weight': round(today_short_weight, 1),
             'z_score': z_score,
-            'short_pnl': short_pnl,
-            'short_avg_price': round(short_avg_price),
             'window': window,
         }
 
