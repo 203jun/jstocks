@@ -1724,6 +1724,7 @@
             <button type="button" class="modal-close-btn" id="mpClose">&times;</button>
         </div>
         <div class="mp-vars" id="mpVars"></div>
+        <div class="mp-var-hint" id="mpVarHint">누르면 커서 자리에 들어갑니다</div>
         <textarea id="mpText" spellcheck="false"></textarea>
         <div class="mp-foot">
             <button type="button" class="mp-save" id="mpSave">저장</button>
@@ -4097,7 +4098,7 @@ document.querySelectorAll('[data-prompt-edit]').forEach(btn => {
         const spec = PROMPT_EDIT[mpEditingKey];
         document.getElementById('mpTitle').textContent = spec.title;
         document.getElementById('mpVars').innerHTML = spec.vars.map(([name, desc]) =>
-            `<button type="button" class="mp-var" data-var="${name}" title="누르면 커서 위치에 넣습니다">${name}${desc ? `<small>${desc}</small>` : ''}</button>`
+            `<button type="button" class="mp-var" data-var="${name}" data-desc="${desc}" title="${desc}">${name}</button>`
         ).join('');
         mpText.value = spec.value;
         mpMsg.textContent = '';
@@ -4105,10 +4106,21 @@ document.querySelectorAll('[data-prompt-edit]').forEach(btn => {
     });
 });
 
-// 변수 칩을 누르면 커서 자리에 끼워 넣는다
+// 변수 칩을 누르면 커서 자리에 끼워 넣는다.
+// 설명은 칩에 붙이지 않고 아래 한 줄에 띄운다 — 칩이 이름만 남아야 눈에 든다.
+const mpVarHint = document.getElementById('mpVarHint');
+const MP_HINT_DEFAULT = '누르면 커서 자리에 들어갑니다';
+document.getElementById('mpVars').addEventListener('mouseover', (e) => {
+    const chip = e.target.closest('.mp-var');
+    if (chip) mpVarHint.textContent = chip.dataset.desc || chip.dataset.var;
+});
+document.getElementById('mpVars').addEventListener('mouseleave', () => {
+    mpVarHint.textContent = MP_HINT_DEFAULT;
+});
 document.getElementById('mpVars').addEventListener('click', (e) => {
     const chip = e.target.closest('.mp-var');
     if (!chip) return;
+    mpVarHint.textContent = chip.dataset.desc || chip.dataset.var;
     const name = chip.dataset.var;
     const start = mpText.selectionStart, end = mpText.selectionEnd;
     mpText.value = mpText.value.slice(0, start) + name + mpText.value.slice(end);

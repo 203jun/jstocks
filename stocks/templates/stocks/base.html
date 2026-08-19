@@ -208,24 +208,33 @@
         .mp-btn:hover { border-color: var(--text-secondary); color: var(--text-primary); }
         .mp-btn-icon { padding: 4px 8px; }
 
-        /* 프롬프트 편집 */
+        /* 프롬프트 편집 — 변수 칩.
+           설명까지 칩에 넣었더니 여덟 개가 세 줄을 차지하고, 정작 변수 이름이
+           설명에 묻혔다. 이름만 남기고 설명은 눌러 보게 한다. */
         .mp-vars {
             display: flex;
             flex-wrap: wrap;
-            gap: 5px;
-            margin-bottom: 8px;
+            gap: 4px;
+            margin-bottom: 6px;
         }
         .mp-var {
-            padding: 2px 7px;
+            padding: 3px 8px;
+            border: none;
             border-radius: 4px;
             background: var(--bg-secondary);
             color: var(--text-secondary);
-            font-size: 0.7rem;
-            font-family: inherit;
+            font-size: 0.72rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
             cursor: pointer;
         }
-        .mp-var:hover { color: var(--text-primary); }
-        .mp-var small { color: var(--text-muted); margin-left: 4px; }
+        .mp-var:hover { background: var(--bg-hover, var(--border-color)); color: var(--text-primary); }
+        /* 무엇에 쓰는 변수인지는 한 줄로 아래에 띄운다 */
+        .mp-var-hint {
+            min-height: 1.2em;
+            margin-bottom: 8px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
         /* 프롬프트 편집 · AI 답변 붙여넣기 입력창 */
         #mpText, #maContent {
             display: block;
