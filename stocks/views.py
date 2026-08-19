@@ -1691,12 +1691,15 @@ def stock_detail(request, code):
         'latest_investor': latest_investor,
         'latest_short': latest_short,
         'target_panel': target_panel,
+        # 변수 목록도 같은 덩어리에 실어 보낸다. 따로 |safe 로 뿌리면 파이썬
+        # 튜플 표기가 그대로 나가고, JS 는 ('a','b') 를 쉼표 연산자로 읽어
+        # 빈 문자열로 만들어 버린다.
         'supply_prompt': {
             'key': SUPPLY_PROMPT_KEY,
             'template': get_prompt(SUPPLY_PROMPT_KEY, SUPPLY_PROMPT_DEFAULT),
             'vars': supply_prompt_vars,
+            'help': SUPPLY_VARIABLES,
         },
-        'supply_prompt_help': SUPPLY_VARIABLES,
         # AI 판단 — 리포트·수급·공시가 시황과 같은 조각을 쓴다
         'report_note': build_note_panel('report', stock.code),
         'supply_note': build_note_panel('supply', stock.code),
