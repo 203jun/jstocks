@@ -3432,7 +3432,41 @@ def _dart_viewer_text(session, params):
     for tag in soup(['style', 'script']):
         tag.decompose()
     body = soup.find('body') or soup
-    return _re.sub(r'\n{3,}', '\n\n', body.get_text('\n', strip=True))
+    return _tidy_dart_text(body.get_text('\n', strip=True))
+
+
+# DART 는 표로 쓴다. 텍스트로 뽑으면 라벨과 값이 줄마다 흩어져
+# "1. 처분예정주식(주) / 보통주식 / 9,007 / 기타주식 / -" 이 다섯 줄이 된다.
+# 한 공시가 282줄이 되고 그중 238줄이 12자 이하였다. 사람도 AI 도 짝을 맞추기
+# 어렵고, 실제로 '본문에 내용이 없다'는 답이 돌아왔다. 이어지는 짧은 줄을
+# 한 줄로 묶는다.
+DART_SHORT_LINE = 24        # 이 길이 이하면 표의 조각으로 본다
+DART_JOIN_LIMIT = 220       # 묶은 줄이 이보다 길어지면 끊는다
+
+
+def _tidy_dart_text(text):
+    out, buf = [], []
+
+    def flush():
+        if buf:
+            out.append(' · '.join(buf))
+            buf.clear()
+
+    for line in text.split('\n'):
+        stripped = line.strip()
+        if not stripped:
+            flush()
+            out.append('')
+            continue
+        if len(stripped) <= DART_SHORT_LINE:
+            buf.append(stripped)
+            if sum(len(x) + 3 for x in buf) > DART_JOIN_LIMIT:
+                flush()
+        else:
+            flush()
+            out.append(stripped)
+    flush()
+    return _re.sub(r'\n{3,}', '\n\n', '\n'.join(out))
 
 
 @require_GET
