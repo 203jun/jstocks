@@ -159,7 +159,12 @@ KINDS = {
         'basis': _stock_basis,
         'behind': lambda key, date: _count_after('Report', 'stock_id', key, date),
         'unit': '그 뒤 리포트 {n}건',
-        'threshold': 1,
+        # 한 건으로는 판단이 안 바뀐다. 이 프롬프트가 보는 것은 개별 리포트가
+        # 아니라 누적된 그림(방향·갈리는 폭·컨센 대비 위치)이기 때문이다.
+        # 월평균 발행이 중앙 6.3건, 삼성전자는 33건이라 1건 기준이면 늘 켜져
+        # 있다. 5건이면 대략 한 달에 한 번이고, 발행이 잦은 종목은 더 자주
+        # 뜸한 종목은 더 드물게 — 발행 속도에 맞춰 저절로 조절된다.
+        'threshold': 5,
     },
     'gongsi': {
         'basis': _stock_basis,
