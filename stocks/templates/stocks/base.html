@@ -380,6 +380,14 @@
 
         /* 날짜 칩 — 저장된 날짜를 줄로 늘어놓고 고른다.
            표로 만들면 읽을 게 날짜뿐이라 표가 아깝다. */
+        /* 수급의 전환 표식. 설명 팝업 안에서도 같은 모양을 보여주려고 여기 둔다. */
+        .sd-turn {
+            display: inline-block; padding: 1px 6px;
+            border-radius: 999px; font-size: 0.66rem; font-weight: 600;
+        }
+        .sd-turn-up { background: rgba(220, 53, 69, 0.14); color: var(--up-color); }
+        .sd-turn-down { background: rgba(41, 98, 255, 0.14); color: var(--down-color); }
+
         .ma-dates {
             display: flex; gap: 4px; margin-left: auto;
             overflow-x: auto; scrollbar-width: none; max-width: 100%;
@@ -721,7 +729,9 @@
         const close = () => overlay.classList.remove('show');
         function open(icon) {
             document.getElementById('helpTitle').textContent = icon.dataset.helpTitle || '';
-            document.getElementById('helpBody').textContent = icon.dataset.helpBody || '';
+            // 설명 본문은 코드가 쓴다(사용자 입력이 아니다). 그래서 서식을 허용해
+            // 화면에 실제로 뜨는 색·배지를 설명 안에서 그대로 보여줄 수 있게 한다.
+            document.getElementById('helpBody').innerHTML = icon.dataset.helpBody || '';
             overlay.classList.add('show');
         }
         // 캡처 단계에서 잡는다. 접기 헤더처럼 누를 수 있는 요소 안에 들어가도
