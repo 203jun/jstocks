@@ -4102,20 +4102,55 @@ document.getElementById('mpSave').addEventListener('click', async function () {
 });
 
 // ===== 공시 프롬프트 (탭 전체) =====
+//
+// DART 링크(dsaf001/main.do)는 프레임셋 껍데기라 AI 가 열어도 본문이 없다.
+// 그래서 링크만 주지 않고 본문을 받아 넣는다. 페이지를 그릴 때마다 받으면
+// 느려지므로 버튼을 누르는 순간 받는다.
+const GONGSI_BODY_CHARS = 2500;
+
+async function buildGongsiBodies(targets) {
+    const parts = [];
+    for (const t of targets) {
+        let body = '';
+        try {
+            const resp = await fetch(`/api/dart-document/${t.rcept_no}/`);
+            const data = await resp.json();
+            body = data.success ? data.content : `(본문을 못 받았다: ${data.error || ''})`;
+        } catch (err) {
+            body = `(본문을 못 받았다: ${err.message})`;
+        }
+        if (body.length > GONGSI_BODY_CHARS) {
+            body = body.slice(0, GONGSI_BODY_CHARS) + '\n… (본문이 길어 여기까지)';
+        }
+        parts.push(`── ${t.date} [${t.cat}] ${t.title}\n${t.link}\n\n${body}`);
+    }
+    return parts.join('\n\n') || '(본문을 받아올 공시가 없다)';
+}
+
 document.getElementById('btnCopyGongsiAllPrompt')?.addEventListener('click', async function () {
     const template = PROMPT_EDIT.prompt_gongsi_all.value;
     if (!template) { alert('옆의 ⚙ 를 눌러 공시 프롬프트를 먼저 등록하세요.'); return; }
-    const text = Object.entries(gongsiAllPromptData.vars || {})
-        .reduce((acc, [name, value]) => acc.split(name).join(value), template);
-    const missing = text.match(/\{[가-힣]+\}/g);
-    if (missing) alert('채우지 못한 변수: ' + [...new Set(missing)].join(', '));
+
+    const orig = this.textContent;
+    this.textContent = '본문 받는 중...';
+    this.disabled = true;
     try {
+        const vars = {
+            ...gongsiAllPromptData.vars,
+            '{공시본문}': await buildGongsiBodies(gongsiAllPromptData.bodies || []),
+        };
+        const text = Object.entries(vars)
+            .reduce((acc, [name, value]) => acc.split(name).join(value), template);
+        const missing = text.match(/\{[가-힣]+\}/g);
+        if (missing) alert('채우지 못한 변수: ' + [...new Set(missing)].join(', '));
         await copyToClipboard(text);
-        const orig = this.textContent;
         this.textContent = '복사됨!';
         setTimeout(() => { this.textContent = orig; }, 1500);
     } catch (err) {
         alert('복사 실패: ' + err.message);
+        this.textContent = orig;
+    } finally {
+        this.disabled = false;
     }
 });
 

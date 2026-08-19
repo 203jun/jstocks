@@ -22,7 +22,7 @@ from .prompts import (
 )
 from .gongsi_prompt import (
     GONGSI_ALL_VARIABLES, GONGSI_VARIABLES,
-    build_gongsi_all_prompt_vars, build_gongsi_prompt_vars,
+    build_gongsi_all_prompt_vars, build_gongsi_prompt_vars, gongsi_body_targets,
 )
 from .gongsi_signal import classify as _classify_gongsi
 from .report_signal import build_target_panel, gap_band
@@ -1634,6 +1634,8 @@ def stock_detail(request, code):
             'template': get_prompt(GONGSI_ALL_PROMPT_KEY, GONGSI_ALL_PROMPT_DEFAULT),
             'vars': gongsi_all_prompt_vars,
             'help': GONGSI_ALL_VARIABLES,
+            # 본문은 무거워서 미리 안 받는다. 버튼을 누를 때 화면이 받아 채운다.
+            'bodies': gongsi_body_targets(gongsi_window, _today),
         },
         'gongsi_prompt': {
             'key': GONGSI_PROMPT_KEY,

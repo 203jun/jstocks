@@ -24,6 +24,14 @@ GONGSI_WINDOW_DAYS = 180
 # 분류된 공시가 이보다 많으면 최근 것부터 자른다. 실제로 28건인 종목이 있다.
 GONGSI_MAX_MARKED = 20
 
+# 본문까지 넣어줄 공시 수와 한 건당 글자 수.
+#
+# DART 링크(dsaf001/main.do)는 프레임셋 껍데기라 AI 가 열어도 본문이 없다.
+# 그래서 링크만 주지 않고 본문을 받아 넣는다. 다만 페이지를 그릴 때마다
+# 받으면 느려지므로, 프롬프트 버튼을 누르는 순간 화면이 받아 채운다.
+GONGSI_BODY_COUNT = 3
+GONGSI_BODY_CHARS = 2500
+
 # 프롬프트 편집 창의 변수 칩. 행마다 채워지는 것은 (행) 으로 표시한다.
 GONGSI_VARIABLES = [
     ('{종목명}', ''),
@@ -47,6 +55,7 @@ GONGSI_ALL_VARIABLES = [
     ('{오늘날짜}', '오늘 날짜'),
     ('{현재가}', '현재가 · 등락률 · 거래량 전일비'),
     ('{공시목록}', '최근 180일 · 분류된 것은 한 줄씩, 나머지는 개수만 — 여러 줄'),
+    ('{공시본문}', '눈여겨볼 공시 3건의 DART 본문 — 누를 때 받아온다, 여러 줄'),
     ('{주가맥락}', '이동평균 대비 · 52주 고저 대비 — 여러 줄'),
     ('{읽는법}', '분류 규칙 (코드에서 자동 생성) — 여러 줄'),
 ]
@@ -121,7 +130,6 @@ def _gongsi_list(rows, today):
         for g in marked:
             title = re.sub(r'\s+', ' ', g.title).strip()
             lines.append(f'  {g.date:%y.%m.%d}  [{classify(g.title)}]  {title}')
-            lines.append(f'            {g.link}')
         if trimmed > 0:
             lines.append(f'  … 그 앞으로 {trimmed}건 더 있음')
     else:
@@ -141,6 +149,23 @@ def _gongsi_list(rows, today):
     return '\n'.join(lines)
 
 
+def gongsi_body_targets(gongsi_rows, today):
+    """본문을 받아올 공시들. 화면이 이 접수번호로 /api/dart-document/ 를 부른다."""
+    cut = today - timedelta(days=GONGSI_WINDOW_DAYS)
+    marked = [g for g in gongsi_rows
+              if g.date >= cut and classify(g.title) and 'rcpNo=' in (g.link or '')]
+    out = []
+    for g in marked[:GONGSI_BODY_COUNT]:
+        out.append({
+            'rcept_no': g.link.split('rcpNo=')[1].split('&')[0],
+            'date': f'{g.date:%y.%m.%d}',
+            'cat': classify(g.title),
+            'title': re.sub(r'\s+', ' ', g.title).strip(),
+            'link': g.link,
+        })
+    return out
+
+
 def build_gongsi_all_prompt_vars(stock, gongsi_rows, charts_asc, today):
     """탭 단위 — 최근 공시를 통째로 보고 판단하는 프롬프트의 입력값."""
     latest = charts_asc[-1] if charts_asc else None
@@ -152,6 +177,8 @@ def build_gongsi_all_prompt_vars(stock, gongsi_rows, charts_asc, today):
         '{오늘날짜}': base['{오늘날짜}'],
         '{현재가}': base['{현재가}'],
         '{공시목록}': _gongsi_list(gongsi_rows, today),
+        # 본문은 화면이 눌릴 때 받아 채운다
+        '{공시본문}': '',
         '{주가맥락}': base['{주가맥락}'],
         '{읽는법}': base['{읽는법}'],
     }
