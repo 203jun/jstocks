@@ -1223,11 +1223,18 @@ def stock_detail(request, code):
         latest = trends_asc[-1]
         latest_dc = daily_charts_map.get(latest.date)
         current_price = latest_dc.closing_price if latest_dc else (stock.current_price or 0)
-        today_volume = latest_dc.trading_volume if latest_dc else 0
 
-        # 외국인/기관 누적
+        # 외국인/기관 누적 (순매수 '주식 수')
+        #
+        # 주식 수를 그대로 보여주면 종목 크기에 따라 뜻이 달라진다. 10만 주는
+        # 삼성전자엔 티끌이고 소형주엔 사건이다. 상장주식수로 나눠 '지분율이
+        # 몇 %p 움직였나'로 바꾼다 — 그래야 종목끼리 견줄 수 있다.
+        # listed_shares 는 천주 단위다(시총/주식수 = 주가×1000 으로 확인).
         foreign_cum = sum(t.daum_foreign or 0 for t in trends_asc[-window:])
         inst_cum = sum(t.daum_institution or 0 for t in trends_asc[-window:])
+        shares = (stock.listed_shares or 0) * 1000
+        foreign_pct = round(foreign_cum / shares * 100, 2) if shares else None
+        inst_pct = round(inst_cum / shares * 100, 2) if shares else None
 
         # 공매도 비중
         short_weights = [float(s.trading_weight or 0) for s in shorts_asc[-window:]]
@@ -1242,31 +1249,11 @@ def stock_detail(request, code):
         short_avg_price = cum_short_value / cum_short_vol if cum_short_vol > 0 else 0
         short_pnl = round((current_price - short_avg_price) / short_avg_price * 100, 1) if short_avg_price > 0 else 0
 
-        # C1: 수급 모멘텀
-        recent_5 = sum((t.daum_foreign or 0) + (t.daum_institution or 0) for t in trends_asc[-5:])
-        daily_avg = sum((t.daum_foreign or 0) + (t.daum_institution or 0) for t in trends_asc[-window:]) / window
-        c1 = (recent_5 / 5) / daily_avg * 100 if daily_avg != 0 else 0
-        c1 = max(-100, min(100, c1))
-
-        # C2: 공매도 Z-score 부호 반전
-        c2 = -z_score * 50
-        c2 = max(-100, min(100, c2))
-
-        # C3: 숏 손익률 정규화
-        c3 = short_pnl * 10
-        c3 = max(-100, min(100, c3))
-
-        # C4: 수급 강도
-        today_net = (latest.daum_foreign or 0) + (latest.daum_institution or 0)
-        c4 = (today_net / today_volume * 100 * 3) if today_volume > 0 else 0
-        c4 = max(-100, min(100, c4))
-
-        total_score = round(0.3 * c1 + 0.3 * c2 + 0.2 * c3 + 0.2 * c4, 1)
-
         supply_dashboard = {
-            'score': total_score,
             'foreign_cum': foreign_cum,
             'inst_cum': inst_cum,
+            'foreign_pct': foreign_pct,
+            'inst_pct': inst_pct,
             'short_weight': round(today_short_weight, 1),
             'z_score': z_score,
             'short_pnl': short_pnl,

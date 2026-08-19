@@ -394,6 +394,16 @@
 #btnRefreshStock.spin { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
+/* 수급 대시보드 점수판 */
+.sd-cells { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.sd-cell {
+    flex: 1; min-width: 120px; padding: 12px;
+    border-radius: 8px; background: var(--bg-secondary); text-align: center;
+}
+.sd-label { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 4px; }
+.sd-value { font-size: 1.1rem; font-weight: 700; }
+.sd-sub { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+
 /* 자료 탭 */
 .mt-row { margin-bottom: 10px; }
 .mt-row label { display:block; font-size:0.76rem; color:var(--text-muted); margin-bottom:4px; }
@@ -1165,44 +1175,45 @@
     </div>
     {% else %}
     <div class="brief-card" style="padding:16px;">
-        <!-- 점수판 5개 -->
-        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;">
-            <!-- 종합 스코어 -->
-            <div style="flex:1;min-width:120px;padding:12px;border-radius:8px;background:var(--bg-secondary);text-align:center;">
-                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">종합 스코어</div>
-                <div style="font-size:1.4rem;font-weight:700;{% if supply_dashboard.score > 20 %}color:var(--up-color);{% elif supply_dashboard.score < -20 %}color:var(--down-color);{% else %}color:var(--text-muted);{% endif %}">
-                    {% if supply_dashboard.score > 0 %}+{% endif %}{{ supply_dashboard.score }}
+        <div class="sd-cells">
+            {# 외국인·기관은 순매수 '주식 수'다. 상장주식수로 나눠 지분율 변화로
+               보여준다 — 10만 주는 삼성전자엔 티끌이고 소형주엔 사건이라
+               주식 수 그대로는 종목끼리 견줄 수가 없다. #}
+            <div class="sd-cell">
+                <div class="sd-label">외국인 {{ supply_dashboard.window }}일</div>
+                {% if supply_dashboard.foreign_pct is not None %}
+                <div class="sd-value {% if supply_dashboard.foreign_pct >= 3 %}text-up{% elif supply_dashboard.foreign_pct <= -3 %}text-down{% endif %}">
+                    {% if supply_dashboard.foreign_pct > 0 %}+{% endif %}{{ supply_dashboard.foreign_pct }}%p
                 </div>
+                <div class="sd-sub">{% if supply_dashboard.foreign_cum > 0 %}+{% endif %}{{ supply_dashboard.foreign_cum|intcomma }}주</div>
+                {% else %}
+                <div class="sd-value">{% if supply_dashboard.foreign_cum > 0 %}+{% endif %}{{ supply_dashboard.foreign_cum|intcomma }}</div>
+                <div class="sd-sub">상장주식수 없음</div>
+                {% endif %}
             </div>
-            <!-- 외국인 누적 -->
-            <div style="flex:1;min-width:120px;padding:12px;border-radius:8px;background:var(--bg-secondary);text-align:center;">
-                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">외국인 {{ supply_dashboard.window }}일</div>
-                <div style="font-size:1.1rem;font-weight:700;{% if supply_dashboard.foreign_cum > 100000 %}color:var(--up-color);{% elif supply_dashboard.foreign_cum < -100000 %}color:var(--down-color);{% else %}color:var(--text-muted);{% endif %}">
-                    {% if supply_dashboard.foreign_cum > 0 %}+{% endif %}{{ supply_dashboard.foreign_cum|intcomma }}
+            <div class="sd-cell">
+                <div class="sd-label">기관 {{ supply_dashboard.window }}일</div>
+                {% if supply_dashboard.inst_pct is not None %}
+                <div class="sd-value {% if supply_dashboard.inst_pct >= 3 %}text-up{% elif supply_dashboard.inst_pct <= -3 %}text-down{% endif %}">
+                    {% if supply_dashboard.inst_pct > 0 %}+{% endif %}{{ supply_dashboard.inst_pct }}%p
                 </div>
+                <div class="sd-sub">{% if supply_dashboard.inst_cum > 0 %}+{% endif %}{{ supply_dashboard.inst_cum|intcomma }}주</div>
+                {% else %}
+                <div class="sd-value">{% if supply_dashboard.inst_cum > 0 %}+{% endif %}{{ supply_dashboard.inst_cum|intcomma }}</div>
+                <div class="sd-sub">상장주식수 없음</div>
+                {% endif %}
             </div>
-            <!-- 기관 누적 -->
-            <div style="flex:1;min-width:120px;padding:12px;border-radius:8px;background:var(--bg-secondary);text-align:center;">
-                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">기관 {{ supply_dashboard.window }}일</div>
-                <div style="font-size:1.1rem;font-weight:700;{% if supply_dashboard.inst_cum > 100000 %}color:var(--up-color);{% elif supply_dashboard.inst_cum < -100000 %}color:var(--down-color);{% else %}color:var(--text-muted);{% endif %}">
-                    {% if supply_dashboard.inst_cum > 0 %}+{% endif %}{{ supply_dashboard.inst_cum|intcomma }}
-                </div>
+            <div class="sd-cell">
+                <div class="sd-label">공매도 강도</div>
+                <div class="sd-value {% if supply_dashboard.z_score < -1 %}text-up{% elif supply_dashboard.z_score > 1 %}text-down{% endif %}">Z {{ supply_dashboard.z_score }}</div>
+                <div class="sd-sub">오늘 {{ supply_dashboard.short_weight }}%</div>
             </div>
-            <!-- 공매도 강도 Z-score -->
-            <div style="flex:1;min-width:120px;padding:12px;border-radius:8px;background:var(--bg-secondary);text-align:center;">
-                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">공매도 강도</div>
-                <div style="font-size:1.1rem;font-weight:700;{% if supply_dashboard.z_score < -1 %}color:var(--up-color);{% elif supply_dashboard.z_score > 1 %}color:var(--down-color);{% else %}color:var(--text-muted);{% endif %}">
-                    Z {{ supply_dashboard.z_score }}
-                </div>
-                <div style="font-size:0.7rem;color:var(--text-muted);">오늘 {{ supply_dashboard.short_weight }}%</div>
-            </div>
-            <!-- 숏 손익률 -->
-            <div style="flex:1;min-width:120px;padding:12px;border-radius:8px;background:var(--bg-secondary);text-align:center;">
-                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">숏 손익률</div>
-                <div style="font-size:1.1rem;font-weight:700;{% if supply_dashboard.short_pnl > 5 %}color:var(--up-color);{% elif supply_dashboard.short_pnl < -5 %}color:var(--down-color);{% else %}color:var(--text-muted);{% endif %}">
+            <div class="sd-cell">
+                <div class="sd-label">숏 손익률</div>
+                <div class="sd-value {% if supply_dashboard.short_pnl > 5 %}text-up{% elif supply_dashboard.short_pnl < -5 %}text-down{% endif %}">
                     {% if supply_dashboard.short_pnl > 0 %}+{% endif %}{{ supply_dashboard.short_pnl }}%
                 </div>
-                <div style="font-size:0.7rem;color:var(--text-muted);">평균가 {{ supply_dashboard.short_avg_price|intcomma }}</div>
+                <div class="sd-sub">평균가 {{ supply_dashboard.short_avg_price|intcomma }}</div>
             </div>
         </div>
 
