@@ -1180,9 +1180,9 @@
                 <div class="sd-label">외국인 {{ supply_dashboard.window }}일 {% help_icon "supply_investor" %}</div>
                 {% if supply_dashboard.foreign_pct is not None %}
                 <div class="sd-value {% if supply_dashboard.foreign_pct >= 3 %}text-up{% elif supply_dashboard.foreign_pct <= -3 %}text-down{% endif %}">
-                    {% if supply_dashboard.foreign_pct > 0 %}+{% endif %}{{ supply_dashboard.foreign_pct }}%p
+                    {% if supply_dashboard.foreign_pct > 0 %}+{% endif %}{{ supply_dashboard.foreign_pct }}%
                 </div>
-                <div class="sd-sub">{% if supply_dashboard.foreign_cum > 0 %}+{% endif %}{{ supply_dashboard.foreign_cum|intcomma }}주</div>
+                <div class="sd-sub">{% if supply_dashboard.foreign_amt > 0 %}+{% endif %}{{ supply_dashboard.foreign_amt|intcomma }}억</div>
                 {% else %}
                 <div class="sd-value">{% if supply_dashboard.foreign_cum > 0 %}+{% endif %}{{ supply_dashboard.foreign_cum|intcomma }}</div>
                 <div class="sd-sub">상장주식수 없음</div>
@@ -1192,9 +1192,9 @@
                 <div class="sd-label">기관 {{ supply_dashboard.window }}일 {% help_icon "supply_investor" %}</div>
                 {% if supply_dashboard.inst_pct is not None %}
                 <div class="sd-value {% if supply_dashboard.inst_pct >= 3 %}text-up{% elif supply_dashboard.inst_pct <= -3 %}text-down{% endif %}">
-                    {% if supply_dashboard.inst_pct > 0 %}+{% endif %}{{ supply_dashboard.inst_pct }}%p
+                    {% if supply_dashboard.inst_pct > 0 %}+{% endif %}{{ supply_dashboard.inst_pct }}%
                 </div>
-                <div class="sd-sub">{% if supply_dashboard.inst_cum > 0 %}+{% endif %}{{ supply_dashboard.inst_cum|intcomma }}주</div>
+                <div class="sd-sub">{% if supply_dashboard.inst_amt > 0 %}+{% endif %}{{ supply_dashboard.inst_amt|intcomma }}억</div>
                 {% else %}
                 <div class="sd-value">{% if supply_dashboard.inst_cum > 0 %}+{% endif %}{{ supply_dashboard.inst_cum|intcomma }}</div>
                 <div class="sd-sub">상장주식수 없음</div>

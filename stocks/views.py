@@ -1236,6 +1236,18 @@ def stock_detail(request, code):
         foreign_pct = round(foreign_cum / shares * 100, 2) if shares else None
         inst_pct = round(inst_cum / shares * 100, 2) if shares else None
 
+        # 곁들여 보여줄 금액. 주식 수는 몇 천만 주라고 해봐야 감이 안 온다.
+        # 그날 종가로 곱해 더한다 — 하루하루 산 값을 그날 값으로 세는 셈이다.
+        def _amount(field):
+            total = 0
+            for t in trends_asc[-window:]:
+                dc = daily_charts_map.get(t.date)
+                if dc and dc.closing_price:
+                    total += (getattr(t, field) or 0) * dc.closing_price
+            return round(total / 100000000)      # 억원
+        foreign_amt = _amount('daum_foreign')
+        inst_amt = _amount('daum_institution')
+
         # 공매도 비중
         short_weights = [float(s.trading_weight or 0) for s in shorts_asc[-window:]]
         short_avg = statistics.mean(short_weights) if short_weights else 0
@@ -1254,6 +1266,8 @@ def stock_detail(request, code):
             'inst_cum': inst_cum,
             'foreign_pct': foreign_pct,
             'inst_pct': inst_pct,
+            'foreign_amt': foreign_amt,
+            'inst_amt': inst_amt,
             'short_weight': round(today_short_weight, 1),
             'z_score': z_score,
             'short_pnl': short_pnl,
