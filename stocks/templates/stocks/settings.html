@@ -636,7 +636,8 @@ small.text-muted {
             <button class="prompt-sub-tab" data-target="signal-analysis-prompt-panel" id="signal-analysis-prompt-tab">신호분석</button>
             <button class="prompt-sub-tab" data-target="data-loader-panel" id="data-loader-tab">핵심브리핑</button>
             <button class="prompt-sub-tab" data-target="research-prompt-panel" id="research-prompt-tab">기업분석</button>
-            <button class="prompt-sub-tab" data-target="quick-report-panel" id="quick-report-tab">업데이트</button>
+            <button class="prompt-sub-tab" data-target="quick-report-panel" id="quick-report-tab">상황추적</button>
+            <button class="prompt-sub-tab" data-target="summary-report-panel" id="summary-report-tab">투자판단</button>
             <!-- <button class="prompt-sub-tab" data-target="fin-analysis-prompt-panel" id="fin-analysis-prompt-tab">재무분석</button> -->
             <!-- <button class="prompt-sub-tab" data-target="consensus-analysis-prompt-panel" id="consensus-analysis-prompt-tab">컨센서스분석</button> -->
             <button class="prompt-sub-tab" data-target="gongsi-prompt-panel" id="gongsi-prompt-tab">공시</button>            <button class="prompt-sub-tab" data-target="youtube-prompt-panel" id="youtube-prompt-tab">유튜브</button>
@@ -680,28 +681,40 @@ small.text-muted {
                     <textarea class="form-control" id="promptBriefing" rows="10" placeholder="핵심브리핑용 프롬프트를 입력하세요...">{{ saved_prompts.prompt_briefing }}</textarea>
                 </div>
             </div>
-            <!-- 리서치 -->
+            <!-- 기업분석 -->
             <div class="prompt-panel" id="research-prompt-panel" style="display:none;">
                 <div class="brief-card">
                     <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
                         <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">기업분석 프롬프트</span>
-                        <button type="button" class="btn-refresh" id="btnAddResearchPrompt">+ 추가</button>
+                        <button type="button" class="btn-refresh" id="researchPromptAdd">+ 추가</button>
                     </div>
                     <div style="font-size:0.75rem;color:var(--up-color);margin-bottom:12px;">* 질문명은 종목 리서치와 연결되므로 변경하지 마세요. 변경 시 기존 리서치와의 연결이 끊어집니다.</div>
                     <div id="researchPromptList"></div>
-                    <div id="researchPromptEmpty" class="text-center py-4 d-none" style="color:var(--text-muted);font-size:0.85rem;">등록된 리서치 프롬프트가 없습니다.</div>
+                    <div id="researchPromptEmpty" class="text-center py-4 d-none" style="color:var(--text-muted);font-size:0.85rem;">등록된 기업분석 프롬프트가 없습니다.</div>
                 </div>
             </div>
-            <!-- 업데이트 -->
+            <!-- 상황추적 -->
             <div class="prompt-panel" id="quick-report-panel" style="display:none;">
                 <div class="brief-card">
                     <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
-                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">업데이트 프롬프트</span>
-                        <button type="button" class="btn-refresh" id="btnAddQuickReport">+ 추가</button>
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">상황추적 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="quickPromptAdd">+ 추가</button>
                     </div>
                     <div style="font-size:0.75rem;color:var(--up-color);margin-bottom:12px;">* 질문명은 종목 리서치와 연결되므로 변경하지 마세요. 변경 시 기존 리서치와의 연결이 끊어집니다.</div>
-                    <div id="quickReportList"></div>
-                    <div id="quickReportEmpty" class="text-center py-4 d-none" style="color:var(--text-muted);font-size:0.85rem;">등록된 업데이트 프롬프트가 없습니다.</div>
+                    <div id="quickPromptList"></div>
+                    <div id="quickPromptEmpty" class="text-center py-4 d-none" style="color:var(--text-muted);font-size:0.85rem;">등록된 상황추적 프롬프트가 없습니다.</div>
+                </div>
+            </div>
+            <!-- 투자판단 -->
+            <div class="prompt-panel" id="summary-report-panel" style="display:none;">
+                <div class="brief-card">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
+                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">투자판단 프롬프트</span>
+                        <button type="button" class="btn-refresh" id="summaryPromptAdd">+ 추가</button>
+                    </div>
+                    <div style="font-size:0.75rem;color:var(--up-color);margin-bottom:12px;">* 질문명은 종목 리서치와 연결되므로 변경하지 마세요. 변경 시 기존 리서치와의 연결이 끊어집니다.</div>
+                    <div id="summaryPromptList"></div>
+                    <div id="summaryPromptEmpty" class="text-center py-4 d-none" style="color:var(--text-muted);font-size:0.85rem;">등록된 투자판단 프롬프트가 없습니다.</div>
                 </div>
             </div>
             <!-- 재무분석 프롬프트 -->
@@ -1100,306 +1113,100 @@ function copyToClipboard(text) {
     });
 }
 
-// === 리서치 프롬프트 관리 ===
-const researchPromptList = document.getElementById('researchPromptList');
-const researchPromptEmpty = document.getElementById('researchPromptEmpty');
-const btnAddResearchPrompt = document.getElementById('btnAddResearchPrompt');
+// === 프롬프트 그룹 관리 (기업분석 · 상황추적 · 투자판단) ===
+//
+// 세 그룹이 하는 일이 같다 — 목록을 받아 그리고, 고치고, 더하고, 지운다.
+// 예전에는 그룹마다 135줄을 복사해 두었고 그룹을 하나 늘릴 때마다 또
+// 복사했다. 다른 것은 API 주소와 화면 id 뿐이라 표로 뺀다.
+const PROMPT_GROUPS = [
+    { key: 'research', api: 'research-prompt', label: '기업분석' },
+    { key: 'quick',    api: 'quick-report',    label: '상황추적' },
+    { key: 'summary',  api: 'summary-report',  label: '투자판단' },
+];
 
-// 리서치 프롬프트 목록 로드
-async function loadResearchPrompts() {
-    try {
-        const response = await fetch('/api/research-prompt/');
-        const data = await response.json();
+PROMPT_GROUPS.forEach((g) => {
+    const list = document.getElementById(g.key + 'PromptList');
+    const empty = document.getElementById(g.key + 'PromptEmpty');
+    const btnAdd = document.getElementById(g.key + 'PromptAdd');
+    if (!list) return;
 
-        if (data.success) {
-            renderResearchPrompts(data.prompts);
+    async function load() {
+        try {
+            const res = await fetch(`/api/${g.api}/`);
+            const data = await res.json();
+            if (data.success) render(data.prompts);
+        } catch (err) {
+            console.error(`${g.label} 프롬프트 로드 실패:`, err);
         }
-    } catch (err) {
-        console.error('리서치 프롬프트 로드 실패:', err);
-    }
-}
-
-// 리서치 프롬프트 렌더링
-function renderResearchPrompts(prompts) {
-    if (prompts.length === 0) {
-        researchPromptList.innerHTML = '';
-        researchPromptEmpty.classList.remove('d-none');
-        return;
     }
 
-    researchPromptEmpty.classList.add('d-none');
-    researchPromptList.innerHTML = prompts.map((p, idx) => `
-        <div class="border-bottom p-3" data-id="${p.id}">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <span style="font-size:0.9rem;font-weight:700;color:var(--text-primary);">${escapeHtml(p.question)}</span>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-primary btn-save-research" data-id="${p.id}">저장</button>
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-research" data-id="${p.id}">삭제</button>
+    function render(prompts) {
+        empty.classList.toggle('d-none', prompts.length > 0);
+        list.innerHTML = prompts.map((p) => `
+            <div class="mb-3 pb-3 border-bottom" data-id="${p.id}">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong style="font-size:0.85rem;">${escapeHtml(p.question)}</strong>
+                    <div class="d-flex gap-1">
+                        <button type="button" class="btn btn-sm btn-primary btn-save" data-id="${p.id}">저장</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-del" data-id="${p.id}">삭제</button>
+                    </div>
                 </div>
-            </div>
-            <input type="hidden" class="research-question" data-id="${p.id}" value="${escapeHtml(p.question)}">
-            <textarea class="form-control form-control-sm research-prompt" data-id="${p.id}" rows="8" placeholder="프롬프트 입력...">${escapeHtml(p.prompt)}</textarea>
-            <div class="d-flex align-items-center mt-2">
-                <div class="form-check">
-                    <input class="form-check-input research-attachment" type="checkbox" data-id="${p.id}" ${p.needs_attachment ? 'checked' : ''}>
+                <textarea class="form-control form-control-sm pg-text" data-id="${p.id}" rows="8" placeholder="프롬프트 입력...">${escapeHtml(p.prompt)}</textarea>
+                <div class="form-check mt-2">
+                    <input class="form-check-input pg-attach" type="checkbox" data-id="${p.id}" ${p.needs_attachment ? 'checked' : ''}>
                     <label class="form-check-label small">첨부파일 필요</label>
                 </div>
             </div>
-        </div>
-    `).join('');
-}
-
-// 리서치 프롬프트 추가
-btnAddResearchPrompt.addEventListener('click', async () => {
-    const question = prompt('질문명을 입력하세요 (등록 후 수정 불가):');
-    if (!question || !question.trim()) return;
-
-    btnAddResearchPrompt.disabled = true;
-
-    try {
-        const formData = new FormData();
-        formData.append('question', question.trim());
-        formData.append('prompt', '');
-
-        const response = await fetch('/api/research-prompt/add/', {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            loadResearchPrompts();
-        } else {
-            alert(data.error || '추가에 실패했습니다.');
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-    } finally {
-        btnAddResearchPrompt.disabled = false;
-    }
-});
-
-// 리서치 프롬프트 저장 (이벤트 위임)
-researchPromptList.addEventListener('click', async (e) => {
-    if (!e.target.classList.contains('btn-save-research')) return;
-
-    const btn = e.target;
-    const id = btn.dataset.id;
-    const container = btn.closest('.border-bottom');
-    const question = container.querySelector('.research-question').value.trim();
-    const prompt = container.querySelector('.research-prompt').value.trim();
-    const needsAttachment = container.querySelector('.research-attachment').checked;
-
-    if (!question) {
-        alert('질문을 입력해주세요.');
-        return;
+        `).join('');
     }
 
-    btn.disabled = true;
-    const originalText = btn.textContent;
-    btn.textContent = '저장 중...';
-
-    try {
-        const formData = new FormData();
-        formData.append('question', question);
-        formData.append('prompt', prompt);
-        formData.append('needs_attachment', needsAttachment);
-
-        const response = await fetch(`/api/research-prompt/${id}/update/`, {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            btn.textContent = '저장됨';
-            setTimeout(() => {
-                btn.textContent = originalText;
-            }, 1500);
-        } else {
-            alert(data.error || '저장에 실패했습니다.');
-            btn.textContent = originalText;
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-        btn.textContent = originalText;
-    } finally {
-        btn.disabled = false;
-    }
-});
-
-// 리서치 프롬프트 삭제 (이벤트 위임)
-researchPromptList.addEventListener('click', async (e) => {
-    if (!e.target.classList.contains('btn-delete-research')) return;
-
-    const btn = e.target;
-    const id = btn.dataset.id;
-
-    if (!confirm('이 프롬프트를 삭제하시겠습니까?')) return;
-
-    btn.disabled = true;
-
-    try {
-        const response = await fetch(`/api/research-prompt/${id}/delete/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            loadResearchPrompts();
-        } else {
-            alert(data.error || '삭제에 실패했습니다.');
+    async function post(url, body, btn) {
+        btn.disabled = true;
+        try {
+            const res = await fetch(url, {
+                method: 'POST', body,
+                headers: { 'X-CSRFToken': getCsrfToken() },
+            });
+            const data = await res.json();
+            if (data.success) { await load(); return true; }
+            alert(data.error || '실패했습니다.');
+        } catch (err) {
+            alert('오류: ' + err.message);
+        } finally {
             btn.disabled = false;
         }
-    } catch (err) {
-        alert('오류: ' + err.message);
-        btn.disabled = false;
+        return false;
     }
-});
 
-// 페이지 로드 시 리서치 프롬프트 로드
-loadResearchPrompts();
+    btnAdd?.addEventListener('click', async () => {
+        // 질문명은 리서치와의 연결이라 만든 뒤에는 못 바꾼다
+        const question = prompt('질문명을 입력하세요 (등록 후 수정 불가):');
+        if (!question || !question.trim()) return;
+        const body = new FormData();
+        body.append('question', question.trim());
+        body.append('prompt', '');
+        body.append('needs_attachment', 'false');
+        await post(`/api/${g.api}/add/`, body, btnAdd);
+    });
 
-// === 업데이트 관리 ===
-const quickReportList = document.getElementById('quickReportList');
-const quickReportEmpty = document.getElementById('quickReportEmpty');
-const btnAddQuickReport = document.getElementById('btnAddQuickReport');
-
-async function loadQuickReports() {
-    try {
-        const response = await fetch('/api/quick-report/');
-        const data = await response.json();
-        if (data.success) renderQuickReports(data.prompts);
-    } catch (err) {
-        console.error('업데이트 로드 실패:', err);
-    }
-}
-
-function renderQuickReports(prompts) {
-    if (prompts.length === 0) {
-        quickReportList.innerHTML = '';
-        quickReportEmpty.classList.remove('d-none');
-        return;
-    }
-    quickReportEmpty.classList.add('d-none');
-    quickReportList.innerHTML = prompts.map((p, idx) => `
-        <div class="border-bottom p-3" data-id="${p.id}">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <span style="font-size:0.9rem;font-weight:700;color:var(--text-primary);">${escapeHtml(p.question)}</span>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-primary btn-save-quick" data-id="${p.id}">저장</button>
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-quick" data-id="${p.id}">삭제</button>
-                </div>
-            </div>
-            <input type="hidden" class="quick-question" data-id="${p.id}" value="${escapeHtml(p.question)}">
-            <textarea class="form-control form-control-sm quick-prompt" data-id="${p.id}" rows="8" placeholder="프롬프트 입력...">${escapeHtml(p.prompt)}</textarea>
-            <div class="d-flex align-items-center mt-2">
-                <div class="form-check">
-                    <input class="form-check-input quick-attachment" type="checkbox" data-id="${p.id}" ${p.needs_attachment ? 'checked' : ''}>
-                    <label class="form-check-label small">첨부파일 필요</label>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-btnAddQuickReport.addEventListener('click', async () => {
-    const question = prompt('질문명을 입력하세요 (등록 후 수정 불가):');
-    if (!question || !question.trim()) return;
-
-    btnAddQuickReport.disabled = true;
-    try {
-        const formData = new FormData();
-        formData.append('question', question.trim());
-        formData.append('prompt', '');
-
-        const response = await fetch('/api/quick-report/add/', {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-        const data = await response.json();
-        if (data.success) loadQuickReports();
-        else alert(data.error || '추가에 실패했습니다.');
-    } catch (err) {
-        alert('오류: ' + err.message);
-    } finally {
-        btnAddQuickReport.disabled = false;
-    }
-});
-
-quickReportList.addEventListener('click', async (e) => {
-    if (!e.target.classList.contains('btn-save-quick')) return;
-    const btn = e.target;
-    const id = btn.dataset.id;
-    const container = btn.closest('.border-bottom');
-    const question = container.querySelector('.quick-question').value.trim();
-    const prompt = container.querySelector('.quick-prompt').value.trim();
-    const needsAttachment = container.querySelector('.quick-attachment').checked;
-
-    if (!question) { alert('질문을 입력해주세요.'); return; }
-
-    btn.disabled = true;
-    const originalText = btn.textContent;
-    btn.textContent = '저장 중...';
-
-    try {
-        const formData = new FormData();
-        formData.append('question', question);
-        formData.append('prompt', prompt);
-        formData.append('needs_attachment', needsAttachment);
-
-        const response = await fetch(`/api/quick-report/${id}/update/`, {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-        const data = await response.json();
-        if (data.success) {
-            btn.textContent = '저장됨';
-            setTimeout(() => { btn.textContent = originalText; }, 1500);
-        } else {
-            alert(data.error || '저장에 실패했습니다.');
-            btn.textContent = originalText;
+    list.addEventListener('click', async (e) => {
+        const row = e.target.closest('[data-id]');
+        if (!row) return;
+        const id = row.dataset.id;
+        if (e.target.classList.contains('btn-save')) {
+            const body = new FormData();
+            body.append('question', row.querySelector('strong').textContent);
+            body.append('prompt', row.querySelector('.pg-text').value);
+            body.append('needs_attachment', row.querySelector('.pg-attach').checked ? 'true' : 'false');
+            await post(`/api/${g.api}/${id}/update/`, body, e.target);
+        } else if (e.target.classList.contains('btn-del')) {
+            if (!confirm('이 프롬프트를 삭제하시겠습니까?\n저장된 리서치는 남고 \'일반\'으로 내려갑니다.')) return;
+            await post(`/api/${g.api}/${id}/delete/`, new FormData(), e.target);
         }
-    } catch (err) {
-        alert('오류: ' + err.message);
-        btn.textContent = originalText;
-    } finally {
-        btn.disabled = false;
-    }
+    });
+
+    load();
 });
-
-quickReportList.addEventListener('click', async (e) => {
-    if (!e.target.classList.contains('btn-delete-quick')) return;
-    const btn = e.target;
-    const id = btn.dataset.id;
-
-    const ok = await showConfirm('이 업데이트 프롬프트를 삭제하시겠습니까?');
-    if (!ok) return;
-
-    btn.disabled = true;
-    try {
-        const response = await fetch(`/api/quick-report/${id}/delete/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-        const data = await response.json();
-        if (data.success) loadQuickReports();
-        else { alert(data.error || '삭제에 실패했습니다.'); btn.disabled = false; }
-    } catch (err) {
-        alert('오류: ' + err.message);
-        btn.disabled = false;
-    }
-});
-
-loadQuickReports();
 
 // 유튜브 프롬프트 저장
 document.getElementById('btnSaveYoutubePrompt').addEventListener('click', function() {

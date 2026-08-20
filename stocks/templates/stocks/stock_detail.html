@@ -136,20 +136,20 @@
 [data-theme="dark"] .research-empty-chip:hover { background:#22262f !important; }
 
 /* 리서치 그룹 라벨 */
-.research-common-label, .research-update-label, .research-waiting-label, .research-custom-label {
+.research-common-label, .research-update-label, .research-judge-label, .research-custom-label {
     display:inline-block; font-size:0.65rem; padding:2px 7px; border-radius:3px;
     font-weight:600; flex-shrink:0; min-width:38px; text-align:center; margin-top:3px;
 }
 .research-common-label { background:#e8f0fe; color:#1a73e8; }
 .research-update-label { background:#fef3c7; color:#b45309; }
-.research-waiting-label { background:#f5f3ff; color:#7c3aed; }
+.research-judge-label { background:#f5f3ff; color:#7c3aed; }
 .research-custom-label { background:#f3f4f6; color:var(--text-muted); }
 [data-theme="dark"] .research-common-label { background:#1e2e4a; color:#93b4ff; }
 [data-theme="dark"] .research-update-label { background:#3a2e10; color:#fbbf24; }
-[data-theme="dark"] .research-waiting-label { background:#2a1f47; color:#c4b5fd; }
+[data-theme="dark"] .research-judge-label { background:#2a1f47; color:#c4b5fd; }
 [data-theme="dark"] .research-custom-label { background:#22262f; color:var(--text-secondary); }
 
-/* 칩 (기업분석/업데이트) */
+/* 칩 (기업분석·상황추적·투자판단) */
 .research-common-chip {
     display:inline-flex; align-items:center; gap:6px;
     padding:4px 10px; border-radius:14px;
@@ -689,7 +689,7 @@
         {% for g in research_groups %}
         <details class="research-group-box" {% if g.open %}open{% endif %}>
             <summary>
-                <span class="research-common-label">{{ g.name }}</span>
+                <span class="{{ g.label_class }}">{{ g.name }}</span>
                 <span class="research-count">{{ g.filled }}/{{ g.total }}</span>
                 {% if g.behind %}<span class="research-behind" title="새 정기보고서가 나온 뒤로 갱신하지 않은 칸">⚠️ {{ g.behind }}</span>{% endif %}
             </summary>

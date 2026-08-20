@@ -4975,7 +4975,7 @@ def stock_question_report_detail(request, report_id, qr=None):
         _groups = {g['name']: {s['question'] for s in g['slots']}
                    for g in research_slots.build_groups(qr.stock, _all_reports)[0]}
         _common_set = _groups.get('기업분석', set())
-        _quick_set = _groups.get('업데이트', set()) | _groups.get('정리', set())
+        _quick_set = _groups.get('상황추적', set()) | _groups.get('투자판단', set())
         _common_reports = []
         _quick_reports = []
         for r in _all_reports:

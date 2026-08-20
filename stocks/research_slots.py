@@ -18,14 +18,22 @@
 지우면 그 리서치도 여기로 내려온다 — 사라지지 않는다.
 """
 
-# (이름, 모델, 고치는 API). 화면에 나오는 순서다.
+# (이름, 모델, 고치는 API). 화면에 나오는 순서이자 리서치를 쌓는 순서다.
+#
+#   기업분석  회사가 무엇을 하는 곳인가. 분기보고서로 본다. 잘 안 바뀐다.
+#   상황추적  지금 무슨 일이 있나. 실적·업황·이벤트. 자주 바뀐다.
+#   투자판단  그래서 살까 말까. 앞의 둘을 재료로 쓴다.
+#
+# 모델 이름(QuickReport·SummaryReport)은 옛 이름이라 그룹 이름과 어긋난다.
+# 이름을 바꾸려면 db_table·API 주소·설정 화면 id 가 다 따라가야 해서
+# 그대로 뒀다. 그룹 이름은 여기 이 표가 정한다.
 #
 # 프롬프트를 고치러 설정 화면까지 갈 이유가 없어서 그 자리에서 고친다.
 # 설정 메뉴는 없앨 예정이다.
 GROUP_SPECS = [
-    ('기업분석', 'ResearchPrompt', 'research-prompt'),
-    ('업데이트', 'QuickReport', 'quick-report'),
-    ('정리', 'SummaryReport', 'summary-report'),
+    ('기업분석', 'ResearchPrompt', 'research-prompt', 'research-common-label'),
+    ('상황추적', 'QuickReport', 'quick-report', 'research-update-label'),
+    ('투자판단', 'SummaryReport', 'summary-report', 'research-judge-label'),
 ]
 
 # 한 칸도 안 채운 그룹은 접는다.
@@ -143,7 +151,7 @@ def build_groups(stock, reports=None):
     newest = latest_regular(stock) if health is None else None
 
     groups, used = [], set()
-    for name, model_name, api in GROUP_SPECS:
+    for name, model_name, api, label_class in GROUP_SPECS:
         model = apps.get_model('stocks', model_name)
         prompts = list(model.objects.all())
         if not prompts:
@@ -158,6 +166,7 @@ def build_groups(stock, reports=None):
         groups.append({
             'name': name,
             'api': api,
+            'label_class': label_class,
             'slots': slots,
             'filled': filled,
             'total': len(slots),
@@ -201,7 +210,7 @@ def find_prompt(question):
     """질문 이름으로 프롬프트 하나. 없으면 None (직접 만든 질문)."""
     from django.apps import apps
 
-    for name, model_name, api in GROUP_SPECS:
+    for name, model_name, api, _ in GROUP_SPECS:
         model = apps.get_model('stocks', model_name)
         match = model.objects.filter(question=question).first()
         if match:
