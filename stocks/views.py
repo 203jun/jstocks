@@ -1732,6 +1732,15 @@ def stock_edit(request, code):
 
         interest_level = request.POST.get('interest_level', '')
         new_interest_level = interest_level if interest_level else None
+
+        # 보유 중이면 관심을 뗄 수 없다. 떼는 순간 run_fav_commands(remove) 가
+        # 수급·공매도·공시·리포트를 지운다. 계좌 동기화가 다음 날 등급을 도로
+        # 채우긴 하지만 그 사이 자료가 한 번 사라진다 — 돈이 들어가 있는
+        # 종목에서 그럴 이유가 없다.
+        if new_interest_level is None and Holding.objects.filter(info=stock).exists():
+            messages.error(request, f'{stock.name}은(는) 보유 중이라 관심을 해제할 수 없습니다.')
+            return redirect('stocks:stock_edit', code=code)
+
         stock.interest_level = new_interest_level
         stock.is_tracking = request.POST.get('is_tracking') == 'on'
 

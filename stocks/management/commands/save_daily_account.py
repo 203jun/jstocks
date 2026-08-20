@@ -200,6 +200,34 @@ class Command(BaseCommand):
             f'[{account.key}] 보유 종목 갱신 | 총 {len(parsed)}개 (Info/ETF 매칭 {matched}개)',
             success=True,
         )
+        self.mark_holdings_as_interest([h['stk_cd'] for h in parsed])
+
+    def mark_holdings_as_interest(self, codes):
+        """
+        보유 중인데 관심등급이 없으면 채운다.
+
+        수급·공매도·공시·리포트는 daily_update.sh 가 --code fav 로 받는다.
+        등급이 없으면 그 넷이 안 들어오는데, 화면은 보유를 관심보다 앞세워
+        (views.level_of) 멀쩡하게 보인다. 돈이 들어가 있는 종목인데 판단
+        재료만 조용히 비는 셈이라 실제로 세 종목이 그렇게 돼 있었다.
+
+        등급을 채워도 화면 분류는 안 바뀐다 — 보유는 여전히 보유로 나온다.
+        달라지는 것은 수집 대상에 들어온다는 것뿐이다.
+
+        여기서 데이터를 긁지는 않는다. 이 명령 자체가 크론이고, 같은 크론의
+        뒤쪽 단계가 fav 를 다시 훑는다. 여기서 부르면 두 번 받는다.
+        """
+        need = list(Info.objects.filter(code__in=codes, interest_level__isnull=True))
+        if not need:
+            return
+        for stock in need:
+            stock.interest_level = 'normal'
+        Info.objects.bulk_update(need, ['interest_level'])
+        self.log.info(
+            '보유인데 관심등급이 없던 종목에 관심을 줬습니다 | '
+            + ' · '.join(f'{s.name}({s.code})' for s in need),
+            success=True,
+        )
 
     def _parse_int(self, value):
         """문자열을 정수로 변환 (부호/콤마 처리, 빈 값은 None)"""
