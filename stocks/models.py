@@ -485,26 +485,6 @@ class ETFDiary(models.Model):
         return f"{self.etf.name} {self.date}"
 
 
-class ETFEvent(models.Model):
-    """ETF 이벤트"""
-    etf = models.ForeignKey('InfoETF', on_delete=models.CASCADE, related_name='events', verbose_name='ETF')
-    date = models.DateField(null=True, blank=True, verbose_name='날짜')
-    date_text = models.CharField(max_length=50, verbose_name='날짜 텍스트')
-    title = models.CharField(max_length=200, verbose_name='제목')
-    content = models.TextField(blank=True, default='', verbose_name='내용')
-    order = models.IntegerField(default=0, verbose_name='정렬순서')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
-
-    class Meta:
-        db_table = 'etf_event'
-        verbose_name = 'ETF 이벤트'
-        verbose_name_plural = 'ETF 이벤트'
-        ordering = ['order', '-created_at']
-
-    def __str__(self):
-        return f"{self.etf.name} {self.date_text} {self.title}"
-
 
 class DailyChartETF(models.Model):
     """

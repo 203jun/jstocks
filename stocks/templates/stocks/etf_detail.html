@@ -265,38 +265,6 @@ document.getElementById('delete-etf-btn').addEventListener('click', async functi
     </div>
 </div>
 
-<!-- 이벤트 -->
-<h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">이벤트</h5>
-<div class="brief-card">
-    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
-        <span style="font-size:0.82rem;color:var(--text-muted);">주목할 일정</span>
-        <button type="button" id="btnEventNew" class="btn-refresh" style="padding:6px 16px;">추가</button>
-    </div>
-    <div id="eventForm" class="d-none" style="margin-bottom:16px;padding:16px;background:#f9fafb;border-radius:8px;">
-        <div class="d-flex flex-wrap gap-2 mb-2 align-items-end">
-            <div>
-                <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:2px;">정확한 날짜 (선택)</label>
-                <input type="date" id="eventDate" style="border:1px solid #ddd;border-radius:6px;padding:4px 10px;font-size:0.82rem;color:var(--text-body);">
-            </div>
-            <div>
-                <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:2px;">날짜 표시 <span style="color:#e74c3c">*</span></label>
-                <input type="text" id="eventDateText" placeholder="예: 4월 말경, 2분기 중" style="border:1px solid #ddd;border-radius:6px;padding:4px 10px;font-size:0.82rem;width:180px;color:var(--text-body);">
-            </div>
-            <div style="flex:1;min-width:150px;">
-                <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:2px;">제목 <span style="color:#e74c3c">*</span></label>
-                <input type="text" id="eventTitle" placeholder="이벤트명" style="border:1px solid #ddd;border-radius:6px;padding:4px 10px;font-size:0.82rem;width:100%;color:var(--text-body);">
-            </div>
-        </div>
-        <textarea id="eventContent" rows="2" placeholder="부연 메모 (선택)" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:8px 12px;font-size:0.82rem;line-height:1.6;resize:vertical;font-family:inherit;margin-bottom:8px;"></textarea>
-        <div class="d-flex justify-content-end gap-2">
-            <button type="button" id="btnEventCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
-            <button type="button" id="btnEventSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
-        </div>
-    </div>
-    <div id="eventList"></div>
-    <div id="eventEmpty" style="color:var(--text-muted);font-size:0.85rem;">등록된 이벤트가 없습니다.</div>
-</div>
-
 <!-- 차트 -->
 <h5 class="section-heading">차트</h5>
 
@@ -618,89 +586,5 @@ document.getElementById('btnMemoSave').addEventListener('click', async () => {
     finally { btn.disabled = false; btn.textContent = '저장'; }
 });
 
-// ===== 이벤트 =====
-const evForm = document.getElementById('eventForm');
-const evDate = document.getElementById('eventDate');
-const evDateText = document.getElementById('eventDateText');
-const evTitle = document.getElementById('eventTitle');
-const evContent = document.getElementById('eventContent');
-const evList = document.getElementById('eventList');
-const evEmpty = document.getElementById('eventEmpty');
-const btnEvNew = document.getElementById('btnEventNew');
-const btnEvSave = document.getElementById('btnEventSave');
-const btnEvCancel = document.getElementById('btnEventCancel');
-let evEditId = null;
-
-evDate.addEventListener('change', function() { if (this.value && !evDateText.value) evDateText.value = this.value; });
-
-function renderEvents(results) {
-    if (!results || results.length === 0) { evList.innerHTML = ''; evEmpty.style.display = ''; return; }
-    evEmpty.style.display = 'none';
-    let html = '';
-    results.forEach(ev => {
-        let ddayBadge = '';
-        if (ev.d_day !== null) {
-            const d = ev.d_day;
-            if (d === 0) ddayBadge = `<span style="font-size:0.7rem;font-weight:600;color:#e74c3c;margin-left:6px;">D-Day</span>`;
-            else if (d > 0) ddayBadge = `<span style="font-size:0.7rem;font-weight:600;color:#4f46e5;margin-left:6px;">D-${d}</span>`;
-            else ddayBadge = `<span style="font-size:0.7rem;font-weight:500;color:var(--text-muted);margin-left:6px;">D+${Math.abs(d)}</span>`;
-        }
-        const contentHtml = ev.content ? `<div style="font-size:0.78rem;color:var(--text-secondary);margin-top:2px;line-height:1.5;">${ev.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</div>` : '';
-        html += `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border-color,#eee);" data-event-id="${ev.id}">
-            <div style="flex:1;min-width:0;">
-                <div style="display:flex;align-items:center;flex-wrap:wrap;">
-                    <span style="font-size:0.78rem;color:var(--text-muted);min-width:100px;">${ev.date_text}${ddayBadge}</span>
-                    <span style="font-size:0.85rem;font-weight:500;color:var(--text-body);margin-left:8px;">${ev.title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
-                </div>${contentHtml}
-            </div>
-            <div style="display:flex;gap:10px;flex-shrink:0;margin-left:12px;padding-top:2px;">
-                <span class="ev-up" data-id="${ev.id}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">▲</span>
-                <span class="ev-down" data-id="${ev.id}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">▼</span>
-                <span class="ev-edit" data-id="${ev.id}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
-                <span class="ev-delete" data-id="${ev.id}" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">삭제</span>
-            </div>
-        </div>`;
-    });
-    evList.innerHTML = html;
-    evList.querySelectorAll('.ev-delete').forEach(btn => {
-        btn.addEventListener('click', async function() {
-            if (!confirm('삭제하시겠습니까?')) return;
-            try { const res = await fetch(`/api/etf/${etfCode}/event/${this.dataset.id}/delete/`, {method:'POST',headers:{'X-CSRFToken':csrfToken}}); const data = await res.json(); if (data.success) loadEvents(); else alert(data.error||'삭제 실패'); } catch(e) { alert('오류: '+e.message); }
-        });
-    });
-    evList.querySelectorAll('.ev-edit').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const ev = results.find(r => r.id == this.dataset.id);
-            if (ev) { evEditId = ev.id; evDate.value = ev.date||''; evDateText.value = ev.date_text; evTitle.value = ev.title; evContent.value = ev.content; evForm.classList.remove('d-none'); btnEvNew.classList.add('d-none'); evTitle.focus(); }
-        });
-    });
-    async function moveEvent(id, direction) {
-        const fd = new FormData(); fd.append('direction', direction);
-        try { await fetch(`/api/etf/${etfCode}/event/${id}/move/`, {method:'POST',headers:{'X-CSRFToken':csrfToken},body:fd}); loadEvents(); } catch(e) { console.error(e); }
-    }
-    evList.querySelectorAll('.ev-up').forEach(btn => { btn.addEventListener('click', function() { moveEvent(this.dataset.id, 'up'); }); });
-    evList.querySelectorAll('.ev-down').forEach(btn => { btn.addEventListener('click', function() { moveEvent(this.dataset.id, 'down'); }); });
-}
-
-let evAllResults = [];
-async function loadEvents() {
-    try { const res = await fetch(`/api/etf/${etfCode}/event/`); const data = await res.json(); evAllResults = data.results||[]; renderEvents(evAllResults); } catch(e) { console.error('event load error', e); }
-}
-try { loadEvents(); } catch(e) {}
-
-btnEvNew.addEventListener('click', () => { evEditId=null; evDate.value=''; evDateText.value=''; evTitle.value=''; evContent.value=''; evForm.classList.remove('d-none'); btnEvNew.classList.add('d-none'); evTitle.focus(); });
-btnEvCancel.addEventListener('click', () => { evForm.classList.add('d-none'); btnEvNew.classList.remove('d-none'); evEditId=null; });
-btnEvSave.addEventListener('click', async () => {
-    const title = evTitle.value.trim(); const dateText = evDateText.value.trim();
-    if (!title) return alert('제목을 입력하세요.'); if (!dateText) return alert('날짜를 입력하세요.');
-    btnEvSave.disabled = true; btnEvSave.textContent = '저장 중...';
-    try {
-        const fd = new FormData(); fd.append('date', evDate.value); fd.append('date_text', dateText); fd.append('title', title); fd.append('content', evContent.value.trim());
-        const url = evEditId ? `/api/etf/${etfCode}/event/${evEditId}/update/` : `/api/etf/${etfCode}/event/save/`;
-        const res = await fetch(url, {method:'POST',headers:{'X-CSRFToken':csrfToken},body:fd}); const data = await res.json();
-        if (data.error) alert(data.error); else { evForm.classList.add('d-none'); btnEvNew.classList.remove('d-none'); evEditId=null; loadEvents(); }
-    } catch(e) { alert('오류: '+e.message); }
-    finally { btnEvSave.disabled = false; btnEvSave.textContent = '저장'; }
-});
 </script>
 {% endblock %}

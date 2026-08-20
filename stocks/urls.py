@@ -40,13 +40,8 @@ urlpatterns = [
     path('api/etf/save/', views.save_etf, name='save_etf'),
     path('api/etf/<str:code>/delete/', views.delete_etf, name='delete_etf'),
     path('api/etf/<str:code>/signal-chart/', views.etf_signal_chart_data, name='etf_signal_chart_data'),
-    # ETF 메모/매매근거/투자일지/이벤트
+    # ETF 메모
     path('api/etf/<str:code>/memo/', views.etf_memo_save, name='etf_memo_save'),
-    path('api/etf/<str:code>/event/', views.etf_event_list, name='etf_event_list'),
-    path('api/etf/<str:code>/event/save/', views.etf_event_save, name='etf_event_save'),
-    path('api/etf/<str:code>/event/<int:event_id>/update/', views.etf_event_update, name='etf_event_update'),
-    path('api/etf/<str:code>/event/<int:event_id>/delete/', views.etf_event_delete, name='etf_event_delete'),
-    path('api/etf/<str:code>/event/<int:event_id>/move/', views.etf_event_move, name='etf_event_move'),
     path('api/stock/search/', views.search_stock, name='search_stock'),
     path('api/stock/<str:code>/prompt-data/', views.fetch_stock_prompt_data, name='fetch_stock_prompt_data'),
     path('api/stock/<str:code>/data-loader/', views.fetch_stock_data_loader, name='fetch_stock_data_loader'),

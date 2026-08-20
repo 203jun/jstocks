@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET
 from decouple import config
 from telethon import TelegramClient
 from django.views.decorators.http import require_POST
-from .models import Holding, Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Gongsi, IndexChart, MarketTrend, AiNote, InvestorTrend, ShortSelling, MarketDiary, SectorEvent, ETFEvent
+from .models import Holding, Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Gongsi, IndexChart, MarketTrend, AiNote, InvestorTrend, ShortSelling, MarketDiary, SectorEvent
 from .ai_note import build_note_panel
 from .market_signal import build_market_panel, build_prompt_vars
 from .prompts import (
@@ -753,8 +753,6 @@ def index(request):
     # 뽑을 수 없어 여기 D-10 목록에서는 빠진다. 섹터·ETF 는 그대로다.
     for ev in SectorEvent.objects.filter(date__gte=today, date__lte=d10).select_related('sector').order_by('date'):
         upcoming_events.append({'type': '섹터', 'name': ev.sector.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days, 'level': 'all'})
-    for ev in ETFEvent.objects.filter(date__gte=today, date__lte=d10).select_related('etf').order_by('date'):
-        upcoming_events.append({'type': 'ETF', 'name': ev.etf.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days, 'level': 'all'})
     upcoming_events.sort(key=lambda x: x['date'])
 
     from .models import SystemSetting
@@ -3754,96 +3752,14 @@ def etf_memo_save(request, code):
     return JsonResponse({'success': True, 'updated_at': etf.memo_updated_at.strftime('%Y-%m-%d') if etf.memo_updated_at else ''})
 
 
-@require_GET
-def etf_event_list(request, code):
-    """ETF 이벤트 목록 API"""
-    from .models import ETFEvent
-    from datetime import date
-    events = ETFEvent.objects.filter(etf_id=code)
-    today = date.today()
-    results = []
-    for ev in events:
-        d_day = (ev.date - today).days if ev.date else None
-        results.append({'id': ev.id, 'date': ev.date.strftime('%Y-%m-%d') if ev.date else None, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'd_day': d_day})
-    return JsonResponse({'success': True, 'results': results})
 
 
-@require_POST
-def etf_event_save(request, code):
-    """ETF 이벤트 저장 API"""
-    from .models import InfoETF, ETFEvent
-    date_str = request.POST.get('date', '').strip()
-    date_text = request.POST.get('date_text', '').strip()
-    title = request.POST.get('title', '').strip()
-    content = request.POST.get('content', '').strip()
-    if not title:
-        return JsonResponse({'error': '제목을 입력하세요.'}, status=400)
-    if not date_text:
-        return JsonResponse({'error': '날짜를 입력하세요.'}, status=400)
-    date_val = None
-    if date_str:
-        try:
-            date_val = datetime.strptime(date_str, '%Y-%m-%d').date()
-        except ValueError:
-            pass
-    etf = get_object_or_404(InfoETF, code=code)
-    max_order = ETFEvent.objects.filter(etf=etf).order_by('-order').values_list('order', flat=True).first()
-    ev = ETFEvent.objects.create(etf=etf, date=date_val, date_text=date_text, title=title, content=content, order=(max_order or 0) + 1)
-    return JsonResponse({'success': True, 'id': ev.id})
 
 
-@require_POST
-def etf_event_update(request, code, event_id):
-    """ETF 이벤트 수정 API"""
-    from .models import ETFEvent
-    ev = get_object_or_404(ETFEvent, id=event_id, etf_id=code)
-    date_str = request.POST.get('date', '').strip()
-    date_text = request.POST.get('date_text', '').strip()
-    title = request.POST.get('title', '').strip()
-    content = request.POST.get('content', '').strip()
-    if not title:
-        return JsonResponse({'error': '제목을 입력하세요.'}, status=400)
-    if not date_text:
-        return JsonResponse({'error': '날짜를 입력하세요.'}, status=400)
-    ev.date = None
-    if date_str:
-        try:
-            ev.date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        except ValueError:
-            pass
-    ev.date_text = date_text
-    ev.title = title
-    ev.content = content
-    ev.save()
-    return JsonResponse({'success': True})
 
 
-@require_POST
-def etf_event_delete(request, code, event_id):
-    """ETF 이벤트 삭제 API"""
-    from .models import ETFEvent
-    ev = get_object_or_404(ETFEvent, id=event_id, etf_id=code)
-    ev.delete()
-    return JsonResponse({'success': True})
 
 
-@require_POST
-def etf_event_move(request, code, event_id):
-    """ETF 이벤트 순서 이동 API"""
-    from .models import ETFEvent
-    direction = request.POST.get('direction', '')
-    events = list(ETFEvent.objects.filter(etf_id=code))
-    idx = next((i for i, e in enumerate(events) if e.id == event_id), None)
-    if idx is None:
-        return JsonResponse({'error': '이벤트를 찾을 수 없습니다.'}, status=404)
-    if direction == 'up' and idx > 0:
-        events[idx], events[idx - 1] = events[idx - 1], events[idx]
-    elif direction == 'down' and idx < len(events) - 1:
-        events[idx], events[idx + 1] = events[idx + 1], events[idx]
-    for i, ev in enumerate(events):
-        if ev.order != i:
-            ETFEvent.objects.filter(id=ev.id).update(order=i)
-    return JsonResponse({'success': True})
 
 
 @require_POST
