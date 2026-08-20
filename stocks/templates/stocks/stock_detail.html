@@ -116,6 +116,14 @@
 .research-group-box > .research-chips,
 .research-group-box > .research-custom-list { padding:0 16px 12px 33px; }
 .research-count { font-size:0.7rem; color:var(--text-muted); }
+/* 새 정기보고서가 나온 뒤로 갱신 안 한 칸. 접힌 그룹에서도 보여야 한다 —
+   리서치는 그냥 두면 넉 달씩 묵는다(관측 중앙 124일). */
+.research-behind { font-size:0.68rem; color:#f59e0b; }
+.chip-behind { font-size:0.62rem; }
+.research-health {
+    padding:9px 16px; font-size:0.74rem; color:var(--text-secondary);
+    background:var(--bg-secondary); border-bottom:1px solid var(--border-color);
+}
 
 /* 아직 안 채운 칸. 눌러서 프롬프트를 복사하고 답을 붙여넣는다. */
 .research-empty-chip {
@@ -736,11 +744,15 @@
     {% endcomment %}
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;"><span>리서치 <span class="tab-count">{{ research_filled }}</span></span></h5>
     <div class="brief-card" style="padding:0; overflow:hidden;" id="researchList">
+        {% if research_health %}
+        <div class="research-health">ℹ️ {{ research_health.text }}</div>
+        {% endif %}
         {% for g in research_groups %}
         <details class="research-group-box" {% if g.open %}open{% endif %}>
             <summary>
                 <span class="research-common-label">{{ g.name }}</span>
                 <span class="research-count">{{ g.filled }}/{{ g.total }}</span>
+                {% if g.behind %}<span class="research-behind" title="새 정기보고서가 나온 뒤로 갱신하지 않은 칸">⚠️ {{ g.behind }}</span>{% endif %}
             </summary>
             <div class="research-chips">
                 {% for s in g.slots %}
@@ -748,6 +760,7 @@
                 <a href="{% url 'stocks:stock_question_report_detail' s.report.id %}" class="research-common-chip{% if '매매근거' in s.question %} research-trade-chip{% endif %}" title="{{ s.question }}">
                     <span class="chip-title">{{ s.question|truncatechars:30 }}</span>
                     <span class="chip-date" data-date="{{ s.report.updated_at|date:'Y-m-d' }}">{{ s.report.updated_at|date:"y.m.d" }}</span>
+                    {% if s.behind %}<span class="chip-behind" title="{{ s.new_report }} ({{ s.new_report_date|date:'y.m.d' }}) 가 그 뒤에 나왔습니다">⚠️</span>{% endif %}
                 </a>
                 {% else %}
                 <a href="{% url 'stocks:stock_question_report_slot' stock.code %}?q={{ s.question|urlencode }}"

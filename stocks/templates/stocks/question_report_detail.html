@@ -64,6 +64,9 @@
 #preview a { color: #2962ff; text-decoration: none; }
 #preview a:hover { text-decoration: underline; }
 #preview img { max-width: 100%; }
+.slot-alert { margin-top:8px; font-size:0.78rem; line-height:1.5; }
+.slot-alert-behind { color:#f59e0b; }
+.slot-alert-none, .slot-alert-stale { color:var(--text-muted); }
 .form-control { border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.85rem; color:var(--text-primary); }
 .form-control:focus { border-color:#2962ff; box-shadow:0 0 0 2px rgba(41,98,255,0.1); }
 
@@ -108,6 +111,11 @@
                 {% if own_prompt %} · {{ own_prompt.group }}{% else %} · 일반{% endif %}
                 {% if qr.id %} · {{ qr.updated_at|date:"Y-m-d" }}{% else %} · 아직 없음{% endif %}
             </div>
+            {% if slot_alert %}
+            <div class="slot-alert slot-alert-{{ slot_alert.state }}">
+                {% if slot_alert.state == 'behind' %}⚠️{% else %}ℹ️{% endif %} {{ slot_alert.text }}
+            </div>
+            {% endif %}
         </div>
         <div style="display:flex;gap:6px;align-items:center;">
             {% if own_prompt %}

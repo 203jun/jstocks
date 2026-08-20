@@ -1266,7 +1266,7 @@ def stock_detail(request, code):
     # 예전에는 여기에 순서 배열 세 개를 손으로 박아 두고 있었는데,
     # 프롬프트를 더하거나 이름을 바꾸면 조용히 맨 뒤로 밀렸다.
     from . import research_slots
-    research_groups, custom_question_reports = research_slots.build_groups(
+    research_groups, custom_question_reports, gongsi_health = research_slots.build_groups(
         stock, question_reports)
 
     # 전체내용 생성 (DB에 있는 모든 분석 데이터)
@@ -1682,6 +1682,7 @@ def stock_detail(request, code):
         'question_reports': question_reports,
         'research_groups': research_groups,
         'research_filled': sum(g['filled'] for g in research_groups) + len(custom_question_reports),
+        'research_health': gongsi_health,
         'custom_question_reports': custom_question_reports,
         'price_chart_data': json.dumps(price_chart_data),
         'target_chart_data': json.dumps(target_chart_data),
@@ -4906,6 +4907,7 @@ def stock_question_report_detail(request, report_id, qr=None):
     # 이제 고르는 일은 종목 화면의 빈 칸이 한다 — 칸을 누르면 그 칸의
     # 리서치로 오므로, 여기서는 이름이 같은 것 하나면 된다.
     own_prompt = research_slots.find_prompt(qr.question)
+    slot_alert = research_slots.slot_alert(qr.stock, qr, own_prompt)
 
     theme_category_name = ''
     theme_name = ''
@@ -5114,6 +5116,7 @@ def stock_question_report_detail(request, report_id, qr=None):
     return render(request, 'stocks/question_report_detail.html', {
         'qr': qr,
         'own_prompt': own_prompt,
+        'slot_alert': slot_alert,
         'theme_category_name': theme_category_name,
         'theme_name': theme_name,
         'stock_current_price': stock_current_price,
