@@ -157,13 +157,13 @@
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:6px;">
                 {% for rp in research_core %}
-                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);">📎</span>{% endif %}</button>
+                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if "{사업보고서" in rp.prompt %} <span style="font-size:0.65rem;color:var(--text-muted);" title="DART 사업보고서 본문이 자동으로 들어갑니다">📄</span>{% elif rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);" title="파일을 직접 첨부해야 합니다">📎</span>{% endif %}</button>
                 {% endfor %}
             </div>
             {% if research_extra %}
             <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
                 {% for rp in research_extra %}
-                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);">📎</span>{% endif %}</button>
+                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if "{사업보고서" in rp.prompt %} <span style="font-size:0.65rem;color:var(--text-muted);" title="DART 사업보고서 본문이 자동으로 들어갑니다">📄</span>{% elif rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);" title="파일을 직접 첨부해야 합니다">📎</span>{% endif %}</button>
                 {% endfor %}
             </div>
             {% endif %}
@@ -176,13 +176,13 @@
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:6px;">
                 {% for rp in update_core_prompts %}
-                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);">📎</span>{% endif %}</button>
+                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if "{사업보고서" in rp.prompt %} <span style="font-size:0.65rem;color:var(--text-muted);" title="DART 사업보고서 본문이 자동으로 들어갑니다">📄</span>{% elif rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);" title="파일을 직접 첨부해야 합니다">📎</span>{% endif %}</button>
                 {% endfor %}
             </div>
             {% if update_extra_prompts %}
             <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
                 {% for rp in update_extra_prompts %}
-                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);">📎</span>{% endif %}</button>
+                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if "{사업보고서" in rp.prompt %} <span style="font-size:0.65rem;color:var(--text-muted);" title="DART 사업보고서 본문이 자동으로 들어갑니다">📄</span>{% elif rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);" title="파일을 직접 첨부해야 합니다">📎</span>{% endif %}</button>
                 {% endfor %}
             </div>
             {% endif %}
@@ -196,7 +196,7 @@
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:6px;">
                 {% for rp in waiting_prompts %}
-                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);">📎</span>{% endif %}</button>
+                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if "{사업보고서" in rp.prompt %} <span style="font-size:0.65rem;color:var(--text-muted);" title="DART 사업보고서 본문이 자동으로 들어갑니다">📄</span>{% elif rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);" title="파일을 직접 첨부해야 합니다">📎</span>{% endif %}</button>
                 {% endfor %}
             </div>
         </div>
@@ -344,6 +344,7 @@ document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
 
 // 기업분석 버튼 클릭
 const entityName = '{{ qr.stock.name }}';
+const entityCode = '{{ qr.stock.code }}';
 const themeCategoryName = '{{ theme_category_name|escapejs }}';
 const themeName = '{{ theme_name|escapejs }}';
 const stockCurrentPrice = '{{ stock_current_price|escapejs }}';
@@ -491,19 +492,52 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
         prompt = prompt.replace(/\{최근실적\}/g, recentPerfReport || '');
         // {직전트래커} 치환 (트래커 리서치의 직전 저장본 / 처음이면 빈칸)
         prompt = prompt.replace(/\{직전트래커\}/g, prevTracker || '');
+
+        // 남은 변수 경고는 사업보고서를 넣기 전에 한다 — 보고서 본문에도
+        // 중괄호가 섞여 있어, 넣고 나서 훑으면 없는 변수를 있다고 한다.
+        warnMissingVars(prompt.replace(/\{사업보고서(?::[^}]*)?\}/g, ''));
+
+        // {사업보고서} — DART 정기보고서에서 절 본문을 받아 채운다.
+        //
+        // 예전에는 이 자리를 사람이 채웠다. DART 에서 PDF 를 내려받아
+        // claude.ai 에 첨부하는 식이었고, 손이 많이 가서 잘 안 하게 됐다.
+        // 절 하나만 받으므로 0.3~1초면 끝난다.
+        const orig = btn.innerHTML;
+        const brMatch = prompt.match(/\{사업보고서(?::([^}]*))?\}/);
+        if (brMatch) {
+            btn.innerHTML = '사업보고서 받는 중…';
+            try {
+                const qs = brMatch[1] ? '?sections=' + encodeURIComponent(brMatch[1]) : '';
+                const res = await fetch(`/api/business-report/${entityCode}/${qs}`);
+                const data = await res.json();
+                if (!data.success) {
+                    alert('사업보고서를 넣지 못했습니다.\n\n' + (data.error || '조회 실패'));
+                    btn.innerHTML = orig;
+                    return;
+                }
+                // 어느 보고서의 어느 절인지 머리에 달아준다. 없으면 AI 가
+                // 언제 기준 자료인지 몰라 "최신 자료가 아닐 수 있다"만 반복한다.
+                const head = `[${data.title} · ${data.date} · ${data.sections.join(' / ')}]\n${data.link}`;
+                prompt = prompt.split(brMatch[0]).join(`${head}\n\n${data.content}`);
+            } catch (err) {
+                alert('사업보고서 조회 실패: ' + err.message);
+                btn.innerHTML = orig;
+                return;
+            }
+        }
         document.getElementById('questionInput').value = question;
         try {
             await copyToClipboard(prompt);
-            const orig = btn.textContent;
-            btn.textContent = '복사됨!';
+            btn.innerHTML = '복사됨!';
             btn.style.borderColor = '#28a745';
             btn.style.color = '#28a745';
             setTimeout(() => {
-                btn.textContent = orig;
+                btn.innerHTML = orig;
                 btn.style.borderColor = '';
                 btn.style.color = '';
             }, 1500);
         } catch (err) {
+            btn.innerHTML = orig;
             alert('복사 실패: ' + err.message);
         }
     });

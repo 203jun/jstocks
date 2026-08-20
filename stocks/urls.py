@@ -70,6 +70,7 @@ urlpatterns = [
     path('api/stock/<str:code>/event/<int:event_id>/move/', views.stock_event_move, name='stock_event_move'),
     path('api/dart/<str:code>/', views.fetch_dart, name='fetch_dart'),
     path('api/dart-document/<str:rcept_no>/', views.fetch_dart_document, name='fetch_dart_document'),
+    path('api/business-report/<str:code>/', views.fetch_business_report, name='fetch_business_report'),
     path('settings/', views.settings, name='settings'),
     path('api/category/add/', views.category_add, name='category_add'),
     path('api/category/<int:category_id>/delete/', views.category_delete, name='category_delete'),

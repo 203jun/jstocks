@@ -1294,7 +1294,7 @@ def stock_detail(request, code):
     # 일반 질문: 트래킹 먼저, 그 안에서 수정일 최신순
     custom_question_reports.sort(key=lambda q: (not q.is_tracking, -q.updated_at.timestamp()))
     # 기업분석 순서 고정
-    common_order = ['사업모델', '수익구조', '경쟁력', '경쟁사', '중장기전망', '지배구조', '수주잔고', '파이프라인', 'R&D', '매장점포', '원자재공급망', '보유자산']
+    common_order = ['사업모델', '수익구조', '경쟁력', '경쟁사', '중장기전망', '지배구조', '수주잔고', '파이프라인', 'R&D']
     common_core_reports.sort(key=lambda q: common_order.index(q.question) if q.question in common_order else 99)
     common_extra_reports.sort(key=lambda q: common_order.index(q.question) if q.question in common_order else 99)
     # 업데이트 순서 고정
@@ -3555,6 +3555,90 @@ def fetch_dart_document(request, rcept_no):
         'rcept_no': rcept_no,
         'content_length': len(content),
         'content': content,
+    })
+
+
+@require_GET
+def fetch_business_report(request, code):
+    """
+    사업보고서에서 절 하나(또는 여럿)만 뽑아 준다.
+
+    기업분석 프롬프트의 {사업보고서} 자리를 채우려고 화면이 부른다. 공시 본문
+    (fetch_dart_document)과 달리 보고서 전체를 받지 않는다 — 정기보고서는 목차
+    절 단위로 나뉘어 있고, 필요한 것은 보통 'II. 사업의 내용' 하나다.
+
+    ?sections=사업의 내용,이사회   지정 안 하면 II. 사업의 내용
+    """
+    import requests
+
+    from . import business_report as br
+    from .models import Info
+
+    stock = Info.objects.filter(code=code).first()
+    if not stock:
+        return JsonResponse({'error': '종목을 찾을 수 없습니다.'}, status=404)
+
+    raw = (request.GET.get('sections') or '').strip()
+    sections = [s.strip() for s in raw.split(',') if s.strip()] or list(br.DEFAULT_SECTIONS)
+
+    gongsi = br.latest_regular_report(stock)
+    if not gongsi:
+        return JsonResponse({
+            'error': f'{stock.name}의 정기보고서(사업·반기·분기)를 찾지 못했습니다. '
+                     f'공시 탭을 갱신하거나 DART 에서 직접 확인하세요.',
+        }, status=404)
+
+    rcept_no = gongsi.link.split('rcpNo=')[1].split('&')[0]
+    session = requests.Session()
+    session.headers['User-Agent'] = DART_USER_AGENT
+    try:
+        main = session.get(f'{DART_VIEWER_BASE}/dsaf001/main.do',
+                           params={'rcpNo': rcept_no}, timeout=30)
+        main.raise_for_status()
+    except requests.RequestException as exc:
+        return JsonResponse({'error': f'DART 접속 실패: {exc}'}, status=500)
+
+    nodes = br.pick_nodes(_dart_top_nodes(main.text), sections)[0]
+    if not nodes:
+        return JsonResponse({
+            'error': f'보고서에서 "{", ".join(sections)}" 절을 찾지 못했습니다. '
+                     f'프롬프트의 {{사업보고서:…}} 에 적은 절 이름을 확인하세요.',
+        }, status=404)
+
+    parts, total = [], 0
+    try:
+        for node in nodes:
+            text = _dart_viewer_text(session, {
+                'rcpNo': node['rcpNo'] or rcept_no, 'dcmNo': node['dcmNo'],
+                'eleId': node['eleId'], 'offset': node['offset'],
+                'length': node['length'], 'dtd': node['dtd'],
+            })
+            if not text:
+                continue
+            parts.append(f'### {node["text"]}\n\n{text}')
+            total += len(text)
+            if total > br.MAX_CHARS:
+                break
+    except requests.RequestException as exc:
+        return JsonResponse({'error': f'보고서 조회 실패: {exc}'}, status=500)
+
+    if total > br.MAX_CHARS:
+        # 자르지 않고 거절한다. 앞부분만 든 채로 다 봤다고 착각하는 편이 더 나쁘다.
+        return JsonResponse({
+            'error': f'본문이 너무 깁니다 ({total:,}자, 한도 {br.MAX_CHARS:,}자). '
+                     f'절을 좁혀 지정하세요 — "재무에 관한 사항"은 그 자체로 2MB 가 넘습니다.',
+        }, status=413)
+    if not parts:
+        return JsonResponse({'error': '보고서 본문을 추출할 수 없습니다.'}, status=404)
+
+    return JsonResponse({
+        'success': True,
+        'title': _re.sub(r'\s+', ' ', gongsi.title).strip(),
+        'date': f'{gongsi.date:%Y-%m-%d}',
+        'link': gongsi.link,
+        'sections': [n['text'] for n in nodes],
+        'content_length': total,
+        'content': '\n\n'.join(parts),
     })
 
 
