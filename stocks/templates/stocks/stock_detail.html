@@ -594,11 +594,15 @@
     <div class="bi-row">
         <span class="bi-label">회사</span>
         <div class="bi-body">
+            {# 크기·수익성 한 줄, 주식 구조 한 줄. 일곱 개를 한 줄에 흘리면
+               어디서 끊기는지가 화면 폭에 따라 달라져 눈이 헤맨다. #}
             <div class="bi-facts">
                 <span><i>시총</i> {{ stock.market_cap|eok }}</span>
                 <span><i>PER</i> {% if stock.per %}{{ stock.per }}배{% else %}-{% endif %}</span>
                 <span><i>PBR</i> {% if stock.pbr %}{{ stock.pbr }}배{% else %}-{% endif %}</span>
                 <span><i>ROE</i> {% if stock.roe %}{{ stock.roe }}%{% else %}-{% endif %}</span>
+            </div>
+            <div class="bi-facts">
                 <span><i>유통비율</i> {% if stock.listed_ratio %}{{ stock.listed_ratio }}%{% else %}-{% endif %}</span>
                 <span><i>신용비율</i> {% if stock.credit_ratio %}{{ stock.credit_ratio }}%{% else %}-{% endif %}</span>
                 <span><i>외인소진률</i> {% if stock.foreign_exhaustion %}{{ stock.foreign_exhaustion }}%{% else %}-{% endif %}</span>
