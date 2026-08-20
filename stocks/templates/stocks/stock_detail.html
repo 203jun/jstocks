@@ -425,7 +425,6 @@
 @media (max-width:767px) { .yt-thumb { width:100px; height:56px; } }
 
 /* Refresh spin */
-#btnRefreshStock.spin { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 /* 수급 대시보드 점수판 */
@@ -520,7 +519,6 @@
             {{ stock.name }}
             <span style="font-size:0.7rem;font-weight:400;color:var(--text-muted);margin-left:8px;">{{ stock.code }}</span>
             {% if stock.interest_level %}
-            <button type="button" id="btnRefreshStock" class="btn-refresh" data-code="{{ stock.code }}" style="margin-left:8px;font-size:0.75rem;">새로고침</button>
             {% endif %}
         </h5>
         <div class="d-flex gap-2" style="margin-top:6px;">
@@ -2678,67 +2676,6 @@ new Chart(document.getElementById('quarterlyChart'), {
 })();
 {% endif %}
 
-// ===== Stock refresh =====
-const btnRefreshStock = document.getElementById('btnRefreshStock');
-if (btnRefreshStock) btnRefreshStock.addEventListener('click', async function() {
-    const code = this.dataset.code;
-    this.disabled = true;
-    this.classList.add('spin');
-
-    try {
-        const response = await fetch(`/api/stock/${code}/refresh/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-        });
-        const data = await response.json();
-
-        if (data.success) {
-            const d = data.data;
-            document.getElementById('currentPrice').textContent = d.current_price ? d.current_price.toLocaleString('ko-KR') : '-';
-
-            const changeRateEl = document.getElementById('changeRate');
-            if (d.change_rate !== null) {
-                const sign = d.change_rate > 0 ? '+' : '';
-                changeRateEl.textContent = `${sign}${d.change_rate}%`;
-                changeRateEl.className = d.change_rate > 0 ? 'text-up' : d.change_rate < 0 ? 'text-down' : '';
-                changeRateEl.style.fontSize = '1.1rem';
-                changeRateEl.style.fontWeight = '700';
-            } else {
-                changeRateEl.textContent = '-';
-                changeRateEl.className = '';
-            }
-
-            const priceChangeEl = document.getElementById('priceChange');
-            if (d.price_change !== null) {
-                const sign = d.price_change > 0 ? '+' : '';
-                priceChangeEl.textContent = `${sign}${d.price_change.toLocaleString('ko-KR')}`;
-                priceChangeEl.className = d.price_change > 0 ? 'text-up' : d.price_change < 0 ? 'text-down' : '';
-            } else {
-                priceChangeEl.textContent = '-';
-                priceChangeEl.className = '';
-            }
-
-            document.getElementById('volume').textContent = d.volume ? d.volume.toLocaleString('ko-KR') : '-';
-
-            const results = data.results;
-            let msg = '업데이트 완료: ';
-            msg += `기본정보(${results.info}), `;
-            msg += `수급(${results.investor}), `;
-            msg += `공매도(${results.short})`;
-
-            if (results.info !== 'success' || results.investor !== 'success' || results.short !== 'success') {
-                alert(msg);
-            }
-        } else {
-            alert(data.error || '업데이트 실패');
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-    } finally {
-        this.disabled = false;
-        this.classList.remove('spin');
-    }
-});
 
 // ===== Investor trend chart (Kiwoom) =====
 const investorChartData = {{ investor_chart_data|safe }};

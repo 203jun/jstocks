@@ -57,7 +57,6 @@ urlpatterns = [
     path('api/diary/<int:diary_id>/delete/', views.diary_delete, name='diary_delete'),
     # 종목별 투자일지
     # 종목별 이벤트
-    path('api/dart/<str:code>/', views.fetch_dart, name='fetch_dart'),
     path('api/dart-document/<str:rcept_no>/', views.fetch_dart_document, name='fetch_dart_document'),
     path('api/business-report/<str:code>/', views.fetch_business_report, name='fetch_business_report'),
     path('settings/', views.settings, name='settings'),
@@ -79,12 +78,6 @@ urlpatterns = [
     path('api/stock/question-report/save/', views.stock_question_report_save, name='stock_question_report_save'),
     path('api/stock/question-report/<int:report_id>/update/', views.stock_question_report_update, name='stock_question_report_update'),
     path('api/stock/question-report/<int:report_id>/delete/', views.stock_question_report_delete, name='stock_question_report_delete'),
-    path('api/market/trend/<str:market>/refresh/', views.refresh_market_trend, name='refresh_market_trend'),
-    path('api/stock/<str:code>/refresh/', views.refresh_stock, name='refresh_stock'),
-    path('api/stock/<str:code>/refresh-chart/', views.refresh_stock_chart, name='refresh_stock_chart'),
-    path('api/etf/<str:code>/refresh-chart/', views.refresh_etf_chart, name='refresh_etf_chart'),
-    path('api/stock/<str:code>/investor-trend/', views.fetch_investor_trend, name='fetch_investor_trend'),
-    path('api/stock/<str:code>/short-selling/', views.fetch_short_selling, name='fetch_short_selling'),
     path('api/setting/get/', views.get_setting, name='get_setting'),
     path('api/setting/save/', views.save_setting, name='save_setting'),
     # 시장 AI 판단
