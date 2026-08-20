@@ -165,7 +165,7 @@ def build_groups(stock, reports=None):
 
     custom = sorted(
         (r for q, r in by_question.items() if q not in used),
-        key=lambda r: (not r.is_tracking, -r.updated_at.timestamp()),
+        key=lambda r: -r.updated_at.timestamp(),
     )
     return groups, custom, health
 

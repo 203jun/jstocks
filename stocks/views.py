@@ -4891,8 +4891,6 @@ def stock_question_report_detail(request, report_id, qr=None):
             if field in request.POST:
                 value = request.POST[field]
                 setattr(qr, field, value.strip() if field == 'question' else value)
-        if 'is_tracking_present' in request.POST:
-            qr.is_tracking = request.POST.get('is_tracking') == 'on'
         report_type = request.POST.get('report_type')
         if report_type in ('html', 'markdown'):
             qr.report_type = report_type

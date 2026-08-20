@@ -104,7 +104,7 @@
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
         <div>
             <div style="font-size:0.9rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">
-                {{ qr.question }}{% if qr.is_tracking %} 📌{% endif %}
+                {{ qr.question }}
             </div>
             <div style="font-size:0.82rem;color:var(--text-secondary);">
                 {{ qr.stock.name }}
@@ -145,13 +145,7 @@
     <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">질문·프롬프트<span style="font-weight:400;"><button type="submit" class="btn-refresh">저장</button></span></h5>
     <div class="brief-card">
         <div style="margin-bottom:16px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                <span style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">질문</span>
-                <label style="font-size:0.78rem;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;gap:4px;">
-                    <input type="hidden" name="is_tracking_present" value="1">
-                    <input type="checkbox" name="is_tracking" {% if qr.is_tracking %}checked{% endif %} style="margin:0;"> 트래킹
-                </label>
-            </div>
+            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">질문</div>
             <input type="text" name="question" id="questionInput" value="{{ qr.question }}" placeholder="질문을 입력하세요...">
         </div>
         <div>

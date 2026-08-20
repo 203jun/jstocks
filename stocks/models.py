@@ -1509,11 +1509,6 @@ class SectorQuestionReport(models.Model):
         verbose_name='리포트 형식',
         help_text='리포트의 형식 (HTML 또는 마크다운)'
     )
-    is_tracking = models.BooleanField(
-        default=False,
-        verbose_name='트래킹',
-        help_text='계속 업데이트할 질문 여부'
-    )
     ai_question = models.TextField(
         blank=True,
         default='',
@@ -1569,11 +1564,6 @@ class StockQuestionReport(models.Model):
         default='html',
         verbose_name='리포트 형식',
         help_text='리포트의 형식 (HTML 또는 마크다운)'
-    )
-    is_tracking = models.BooleanField(
-        default=False,
-        verbose_name='트래킹',
-        help_text='계속 업데이트할 질문 여부'
     )
     ai_question = models.TextField(
         blank=True,
