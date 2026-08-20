@@ -10,19 +10,6 @@
 .btn-refresh:hover { border-color:var(--text-secondary); color:var(--text-primary); }
 .btn-refresh.danger { border-color:var(--up-color); color:var(--up-color); }
 .btn-refresh.danger:hover { background:var(--up-color); color:#fff; }
-#reportInput {
-    width: 100%;
-    height: 300px;
-    font-family: monospace;
-    font-size: 0.85rem;
-    resize: vertical;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    padding: 12px;
-    color: var(--text-primary);
-    line-height: 1.7;
-}
-#reportInput:focus { border-color: #2962ff; outline: none; box-shadow: 0 0 0 2px rgba(41,98,255,0.1); }
 #questionInput {
     width: 100%;
     font-size: 0.85rem;
@@ -87,51 +74,60 @@
 [data-theme="dark"] #preview code { background: #1a1d24 !important; color: #f472b6 !important; }
 [data-theme="dark"] #preview a { color: #5b8def !important; }
 
-.common-research-box { background: #f8f9fa; }
-[data-theme="dark"] .common-research-box { background: #22262f; }
-.prompt-badge { display:inline-block; padding:3px 10px; border-radius:4px; font-size:0.72rem; font-weight:500; cursor:pointer; background:#ecfdf5; color:#059669; transition:all 0.15s; }
-.prompt-badge:hover { background:#d1fae5; }
 {% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center" style="margin-bottom:20px;">
     <h5 style="font-weight:700;margin:0;color:var(--text-primary);">리서치</h5>
     <div style="display:flex;gap:6px;">
-        <button type="button" class="btn-refresh danger" id="btnDelete">삭제</button>
+        {% if qr.id %}<button type="button" class="btn-refresh danger" id="btnDelete">삭제</button>{% endif %}
         <a href="javascript:history.back()" class="btn-refresh">돌아가기</a>
     </div>
 </div>
 
 <!-- 질문 -->
+{% comment %}
+리서치는 '프롬프트 칸'이다. 이 화면은 그 칸 하나를 보는 자리다.
+
+편집 폼을 없앴다. 예전에는 미리보기와 편집 폼이 위아래로 늘 둘 다 열려
+같은 내용을 두 번 보여줬고, 프롬프트를 고르려면 그 사이에 묻힌 칩 스물두
+개를 뒤져야 했다. 이제 프롬프트도 붙여넣기도 맨 윗줄에 있다.
+
+직접 만든 질문(일반)만 편집 폼이 남는다. 질문도 프롬프트도 내가 써야
+하기 때문이다.
+{% endcomment %}
 <h5 class="section-heading" style="margin-top:0;">질문</h5>
 <div class="brief-card">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
         <div>
             <div style="font-size:0.9rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">
-{{ qr.question }}{% if qr.is_tracking %} 📌{% endif %}
+                {{ qr.question }}{% if qr.is_tracking %} 📌{% endif %}
             </div>
             <div style="font-size:0.82rem;color:var(--text-secondary);">
-                {{ qr.stock.name }} · {{ qr.created_at|date:"Y-m-d H:i" }}
+                {{ qr.stock.name }}
+                {% if own_prompt %} · {{ own_prompt.group }}{% else %} · 일반{% endif %}
+                {% if qr.id %} · {{ qr.updated_at|date:"Y-m-d" }}{% else %} · 아직 없음{% endif %}
             </div>
         </div>
-        {% comment %}
-        맨 윗줄에서 늘 프롬프트에 닿는다.
-        이름이 같은 프롬프트가 있으면 그것 하나, 없으면(새로 만든 리서치)
-        고르러 가는 문. 어느 쪽이든 편집까지 내려갈 일이 없다.
-        {% endcomment %}
-        {% if own_prompt %}
-        <span class="prompt-pair" style="flex:none;">
-            <span class="common-research-btn" role="button"
-                  data-question="{{ own_prompt.question }}" data-prompt="{{ own_prompt.prompt }}"
-                  title="{{ own_prompt.group }} · {{ own_prompt.question }} 프롬프트를 복사합니다">프롬프트{% if own_prompt.auto_report %} 📄{% elif own_prompt.needs_attachment %} 📎{% endif %}</span>
-            <a href="{% url 'stocks:settings' %}#{{ own_prompt.panel }}" target="_blank" rel="noopener" title="이 프롬프트 편집">⚙</a>
-        </span>
-        {% else %}
-        <span class="prompt-pair" style="flex:none;">
-            <span role="button" id="btnPickPrompt"
-                  title="이 리서치를 어느 프롬프트의 것으로 할지 고릅니다">프롬프트 고르기</span>
-        </span>
-        {% endif %}
+        <div style="display:flex;gap:6px;align-items:center;">
+            {% if own_prompt %}
+            <span class="prompt-pair">
+                <span class="common-research-btn" role="button"
+                      data-question="{{ own_prompt.question }}" data-prompt="{{ own_prompt.prompt }}"
+                      title="{{ own_prompt.group }} · {{ own_prompt.question }} 프롬프트를 복사합니다">프롬프트{% if own_prompt.auto_report %} 📄{% elif own_prompt.needs_attachment %} 📎{% endif %}</span>
+                <a href="{% url 'stocks:settings' %}#{{ own_prompt.panel }}" target="_blank" rel="noopener" title="이 프롬프트 편집">⚙</a>
+            </span>
+            {% elif qr.ai_question %}
+            <span class="prompt-pair">
+                <span class="common-research-btn" role="button"
+                      data-question="{{ qr.question }}" data-prompt="{{ qr.ai_question }}"
+                      title="이 질문에 적어둔 프롬프트를 복사합니다">프롬프트</span>
+            </span>
+            {% endif %}
+            <span class="prompt-pair">
+                <span role="button" id="btnPasteReport">붙여넣기</span>
+            </span>
+        </div>
     </div>
 </div>
 
@@ -144,116 +140,41 @@
 </div>
 {% endif %}
 
-<!-- 미리보기 -->
-<h5 class="section-heading">미리보기</h5>
-<div class="brief-card" style="padding:0;">
-    <div id="preview" style="border:none;border-radius:var(--radius);"></div>
-</div>
-
+{% if not own_prompt %}
+<!-- 일반 질문 — 질문과 프롬프트를 직접 쓴다 -->
 <form method="post">
     {% csrf_token %}
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">편집<span style="display:flex;gap:6px;font-weight:400;"><button type="submit" class="btn-refresh">저장</button></span></h5>
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">질문·프롬프트<span style="font-weight:400;"><button type="submit" class="btn-refresh">저장</button></span></h5>
     <div class="brief-card">
         <div style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                 <span style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">질문</span>
                 <label style="font-size:0.78rem;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;gap:4px;">
+                    <input type="hidden" name="is_tracking_present" value="1">
                     <input type="checkbox" name="is_tracking" {% if qr.is_tracking %}checked{% endif %} style="margin:0;"> 트래킹
                 </label>
             </div>
             <input type="text" name="question" id="questionInput" value="{{ qr.question }}" placeholder="질문을 입력하세요...">
         </div>
-        <div style="margin-bottom:16px;">
-            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">AI질문</div>
-            <textarea name="ai_question" id="aiQuestionInput" rows="4" placeholder="실제 AI에게 한 질문을 입력하세요...">{{ qr.ai_question }}</textarea>
-        </div>
-        {% comment %}
-        프롬프트 목록은 '이 리서치가 어느 프롬프트의 것인지' 고르는 자리다.
-        누르면 질문 이름이 그 프롬프트 이름으로 바뀐다. 이미 정해진
-        리서치에는 필요 없으므로 접어 둔다.
-        {% endcomment %}
-        <div id="promptPicker">
-        {% if own_prompt %}
-        <details style="margin-bottom:16px;">
-            <summary style="font-size:0.78rem;color:var(--text-secondary);cursor:pointer;">다른 프롬프트로 바꾸기</summary>
-            <div style="margin-top:10px;">
-        {% endif %}
-        {% if research_core or research_extra %}
-        <div class="common-research-box" style="margin-bottom:16px; padding:12px 14px; border-radius:var(--radius-sm); border:1px dashed var(--border-color);">
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
-                <span style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);">기업분석</span>
-
-            </div>
-            <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                {% for rp in research_core %}
-                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if "{사업보고서" in rp.prompt %} <span style="font-size:0.65rem;color:var(--text-muted);" title="DART 사업보고서 본문이 자동으로 들어갑니다">📄</span>{% elif rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);" title="파일을 직접 첨부해야 합니다">📎</span>{% endif %}</button>
-                {% endfor %}
-            </div>
-            {% if research_extra %}
-            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
-                {% for rp in research_extra %}
-                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if "{사업보고서" in rp.prompt %} <span style="font-size:0.65rem;color:var(--text-muted);" title="DART 사업보고서 본문이 자동으로 들어갑니다">📄</span>{% elif rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);" title="파일을 직접 첨부해야 합니다">📎</span>{% endif %}</button>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-        {% if update_core_prompts or update_extra_prompts %}
-        <div class="common-research-box" style="margin-bottom:16px; padding:12px 14px; border-radius:var(--radius-sm); border:1px dashed var(--border-color);">
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
-                <span style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);">업데이트</span>
-            </div>
-            <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                {% for rp in update_core_prompts %}
-                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if "{사업보고서" in rp.prompt %} <span style="font-size:0.65rem;color:var(--text-muted);" title="DART 사업보고서 본문이 자동으로 들어갑니다">📄</span>{% elif rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);" title="파일을 직접 첨부해야 합니다">📎</span>{% endif %}</button>
-                {% endfor %}
-            </div>
-            {% if update_extra_prompts %}
-            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
-                {% for rp in update_extra_prompts %}
-                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if "{사업보고서" in rp.prompt %} <span style="font-size:0.65rem;color:var(--text-muted);" title="DART 사업보고서 본문이 자동으로 들어갑니다">📄</span>{% elif rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);" title="파일을 직접 첨부해야 합니다">📎</span>{% endif %}</button>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-        {% if waiting_prompts %}
-        <div class="common-research-box" style="margin-bottom:16px; padding:12px 14px; border-radius:var(--radius-sm); border:1px dashed var(--border-color);">
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
-                <span style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);">대기</span>
-
-            </div>
-            <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                {% for rp in waiting_prompts %}
-                <button type="button" class="btn-refresh common-research-btn" data-question="{{ rp.question }}" data-prompt="{{ rp.prompt }}">{{ rp.question }}{% if "{사업보고서" in rp.prompt %} <span style="font-size:0.65rem;color:var(--text-muted);" title="DART 사업보고서 본문이 자동으로 들어갑니다">📄</span>{% elif rp.needs_attachment %} <span style="font-size:0.65rem;color:var(--text-muted);" title="파일을 직접 첨부해야 합니다">📎</span>{% endif %}</button>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        {% if own_prompt %}
-            </div>
-        </details>
-        {% endif %}
-        </div>
-        <div style="margin-bottom:16px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                <span style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">리포트</span>
-                <select name="report_type" id="reportType" class="form-control" style="width:auto;padding:2px 8px;font-size:0.78rem;">
-                    <option value="markdown" {% if qr.report_type == 'markdown' or not qr.report_type %}selected{% endif %}>마크다운</option>
-                    <option value="html" {% if qr.report_type == 'html' %}selected{% endif %}>HTML</option>
-                </select>
-            </div>
-            <textarea name="report" id="reportInput" placeholder="리포트 내용을 입력하세요...">{{ qr.report }}</textarea>
-        </div>
         <div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">요약</div>
-                {% prompt_pair "prompt_summary" cls="btn-copy-summary-prompt" source="reportInput" %}
-            </div>
-            <textarea name="my_opinion" id="myOpinionInput" rows="4" style="width:100%;font-family:monospace;font-size:0.85rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;color:var(--text-primary);line-height:1.7;resize:vertical;" placeholder="마크다운 형식으로 요약을 입력하세요...">{{ qr.my_opinion }}</textarea>
+            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">프롬프트</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">여기 적어두면 위의 [프롬프트] 버튼으로 복사됩니다. {현재가} {시가총액} 같은 변수도 씁니다.</div>
+            <textarea name="ai_question" id="aiQuestionInput" rows="6" placeholder="이 질문에 쓸 프롬프트를 입력하세요...">{{ qr.ai_question }}</textarea>
         </div>
+        <input type="hidden" id="reportType" value="{{ qr.report_type|default:'markdown' }}">
     </div>
 </form>
+{% else %}
+<input type="hidden" id="questionInput" value="{{ qr.question }}">
+<input type="hidden" id="reportType" value="{{ qr.report_type|default:'markdown' }}">
+{% endif %}
+
+<!-- 리포트 -->
+<h5 class="section-heading">리포트</h5>
+<div class="brief-card" style="padding:0;">
+    <div id="preview" style="border:none;border-radius:var(--radius);"></div>
+</div>
+<script type="text/plain" id="reportRaw">{{ qr.report }}</script>
 {% endblock %}
 
 {% block extra_js %}
@@ -261,9 +182,11 @@
 {{ all_content_data|json_script:"all-content-data" }}
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
-const reportInput = document.getElementById('reportInput');
 const reportType = document.getElementById('reportType');
 const preview = document.getElementById('preview');
+// 저장된 리포트 원문. 편집 폼이 없어졌으므로 textarea 가 아니라
+// <script type="text/plain"> 에 담아 두고 읽는다.
+const reportRaw = (document.getElementById('reportRaw')?.textContent || '');
 
 marked.setOptions({ breaks: true });
 marked.use({ extensions: [{ name: 'highlight', level: 'inline', childTokens: ['tokens'], start(src) { return src.indexOf('=='); }, tokenizer(src) { const match = src.match(/^==([^=]+)==/); if (match) { const token = { type: 'highlight', raw: match[0], text: match[1], tokens: [] }; this.lexer.inline(token.text, token.tokens); return token; } }, renderer(token) { return `<mark>${this.parser.parseInline(token.tokens)}</mark>`; } }] });
@@ -296,9 +219,9 @@ function warnMissingVars(prompt) {
     }
 }
 
-function updatePreview() {
-    let content = reportInput.value;
-    const type = reportType.value;
+function updatePreview(text) {
+    let content = text === undefined ? reportRaw : text;
+    const type = (reportType?.value) || 'markdown';
     if (!content) {
         preview.innerHTML = '<span style="color:var(--text-muted);">미리보기가 여기에 표시됩니다.</span>';
         return;
@@ -311,8 +234,6 @@ function updatePreview() {
     }
 }
 
-reportInput.addEventListener('input', updatePreview);
-reportType.addEventListener('change', updatePreview);
 updatePreview();
 
 const opinionRaw = document.getElementById('opinionRaw');
@@ -326,9 +247,7 @@ document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
     btn.addEventListener('click', async () => {
         const promptTemplate = `{{ prompt_summary|default:""|escapejs }}`;
         if (!promptTemplate) { alert('설정 → 프롬프트 → 요약에서 프롬프트를 먼저 등록하세요.'); return; }
-        const sourceId = btn.getAttribute('data-source');
-        const sourceEl = sourceId ? document.getElementById(sourceId) : null;
-        const sourceText = (sourceEl ? ('value' in sourceEl ? sourceEl.value : sourceEl.textContent) : '').trim();
+        const sourceText = reportRaw.trim();
         if (!sourceText) { alert('원문이 없습니다.'); return; }
         let prompt = promptTemplate.replace(/\{원문\}/g, sourceText);
         const _v = (x) => (x === undefined || x === null || String(x).trim() === '') ? '' : String(x);
@@ -374,15 +293,6 @@ document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
             alert('복사 실패: ' + err.message);
         }
     });
-});
-
-// '프롬프트 고르기' — 아직 어느 프롬프트의 것인지 정해지지 않은 리서치.
-// 목록은 편집 폼 안에 있으므로 접혀 있으면 펴고 그 자리로 데려간다.
-document.getElementById('btnPickPrompt')?.addEventListener('click', () => {
-    const picker = document.getElementById('promptPicker');
-    if (!picker) return;
-    picker.querySelectorAll('details').forEach(d => { d.open = true; });
-    picker.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
 // 기업분석 버튼 클릭
@@ -591,7 +501,7 @@ document.querySelectorAll('.common-research-btn').forEach(btn => {
 });
 
 // 삭제
-document.getElementById('btnDelete').addEventListener('click', async () => {
+document.getElementById('btnDelete')?.addEventListener('click', async () => {
     if (!confirm('이 리서치를 삭제하시겠습니까?')) return;
     try {
         const deleteUrl = '/api/stock/question-report/{{ qr.id }}/delete/';
@@ -611,5 +521,81 @@ document.getElementById('btnDelete').addEventListener('click', async () => {
     }
 });
 
+</script>
+
+{% comment %}
+붙여넣기 창. AI 답변을 통째로 넣고 저장하면 이 칸이 채워진다.
+같은 칸에 다시 넣으면 덮어쓴다 — 칸 하나에 리서치 하나이기 때문이다.
+{% endcomment %}
+<div class="modal-overlay" id="qrPasteModal">
+    <div class="modal-box" style="max-width:720px;">
+        <div class="modal-header-custom">
+            <h6 id="qrPasteTitle">붙여넣기</h6>
+            <button type="button" class="modal-close-btn" id="qrPasteClose">&times;</button>
+        </div>
+        <div class="ma-note" id="qrPasteNote"></div>
+        <textarea id="qrPasteContent" spellcheck="false" placeholder="AI 답변을 통째로 붙여넣으세요"></textarea>
+        <div class="mp-foot">
+            <button type="button" class="mp-save" id="qrPasteSave">저장</button>
+            <button type="button" class="mp-btn" id="qrPasteClear">비우기</button>
+            <span class="mp-msg" id="qrPasteMsg"></span>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    const modal = document.getElementById('qrPasteModal');
+    const box = document.getElementById('qrPasteContent');
+    const msg = document.getElementById('qrPasteMsg');
+    const open = document.getElementById('btnPasteReport');
+    if (!modal || !open) return;
+
+    open.addEventListener('click', () => {
+        box.value = reportRaw;
+        document.getElementById('qrPasteTitle').textContent =
+            '{{ qr.question|escapejs }} · {{ qr.stock.name|escapejs }}';
+        document.getElementById('qrPasteNote').textContent = reportRaw.trim()
+            ? '이미 저장된 내용이 있습니다. 저장하면 덮어씁니다.'
+            : '아직 비어 있는 칸입니다. AI 답변을 통째로 붙여넣으세요.';
+        msg.textContent = '';
+        modal.classList.add('show');
+        box.focus();
+    });
+
+    document.getElementById('qrPasteSave').addEventListener('click', async function () {
+        this.disabled = true;
+        try {
+            const body = new URLSearchParams({
+                stock_code: '{{ qr.stock.code }}',
+                question: (document.getElementById('questionInput')?.value || '{{ qr.question|escapejs }}'),
+                report: box.value,
+                report_type: 'markdown',
+            });
+            const res = await fetch('/api/stock/question-report/save/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: body,
+            });
+            const data = await res.json();
+            if (!data.success) { msg.textContent = data.error || '저장 실패'; return; }
+            msg.textContent = '저장했습니다';
+            // 저장 전 화면이면 주소가 ?q=... 이라 새 행으로 옮겨 가야 한다
+            setTimeout(() => { location.href = '/research/' + data.id + '/'; }, 400);
+        } catch (err) {
+            msg.textContent = '저장 실패: ' + err.message;
+        } finally {
+            this.disabled = false;
+        }
+    });
+
+    document.getElementById('qrPasteClear').addEventListener('click', () => {
+        box.value = ''; msg.textContent = ''; box.focus();
+    });
+    document.getElementById('qrPasteClose').addEventListener('click', () => modal.classList.remove('show'));
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
+})();
 </script>
 {% endblock %}

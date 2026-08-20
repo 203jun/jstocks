@@ -86,6 +86,7 @@ urlpatterns = [
     path('api/telegram/message/<int:message_id>/delete/', views.telegram_message_delete, name='telegram_message_delete'),
     # 질문리포트 (종목)
     path('research/<int:report_id>/', views.stock_question_report_detail, name='stock_question_report_detail'),
+    path('research/slot/<str:code>/', views.stock_question_report_slot, name='stock_question_report_slot'),
     path('api/stock/question-report/save/', views.stock_question_report_save, name='stock_question_report_save'),
     path('api/stock/question-report/<int:report_id>/update/', views.stock_question_report_update, name='stock_question_report_update'),
     path('api/stock/question-report/<int:report_id>/delete/', views.stock_question_report_delete, name='stock_question_report_delete'),

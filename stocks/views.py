@@ -1258,52 +1258,16 @@ def stock_detail(request, code):
     from .models import StockQuestionReport, ResearchPrompt, QuickReport, SummaryReport, WaitingReport
     question_reports = list(StockQuestionReport.objects.filter(stock=stock).order_by('-created_at'))
 
-    # 기업분석 / 업데이트 / 대기 프롬프트
-    research_prompts = ResearchPrompt.objects.all()
-    quick_prompts = QuickReport.objects.all()
-    summary_prompts = SummaryReport.objects.all()
-    waiting_prompts = WaitingReport.objects.all()
-    common_question_set = set(research_prompts.values_list('question', flat=True))
-    update_question_set = set(quick_prompts.values_list('question', flat=True)) | set(summary_prompts.values_list('question', flat=True))
-    waiting_question_set = set(waiting_prompts.values_list('question', flat=True))
-
-    # 기업분석 / 업데이트 / 대기 / 개별 분리 (기업분석 우선)
-    common_core_questions = {'사업모델', '수익구조', '중장기전망', '지배구조', '경쟁력', '경쟁사'}
-    update_extra_questions = {'트래커', '매매대응'}
-    common_core_reports = []
-    common_extra_reports = []
-    update_core_reports = []
-    update_extra_reports = []
-    waiting_question_reports = []
-    custom_question_reports = []
-    for qr in question_reports:
-        if qr.question in common_question_set:
-            if qr.question in common_core_questions:
-                common_core_reports.append(qr)
-            else:
-                common_extra_reports.append(qr)
-        elif qr.question in update_question_set:
-            if qr.question in update_extra_questions:
-                update_extra_reports.append(qr)
-            else:
-                update_core_reports.append(qr)
-        elif qr.question in waiting_question_set:
-            waiting_question_reports.append(qr)
-        else:
-            custom_question_reports.append(qr)
-    # 일반 질문: 트래킹 먼저, 그 안에서 수정일 최신순
-    custom_question_reports.sort(key=lambda q: (not q.is_tracking, -q.updated_at.timestamp()))
-    # 기업분석 순서 고정
-    common_order = ['사업모델', '수익구조', '경쟁력', '경쟁사', '중장기전망', '지배구조', '수주잔고', '파이프라인', 'R&D']
-    common_core_reports.sort(key=lambda q: common_order.index(q.question) if q.question in common_order else 99)
-    common_extra_reports.sort(key=lambda q: common_order.index(q.question) if q.question in common_order else 99)
-    # 업데이트 순서 고정
-    update_order = ['실적확인', '단기이슈', '중기이슈', '이벤트', '업황', '밸류확인', '트래커', '매매대응']
-    update_core_reports.sort(key=lambda q: update_order.index(q.question) if q.question in update_order else 99)
-    update_extra_reports.sort(key=lambda q: update_order.index(q.question) if q.question in update_order else 99)
-    # 대기 순서 고정
-    waiting_order = ['대기', '옥석가리기', '회사스냅샷', '매매매력도', '매매트래킹']
-    waiting_question_reports.sort(key=lambda q: waiting_order.index(q.question) if q.question in waiting_order else 99)
+    # 리서치는 '프롬프트 칸'이다. 등록된 프롬프트가 곧 칸이고, 저장된
+    # 리서치가 그 칸을 채운다. 어느 칸을 안 채웠는지가 보여야 해서
+    # 빈 칸도 같이 그린다 (research_slots 참고).
+    #
+    # 순서는 설정 화면의 프롬프트 순서(order 필드)를 그대로 따른다.
+    # 예전에는 여기에 순서 배열 세 개를 손으로 박아 두고 있었는데,
+    # 프롬프트를 더하거나 이름을 바꾸면 조용히 맨 뒤로 밀렸다.
+    from . import research_slots
+    research_groups, custom_question_reports = research_slots.build_groups(
+        stock, question_reports)
 
     # 전체내용 생성 (DB에 있는 모든 분석 데이터)
     all_content_sections = []
@@ -1397,18 +1361,13 @@ def stock_detail(request, code):
             price_lines.append(f"20일 변동성: {volatility}% (일간)")
 
         all_content_sections.append("## 주가 통계\n" + '\n'.join(l for l in price_lines if l))
-    # 기업분석
-    for r in common_core_reports + common_extra_reports:
-        if r.report:
-            all_content_sections.append(f"## 기업분석: {r.question} ({r.updated_at.strftime('%Y-%m-%d')})\n{r.report}")
-    # 업데이트
-    for r in update_core_reports + update_extra_reports:
-        if r.report:
-            all_content_sections.append(f"## 업데이트: {r.question} ({r.updated_at.strftime('%Y-%m-%d')})\n{r.report}")
-    # 대기
-    for r in waiting_question_reports:
-        if r.report:
-            all_content_sections.append(f"## 대기: {r.question} ({r.updated_at.strftime('%Y-%m-%d')})\n{r.report}")
+    # 그룹별 리서치 (기업분석 · 업데이트 · 정리 · 대기)
+    for _g in research_groups:
+        for _s in _g['slots']:
+            r = _s['report']
+            if r and r.report:
+                all_content_sections.append(
+                    f"## {_g['name']}: {r.question} ({r.updated_at.strftime('%Y-%m-%d')})\n{r.report}")
     # 일반 질문
     for r in custom_question_reports:
         if r.report:
@@ -1721,13 +1680,9 @@ def stock_detail(request, code):
         'materials': materials,
         'telegram_messages': telegram_messages,
         'question_reports': question_reports,
-        'common_core_reports': common_core_reports,
-        'common_extra_reports': common_extra_reports,
-        'update_core_reports': update_core_reports,
-        'update_extra_reports': update_extra_reports,
-        'waiting_question_reports': waiting_question_reports,
+        'research_groups': research_groups,
+        'research_filled': sum(g['filled'] for g in research_groups) + len(custom_question_reports),
         'custom_question_reports': custom_question_reports,
-        'research_prompts': research_prompts,
         'price_chart_data': json.dumps(price_chart_data),
         'target_chart_data': json.dumps(target_chart_data),
         'saved_prompts': {s.key: s.value for s in SystemSetting.objects.filter(key__startswith='prompt_')},
@@ -1735,7 +1690,10 @@ def stock_detail(request, code):
         'ma10_value': ma10_value,
         'ma20_value': ma20_value,
         'ma60_value': ma60_value,
-        'briefing_data': _build_briefing_data(stock, question_reports, reports, common_core_reports + common_extra_reports, update_core_reports + update_extra_reports),
+        'briefing_data': _build_briefing_data(
+            stock, question_reports, reports,
+            [s['report'] for g in research_groups if g['name'] == '기업분석' for s in g['slots'] if s['filled']],
+            [s['report'] for g in research_groups if g['name'] in ('업데이트', '정리') for s in g['slots'] if s['filled']]),
         'avg_target_price_3m': avg_target_price_3m,
     }
     return render(request, 'stocks/stock_detail.html', context)
@@ -4439,14 +4397,20 @@ def stock_question_report_save(request):
     except Info.DoesNotExist:
         return JsonResponse({'success': False, 'error': '종목을 찾을 수 없습니다.'})
 
-    qr = StockQuestionReport.objects.create(
-        stock=stock,
-        question=question,
-        report=report,
-        report_type=report_type
+    # 한 종목의 한 질문은 하나다. 화면이 프롬프트를 칸으로 놓고 답을 채우는
+    # 방식이라, 같은 칸에 두 번 붙여넣으면 새로 쌓이는 게 아니라 덮어써야
+    # 한다. AI 판단이 같은 기준일에 덮어쓰는 것과 같다.
+    fields = {'report': report, 'report_type': report_type}
+    if 'my_opinion' in request.POST:
+        fields['my_opinion'] = request.POST.get('my_opinion', '')
+    if 'ai_question' in request.POST:
+        fields['ai_question'] = request.POST.get('ai_question', '')
+    qr, created = StockQuestionReport.objects.update_or_create(
+        stock=stock, question=question, defaults=fields,
     )
 
-    return JsonResponse({'success': True, 'id': qr.id, 'report_type': qr.report_type})
+    return JsonResponse({'success': True, 'id': qr.id, 'created': created,
+                         'report_type': qr.report_type})
 
 
 @require_POST
@@ -4896,66 +4860,54 @@ def _compute_technical_indicators(stock):
     }
 
 
-def stock_question_report_detail(request, report_id):
-    """리서치 상세/편집 페이지"""
+def stock_question_report_slot(request, code):
+    """
+    아직 안 채운 칸.
+
+    종목 화면의 흐린 칸을 누르면 여기로 온다. 저장된 리서치가 없으므로
+    행을 만들지 않고 빈 채로 그린다 — 여기서 행을 만들어 버리면 내용이
+    없는데도 칸이 '채워짐'으로 보인다. 붙여넣어 저장하는 순간 생긴다.
+    """
+    from .models import StockQuestionReport
+
+    stock = get_object_or_404(Info, code=code)
+    question = (request.GET.get('q') or '').strip()
+    existing = StockQuestionReport.objects.filter(stock=stock, question=question).first()
+    if existing:
+        return redirect('stocks:stock_question_report_detail', report_id=existing.id)
+    return stock_question_report_detail(
+        request, None, qr=StockQuestionReport(stock=stock, question=question))
+
+
+def stock_question_report_detail(request, report_id, qr=None):
+    """리서치 상세. 칸이 비어 있으면 qr 은 저장 안 된 빈 객체다."""
     from .models import StockQuestionReport, ResearchPrompt, QuickReport, SystemSetting
-    qr = get_object_or_404(StockQuestionReport, id=report_id)
+    if qr is None:
+        qr = get_object_or_404(StockQuestionReport, id=report_id)
 
     if request.method == 'POST':
-        qr.question = request.POST.get('question', '').strip()
-        qr.report = request.POST.get('report', '')
-        qr.my_opinion = request.POST.get('my_opinion', '')
-        qr.ai_question = request.POST.get('ai_question', '')
-        qr.is_tracking = request.POST.get('is_tracking') == 'on'
-        report_type = request.POST.get('report_type', 'html')
+        # 일반 질문의 '질문·프롬프트' 폼. 리포트는 붙여넣기 창이 따로 저장하므로
+        # 여기서 건드리지 않는다 — 넘어오지 않은 칸을 빈 값으로 덮으면 지운다.
+        for field in ('question', 'report', 'my_opinion', 'ai_question'):
+            if field in request.POST:
+                value = request.POST[field]
+                setattr(qr, field, value.strip() if field == 'question' else value)
+        if 'is_tracking_present' in request.POST:
+            qr.is_tracking = request.POST.get('is_tracking') == 'on'
+        report_type = request.POST.get('report_type')
         if report_type in ('html', 'markdown'):
             qr.report_type = report_type
         qr.save()
-        return redirect('stocks:stock_question_report_detail', report_id=report_id)
+        return redirect('stocks:stock_question_report_detail', report_id=qr.id)
 
-    research_prompts = ResearchPrompt.objects.all()
-    quick_prompts = QuickReport.objects.all()
-    from .models import SummaryReport, WaitingReport
-    summary_prompts = SummaryReport.objects.all()
-    waiting_prompts = WaitingReport.objects.all()
-    # 업데이트 프롬프트 버튼 core/extra 분리
-    _update_extra_qs = {'트래커', '매매대응'}
-    _update_core_order = ['실적확인', '단기이슈', '중기이슈', '이벤트', '업황', '밸류확인']
-    _update_extra_order = ['트래커', '매매대응']
-    update_core_prompts = sorted([p for p in quick_prompts if p.question not in _update_extra_qs], key=lambda p: _update_core_order.index(p.question) if p.question in _update_core_order else 99)
-    update_extra_prompts = sorted([p for p in quick_prompts if p.question in _update_extra_qs], key=lambda p: _update_extra_order.index(p.question) if p.question in _update_extra_order else 99)
-    # 기업분석 core/extra 분리
-    _core_questions = {'사업모델', '수익구조', '중장기전망', '지배구조', '경쟁력', '경쟁사'}
-    _core_order = ['사업모델', '수익구조', '경쟁력', '경쟁사', '중장기전망', '지배구조']
-    research_core = sorted([p for p in research_prompts if p.question in _core_questions], key=lambda p: _core_order.index(p.question) if p.question in _core_order else 99)
-    research_extra = [p for p in research_prompts if p.question not in _core_questions]
+    from . import research_slots
 
-    # 이 리서치를 만든 프롬프트 하나.
+    # 이 리서치의 프롬프트 하나. 없으면(직접 만든 질문) None.
     #
-    # 지금까지는 화면이 프롬프트를 스물두 개(기업분석 9 · 업데이트 8 · 대기 5)
-    # 늘어놓고 그중에서 고르게 했다. '경쟁력'을 보고 있으면서 스물두 개 중에
-    # 경쟁력을 다시 찾아야 했다. 이름이 같은 것 하나면 된다.
-    #
-    # 못 찾으면(직접 만든 질문) None 이고, 그때는 예전처럼 다 늘어놓는다 —
-    # 아직 어느 프롬프트의 것인지 정해지지 않은 리서치이기 때문이다.
-    own_prompt = None
-    for _group, _rows, _panel in (
-        ('기업분석', research_prompts, 'research-prompt-panel'),
-        ('업데이트', quick_prompts, 'quick-report-panel'),
-        ('정리', summary_prompts, 'quick-report-panel'),
-        ('대기', waiting_prompts, 'waiting-report-panel'),
-    ):
-        _match = next((p for p in _rows if p.question == qr.question), None)
-        if _match:
-            own_prompt = {
-                'group': _group,
-                'question': _match.question,
-                'prompt': _match.prompt,
-                'panel': _panel,
-                'auto_report': '{사업보고서' in (_match.prompt or ''),
-                'needs_attachment': _match.needs_attachment,
-            }
-            break
+    # 예전에는 여기서 프롬프트를 스물두 개 늘어놓고 그중에서 고르게 했다.
+    # 이제 고르는 일은 종목 화면의 빈 칸이 한다 — 칸을 누르면 그 칸의
+    # 리서치로 오므로, 여기서는 이름이 같은 것 하나면 된다.
+    own_prompt = research_slots.find_prompt(qr.question)
 
     theme_category_name = ''
     theme_name = ''
@@ -5142,8 +5094,10 @@ def stock_question_report_detail(request, report_id):
     all_content_data = {}
     if qr.stock:
         _all_reports = StockQuestionReport.objects.filter(stock=qr.stock).exclude(id=qr.id)
-        _common_set = set(research_prompts.values_list('question', flat=True))
-        _quick_set = set(quick_prompts.values_list('question', flat=True)) | set(summary_prompts.values_list('question', flat=True))
+        _groups = {g['name']: {s['question'] for s in g['slots']}
+                   for g in research_slots.build_groups(qr.stock, _all_reports)[0]}
+        _common_set = _groups.get('기업분석', set())
+        _quick_set = _groups.get('업데이트', set()) | _groups.get('정리', set())
         _common_reports = []
         _quick_reports = []
         for r in _all_reports:
@@ -5161,12 +5115,7 @@ def stock_question_report_detail(request, report_id):
 
     return render(request, 'stocks/question_report_detail.html', {
         'qr': qr,
-        'research_core': research_core,
-        'research_extra': research_extra,
         'own_prompt': own_prompt,
-        'update_core_prompts': update_core_prompts,
-        'update_extra_prompts': update_extra_prompts,
-        'waiting_prompts': waiting_prompts,
         'theme_category_name': theme_category_name,
         'theme_name': theme_name,
         'stock_current_price': stock_current_price,

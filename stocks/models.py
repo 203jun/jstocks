@@ -1607,6 +1607,10 @@ class StockQuestionReport(models.Model):
         verbose_name = '종목질문리포트'
         verbose_name_plural = '종목질문리포트'
         ordering = ['-created_at']
+        # 한 종목의 한 질문은 하나다. 화면이 프롬프트를 칸으로 놓고 그 칸에
+        # 답을 채우는 방식이라, 같은 칸에 두 건이 있으면 어느 것을 보여줄지
+        # 정할 수 없다. 관측 272건에 중복이 없었으니 제약을 거는 것뿐이다.
+        unique_together = ('stock', 'question')
 
     def __str__(self):
         return f"{self.stock.name}: {self.question[:30]}"

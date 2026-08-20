@@ -101,6 +101,32 @@
 .research-chips { display:flex; flex-wrap:wrap; gap:6px; align-items:center; flex:1; }
 .research-custom-list { display:flex; flex-direction:column; flex:1; }
 
+/* 그룹 상자 — 한 칸도 안 채웠으면 접힌다 */
+.research-group-box { border-bottom:1px solid var(--border-color); }
+.research-group-box:last-child { border-bottom:none; }
+.research-group-box > summary {
+    display:flex; align-items:center; gap:8px;
+    padding:10px 16px; cursor:pointer; list-style:none;
+}
+.research-group-box > summary::-webkit-details-marker { display:none; }
+.research-group-box > summary::before {
+    content:'▸'; color:var(--text-muted); font-size:0.7rem; width:9px;
+}
+.research-group-box[open] > summary::before { content:'▾'; }
+.research-group-box > .research-chips,
+.research-group-box > .research-custom-list { padding:0 16px 12px 33px; }
+.research-count { font-size:0.7rem; color:var(--text-muted); }
+
+/* 아직 안 채운 칸. 눌러서 프롬프트를 복사하고 답을 붙여넣는다. */
+.research-empty-chip {
+    background:transparent !important;
+    border:1px dashed var(--border-color);
+    color:var(--text-muted) !important;
+    cursor:pointer;
+}
+.research-empty-chip:hover { background:var(--bg-hover, #f3f4f6) !important; color:var(--text-secondary) !important; }
+[data-theme="dark"] .research-empty-chip:hover { background:#22262f !important; }
+
 /* 리서치 그룹 라벨 */
 .research-common-label, .research-update-label, .research-waiting-label, .research-custom-label {
     display:inline-block; font-size:0.65rem; padding:2px 7px; border-radius:3px;
@@ -699,80 +725,48 @@
     </div>
 
     <!-- 리서치 -->
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;"><span>리서치 <span class="tab-count">{{ question_reports|length }}</span></span><button type="button" class="btn-refresh" id="btnAddQuestionReport" style="padding:4px 12px;font-weight:400;">+ 추가</button></h5>
+    {% comment %}
+    리서치는 '프롬프트 칸'이다. 등록된 프롬프트가 곧 칸이고, 채운 칸은
+    진하게 날짜와 함께, 안 채운 칸은 흐리게 나온다. 무엇을 안 했는지가
+    보여야 하기 때문이다.
+
+    한 칸도 안 채운 그룹은 접는다. 관심종목 1,576개 중 리서치를 시작한
+    것이 28개뿐이라, 접지 않으면 나머지 종목에서 빈 칸 스물몇 개가
+    화면을 채운다.
+    {% endcomment %}
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;"><span>리서치 <span class="tab-count">{{ research_filled }}</span></span></h5>
     <div class="brief-card" style="padding:0; overflow:hidden;" id="researchList">
-        {% if common_core_reports or common_extra_reports %}
-        <div class="research-group" style="flex-direction:column;gap:6px;">
-            <div style="display:flex;align-items:flex-start;gap:8px;">
-                <span class="research-common-label">기업분석</span>
-                <div class="research-chips">
-                    {% for qr in common_core_reports %}
-                    <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="research-common-chip" data-question="{{ qr.question }}" title="{{ qr.question }}">
-                        <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
-                        <span class="chip-date" data-date="{{ qr.updated_at|date:'Y-m-d' }}">{{ qr.updated_at|date:"y.m.d" }}</span>
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
-            {% if common_extra_reports %}
-            <div style="display:flex;align-items:flex-start;gap:8px;">
-                <span class="research-common-label" style="visibility:hidden;">기업분석</span>
-                <div class="research-chips">
-                    {% for qr in common_extra_reports %}
-                    <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="research-common-chip" data-question="{{ qr.question }}" title="{{ qr.question }}">
-                        <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
-                        <span class="chip-date" data-date="{{ qr.updated_at|date:'Y-m-d' }}">{{ qr.updated_at|date:"y.m.d" }}</span>
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-        {% if update_core_reports or update_extra_reports %}
-        <div class="research-group" style="flex-direction:column;gap:6px;">
-            <div style="display:flex;align-items:flex-start;gap:8px;">
-                <span class="research-update-label">업데이트</span>
-                <div class="research-chips">
-                    {% for qr in update_core_reports %}
-                    <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="{% if '매매근거' in qr.question %}research-trade-chip{% elif qr.question == '실적확인' %}research-input-chip{% else %}research-common-chip{% endif %}" data-question="{{ qr.question }}" title="{{ qr.question }}">
-                        <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
-                        <span class="chip-date" data-date="{{ qr.updated_at|date:'Y-m-d' }}">{{ qr.updated_at|date:"y.m.d" }}</span>
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
-            {% if update_extra_reports %}
-            <div style="display:flex;align-items:flex-start;gap:8px;">
-                <span class="research-update-label" style="visibility:hidden;">업데이트</span>
-                <div class="research-chips">
-                    {% for qr in update_extra_reports %}
-                    <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="{% if qr.question == '실적확인' %}research-input-chip{% else %}research-common-chip{% endif %}" data-question="{{ qr.question }}" title="{{ qr.question }}">
-                        <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
-                        <span class="chip-date" data-date="{{ qr.updated_at|date:'Y-m-d' }}">{{ qr.updated_at|date:"y.m.d" }}</span>
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-        {% if waiting_question_reports %}
-        <div class="research-group">
-            <span class="research-waiting-label">대기</span>
+        {% for g in research_groups %}
+        <details class="research-group-box" {% if g.open %}open{% endif %}>
+            <summary>
+                <span class="research-common-label">{{ g.name }}</span>
+                <span class="research-count">{{ g.filled }}/{{ g.total }}</span>
+            </summary>
             <div class="research-chips">
-                {% for qr in waiting_question_reports %}
-                <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="research-common-chip" data-question="{{ qr.question }}" title="{{ qr.question }}">
-                    <span class="chip-title">{{ qr.question|truncatechars:30 }}</span>
-                    <span class="chip-date" data-date="{{ qr.updated_at|date:'Y-m-d' }}">{{ qr.updated_at|date:"y.m.d" }}</span>
+                {% for s in g.slots %}
+                {% if s.filled %}
+                <a href="{% url 'stocks:stock_question_report_detail' s.report.id %}" class="research-common-chip{% if '매매근거' in s.question %} research-trade-chip{% endif %}" title="{{ s.question }}">
+                    <span class="chip-title">{{ s.question|truncatechars:30 }}</span>
+                    <span class="chip-date" data-date="{{ s.report.updated_at|date:'Y-m-d' }}">{{ s.report.updated_at|date:"y.m.d" }}</span>
                 </a>
+                {% else %}
+                <a href="{% url 'stocks:stock_question_report_slot' stock.code %}?q={{ s.question|urlencode }}"
+                   class="research-common-chip research-empty-chip"
+                   title="{{ s.question }} — 아직 없습니다. 눌러서 프롬프트를 받고 답을 붙여넣으세요.">
+                    <span class="chip-title">{{ s.question|truncatechars:30 }}{% if s.auto_report %} 📄{% elif s.needs_attachment %} 📎{% endif %}</span>
+                </a>
+                {% endif %}
                 {% endfor %}
             </div>
-        </div>
-        {% endif %}
-        {% if custom_question_reports %}
-        <div class="research-group">
-            <span class="research-custom-label">일반</span>
+        </details>
+        {% endfor %}
+        <details class="research-group-box" {% if custom_question_reports %}open{% endif %}>
+            <summary>
+                <span class="research-custom-label">일반</span>
+                <span class="research-count">{{ custom_question_reports|length }}</span>
+                <button type="button" class="btn-refresh" id="btnAddQuestionReport" style="padding:2px 10px;font-weight:400;font-size:0.72rem;margin-left:auto;">+ 추가</button>
+            </summary>
+            {% if custom_question_reports %}
             <div class="research-custom-list">
                 {% for qr in custom_question_reports %}
                 <a href="{% url 'stocks:stock_question_report_detail' qr.id %}" class="research-custom-item" data-question="{{ qr.question }}">
@@ -781,11 +775,10 @@
                 </a>
                 {% endfor %}
             </div>
-        </div>
-        {% endif %}
-        {% if not common_core_reports and not common_extra_reports and not update_core_reports and not update_extra_reports and not waiting_question_reports and not custom_question_reports %}
-        <div style="text-align:center; color:var(--text-muted); padding:24px;">저장된 리서치가 없습니다.</div>
-        {% endif %}
+            {% else %}
+            <div style="padding:10px 14px;color:var(--text-muted);font-size:0.78rem;">프롬프트에 없는 질문을 직접 만들어 씁니다.</div>
+            {% endif %}
+        </details>
     </div>
     <script>
     (function(){
