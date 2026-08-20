@@ -4401,8 +4401,6 @@ def stock_question_report_save(request):
     # 방식이라, 같은 칸에 두 번 붙여넣으면 새로 쌓이는 게 아니라 덮어써야
     # 한다. AI 판단이 같은 기준일에 덮어쓰는 것과 같다.
     fields = {'report': report, 'report_type': report_type}
-    if 'my_opinion' in request.POST:
-        fields['my_opinion'] = request.POST.get('my_opinion', '')
     if 'ai_question' in request.POST:
         fields['ai_question'] = request.POST.get('ai_question', '')
     qr, created = StockQuestionReport.objects.update_or_create(
@@ -4888,7 +4886,7 @@ def stock_question_report_detail(request, report_id, qr=None):
     if request.method == 'POST':
         # 일반 질문의 '질문·프롬프트' 폼. 리포트는 붙여넣기 창이 따로 저장하므로
         # 여기서 건드리지 않는다 — 넘어오지 않은 칸을 빈 값으로 덮으면 지운다.
-        for field in ('question', 'report', 'my_opinion', 'ai_question'):
+        for field in ('question', 'report', 'ai_question'):
             if field in request.POST:
                 value = request.POST[field]
                 setattr(qr, field, value.strip() if field == 'question' else value)

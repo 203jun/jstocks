@@ -130,15 +130,6 @@
     </div>
 </div>
 
-<!-- 요약 -->
-{% if qr.my_opinion %}
-<h5 class="section-heading">요약</h5>
-<div class="brief-card">
-    <div class="markdown-content" id="opinionPreview" style="font-size:0.88rem;color:var(--text-primary);line-height:1.7;"></div>
-    <script type="text/plain" id="opinionRaw">{{ qr.my_opinion|safe }}</script>
-</div>
-{% endif %}
-
 {% if not own_prompt %}
 <!-- 일반 질문 — 질문과 프롬프트를 직접 쓴다 -->
 <form method="post">
@@ -234,65 +225,6 @@ function updatePreview(text) {
 }
 
 updatePreview();
-
-const opinionRaw = document.getElementById('opinionRaw');
-const opinionPreview = document.getElementById('opinionPreview');
-if (opinionRaw && opinionPreview) {
-    opinionPreview.innerHTML = marked.parse(opinionRaw.textContent.replace(/~/g, '&#126;'));
-}
-
-// 요약 프롬프트 복사
-document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-        const promptTemplate = `{{ prompt_summary|default:""|escapejs }}`;
-        if (!promptTemplate) { alert('설정 → 프롬프트 → 요약에서 프롬프트를 먼저 등록하세요.'); return; }
-        const sourceText = reportRaw.trim();
-        if (!sourceText) { alert('원문이 없습니다.'); return; }
-        let prompt = promptTemplate.replace(/\{원문\}/g, sourceText);
-        const _v = (x) => (x === undefined || x === null || String(x).trim() === '') ? '' : String(x);
-        const summaryMap = {
-            '종목명': entityName || '',
-            '종목코드': _v(tradeVars.stock_code),
-            '오늘날짜': _v(tradeVars.today),
-            '시장': _v(tradeVars.market),
-            '현재가': stockCurrentPrice ? Number(stockCurrentPrice).toLocaleString() : _v(tradeVars.current_price),
-            '변동률': _v(tradeVars.change_rate),
-            '시가총액': _v(tradeVars.market_cap),
-            'PER': _v(tradeVars.per),
-            'PBR': _v(tradeVars.pbr),
-            '52주고가': _v(tradeVars.high_52w),
-            '52주저가': _v(tradeVars.low_52w),
-            '52주고가일자': _v(tradeVars.high_52w_date),
-            '52주저가일자': _v(tradeVars.low_52w_date),
-            '52주위치': _v(tradeVars.pos_52w),
-            '수급_20일': _v(tradeVars.supply_20d),
-            '공매도_20일': _v(tradeVars.short_20d),
-            '연간컨센': _v(tradeVars.consensus_annual_text),
-            '분기컨센': _v(tradeVars.consensus_quarter_text),
-            '핵심브리핑': _v(tradeVars.key_briefing),
-            '기업분석: 향후 이벤트': _v(tradeVars.future_events),
-        };
-        for (const [k, v] of Object.entries(summaryMap)) {
-            prompt = prompt.split('{' + k + '}').join(v);
-        }
-        // 기업분석 결과 동적 치환
-        for (const [k, v] of Object.entries(tradeVars)) {
-            if (k.startsWith('기업분석: ') && !summaryMap.hasOwnProperty(k)) {
-                const val = _v(v);
-                prompt = prompt.split('{' + k + '}').join(val || '없음');
-            }
-        }
-        warnMissingVars(prompt);
-        try {
-            await copyToClipboard(prompt);
-            const original = btn.textContent;
-            btn.textContent = '복사됨!';
-            setTimeout(() => { btn.textContent = original; }, 1500);
-        } catch (err) {
-            alert('복사 실패: ' + err.message);
-        }
-    });
-});
 
 // 기업분석 버튼 클릭
 const entityName = '{{ qr.stock.name }}';
