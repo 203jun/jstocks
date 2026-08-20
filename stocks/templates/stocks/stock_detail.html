@@ -504,8 +504,8 @@
 
 /* 기본 정보 카드 — 성격대로 줄을 나눈다 (라벨 · 내용) */
 .bi-card { padding:0; }
-/* 줄 사이에만 선을 긋는다. :last-of-type 은 클래스가 아니라 태그 기준이라
-   <details>(회사)가 자기 종류의 마지막이 되어 아래 선을 잃었었다. */
+/* 줄 사이에만 선을 긋는다. :last-of-type 은 태그 기준이라 종류가 다른
+   줄이 끼면 엉뚱한 줄의 선이 사라진다. */
 .bi-card > * + * { border-top:1px solid var(--border-color); }
 .bi-row { display:flex; gap:10px; padding:9px 16px; }
 .bi-label {
@@ -594,8 +594,7 @@
     <div class="bi-row">
         <span class="bi-label">회사</span>
         <div class="bi-body">
-            {# 크기·수익성 한 줄, 주식 구조 한 줄. 일곱 개를 한 줄에 흘리면
-               어디서 끊기는지가 화면 폭에 따라 달라져 눈이 헤맨다. #}
+            {# 크기·수익성 한 줄, 주식 구조 한 줄 (한 줄에 흘리면 끊기는 자리가 화면 폭마다 달라진다) #}
             <div class="bi-facts">
                 <span><i>시총</i> {{ stock.market_cap|eok }}</span>
                 <span><i>PER</i> {% if stock.per %}{{ stock.per }}배{% else %}-{% endif %}</span>
