@@ -614,6 +614,8 @@
             <span><i>유통비율</i> {% if stock.listed_ratio %}{{ stock.listed_ratio }}%{% else %}-{% endif %}</span>
             <span><i>신용비율</i> {% if stock.credit_ratio %}{{ stock.credit_ratio }}%{% else %}-{% endif %}</span>
             <span><i>외인소진률</i> {% if stock.foreign_exhaustion %}{{ stock.foreign_exhaustion }}%{% else %}-{% endif %}</span>
+            {# 같은 업종 네 곳과 매출·영업이익·PER 을 나란히 놓고 본다 (FnGuide) #}
+            <a href="https://comp.wisereport.co.kr/company/c1060001.aspx?cmp_cd={{ stock.code }}" target="_blank" rel="noopener" class="bi-go">경쟁사 비교 ↗</a>
         </div>
     </details>
 
