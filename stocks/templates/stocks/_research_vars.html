@@ -1,0 +1,25 @@
+{% comment %}
+쓸 수 있는 변수 목록. 프롬프트를 쓰는 창이면 어디든 붙인다.
+
+    {% include 'stocks/_research_vars.html' with id='qrVars' target='qrMetaPrompt' %}
+
+치환은 question_report_detail.html 의 tradeMap 이 한다. 이 목록은
+research_vars.py 에 있고, 둘이 어긋나지 않는지는 다음이 본다.
+
+    venv/bin/python manage.py check_research_vars
+{% endcomment %}
+<div class="qr-var-line">
+    <a href="#" data-vars-toggle="{{ id }}">쓸 수 있는 변수 보기</a>
+    <span class="mp-var-hint"></span>
+</div>
+<div class="qr-vars" id="{{ id }}" data-vars-target="{{ target }}" hidden>
+    {% for group, items in research_var_groups %}
+    <div class="qr-var-group">
+        <span class="qr-var-label">{{ group }}</span>
+        <span class="mp-vars">
+            {% for name, hint in items %}<button type="button" class="mp-var" data-var="{{ name }}"{% if hint %} data-hint="{{ hint }}"{% endif %}>{{ name }}</button>{% endfor %}
+        </span>
+    </div>
+    {% endfor %}
+    <div class="qr-var-foot">눌러서 넣습니다. 없는 변수를 적으면 복사할 때 알려줍니다.</div>
+</div>

@@ -139,7 +139,7 @@
                 <span class="common-research-btn" role="button"
                       data-question="{{ own_prompt.question }}" data-prompt="{{ own_prompt.prompt }}"
                       title="{{ own_prompt.group }} · {{ own_prompt.question }} 프롬프트를 복사합니다">프롬프트{% if own_prompt.auto_report %} 📄{% elif own_prompt.needs_attachment %} 📎{% endif %}</span>
-                <a href="{% url 'stocks:settings' %}#{{ own_prompt.panel }}" target="_blank" rel="noopener" title="이 프롬프트 편집">⚙</a>
+                <button type="button" id="btnEditPrompt" title="이 프롬프트 고치기">⚙</button>
             </span>
             {% else %}
             {# 일반 — 프롬프트도 내가 쓴다. ✎ 자리는 칸 리서치의 ⚙ 과 같다. #}
@@ -547,25 +547,7 @@ document.getElementById('btnDelete')?.addEventListener('click', async () => {
         </div>
         <div class="ma-note">질문은 목록에 뜨는 이름입니다. 프롬프트를 적어두면 [프롬프트] 버튼으로 복사됩니다.</div>
         <input type="text" id="qrMetaQuestion" class="qr-meta-q" placeholder="질문 (예: 메모리 테스트 핸들러 경쟁 구도)" value="{{ qr.question }}">
-        <div class="qr-var-line">
-            <a href="#" id="btnShowVars">쓸 수 있는 변수 보기</a>
-            <span class="mp-var-hint" id="qrVarHint"></span>
-        </div>
-        {% comment %}
-        치환은 아래 tradeMap 이 한다. 이 목록은 research_vars.py 에 있고
-        둘이 어긋나지 않는지는 manage.py check_research_vars 가 본다.
-        {% endcomment %}
-        <div class="qr-vars" id="qrVars" hidden>
-            {% for group, items in research_var_groups %}
-            <div class="qr-var-group">
-                <span class="qr-var-label">{{ group }}</span>
-                <span class="mp-vars">
-                    {% for name, hint in items %}<button type="button" class="mp-var" data-var="{{ name }}"{% if hint %} data-hint="{{ hint }}"{% endif %}>{{ name }}</button>{% endfor %}
-                </span>
-            </div>
-            {% endfor %}
-            <div class="qr-var-foot">눌러서 넣습니다. 없는 변수를 적으면 복사할 때 알려줍니다.</div>
-        </div>
+        {% include 'stocks/_research_vars.html' with id='qrVars' target='qrMetaPrompt' %}
         <textarea id="qrMetaPrompt" class="paste-box" spellcheck="false" placeholder="이 질문에 쓸 프롬프트">{{ qr.ai_question }}</textarea>
         <div class="mp-foot">
             <button type="button" class="mp-save" id="qrMetaSave">저장</button>
@@ -581,30 +563,6 @@ document.getElementById('btnDelete')?.addEventListener('click', async () => {
     const q = document.getElementById('qrMetaQuestion');
     const prompt = document.getElementById('qrMetaPrompt');
     const msg = document.getElementById('qrMetaMsg');
-
-    // 변수 목록 — 접어 둔다. 예순아홉 개를 늘 펴 두면 정작 입력칸이 안 보인다.
-    const vars = document.getElementById('qrVars');
-    const hint = document.getElementById('qrVarHint');
-    document.getElementById('btnShowVars').addEventListener('click', e => {
-        e.preventDefault();
-        vars.hidden = !vars.hidden;
-        e.target.textContent = vars.hidden ? '쓸 수 있는 변수 보기' : '변수 접기';
-    });
-    // 커서 자리에 넣는다. 맨 뒤에 붙이면 쓰던 문장을 다시 옮겨야 한다.
-    vars.addEventListener('click', e => {
-        const btn = e.target.closest('.mp-var');
-        if (!btn) return;
-        const token = '{' + btn.dataset.var + '}';
-        const at = prompt.selectionStart ?? prompt.value.length;
-        prompt.value = prompt.value.slice(0, at) + token + prompt.value.slice(prompt.selectionEnd ?? at);
-        prompt.focus();
-        prompt.selectionStart = prompt.selectionEnd = at + token.length;
-        hint.textContent = btn.dataset.hint || '';
-    });
-    vars.addEventListener('mouseover', e => {
-        const btn = e.target.closest('.mp-var');
-        if (btn) hint.textContent = btn.dataset.hint || '';
-    });
 
     const show = () => { msg.textContent = ''; modal.classList.add('show'); q.focus(); };
     open.addEventListener('click', show);
@@ -640,6 +598,115 @@ document.getElementById('btnDelete')?.addEventListener('click', async () => {
     });
 
     document.getElementById('qrMetaClose').addEventListener('click', () => modal.classList.remove('show'));
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
+})();
+</script>
+{% endif %}
+
+<script>
+// 변수 칩 — 프롬프트를 쓰는 창이 둘이라(일반 질문·프롬프트, 칸 프롬프트)
+// 위임으로 한 번만 붙인다. 예순아홉 개를 늘 펴 두면 입력칸이 안 보여 접어 둔다.
+(function () {
+    document.addEventListener('click', e => {
+        const link = e.target.closest('[data-vars-toggle]');
+        if (link) {
+            e.preventDefault();
+            const box = document.getElementById(link.dataset.varsToggle);
+            box.hidden = !box.hidden;
+            link.textContent = box.hidden ? '쓸 수 있는 변수 보기' : '변수 접기';
+            return;
+        }
+        const chip = e.target.closest('.qr-vars .mp-var');
+        if (!chip) return;
+        const box = chip.closest('.qr-vars');
+        const ta = document.getElementById(box.dataset.varsTarget);
+        const hint = box.previousElementSibling?.querySelector('.mp-var-hint');
+        if (hint) hint.textContent = chip.dataset.hint || '';
+        if (!ta) return;
+        // 커서 자리에 넣는다. 맨 뒤에 붙이면 쓰던 문장을 다시 옮겨야 한다.
+        const token = '{' + chip.dataset.var + '}';
+        const at = ta.selectionStart ?? ta.value.length;
+        ta.value = ta.value.slice(0, at) + token + ta.value.slice(ta.selectionEnd ?? at);
+        ta.focus();
+        ta.selectionStart = ta.selectionEnd = at + token.length;
+    });
+    document.addEventListener('mouseover', e => {
+        const chip = e.target.closest('.qr-vars .mp-var');
+        if (!chip) return;
+        const hint = chip.closest('.qr-vars').previousElementSibling?.querySelector('.mp-var-hint');
+        if (hint) hint.textContent = chip.dataset.hint || '';
+    });
+})();
+</script>
+
+{% if own_prompt %}
+{% comment %}
+칸 프롬프트를 그 자리에서 고친다. 예전에는 ⚙ 가 설정 화면으로 보냈다 —
+프롬프트 하나 고치자고 화면을 옮기고 탭을 찾아야 했다. 설정 메뉴는
+없앨 예정이기도 하다.
+
+질문 이름은 못 고치게 둔다. 이름이 곧 리서치와의 연결이라, 여기서 바꾸면
+저장해 둔 리서치가 '일반'으로 떨어진다. 그건 설정 화면에서 경고를 보며
+할 일이다.
+{% endcomment %}
+<div class="modal-overlay" id="qrPromptModal">
+    <div class="modal-box" style="max-width:760px;">
+        <div class="modal-header-custom">
+            <h6>{{ own_prompt.group }} · {{ own_prompt.question }}</h6>
+            <button type="button" class="modal-close-btn" id="qrPromptClose">&times;</button>
+        </div>
+        <div class="ma-note">이 프롬프트는 모든 종목이 같이 씁니다. 고치면 다른 종목의 {{ own_prompt.question }}에도 그대로 적용됩니다.</div>
+        {% include 'stocks/_research_vars.html' with id='qrPromptVars' target='qrPromptText' %}
+        <textarea id="qrPromptText" class="paste-box" spellcheck="false">{{ own_prompt.prompt }}</textarea>
+        <div class="mp-foot">
+            <button type="button" class="mp-save" id="qrPromptSave">저장</button>
+            <span class="mp-msg" id="qrPromptMsg"></span>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    const modal = document.getElementById('qrPromptModal');
+    const open = document.getElementById('btnEditPrompt');
+    if (!modal || !open) return;
+    const text = document.getElementById('qrPromptText');
+    const msg = document.getElementById('qrPromptMsg');
+
+    open.addEventListener('click', () => {
+        msg.textContent = '';
+        modal.classList.add('show');
+        text.focus();
+    });
+
+    document.getElementById('qrPromptSave').addEventListener('click', async function () {
+        this.disabled = true;
+        try {
+            const res = await fetch('/api/{{ own_prompt.api }}/{{ own_prompt.id }}/update/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: new URLSearchParams({
+                    // 이름과 첨부 여부는 그대로 되돌려준다. 안 보내면 빈 값으로 덮인다.
+                    question: '{{ own_prompt.question|escapejs }}',
+                    prompt: text.value,
+                    needs_attachment: '{{ own_prompt.needs_attachment|yesno:"true,false" }}',
+                }),
+            });
+            const data = await res.json();
+            if (!data.success) { msg.textContent = data.error || '저장 실패'; return; }
+            msg.textContent = '저장했습니다';
+            // 📄 표시와 [프롬프트] 버튼이 이 내용을 들고 있으므로 다시 그린다
+            setTimeout(() => location.reload(), 400);
+        } catch (err) {
+            msg.textContent = '저장 실패: ' + err.message;
+        } finally {
+            this.disabled = false;
+        }
+    });
+
+    document.getElementById('qrPromptClose').addEventListener('click', () => modal.classList.remove('show'));
     modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
 })();
 </script>

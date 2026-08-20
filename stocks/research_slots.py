@@ -18,12 +18,15 @@
 지우면 그 리서치도 여기로 내려온다 — 사라지지 않는다.
 """
 
-# (이름, 모델, 설정 화면 패널). 화면에 나오는 순서다.
+# (이름, 모델, 고치는 API). 화면에 나오는 순서다.
+#
+# 프롬프트를 고치러 설정 화면까지 갈 이유가 없어서 그 자리에서 고친다.
+# 설정 메뉴는 없앨 예정이다.
 GROUP_SPECS = [
-    ('기업분석', 'ResearchPrompt', 'research-prompt-panel'),
-    ('업데이트', 'QuickReport', 'quick-report-panel'),
-    ('정리', 'SummaryReport', 'quick-report-panel'),
-    ('대기', 'WaitingReport', 'waiting-report-panel'),
+    ('기업분석', 'ResearchPrompt', 'research-prompt'),
+    ('업데이트', 'QuickReport', 'quick-report'),
+    ('정리', 'SummaryReport', 'summary-report'),
+    ('대기', 'WaitingReport', 'waiting-report'),
 ]
 
 # 한 칸도 안 채운 그룹은 접는다.
@@ -94,7 +97,7 @@ def latest_regular(stock):
             .order_by('-date').first())
 
 
-def _slot(prompt, report, panel, newest=None, trusted=True):
+def _slot(prompt, report, api, newest=None, trusted=True):
     auto = '{사업보고서' in (prompt.prompt or '')
     # 리서치를 저장한 뒤에 나온 보고서라야 '못 쓴 것'이다. 같은 날이면 그
     # 보고서를 넣고 돌린 것이므로 셈에서 뺀다.
@@ -105,7 +108,7 @@ def _slot(prompt, report, panel, newest=None, trusted=True):
     return {
         'question': prompt.question,
         'prompt': prompt.prompt or '',
-        'panel': panel,
+        'api': api,
         # 사업보고서가 저절로 들어가는 프롬프트인지 (화면의 📄)
         'auto_report': auto,
         'needs_attachment': prompt.needs_attachment,
@@ -141,7 +144,7 @@ def build_groups(stock, reports=None):
     newest = latest_regular(stock) if health is None else None
 
     groups, used = [], set()
-    for name, model_name, panel in GROUP_SPECS:
+    for name, model_name, api in GROUP_SPECS:
         model = apps.get_model('stocks', model_name)
         prompts = list(model.objects.all())
         if not prompts:
@@ -151,11 +154,11 @@ def build_groups(stock, reports=None):
             report = by_question.get(p.question)
             if report is not None:
                 used.add(p.question)
-            slots.append(_slot(p, report, panel, newest, health is None))
+            slots.append(_slot(p, report, api, newest, health is None))
         filled = sum(1 for s in slots if s['filled'])
         groups.append({
             'name': name,
-            'panel': panel,
+            'api': api,
             'slots': slots,
             'filled': filled,
             'total': len(slots),
@@ -199,15 +202,17 @@ def find_prompt(question):
     """질문 이름으로 프롬프트 하나. 없으면 None (직접 만든 질문)."""
     from django.apps import apps
 
-    for name, model_name, panel in GROUP_SPECS:
+    for name, model_name, api in GROUP_SPECS:
         model = apps.get_model('stocks', model_name)
         match = model.objects.filter(question=question).first()
         if match:
             return {
                 'group': name,
+                'id': match.id,
                 'question': match.question,
                 'prompt': match.prompt or '',
-                'panel': panel,
+                # 이 프롬프트를 고치는 곳. /api/<api>/<id>/update/
+                'api': api,
                 'auto_report': '{사업보고서' in (match.prompt or ''),
                 'needs_attachment': match.needs_attachment,
             }
