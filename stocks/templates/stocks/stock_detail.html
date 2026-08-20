@@ -521,13 +521,6 @@
 .bi-facts b { font-weight:700; }
 .bi-none { color:var(--text-muted); }
 .bi-tags { gap:4px; }
-/* 회사 — 자주 안 보는 값이라 접어 둔다. 접힌 줄에도 시총·PER·PBR 은 보인다. */
-.bi-fold { display:block; padding:0; }
-.bi-fold > summary { display:flex; gap:10px; padding:9px 16px; cursor:pointer; list-style:none; }
-.bi-fold > summary::-webkit-details-marker { display:none; }
-.bi-fold > summary::after { content:'▸'; color:var(--text-muted); font-size:0.7rem; align-self:center; }
-.bi-fold[open] > summary::after { content:'▾'; }
-.bi-fold-body { padding:0 16px 9px 64px; }
 .bi-tag { padding:1px 7px; border-radius:3px; font-size:0.72rem; font-weight:600; }
 .bi-tag-과열 { background:#fef2f2; color:#dc2626; }
 .bi-tag-추세중 { background:#ecfdf5; color:#047857; }
@@ -598,26 +591,22 @@
     </div>
 
     <!-- 회사 -->
-    <details class="bi-row bi-fold">
-        <summary>
-            <span class="bi-label">회사</span>
-            <div class="bi-body">
-                <div class="bi-facts">
-                    <span><i>시총</i> {{ stock.market_cap|eok }}</span>
-                    <span><i>PER</i> {% if stock.per %}{{ stock.per }}배{% else %}-{% endif %}</span>
-                    <span><i>PBR</i> {% if stock.pbr %}{{ stock.pbr }}배{% else %}-{% endif %}</span>
-                </div>
+    <div class="bi-row">
+        <span class="bi-label">회사</span>
+        <div class="bi-body">
+            <div class="bi-facts">
+                <span><i>시총</i> {{ stock.market_cap|eok }}</span>
+                <span><i>PER</i> {% if stock.per %}{{ stock.per }}배{% else %}-{% endif %}</span>
+                <span><i>PBR</i> {% if stock.pbr %}{{ stock.pbr }}배{% else %}-{% endif %}</span>
+                <span><i>ROE</i> {% if stock.roe %}{{ stock.roe }}%{% else %}-{% endif %}</span>
+                <span><i>유통비율</i> {% if stock.listed_ratio %}{{ stock.listed_ratio }}%{% else %}-{% endif %}</span>
+                <span><i>신용비율</i> {% if stock.credit_ratio %}{{ stock.credit_ratio }}%{% else %}-{% endif %}</span>
+                <span><i>외인소진률</i> {% if stock.foreign_exhaustion %}{{ stock.foreign_exhaustion }}%{% else %}-{% endif %}</span>
+                {# 같은 업종 네 곳과 매출·영업이익·PER 을 나란히 놓고 본다 (FnGuide) #}
+                <a href="https://comp.wisereport.co.kr/company/c1060001.aspx?cmp_cd={{ stock.code }}" target="_blank" rel="noopener" class="bi-go">경쟁사 비교 ↗</a>
             </div>
-        </summary>
-        <div class="bi-facts bi-fold-body">
-            <span><i>ROE</i> {% if stock.roe %}{{ stock.roe }}%{% else %}-{% endif %}</span>
-            <span><i>유통비율</i> {% if stock.listed_ratio %}{{ stock.listed_ratio }}%{% else %}-{% endif %}</span>
-            <span><i>신용비율</i> {% if stock.credit_ratio %}{{ stock.credit_ratio }}%{% else %}-{% endif %}</span>
-            <span><i>외인소진률</i> {% if stock.foreign_exhaustion %}{{ stock.foreign_exhaustion }}%{% else %}-{% endif %}</span>
-            {# 같은 업종 네 곳과 매출·영업이익·PER 을 나란히 놓고 본다 (FnGuide) #}
-            <a href="https://comp.wisereport.co.kr/company/c1060001.aspx?cmp_cd={{ stock.code }}" target="_blank" rel="noopener" class="bi-go">경쟁사 비교 ↗</a>
         </div>
-    </details>
+    </div>
 
     <!-- 수급 -->
     <div class="bi-row">
