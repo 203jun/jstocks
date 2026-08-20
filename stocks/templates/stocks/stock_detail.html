@@ -1,5 +1,6 @@
 {% extends 'stocks/base.html' %}
 {% load humanize %}
+{% load num_tags %}
 {% load help_tags %}
 {% load prompt_tags %}
 
@@ -503,8 +504,10 @@
 
 /* 기본 정보 카드 — 성격대로 줄을 나눈다 (라벨 · 내용) */
 .bi-card { padding:0; }
-.bi-row { display:flex; gap:10px; padding:9px 16px; border-bottom:1px solid var(--border-color); }
-.bi-row:last-of-type { border-bottom:none; }
+/* 줄 사이에만 선을 긋는다. :last-of-type 은 클래스가 아니라 태그 기준이라
+   <details>(회사)가 자기 종류의 마지막이 되어 아래 선을 잃었었다. */
+.bi-card > * + * { border-top:1px solid var(--border-color); }
+.bi-row { display:flex; gap:10px; padding:9px 16px; }
 .bi-label {
     flex:none; width:38px; padding-top:2px;
     font-size:0.66rem; font-weight:600; color:var(--text-muted);
@@ -529,7 +532,7 @@
 .bi-alert-mute { color:var(--text-muted); }
 .bi-go { color:#2962ff; text-decoration:none; font-weight:600; }
 .bi-go:hover { text-decoration:underline; }
-.bi-links { display:flex; flex-wrap:wrap; gap:10px; padding:8px 16px; border-top:1px solid var(--border-color); }
+.bi-links { display:flex; flex-wrap:wrap; gap:10px; padding:8px 16px; }
 .bi-links a, .bi-links span {
     font-size:0.68rem; color:var(--text-muted); text-decoration:none; cursor:pointer;
 }
@@ -590,7 +593,7 @@
             <span class="bi-label">회사</span>
             <div class="bi-body">
                 <div class="bi-facts">
-                    <span><i>시총</i> {% if stock.market_cap %}{{ stock.market_cap|intcomma }}억{% else %}-{% endif %}</span>
+                    <span><i>시총</i> {{ stock.market_cap|eok }}</span>
                     <span><i>PER</i> {% if stock.per %}{{ stock.per }}배{% else %}-{% endif %}</span>
                     <span><i>PBR</i> {% if stock.pbr %}{{ stock.pbr }}배{% else %}-{% endif %}</span>
                 </div>

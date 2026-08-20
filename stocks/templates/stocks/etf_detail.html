@@ -1,5 +1,6 @@
 {% extends 'stocks/base.html' %}
 {% load humanize %}
+{% load num_tags %}
 
 {% block title %}{{ etf.name }} - JStocks{% endblock %}
 
@@ -135,7 +136,7 @@
     </div>
     <div class="d-flex flex-wrap gap-3" style="font-size:0.82rem;line-height:2;">
         <span><span style="color:var(--text-muted);">NAV</span> {% if etf.nav %}{{ etf.nav|intcomma }}{% else %}-{% endif %}</span>
-        <span><span style="color:var(--text-muted);">시가총액</span> {% if etf.market_cap %}{{ etf.market_cap|intcomma }}억{% else %}-{% endif %}</span>
+        <span><span style="color:var(--text-muted);">시가총액</span> {{ etf.market_cap|eok }}</span>
         <span><span style="color:var(--text-muted);">운용보수</span> {% if etf.management_fee %}{{ etf.management_fee }}%{% else %}-{% endif %}</span>
     </div>
     {% if etf.holdings %}

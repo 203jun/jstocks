@@ -1,5 +1,6 @@
 {% extends 'stocks/base.html' %}
 {% load humanize %}
+{% load num_tags %}
 
 {% block title %}종목 검색 - JStocks{% endblock %}
 
@@ -192,7 +193,7 @@
                     <td class="text-end {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}">
                         {% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}
                     </td>
-                    <td class="text-end hide-mobile">{% if stock.market_cap %}{{ stock.market_cap|intcomma }}억{% else %}-{% endif %}</td>
+                    <td class="text-end hide-mobile">{{ stock.market_cap|eok }}</td>
                     <td class="text-end hide-mobile">{% if stock.per %}{{ stock.per }}{% else %}-{% endif %}</td>
                     <td class="text-end hide-mobile" style="padding-right: 24px;">{% if stock.pbr %}{{ stock.pbr }}{% else %}-{% endif %}</td>
                 </tr>
