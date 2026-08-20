@@ -62,13 +62,6 @@
 .badge-sector { background:#22c55e; text-decoration:none; color:#fff; font-size:0.7em; padding:2px 6px; border-radius:4px; cursor:pointer; }
 
 
-/* Event chips */
-.event-chip { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:6px; font-size:0.78rem; background:#f3f4f6; border:1px solid var(--border-color); }
-.event-chip.event-urgent { background:#fef2f2; border-color:#fca5a5; }
-.event-dday { font-weight:700; color:var(--text-primary); font-size:0.72rem; }
-.event-urgent .event-dday { color:#dc2626; }
-.event-label { color:var(--text-secondary); font-weight:600; }
-.event-title { color:var(--text-muted); }
 
 /* Stock list container */
 .stock-list-wrap { background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius); box-shadow:var(--shadow-card); overflow:hidden; margin-top:24px; }
@@ -131,35 +124,6 @@
         </div>
     </div>
 </div>
-<!-- 이벤트 일정 (D-10) -->
-{% if upcoming_events %}
-<div id="eventSection">
-<div class="section-heading">이벤트 일정 <span style="font-size:0.72rem;font-weight:400;color:var(--text-muted);margin-left:6px;">10일 이내 예정된 종목·섹터·ETF 이벤트</span></div>
-<div class="brief-card" style="padding:12px 16px;">
-    <div style="display:flex;flex-wrap:wrap;gap:8px;">
-        {% for ev in upcoming_events %}
-        <span class="event-chip {% if ev.days_left <= 3 %}event-urgent{% endif %}" style="cursor:pointer;" onclick="openEventDetail(this)" data-level="{{ ev.level }}" data-type="{{ ev.type }}" data-name="{{ ev.name }}" data-date="{{ ev.date|date:'Y-m-d' }}" data-date-text="{{ ev.date_text }}" data-title="{{ ev.title }}" data-content="{{ ev.content|default:'' }}">
-            <span class="event-dday">{% if ev.days_left == 0 %}D-Day{% else %}D-{{ ev.days_left }}{% endif %}</span>
-            <span class="event-label">{{ ev.name }}</span>
-            <span class="event-title">{{ ev.title }}</span>
-        </span>
-        {% endfor %}
-    </div>
-</div>
-
-<!-- 이벤트 상세 모달 -->
-<div class="modal-overlay" id="eventDetailModal">
-    <div class="modal-box" style="max-width:500px;">
-        <div class="modal-header-custom">
-            <h6 id="eventDetailLabel">이벤트 상세</h6>
-            <button type="button" class="modal-close-btn" id="eventDetailClose">&times;</button>
-        </div>
-        <div id="eventDetailBody" style="font-size:0.85rem;line-height:1.7;"></div>
-    </div>
-</div>
-</div>
-{% endif %}
-
 <!-- 현황 -->
 <div class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">현황<span id="btnCopyStatusPrompt" style="font-size:0.6rem;font-weight:400;padding:2px 8px;border-radius:4px;background:#f3f4f6;color:var(--text-secondary);cursor:pointer;">프롬프트</span></div>
 <div class="brief-card" style="padding:0; overflow:hidden;">
@@ -236,38 +200,6 @@
 
 {% block extra_js %}
 <script>
-// 이벤트 상세 모달
-function openEventDetail(el) {
-    const type = el.dataset.type;
-    const name = el.dataset.name;
-    const date = el.dataset.date;
-    const dateText = el.dataset.dateText;
-    const title = el.dataset.title;
-    const content = el.dataset.content;
-
-    document.getElementById('eventDetailLabel').textContent = `${name} — ${title}`;
-
-    let html = `<div style="margin-bottom:12px;">`;
-    html += `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:500;background:#f3f4f6;color:var(--text-secondary);margin-right:6px;">${type}</span>`;
-    html += `<span style="color:var(--text-muted);font-size:0.8rem;">${dateText || date}</span>`;
-    html += `</div>`;
-    if (content) {
-        html += `<div style="color:var(--text-primary);white-space:pre-wrap;">${content}</div>`;
-    } else {
-        html += `<div style="color:var(--text-muted);">등록된 상세 내용이 없습니다.</div>`;
-    }
-
-    document.getElementById('eventDetailBody').innerHTML = html;
-    document.getElementById('eventDetailModal').classList.add('show');
-}
-
-(function() {
-    const modal = document.getElementById('eventDetailModal');
-    if (!modal) return;
-    document.getElementById('eventDetailClose').addEventListener('click', () => modal.classList.remove('show'));
-    modal.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('show'); });
-})();
-
 // 스파크라인 그리기
 function drawSparklines() {
     document.querySelectorAll('.sparkline').forEach(canvas => {
@@ -327,16 +259,6 @@ function applyFilter(filter) {
     document.querySelectorAll('.status-row').forEach(row => {
         row.style.display = row.dataset.level === filter ? '' : 'none';
     });
-    // 이벤트 필터링
-    let hasVisible = false;
-    document.querySelectorAll('.event-chip').forEach(chip => {
-        const level = chip.dataset.level;
-        const show = level === 'all' || level === filter;
-        chip.style.display = show ? '' : 'none';
-        if (show) hasVisible = true;
-    });
-    const eventSection = document.getElementById('eventSection');
-    if (eventSection) eventSection.style.display = hasVisible ? '' : 'none';
 }
 
 // 페이지 로드 시 보유 필터 적용
