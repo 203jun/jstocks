@@ -138,17 +138,15 @@
         }
         .eb-market { background: #eef2ff; color: #4f46e5; }
         .eb-level { background: #ecfdf5; color: #047857; }
-        /* 추적은 켜짐/꺼짐 차이가 한눈에 보여야 해서 채워 버린다 */
+        /* 추적은 켜짐/꺼짐이 한눈에 보여야 해서 채워 버린다 */
         .eb-track { background: #7c3aed; color: #fff; }
-        .eb-off {
-            background: transparent;
-            border-color: var(--border-color);
-            color: var(--text-muted);
-            font-weight: 400;
-        }
+        /* 꺼진 칸도 채운다. 빈 테두리로 두면 '값이 없다'가 아니라 '자리만
+           있다'로 보여서, 옆 칸들과 성격이 달라 보인다. */
+        .eb-off { background: var(--bg-secondary); color: var(--text-muted); font-weight: 400; }
         [data-theme="dark"] .eb-market { background: #232a4a; color: #a5b4fc; }
         [data-theme="dark"] .eb-level { background: #0e2a1f; color: #4ade80; }
         [data-theme="dark"] .eb-track { background: #8b5cf6; color: #fff; }
+        [data-theme="dark"] .eb-off { background: #22262f; color: var(--text-muted); }
 
         /* 마크다운 렌더링 영역 공통 */
         .markdown-content h1 { font-size: 1.3rem; font-weight: 700; margin: 1.2rem 0 0.6rem; padding-bottom: 0.25rem; border-bottom: 2px solid var(--border-color); }
