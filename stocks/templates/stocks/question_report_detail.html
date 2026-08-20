@@ -142,14 +142,12 @@
                 <button type="button" id="btnEditPrompt" title="이 프롬프트 고치기">⚙</button>
             </span>
             {% else %}
-            {# 일반 — 프롬프트도 내가 쓴다. ✎ 자리는 칸 리서치의 ⚙ 과 같다. #}
+            {# 일반 — 프롬프트도 내가 쓴다. 모양은 칸 리서치와 같다. #}
             <span class="prompt-pair">
-                {% if qr.ai_question %}
                 <span class="common-research-btn" role="button"
                       data-question="{{ qr.question }}" data-prompt="{{ qr.ai_question }}"
                       title="이 질문에 적어둔 프롬프트를 복사합니다">프롬프트</span>
-                {% endif %}
-                <button type="button" id="btnEditMeta" title="질문과 프롬프트 고치기">{% if qr.ai_question %}✎{% else %}질문·프롬프트{% endif %}</button>
+                <button type="button" id="btnEditMeta" title="질문과 프롬프트 고치기">⚙</button>
             </span>
             {% endif %}
             {# AI 판단의 붙여넣기와 같은 버튼이다 (_ai_note.html 의 data-ma-edit) #}
@@ -246,6 +244,11 @@ const tradeVars = tradeVarsEl ? JSON.parse(tradeVarsEl.textContent) : {};
 document.querySelectorAll('.common-research-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
         const question = btn.dataset.question;
+        // 아직 안 적은 프롬프트. 빈 문자열이 복사되면 붙여넣고 나서야 안다.
+        if (!btn.dataset.prompt.trim()) {
+            alert('옆의 ⚙ 를 눌러 프롬프트를 먼저 적으세요.');
+            return;
+        }
         // 실적확인 데이터 없으면 경고 (프롬프트에서 {최근실적}을 사용하는 경우만)
         if (!recentPerfReport && btn.dataset.prompt.includes('{최근실적}')) {
             alert('이 종목에 "실적확인" 리서치 데이터가 없습니다.\n리서치 → 업데이트에서 "실적확인"을 먼저 작성하세요.\n\n(실적확인 없이 복사됩니다)');
