@@ -126,14 +126,29 @@
         [data-theme="dark"] .channel-badge { background: #22262f !important; color: var(--text-secondary) !important; }
         [data-theme="dark"] .prompt-badge { background: #0e2a1f !important; color: #4ade80 !important; }
 
-        /* 종목·ETF 이름 밑 배지 세 칸. 자리가 늘 같아야 눈이 찾아가지 않는다.
-           꺼져 있는 칸은 없애지 않고 흐리게 둔다. */
-        .entity-badges { display: flex; gap: 8px; margin-top: 6px; }
-        .tag-badge.tag-off {
-            background: transparent !important;
-            border: 1px dashed var(--border-color);
-            color: var(--text-muted) !important;
+        /* 종목·ETF 이름 밑 배지 세 칸(_entity_badges.html).
+           자리가 늘 같아야 눈이 찾아가지 않는다. 색은 칸마다 하나씩이고,
+           한 칸 안에서 값에 따라 또 나누지 않는다 — 코스피와 코스닥은 같은
+           자리의 같은 성격이다. 비어 있는 칸만 빈 테두리로 둔다. */
+        .entity-badges { display: flex; gap: 6px; margin-top: 6px; }
+        .eb {
+            display: inline-block; padding: 3px 10px; border-radius: 4px;
+            font-size: 0.72rem; font-weight: 600; line-height: 1.4;
+            border: 1px solid transparent;
         }
+        .eb-market { background: #eef2ff; color: #4f46e5; }
+        .eb-level { background: #ecfdf5; color: #047857; }
+        /* 추적은 켜짐/꺼짐 차이가 한눈에 보여야 해서 채워 버린다 */
+        .eb-track { background: #7c3aed; color: #fff; }
+        .eb-off {
+            background: transparent;
+            border-color: var(--border-color);
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+        [data-theme="dark"] .eb-market { background: #232a4a; color: #a5b4fc; }
+        [data-theme="dark"] .eb-level { background: #0e2a1f; color: #4ade80; }
+        [data-theme="dark"] .eb-track { background: #8b5cf6; color: #fff; }
 
         /* 마크다운 렌더링 영역 공통 */
         .markdown-content h1 { font-size: 1.3rem; font-weight: 700; margin: 1.2rem 0 0.6rem; padding-bottom: 0.25rem; border-bottom: 2px solid var(--border-color); }

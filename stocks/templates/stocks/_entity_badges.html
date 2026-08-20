@@ -6,21 +6,24 @@
 
   1  KOSPI · KOSDAQ · ETF
   2  보유 · 관심 · 대기        보유가 관심·대기보다 앞선다 (views.level_of 와 같은 규칙)
-  3  추적                     켜져 있으면 진하게, 아니면 흐리게 — 없앴다 넣었다 하지 않는다
+  3  추적                     켜져 있으면 채워서, 아니면 빈 테두리로
 
-예전에는 보유와 관심이 같이 떠서 배지가 넷이 되기도 했고, 추적은 켜졌을
-때만 나와서 칸 수가 종목마다 달랐다.
+색은 칸마다 하나씩이다. 한 칸 안에서 값에 따라 또 나누지 않는다 — 코스피와
+코스닥은 같은 자리의 같은 성격이라 색을 달리 할 이유가 없다. 값이 비어 있는
+칸(미분류·추적 아님)만 흐리게 둔다.
+
+칸 모양은 base.html 의 .eb-* 가 정한다. 화면마다 따로 두면 어긋난다.
 {% endcomment %}
 <div class="entity-badges">
-    <span class="tag-badge {% if market == 'ETF' %}etf{% elif market == 'KOSPI' %}market-kospi{% else %}market-kosdaq{% endif %}">{{ market|default:"—" }}</span>
+    <span class="eb eb-market">{{ market|default:"—" }}</span>
     {% if holding %}
-    <span class="tag-badge holding">보유</span>
+    <span class="eb eb-level">보유</span>
     {% elif level == 'normal' %}
-    <span class="tag-badge interest-normal">관심</span>
+    <span class="eb eb-level">관심</span>
     {% elif level == 'waiting' %}
-    <span class="tag-badge interest-waiting">대기</span>
+    <span class="eb eb-level">대기</span>
     {% else %}
-    <span class="tag-badge tag-off">미분류</span>
+    <span class="eb eb-off">미분류</span>
     {% endif %}
-    <span class="tag-badge {% if tracking %}tracking{% else %}tag-off{% endif %}">👀 추적</span>
+    <span class="eb {% if tracking %}eb-track{% else %}eb-off{% endif %}">추적</span>
 </div>
