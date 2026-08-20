@@ -11,6 +11,7 @@ from django.views.decorators.http import require_GET
 from decouple import config
 from telethon import TelegramClient
 from django.views.decorators.http import require_POST
+from . import stock_signal
 from .models import Holding, Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Gongsi, IndexChart, MarketTrend, AiNote, InvestorTrend, ShortSelling, MarketDiary
 from .ai_note import build_note_panel
 from .market_signal import build_market_panel, build_prompt_vars
@@ -519,40 +520,9 @@ def index(request):
         max_vol_60 = max((d.trading_volume or 0) for d in daily_data[:60]) if len(daily_data) >= 2 else 0
 
         # 배열 판단
-        ma_align = ''
-        if len(daily_data) >= 125:
-            ma5 = sum(d.closing_price for d in daily_data[:5]) / 5
-            ma20 = sum(d.closing_price for d in daily_data[:20]) / 20
-            ma60 = sum(d.closing_price for d in daily_data[:60]) / 60
-            ma120 = sum(d.closing_price for d in daily_data[:120]) / 120
-            ma120_prev = sum(d.closing_price for d in daily_data[5:125]) / 120
-            m = 1.005
-            if (ma5 > ma20 * m and ma20 > ma60 * m and ma60 > ma120 * m
-                    and ma120 > ma120_prev):
-                ma_align = 'bull'
-            elif (ma5 * m < ma20 and ma20 * m < ma60 and ma60 * m < ma120
-                  and ma120 < ma120_prev):
-                ma_align = 'bear'
-            else:
-                ma_align = 'mixed'
-
-        # 눌림목 판단 (정배열일 때만)
-        pullback = None
-        pullback_label = ''
-        if ma_align == 'bull' and len(daily_data) >= 20:
-            _ma20 = sum(d.closing_price for d in daily_data[:20]) / 20
-            gap_pct = round((today.closing_price - _ma20) / _ma20 * 100, 1)
-            pullback = gap_pct
-            if gap_pct > 5:
-                pullback_label = '과열'
-            elif gap_pct > 2:
-                pullback_label = '추세중'
-            elif gap_pct > -2:
-                pullback_label = '얕은눌림'
-            elif gap_pct > -5:
-                pullback_label = '깊은눌림'
-            else:
-                pullback_label = '이탈'
+        # 이평 배열과 눌림목 — 종목 상세도 같은 계산을 쓴다 (stock_signal)
+        ma_align = stock_signal.ma_alignment(daily_data)
+        pullback, pullback_label = stock_signal.pullback(daily_data, ma_align)
 
         # 10일 스파크라인
         sparkline = [d.closing_price for d in daily_data[:10]]
@@ -594,37 +564,9 @@ def index(request):
                     }
                     break
 
-        # 기관/외국인 수급 분석
-        inst_label = ''
-        frgn_label = ''
+        # 기관/외국인 연속 매수
         inv_data = list(InvestorTrend.objects.filter(stock=stock).order_by('-date')[:20])
-        if inv_data:
-            # 20일 최대 체크
-            inst_values = [d.institution for d in inv_data]
-            frgn_values = [d.foreign for d in inv_data]
-            if inst_values[0] > 0 and inst_values[0] >= max(inst_values):
-                inst_label = '20일'
-            if frgn_values[0] > 0 and frgn_values[0] >= max(frgn_values):
-                frgn_label = '20일'
-            # 연속 플러스 체크 (20일 최대가 아닌 경우)
-            if not inst_label:
-                inst_consec = 0
-                for d in inv_data:
-                    if d.institution > 0:
-                        inst_consec += 1
-                    else:
-                        break
-                if inst_consec >= 3:
-                    inst_label = str(inst_consec)
-            if not frgn_label:
-                frgn_consec = 0
-                for d in inv_data:
-                    if d.foreign > 0:
-                        frgn_consec += 1
-                    else:
-                        break
-                if frgn_consec >= 3:
-                    frgn_label = str(frgn_consec)
+        inst_label, frgn_label = stock_signal.investor_streaks(inv_data)
 
         # 리포트(3거래일) 최근 자료 확인
         from datetime import timedelta
@@ -632,11 +574,7 @@ def index(request):
         recent_reports = list(Report.objects.filter(stock=stock, date__gte=today_date - timedelta(days=5)).order_by('-date')[:3])
         has_report = bool(recent_reports)
 
-        # 괴리율 (최신 리포트 목표가 vs 현재가)
-        report_gap = None
-        latest_report = Report.objects.filter(stock=stock, target_price__isnull=False).order_by('-date').first()
-        if latest_report and latest_report.target_price and stock.current_price:
-            report_gap = round((latest_report.target_price / stock.current_price - 1) * 100, 1)
+        report_gap = stock_signal.report_gap(stock)
 
         _gc = _gongsi_map.get(stock.code)
         status_stocks.append({
@@ -1443,6 +1381,23 @@ def stock_detail(request, code):
             'gap20': gap20, 'days': len(year),
         }
 
+    # 차트 신호 — 메인 현황 표와 같은 계산(stock_signal)을 쓴다.
+    # 두 화면이 같은 종목을 두고 다른 말을 하면 안 된다.
+    _daily_desc = list(reversed(daily_charts))
+    _align = stock_signal.ma_alignment(_daily_desc)
+    _gap, _pullback_label = stock_signal.pullback(_daily_desc, _align)
+    _inst_streak, _frgn_streak = stock_signal.investor_streaks(
+        list(InvestorTrend.objects.filter(stock=stock).order_by('-date')[:20]))
+    signal_panel = {
+        'align': _align,
+        'align_name': stock_signal.ALIGN_NAMES.get(_align, ''),
+        'pullback': _gap,
+        'pullback_label': _pullback_label,
+        'inst_streak': _inst_streak,
+        'frgn_streak': _frgn_streak,
+        'report_gap': stock_signal.report_gap(stock),
+    }
+
     # 사업보고서를 읽고 쓴 리서치가 낡았는지. 리서치 칸까지 내려가야 보이던
     # 것을 위로 올린다 — '다시 봐야 할 이유'의 대표다.
     new_report_alert = None
@@ -1614,6 +1569,7 @@ def stock_detail(request, code):
         'recent_gongsi_count': recent_gongsi_count,
         'recent_window_days': recent_window_days,
         'price_pos': price_pos,
+        'signal_panel': signal_panel,
         'new_report_alert': new_report_alert,
         'latest_investor': latest_investor,
         'latest_short': latest_short,
@@ -3369,40 +3325,9 @@ def etf(request):
         max_vol_60 = max((d.trading_volume or 0) for d in daily_data[:60]) if len(daily_data) >= 2 else 0
 
         # 배열 판단
-        ma_align = ''
-        if len(daily_data) >= 125:
-            ma5 = sum(d.closing_price for d in daily_data[:5]) / 5
-            ma20 = sum(d.closing_price for d in daily_data[:20]) / 20
-            ma60 = sum(d.closing_price for d in daily_data[:60]) / 60
-            ma120 = sum(d.closing_price for d in daily_data[:120]) / 120
-            ma120_prev = sum(d.closing_price for d in daily_data[5:125]) / 120
-            m = 1.005
-            if (ma5 > ma20 * m and ma20 > ma60 * m and ma60 > ma120 * m
-                    and ma120 > ma120_prev):
-                ma_align = 'bull'
-            elif (ma5 * m < ma20 and ma20 * m < ma60 and ma60 * m < ma120
-                  and ma120 < ma120_prev):
-                ma_align = 'bear'
-            else:
-                ma_align = 'mixed'
-
-        # 눌림목 판단 (정배열일 때만)
-        pullback = None
-        pullback_label = ''
-        if ma_align == 'bull' and len(daily_data) >= 20:
-            _ma20 = sum(d.closing_price for d in daily_data[:20]) / 20
-            gap_pct = round((today.closing_price - _ma20) / _ma20 * 100, 1)
-            pullback = gap_pct
-            if gap_pct > 5:
-                pullback_label = '과열'
-            elif gap_pct > 2:
-                pullback_label = '추세중'
-            elif gap_pct > -2:
-                pullback_label = '얕은눌림'
-            elif gap_pct > -5:
-                pullback_label = '깊은눌림'
-            else:
-                pullback_label = '이탈'
+        # 이평 배열과 눌림목 — 종목 상세도 같은 계산을 쓴다 (stock_signal)
+        ma_align = stock_signal.ma_alignment(daily_data)
+        pullback, pullback_label = stock_signal.pullback(daily_data, ma_align)
 
         status_etfs.append({
             'etf': etf_item,

@@ -528,6 +528,16 @@
 .bi-fold > summary::after { content:'▸'; color:var(--text-muted); font-size:0.7rem; align-self:center; }
 .bi-fold[open] > summary::after { content:'▾'; }
 .bi-fold-body { padding:0 16px 9px 64px; }
+.bi-tag { padding:1px 7px; border-radius:3px; font-size:0.72rem; font-weight:600; }
+.bi-tag-과열 { background:#fef2f2; color:#dc2626; }
+.bi-tag-추세중 { background:#ecfdf5; color:#047857; }
+.bi-tag-얕은눌림 { background:#eff6ff; color:#2962ff; }
+.bi-tag-깊은눌림 { background:#fffbeb; color:#d97706; }
+.bi-tag-이탈 { background:var(--bg-secondary); color:var(--text-muted); }
+[data-theme="dark"] .bi-tag-과열 { background:#3a1c1c; color:#fca5a5; }
+[data-theme="dark"] .bi-tag-추세중 { background:#0e2a1f; color:#4ade80; }
+[data-theme="dark"] .bi-tag-얕은눌림 { background:#1e2e4a; color:#93b4ff; }
+[data-theme="dark"] .bi-tag-깊은눌림 { background:#332a10; color:#fbbf24; }
 .bi-alert { margin-top:4px; font-size:0.76rem; line-height:1.5; color:#f59e0b; }
 .bi-alert-mute { color:var(--text-muted); }
 .bi-go { color:#2962ff; text-decoration:none; font-weight:600; }
@@ -640,6 +650,32 @@
             {% elif research_health %}
             <div class="bi-alert bi-alert-mute">ℹ️ {{ research_health.text }}</div>
             {% endif %}
+        </div>
+    </div>
+
+    <!-- 신호 -->
+    {% comment %}
+    메인 현황 표가 보여주던 것들. 종목 화면에는 없어서 표를 다시 보러
+    가야 했다. 계산은 stock_signal 한 곳에서 한다 — 두 화면이 같은 종목을
+    두고 다른 말을 하면 안 된다.
+    {% endcomment %}
+    <div class="bi-row">
+        <span class="bi-label">신호</span>
+        <div class="bi-body">
+            <div class="bi-facts">
+                {% if signal_panel.align %}
+                <span><i>배열</i> <b class="{% if signal_panel.align == 'bull' %}text-up{% elif signal_panel.align == 'bear' %}text-down{% endif %}">{{ signal_panel.align_name }}</b></span>
+                {% endif %}
+                {% if signal_panel.pullback_label %}
+                <span><i>20일선</i> <b class="bi-tag bi-tag-{{ signal_panel.pullback_label }}">{{ signal_panel.pullback_label }}</b> {% if signal_panel.pullback > 0 %}+{% endif %}{{ signal_panel.pullback }}%</span>
+                {% endif %}
+                {% if signal_panel.frgn_streak %}<span><i>외국인</i> <b class="text-up">{{ signal_panel.frgn_streak }}</b></span>{% endif %}
+                {% if signal_panel.inst_streak %}<span><i>기관</i> <b class="text-up">{{ signal_panel.inst_streak }}</b></span>{% endif %}
+                {% if signal_panel.report_gap is not None %}
+                <span><i>괴리율</i> <span class="{% if signal_panel.report_gap < 0 %}text-down{% endif %}">{% if signal_panel.report_gap > 0 %}+{% endif %}{{ signal_panel.report_gap }}%</span></span>
+                {% endif %}
+                {% if not signal_panel.align and not signal_panel.report_gap %}<span class="bi-none">데이터가 모자랍니다</span>{% endif %}
+            </div>
         </div>
     </div>
 
