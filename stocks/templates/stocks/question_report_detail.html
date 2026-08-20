@@ -41,6 +41,15 @@
     font-family:inherit; font-size:0.85rem;
 }
 .qr-meta-q:focus { outline:none; border-color:var(--text-muted); }
+.qr-var-line { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+.qr-var-line a { font-size:0.74rem; color:var(--text-secondary); text-decoration:none; border-bottom:1px dotted var(--text-muted); }
+.qr-var-line a:hover { color:var(--text-primary); }
+.qr-var-line .mp-var-hint { margin:0; min-height:0; flex:1; }
+.qr-vars { margin-bottom:10px; padding:10px 12px; border:1px solid var(--border-color); border-radius:8px; max-height:220px; overflow-y:auto; }
+.qr-var-group { display:flex; align-items:flex-start; gap:8px; margin-bottom:6px; }
+.qr-var-label { flex:none; width:56px; padding-top:4px; font-size:0.68rem; color:var(--text-muted); }
+.qr-vars .mp-vars { margin-bottom:0; }
+.qr-var-foot { margin-top:4px; font-size:0.68rem; color:var(--text-muted); }
 #preview {
     min-height: 100px;
     padding: 16px;
@@ -536,8 +545,27 @@ document.getElementById('btnDelete')?.addEventListener('click', async () => {
             <h6>질문 · 프롬프트</h6>
             <button type="button" class="modal-close-btn" id="qrMetaClose">&times;</button>
         </div>
-        <div class="ma-note">질문은 목록에 뜨는 이름입니다. 프롬프트를 적어두면 [프롬프트] 버튼으로 복사됩니다 — {현재가} {시가총액} 같은 변수도 그대로 씁니다.</div>
+        <div class="ma-note">질문은 목록에 뜨는 이름입니다. 프롬프트를 적어두면 [프롬프트] 버튼으로 복사됩니다.</div>
         <input type="text" id="qrMetaQuestion" class="qr-meta-q" placeholder="질문 (예: 메모리 테스트 핸들러 경쟁 구도)" value="{{ qr.question }}">
+        <div class="qr-var-line">
+            <a href="#" id="btnShowVars">쓸 수 있는 변수 보기</a>
+            <span class="mp-var-hint" id="qrVarHint"></span>
+        </div>
+        {% comment %}
+        치환은 아래 tradeMap 이 한다. 이 목록은 research_vars.py 에 있고
+        둘이 어긋나지 않는지는 manage.py check_research_vars 가 본다.
+        {% endcomment %}
+        <div class="qr-vars" id="qrVars" hidden>
+            {% for group, items in research_var_groups %}
+            <div class="qr-var-group">
+                <span class="qr-var-label">{{ group }}</span>
+                <span class="mp-vars">
+                    {% for name, hint in items %}<button type="button" class="mp-var" data-var="{{ name }}"{% if hint %} data-hint="{{ hint }}"{% endif %}>{{ name }}</button>{% endfor %}
+                </span>
+            </div>
+            {% endfor %}
+            <div class="qr-var-foot">눌러서 넣습니다. 없는 변수를 적으면 복사할 때 알려줍니다.</div>
+        </div>
         <textarea id="qrMetaPrompt" class="paste-box" spellcheck="false" placeholder="이 질문에 쓸 프롬프트">{{ qr.ai_question }}</textarea>
         <div class="mp-foot">
             <button type="button" class="mp-save" id="qrMetaSave">저장</button>
@@ -553,6 +581,30 @@ document.getElementById('btnDelete')?.addEventListener('click', async () => {
     const q = document.getElementById('qrMetaQuestion');
     const prompt = document.getElementById('qrMetaPrompt');
     const msg = document.getElementById('qrMetaMsg');
+
+    // 변수 목록 — 접어 둔다. 예순아홉 개를 늘 펴 두면 정작 입력칸이 안 보인다.
+    const vars = document.getElementById('qrVars');
+    const hint = document.getElementById('qrVarHint');
+    document.getElementById('btnShowVars').addEventListener('click', e => {
+        e.preventDefault();
+        vars.hidden = !vars.hidden;
+        e.target.textContent = vars.hidden ? '쓸 수 있는 변수 보기' : '변수 접기';
+    });
+    // 커서 자리에 넣는다. 맨 뒤에 붙이면 쓰던 문장을 다시 옮겨야 한다.
+    vars.addEventListener('click', e => {
+        const btn = e.target.closest('.mp-var');
+        if (!btn) return;
+        const token = '{' + btn.dataset.var + '}';
+        const at = prompt.selectionStart ?? prompt.value.length;
+        prompt.value = prompt.value.slice(0, at) + token + prompt.value.slice(prompt.selectionEnd ?? at);
+        prompt.focus();
+        prompt.selectionStart = prompt.selectionEnd = at + token.length;
+        hint.textContent = btn.dataset.hint || '';
+    });
+    vars.addEventListener('mouseover', e => {
+        const btn = e.target.closest('.mp-var');
+        if (btn) hint.textContent = btn.dataset.hint || '';
+    });
 
     const show = () => { msg.textContent = ''; modal.classList.add('show'); q.focus(); };
     open.addEventListener('click', show);

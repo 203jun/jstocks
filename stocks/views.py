@@ -4936,6 +4936,8 @@ def stock_question_report_detail(request, report_id, qr=None):
     # 리서치로 오므로, 여기서는 이름이 같은 것 하나면 된다.
     own_prompt = research_slots.find_prompt(qr.question)
     slot_alert = research_slots.slot_alert(qr.stock, qr, own_prompt)
+    # 일반 리서치는 프롬프트를 직접 쓴다. 무엇을 쓸 수 있는지 창에서 보여준다.
+    from . import research_vars
 
     theme_category_name = ''
     theme_name = ''
@@ -5145,6 +5147,7 @@ def stock_question_report_detail(request, report_id, qr=None):
         'qr': qr,
         'own_prompt': own_prompt,
         'slot_alert': slot_alert,
+        'research_var_groups': research_vars.GROUPS,
         'theme_category_name': theme_category_name,
         'theme_name': theme_name,
         'stock_current_price': stock_current_price,
