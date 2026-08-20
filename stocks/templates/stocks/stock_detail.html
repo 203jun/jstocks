@@ -513,6 +513,7 @@
     font-size:0.66rem; font-weight:600; color:var(--text-muted);
 }
 .bi-label-hold { color:#047857; }
+.bi-label-sig { color:#7c3aed; }
 .bi-body { flex:1; min-width:0; }
 .bi-price { display:flex; align-items:baseline; gap:8px; margin-bottom:4px; }
 .bi-change { font-size:1.05rem; font-weight:700; }
@@ -527,10 +528,17 @@
 .bi-tag-얕은눌림 { background:#eff6ff; color:#2962ff; }
 .bi-tag-깊은눌림 { background:#fffbeb; color:#d97706; }
 .bi-tag-이탈 { background:var(--bg-secondary); color:var(--text-muted); }
+.bi-tag-hot { background:#dc2626; color:#fff; }
+.bi-tag-cold { background:#2962ff; color:#fff; }
+.bi-tag-buy { background:#7c3aed; color:#fff; }
+a.bi-tag { text-decoration:none; }
 [data-theme="dark"] .bi-tag-과열 { background:#3a1c1c; color:#fca5a5; }
 [data-theme="dark"] .bi-tag-추세중 { background:#0e2a1f; color:#4ade80; }
 [data-theme="dark"] .bi-tag-얕은눌림 { background:#1e2e4a; color:#93b4ff; }
 [data-theme="dark"] .bi-tag-깊은눌림 { background:#332a10; color:#fbbf24; }
+[data-theme="dark"] .bi-tag-hot { background:#ef4444; }
+[data-theme="dark"] .bi-tag-cold { background:#5b8def; }
+[data-theme="dark"] .bi-tag-buy { background:#8b5cf6; }
 .bi-alert { margin-top:4px; font-size:0.76rem; line-height:1.5; color:#f59e0b; }
 .bi-alert-mute { color:var(--text-muted); }
 .bi-go { color:#2962ff; text-decoration:none; font-weight:600; }
@@ -590,6 +598,47 @@
         </div>
     </div>
 
+    <!-- 신호 -->
+    {% comment %}
+    지금 눈에 띄는 것만. 조건에 걸린 것이 없으면 아무것도 안 나온다.
+    수급 줄은 수치를, 이 줄은 판정을 말한다.
+
+    메인 현황 표가 보여주던 것들이다. 계산은 stock_signal 한 곳에서 한다 —
+    두 화면이 같은 종목을 두고 다른 말을 하면 안 된다.
+    {% endcomment %}
+    <div class="bi-row">
+        <span class="bi-label bi-label-sig">신호</span>
+        <div class="bi-body">
+            <div class="bi-facts">
+                {% if signal_panel.vol_high %}<span class="bi-tag bi-tag-hot">거래량 {{ signal_panel.vol_high }} 최대</span>{% endif %}
+                {% if signal_panel.new_high.is_new %}<span class="bi-tag bi-tag-hot">신고가</span>{% endif %}
+                {% if signal_panel.pullback_label %}<span class="bi-tag bi-tag-{{ signal_panel.pullback_label }}">{{ signal_panel.pullback_label }} {% if signal_panel.pullback > 0 %}+{% endif %}{{ signal_panel.pullback }}%</span>{% endif %}
+                {% if signal_panel.frgn_streak %}<span class="bi-tag bi-tag-buy">외국인 {{ signal_panel.frgn_streak }}{% if signal_panel.frgn_streak != '20일' %}일 연속{% else %} 최대{% endif %}</span>{% endif %}
+                {% if signal_panel.inst_streak %}<span class="bi-tag bi-tag-buy">기관 {{ signal_panel.inst_streak }}{% if signal_panel.inst_streak != '20일' %}일 연속{% else %} 최대{% endif %}</span>{% endif %}
+                {% if signal_panel.gongsi_good %}<a href="#" class="bi-tag bi-tag-hot bi-go" data-tab="disclosure-content">호재 공시 {{ signal_panel.gongsi_good }}</a>{% endif %}
+                {% if signal_panel.gongsi_bad %}<a href="#" class="bi-tag bi-tag-cold bi-go" data-tab="disclosure-content">악재 공시 {{ signal_panel.gongsi_bad }}</a>{% endif %}
+            </div>
+            <div class="bi-facts">
+                {% if signal_panel.align %}<span><i>배열</i> <b class="{% if signal_panel.align == 'bull' %}text-up{% elif signal_panel.align == 'bear' %}text-down{% endif %}">{{ signal_panel.align_name }}</b></span>{% endif %}
+                {% if signal_panel.new_high %}<span><i>고점대비</i> <span class="{% if signal_panel.new_high.gap < 0 %}text-down{% endif %}">{{ signal_panel.new_high.gap }}%</span></span>{% endif %}
+                {% if signal_panel.big_candle %}<span><i>장대양봉</i> {% if signal_panel.big_candle.days_ago %}{{ signal_panel.big_candle.days_ago }}일 전 <span class="{% if signal_panel.big_candle.move > 0 %}text-up{% elif signal_panel.big_candle.move < 0 %}text-down{% endif %}">{% if signal_panel.big_candle.move > 0 %}+{% endif %}{{ signal_panel.big_candle.move }}%</span>{% else %}<b class="text-up">오늘</b>{% endif %}</span>{% endif %}
+                {% if signal_panel.report_gap is not None %}<span><i>괴리율</i> <span class="{% if signal_panel.report_gap < 0 %}text-down{% endif %}">{% if signal_panel.report_gap > 0 %}+{% endif %}{{ signal_panel.report_gap }}%</span></span>{% endif %}
+            </div>
+            <div class="bi-facts">
+                <span><i>{{ signal_panel.window }}거래일</i>
+                    {% if signal_panel.report_count %}<a href="#" class="bi-go" data-tab="report-content">리포트 {{ signal_panel.report_count }}건</a>{% endif %}
+                    {% if signal_panel.gongsi_count %}<a href="#" class="bi-go" data-tab="disclosure-content">공시 {{ signal_panel.gongsi_count }}건</a>{% endif %}
+                    {% if not signal_panel.report_count and not signal_panel.gongsi_count %}<span class="bi-none">새 자료 없음</span>{% endif %}
+                </span>
+            </div>
+            {% if new_report_alert %}
+            <div class="bi-alert">⚠️ {{ new_report_alert.title }} 가 {{ new_report_alert.date|date:"y.m.d" }} 에 나왔습니다 — 기업분석 리서치가 그 전 것입니다</div>
+            {% elif research_health %}
+            <div class="bi-alert bi-alert-mute">ℹ️ {{ research_health.text }}</div>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- 회사 -->
     <div class="bi-row">
         <span class="bi-label">회사</span>
@@ -624,51 +673,6 @@
                 {% endif %}
                 {% if latest_short %}<span><i>공매도</i> {{ latest_short.weight }}%</span>{% endif %}
                 {% if not latest_investor and not supply_dashboard and not latest_short %}<span class="bi-none">받는 자료가 없습니다</span>{% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- 변화 -->
-    <div class="bi-row">
-        <span class="bi-label">변화</span>
-        <div class="bi-body">
-            <div class="bi-facts">
-                <span><i>{{ recent_window_days }}거래일</i>
-                    {% if recent_report_count %}<a href="#" class="bi-go" data-tab="report-content">리포트 {{ recent_report_count }}건</a>{% endif %}
-                    {% if recent_gongsi_count %}<a href="#" class="bi-go" data-tab="disclosure-content">공시 {{ recent_gongsi_count }}건</a>{% endif %}
-                    {% if not recent_report_count and not recent_gongsi_count %}<span class="bi-none">없음</span>{% endif %}
-                </span>
-            </div>
-            {% if new_report_alert %}
-            <div class="bi-alert">⚠️ {{ new_report_alert.title }} 가 {{ new_report_alert.date|date:"y.m.d" }} 에 나왔습니다 — 기업분석 리서치가 그 전 것입니다</div>
-            {% elif research_health %}
-            <div class="bi-alert bi-alert-mute">ℹ️ {{ research_health.text }}</div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- 신호 -->
-    {% comment %}
-    메인 현황 표가 보여주던 것들. 종목 화면에는 없어서 표를 다시 보러
-    가야 했다. 계산은 stock_signal 한 곳에서 한다 — 두 화면이 같은 종목을
-    두고 다른 말을 하면 안 된다.
-    {% endcomment %}
-    <div class="bi-row">
-        <span class="bi-label">신호</span>
-        <div class="bi-body">
-            <div class="bi-facts">
-                {% if signal_panel.align %}
-                <span><i>배열</i> <b class="{% if signal_panel.align == 'bull' %}text-up{% elif signal_panel.align == 'bear' %}text-down{% endif %}">{{ signal_panel.align_name }}</b></span>
-                {% endif %}
-                {% if signal_panel.pullback_label %}
-                <span><i>20일선</i> <b class="bi-tag bi-tag-{{ signal_panel.pullback_label }}">{{ signal_panel.pullback_label }}</b> {% if signal_panel.pullback > 0 %}+{% endif %}{{ signal_panel.pullback }}%</span>
-                {% endif %}
-                {% if signal_panel.frgn_streak %}<span><i>외국인</i> <b class="text-up">{{ signal_panel.frgn_streak }}</b></span>{% endif %}
-                {% if signal_panel.inst_streak %}<span><i>기관</i> <b class="text-up">{{ signal_panel.inst_streak }}</b></span>{% endif %}
-                {% if signal_panel.report_gap is not None %}
-                <span><i>괴리율</i> <span class="{% if signal_panel.report_gap < 0 %}text-down{% endif %}">{% if signal_panel.report_gap > 0 %}+{% endif %}{{ signal_panel.report_gap }}%</span></span>
-                {% endif %}
-                {% if not signal_panel.align and not signal_panel.report_gap %}<span class="bi-none">데이터가 모자랍니다</span>{% endif %}
             </div>
         </div>
     </div>

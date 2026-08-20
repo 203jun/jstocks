@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET
 from decouple import config
 from telethon import TelegramClient
 from django.views.decorators.http import require_POST
-from . import stock_signal
+from . import gongsi_signal, stock_signal
 from .models import Holding, Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Gongsi, IndexChart, MarketTrend, AiNote, InvestorTrend, ShortSelling, MarketDiary
 from .ai_note import build_note_panel
 from .market_signal import build_market_panel, build_prompt_vars
@@ -1388,14 +1388,25 @@ def stock_detail(request, code):
     _gap, _pullback_label = stock_signal.pullback(_daily_desc, _align)
     _inst_streak, _frgn_streak = stock_signal.investor_streaks(
         list(InvestorTrend.objects.filter(stock=stock).order_by('-date')[:20]))
+    _gongsi_recent = [g for g in gongsi_list if g.date in recent_dates]
+    _gongsi_good = sum(1 for g in _gongsi_recent if gongsi_signal.classify(g.title) == '호재')
+    _gongsi_bad = sum(1 for g in _gongsi_recent if gongsi_signal.classify(g.title) == '악재')
     signal_panel = {
         'align': _align,
         'align_name': stock_signal.ALIGN_NAMES.get(_align, ''),
         'pullback': _gap,
         'pullback_label': _pullback_label,
+        'vol_high': stock_signal.volume_high(_daily_desc),
+        'big_candle': stock_signal.big_candle(_daily_desc),
+        'new_high': stock_signal.new_high(_daily_desc),
         'inst_streak': _inst_streak,
         'frgn_streak': _frgn_streak,
         'report_gap': stock_signal.report_gap(stock),
+        'report_count': recent_report_count,
+        'gongsi_count': recent_gongsi_count,
+        'gongsi_good': _gongsi_good,
+        'gongsi_bad': _gongsi_bad,
+        'window': RECENT_DAYS,
     }
 
     # 사업보고서를 읽고 쓴 리서치가 낡았는지. 리서치 칸까지 내려가야 보이던

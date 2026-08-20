@@ -105,4 +105,68 @@ def report_gap(stock, latest_report=None):
     return round((latest_report.target_price / stock.current_price - 1) * 100, 1)
 
 
+# 장대양봉을 찾는 창. 그날 이후 얼마나 밀렸는지가 지금 살 자리인지를 말한다.
+BIG_CANDLE_WINDOW = 10
+
+# 52주 고점에 이만큼 붙으면 신고가로 본다. 딱 갱신한 날만 세면 거의 안 걸린다.
+NEW_HIGH_MARGIN = 1.0
+
+
+def volume_high(daily):
+    """오늘 거래량이 60일·20일 최대인가. ('60일'|'20일'|'')"""
+    if not daily or not daily[0].trading_volume:
+        return ''
+    today = daily[0].trading_volume
+    if len(daily) >= 60 and today >= max(d.trading_volume for d in daily[:60]):
+        return '60일'
+    if len(daily) >= 20 and today >= max(d.trading_volume for d in daily[:20]):
+        return '20일'
+    return ''
+
+
+def big_candle(daily):
+    """
+    최근 장대양봉과 그 뒤 등락. 없으면 None.
+
+    장대양봉 = 신고거래량(60일 우선, 없으면 20일) + 양봉 + 20일선 위.
+    돈이 크게 들어온 날이다. 그날 이후 얼마나 밀렸는지가 지금 자리를 말한다 —
+    안 밀렸으면 따라붙는 것이고, 많이 밀렸으면 그날의 힘이 꺾인 것이다.
+    """
+    if len(daily) < 65:
+        return None
+    for i in range(BIG_CANDLE_WINDOW):
+        day = daily[i]
+        if day.closing_price < day.opening_price:
+            continue
+        ma20_rows = daily[i:i + 20]
+        if len(ma20_rows) < 20:
+            continue
+        if day.closing_price <= sum(d.closing_price for d in ma20_rows) / 20:
+            continue
+        vol60, vol20 = daily[i:i + 60], daily[i:i + 20]
+        is60 = (len(vol60) >= 60 and day.trading_volume
+                and day.trading_volume == max(d.trading_volume for d in vol60))
+        is20 = (not is60 and len(vol20) >= 20 and day.trading_volume
+                and day.trading_volume == max(d.trading_volume for d in vol20))
+        if not (is60 or is20):
+            continue
+        move = (round((daily[0].closing_price / day.closing_price - 1) * 100, 1)
+                if day.closing_price else 0)
+        return {'days_ago': i, 'date': day.date, 'move': move,
+                'kind': '60일' if is60 else '20일'}
+    return None
+
+
+def new_high(daily):
+    """52주 고점 대비 %. (고점, 대비 %, 신고가 여부)"""
+    if not daily:
+        return None
+    year = daily[:250]
+    high = max((d.high_price for d in year if d.high_price), default=None)
+    if not high:
+        return None
+    gap = round((daily[0].closing_price / high - 1) * 100, 1)
+    return {'high': high, 'gap': gap, 'is_new': gap >= -NEW_HIGH_MARGIN}
+
+
 ALIGN_NAMES = {'bull': '정배열', 'bear': '역배열', 'mixed': '뒤섞임'}
