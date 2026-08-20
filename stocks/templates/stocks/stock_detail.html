@@ -678,13 +678,13 @@
     <div class="bi-row">
         <span class="bi-label bi-label-hold">보유</span>
         <div class="bi-body">
-            {# 손익 한 줄, 규모 한 줄 (회사 줄과 같은 방식) #}
+            {# 벌었나 한 줄, 얼마가 들어가 있나 한 줄 (회사 줄과 같은 방식) #}
             <div class="bi-facts">
                 <span><i>수익률</i> <b class="{% if holding.profit_rate > 0 %}text-up{% elif holding.profit_rate < 0 %}text-down{% endif %}">{% if holding.profit_rate > 0 %}+{% endif %}{{ holding.profit_rate|default_if_none:0 }}%</b>{% if holding.diff_profit_rate %} <small class="{% if holding.diff_profit_rate > 0 %}text-up{% elif holding.diff_profit_rate < 0 %}text-down{% endif %}">({% if holding.diff_profit_rate > 0 %}+{% endif %}{{ holding.diff_profit_rate|floatformat:2 }}%p)</small>{% endif %}</span>
                 <span><i>평가손익</i> <span class="{% if holding.eval_profit > 0 %}text-up{% elif holding.eval_profit < 0 %}text-down{% endif %}">{{ holding.eval_profit|default_if_none:0|intcomma }}</span></span>
-                <span><i>매입단가</i> {{ holding.buy_uv|default_if_none:0|intcomma }}</span>
             </div>
             <div class="bi-facts">
+                <span><i>매입단가</i> {{ holding.buy_uv|default_if_none:0|intcomma }}</span>
                 <span><i>평가금액</i> {{ holding.eval_amount|default_if_none:0|intcomma }}</span>
                 <span><i>비중</i> {{ holding.eval_weight|default_if_none:0 }}%</span>
                 <span><i>수량</i> {{ holding.rmnd_qty|default_if_none:0|intcomma }}</span>
