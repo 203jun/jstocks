@@ -4930,6 +4930,33 @@ def stock_question_report_detail(request, report_id):
     research_core = sorted([p for p in research_prompts if p.question in _core_questions], key=lambda p: _core_order.index(p.question) if p.question in _core_order else 99)
     research_extra = [p for p in research_prompts if p.question not in _core_questions]
 
+    # 이 리서치를 만든 프롬프트 하나.
+    #
+    # 지금까지는 화면이 프롬프트를 스물두 개(기업분석 9 · 업데이트 8 · 대기 5)
+    # 늘어놓고 그중에서 고르게 했다. '경쟁력'을 보고 있으면서 스물두 개 중에
+    # 경쟁력을 다시 찾아야 했다. 이름이 같은 것 하나면 된다.
+    #
+    # 못 찾으면(직접 만든 질문) None 이고, 그때는 예전처럼 다 늘어놓는다 —
+    # 아직 어느 프롬프트의 것인지 정해지지 않은 리서치이기 때문이다.
+    own_prompt = None
+    for _group, _rows, _panel in (
+        ('기업분석', research_prompts, 'research-prompt-panel'),
+        ('업데이트', quick_prompts, 'quick-report-panel'),
+        ('정리', summary_prompts, 'quick-report-panel'),
+        ('대기', waiting_prompts, 'waiting-report-panel'),
+    ):
+        _match = next((p for p in _rows if p.question == qr.question), None)
+        if _match:
+            own_prompt = {
+                'group': _group,
+                'question': _match.question,
+                'prompt': _match.prompt,
+                'panel': _panel,
+                'auto_report': '{사업보고서' in (_match.prompt or ''),
+                'needs_attachment': _match.needs_attachment,
+            }
+            break
+
     theme_category_name = ''
     theme_name = ''
     if qr.stock:
@@ -5136,6 +5163,7 @@ def stock_question_report_detail(request, report_id):
         'qr': qr,
         'research_core': research_core,
         'research_extra': research_extra,
+        'own_prompt': own_prompt,
         'update_core_prompts': update_core_prompts,
         'update_extra_prompts': update_extra_prompts,
         'waiting_prompts': waiting_prompts,
