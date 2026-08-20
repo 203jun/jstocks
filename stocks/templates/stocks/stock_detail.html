@@ -527,6 +527,8 @@
 .bi-tag { padding:1px 7px; border-radius:3px; font-size:0.72rem; font-weight:600; }
 .bi-tag-up { background:var(--up-color); color:#fff; }
 .bi-tag-down { background:var(--down-color); color:#fff; }
+/* 꺼진 칸도 자리를 지킨다. 없애면 칸 수가 종목마다 달라진다. */
+.bi-tag-off { background:var(--bg-secondary); color:var(--text-muted); font-weight:400; }
 a.bi-tag { text-decoration:none; }
 .bi-alert { margin-top:4px; font-size:0.76rem; line-height:1.5; color:#f59e0b; }
 .bi-alert-mute { color:var(--text-muted); }
@@ -589,37 +591,50 @@ a.bi-tag { text-decoration:none; }
 
     <!-- 신호 -->
     {% comment %}
-    지금 눈에 띄는 것만. 조건에 걸린 것이 없으면 아무것도 안 나온다.
-    수급 줄은 수치를, 이 줄은 판정을 말한다.
-
     메인 현황 표가 보여주던 것들이다. 계산은 stock_signal 한 곳에서 한다 —
     두 화면이 같은 종목을 두고 다른 말을 하면 안 된다.
     {% endcomment %}
     <div class="bi-row">
         <span class="bi-label bi-label-sig">신호</span>
         <div class="bi-body">
-            {# 좋은 것은 빨강, 나쁜 것은 파랑. 이 시스템이 값에 쓰는 색 규칙 그대로다 #}
+            {% comment %}
+            아홉 칸이 늘 같은 자리에 있다. 켜지면 채우고(좋은 것 빨강, 나쁜 것
+            파랑) 꺼지면 연회색으로 자리를 지킨다. 없앴다 넣었다 하면 칸 수가
+            종목마다 달라져 눈이 매번 다른 데를 찾는다.
+
+            첫 줄은 차트에서 읽는 것, 둘째 줄은 밖에서 오는 것.
+            {% endcomment %}
             <div class="bi-facts">
-                {% if signal_panel.vol_high %}<span class="bi-tag bi-tag-up">거래량 {{ signal_panel.vol_high }}</span>{% endif %}
-                {% if signal_panel.new_high.is_new %}<span class="bi-tag bi-tag-up">신고가</span>{% endif %}
-                {% if signal_panel.pullback_label %}<span class="bi-tag bi-tag-{% if signal_panel.pullback > 0 %}up{% else %}down{% endif %}">{{ signal_panel.pullback_label }} {% if signal_panel.pullback > 0 %}+{% endif %}{{ signal_panel.pullback }}%</span>{% endif %}
-                {% if signal_panel.big_candle %}<span class="bi-tag bi-tag-{% if signal_panel.big_candle.move < 0 %}down{% else %}up{% endif %}">장대양봉 {% if signal_panel.big_candle.days_ago %}{{ signal_panel.big_candle.days_ago }}일 {% if signal_panel.big_candle.move > 0 %}+{% endif %}{{ signal_panel.big_candle.move }}%{% else %}오늘{% endif %}</span>{% endif %}
-                {% if signal_panel.frgn_streak %}<span class="bi-tag bi-tag-up">외국인 {{ signal_panel.frgn_streak }}{% if signal_panel.frgn_streak != '20일' %}일{% endif %}</span>{% endif %}
-                {% if signal_panel.inst_streak %}<span class="bi-tag bi-tag-up">기관 {{ signal_panel.inst_streak }}{% if signal_panel.inst_streak != '20일' %}일{% endif %}</span>{% endif %}
-                {% if signal_panel.gongsi_good %}<a href="#" class="bi-tag bi-tag-up bi-go" data-tab="disclosure-content">호재 {{ signal_panel.gongsi_good }}</a>{% endif %}
-                {% if signal_panel.gongsi_bad %}<a href="#" class="bi-tag bi-tag-down bi-go" data-tab="disclosure-content">악재 {{ signal_panel.gongsi_bad }}</a>{% endif %}
+                {% if signal_panel.align == 'bull' %}<span class="bi-tag bi-tag-up">정배열</span>
+                {% elif signal_panel.align == 'bear' %}<span class="bi-tag bi-tag-down">역배열</span>
+                {% else %}<span class="bi-tag bi-tag-off">뒤섞임</span>{% endif %}
+                {% if signal_panel.pullback_label %}<span class="bi-tag bi-tag-{% if signal_panel.pullback > 0 %}up{% else %}down{% endif %}">{{ signal_panel.pullback_label }} {% if signal_panel.pullback > 0 %}+{% endif %}{{ signal_panel.pullback }}%</span>
+                {% else %}<span class="bi-tag bi-tag-off">눌림목 없음</span>{% endif %}
+                {% if signal_panel.vol_high %}<span class="bi-tag bi-tag-up">거래량 {{ signal_panel.vol_high }} 신고</span>
+                {% else %}<span class="bi-tag bi-tag-off">거래량 보통</span>{% endif %}
+                {% if signal_panel.big_candle %}<span class="bi-tag bi-tag-{% if signal_panel.big_candle.move < 0 %}down{% else %}up{% endif %}">장대양봉 {% if signal_panel.big_candle.days_ago %}{{ signal_panel.big_candle.days_ago }}일 전 {% if signal_panel.big_candle.move > 0 %}+{% endif %}{{ signal_panel.big_candle.move }}%{% else %}오늘{% endif %}</span>
+                {% else %}<span class="bi-tag bi-tag-off">장대양봉 없음</span>{% endif %}
+                {% if signal_panel.new_high.is_new %}<span class="bi-tag bi-tag-up">52주 신고가</span>
+                {% else %}<span class="bi-tag bi-tag-off">신고가 아님</span>{% endif %}
             </div>
             <div class="bi-facts">
-                {% if signal_panel.align %}<span><i>배열</i> <b class="{% if signal_panel.align == 'bull' %}text-up{% elif signal_panel.align == 'bear' %}text-down{% endif %}">{{ signal_panel.align_name }}</b></span>{% endif %}
+                {% if signal_panel.frgn_streak == '20일' %}<span class="bi-tag bi-tag-up">외국인 20일 신고</span>
+                {% elif signal_panel.frgn_streak %}<span class="bi-tag bi-tag-up">외국인 {{ signal_panel.frgn_streak }}일 순매수</span>
+                {% else %}<span class="bi-tag bi-tag-off">외국인 없음</span>{% endif %}
+                {% if signal_panel.inst_streak == '20일' %}<span class="bi-tag bi-tag-up">기관 20일 신고</span>
+                {% elif signal_panel.inst_streak %}<span class="bi-tag bi-tag-up">기관 {{ signal_panel.inst_streak }}일 순매수</span>
+                {% else %}<span class="bi-tag bi-tag-off">기관 없음</span>{% endif %}
+                {% if signal_panel.gongsi_bad %}<a href="#" class="bi-tag bi-tag-down bi-go" data-tab="disclosure-content">악재 {{ signal_panel.gongsi_bad }}{% if signal_panel.gongsi_good %} · 호재 {{ signal_panel.gongsi_good }}{% endif %}</a>
+                {% elif signal_panel.gongsi_good %}<a href="#" class="bi-tag bi-tag-up bi-go" data-tab="disclosure-content">호재 {{ signal_panel.gongsi_good }}</a>
+                {% else %}<span class="bi-tag bi-tag-off">호재·악재 없음</span>{% endif %}
+                {% if signal_panel.report_count %}<a href="#" class="bi-tag bi-tag-up bi-go" data-tab="report-content">리포트 {{ signal_panel.report_count }}건</a>
+                {% else %}<span class="bi-tag bi-tag-off">리포트 없음</span>{% endif %}
+            </div>
+            <div class="bi-facts">
                 {% if signal_panel.new_high %}<span><i>고점대비</i> <span class="{% if signal_panel.new_high.gap < 0 %}text-down{% endif %}">{{ signal_panel.new_high.gap }}%</span></span>{% endif %}
                 {% if signal_panel.report_gap is not None %}<span><i>괴리율</i> <span class="{% if signal_panel.report_gap < 0 %}text-down{% endif %}">{% if signal_panel.report_gap > 0 %}+{% endif %}{{ signal_panel.report_gap }}%</span></span>{% endif %}
-            </div>
-            <div class="bi-facts">
-                <span><i>{{ signal_panel.window }}거래일</i>
-                    {% if signal_panel.report_count %}<a href="#" class="bi-go" data-tab="report-content">리포트 {{ signal_panel.report_count }}건</a>{% endif %}
-                    {% if signal_panel.gongsi_count %}<a href="#" class="bi-go" data-tab="disclosure-content">공시 {{ signal_panel.gongsi_count }}건</a>{% endif %}
-                    {% if not signal_panel.report_count and not signal_panel.gongsi_count %}<span class="bi-none">새 자료 없음</span>{% endif %}
-                </span>
+                <span><i>공시</i> {{ signal_panel.gongsi_count }}건</span>
+                <span class="bi-none">최근 {{ signal_panel.window }}거래일 기준</span>
             </div>
             {% if new_report_alert %}
             <div class="bi-alert">⚠️ {{ new_report_alert.title }} 가 {{ new_report_alert.date|date:"y.m.d" }} 에 나왔습니다 — 기업분석 리서치가 그 전 것입니다</div>
