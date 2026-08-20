@@ -742,7 +742,7 @@
     것이 28개뿐이라, 접지 않으면 나머지 종목에서 빈 칸 스물몇 개가
     화면을 채운다.
     {% endcomment %}
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;"><span>리서치 <span class="tab-count">{{ research_filled }}</span></span></h5>
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;"><span>리서치 {% help_icon "research" %} <span class="tab-count">{{ research_filled }}</span></span></h5>
     <div class="brief-card" style="padding:0; overflow:hidden;" id="researchList">
         {% if research_health %}
         <div class="research-health">ℹ️ {{ research_health.text }}</div>
