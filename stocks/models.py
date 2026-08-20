@@ -435,6 +435,11 @@ class InfoETF(models.Model):
         blank=True,
         verbose_name='관심단계'
     )
+    is_tracking = models.BooleanField(
+        default=False,
+        verbose_name='추적중',
+        help_text='단기 매매를 위해 추적 중인 ETF 여부'
+    )
 
     is_holding = models.BooleanField(
         default=False,

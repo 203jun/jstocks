@@ -3385,12 +3385,19 @@ def etf_detail(request, code):
 
     etf = get_object_or_404(InfoETF, code=code)
 
-    # POST 처리 - 관심 단계 저장 (보유는 자산에서 파생하므로 여기서 고르지 않는다)
+    # 보유는 자산에서 파생한다 (수동 플래그를 쓰지 않는다)
+    is_holding = Holding.objects.filter(info_etf=etf).exists()
+
+    # POST 처리 - 관심 단계·추적 저장
     if request.method == 'POST':
         level = request.POST.get('interest_level', '')
+        # 보유 중이면 관심을 뗄 수 없다. 종목과 같은 이유다.
+        if not level and is_holding:
+            messages.error(request, f'{etf.name}은(는) 보유 중이라 관심을 해제할 수 없습니다.')
+            return redirect('stocks:etf_detail', code=code)
         etf.interest_level = level or None
-        etf.save(update_fields=['interest_level'])
-        from django.contrib import messages
+        etf.is_tracking = request.POST.get('is_tracking') == 'on'
+        etf.save(update_fields=['interest_level', 'is_tracking'])
         messages.success(request, '저장되었습니다.')
         return redirect('stocks:etf_detail', code=code)
 
@@ -3485,6 +3492,7 @@ def etf_detail(request, code):
 
     context = {
         'etf': etf,
+        'is_holding': is_holding,
         'interest_choices': InfoETF._meta.get_field('interest_level').choices,
         'daily_candle_data': json.dumps(daily_candle_data),
         'daily_volume_data': json.dumps(daily_volume_data),

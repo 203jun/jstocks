@@ -126,6 +126,15 @@
         [data-theme="dark"] .channel-badge { background: #22262f !important; color: var(--text-secondary) !important; }
         [data-theme="dark"] .prompt-badge { background: #0e2a1f !important; color: #4ade80 !important; }
 
+        /* 종목·ETF 이름 밑 배지 세 칸. 자리가 늘 같아야 눈이 찾아가지 않는다.
+           꺼져 있는 칸은 없애지 않고 흐리게 둔다. */
+        .entity-badges { display: flex; gap: 8px; margin-top: 6px; }
+        .tag-badge.tag-off {
+            background: transparent !important;
+            border: 1px dashed var(--border-color);
+            color: var(--text-muted) !important;
+        }
+
         /* 마크다운 렌더링 영역 공통 */
         .markdown-content h1 { font-size: 1.3rem; font-weight: 700; margin: 1.2rem 0 0.6rem; padding-bottom: 0.25rem; border-bottom: 2px solid var(--border-color); }
         .markdown-content h2 { font-size: 1.15rem; font-weight: 700; margin: 1rem 0 0.5rem; padding-bottom: 0.2rem; border-bottom: 1px solid var(--border-color); }

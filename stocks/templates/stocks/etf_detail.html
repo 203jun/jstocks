@@ -112,9 +112,7 @@
             {{ etf.name }}
             <span style="font-size:0.7rem;font-weight:400;color:var(--text-muted);margin-left:8px;">{{ etf.code }}</span>
         </h5>
-        <div class="d-flex gap-2" style="margin-top:6px;">
-            <span class="tag-badge etf">ETF</span>
-        </div>
+        {% include 'stocks/_entity_badges.html' with market='ETF' level=etf.interest_level holding=is_holding tracking=etf.is_tracking %}
     </div>
     <div class="d-flex gap-2">
         <button type="button" class="btn-refresh btn-danger" id="delete-etf-btn">삭제</button>
@@ -165,6 +163,9 @@
                         <option value="{{ value }}" {% if etf.interest_level == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-secondary);cursor:pointer;">
+                    <input type="checkbox" name="is_tracking" {% if etf.is_tracking %}checked{% endif %} style="margin:0;"> 추적
                 </label>
                 <span style="font-size:0.75rem;color:var(--text-muted);">보유는 자산에서 자동으로 잡힙니다.</span>
             </div>

@@ -518,23 +518,8 @@
         <h5 style="font-weight:700;margin:0;color:var(--text-primary);">
             {{ stock.name }}
             <span style="font-size:0.7rem;font-weight:400;color:var(--text-muted);margin-left:8px;">{{ stock.code }}</span>
-            {% if stock.interest_level %}
-            {% endif %}
         </h5>
-        <div class="d-flex gap-2" style="margin-top:6px;">
-            <span class="tag-badge {% if stock.market == 'KOSPI' %}market-kospi{% else %}market-kosdaq{% endif %}">{{ stock.market }}</span>
-            {% if is_holding %}
-            <span class="tag-badge holding">보유</span>
-            {% endif %}
-            {% if stock.is_tracking %}
-            <span class="tag-badge tracking">👀 추적</span>
-            {% endif %}
-            {% if stock.interest_level == 'normal' %}
-            <span class="tag-badge interest-normal">관심</span>
-            {% elif stock.interest_level == 'waiting' %}
-            <span class="tag-badge interest-waiting">대기</span>
-            {% endif %}
-        </div>
+        {% include 'stocks/_entity_badges.html' with market=stock.market level=stock.interest_level holding=is_holding tracking=stock.is_tracking %}
     </div>
 </div>
 
