@@ -236,7 +236,9 @@
             color: var(--text-muted);
         }
         /* 프롬프트 편집 · AI 답변 붙여넣기 입력창 */
-        #mpText, #maContent {
+        /* 붙여넣기 창의 입력칸. 화면마다 id 로 묶어 두면 창이 하나 늘 때마다
+           선택자에 더해야 하고, 빠뜨리면 두 줄짜리 기본 크기로 나온다. */
+        #mpText, .paste-box {
             display: block;
             width: 100%;
             padding: 10px 12px;
@@ -249,7 +251,7 @@
             line-height: 1.7;
             resize: vertical;
         }
-        #mpText:focus, #maContent:focus {
+        #mpText:focus, .paste-box:focus {
             outline: none;
             border-color: var(--text-muted);
         }
@@ -260,7 +262,7 @@
             line-height: 1.6;
             font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         }
-        #maContent { min-height: 260px; }
+        .paste-box { min-height: 260px; }
         .mp-foot {
             display: flex;
             align-items: center;
