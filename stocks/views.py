@@ -1414,10 +1414,50 @@ def stock_detail(request, code):
         if prev_volume and prev_volume > 0:
             volume_change_rate = round((today_volume - prev_volume) / prev_volume * 100, 1)
 
-    # 최근 5거래일 기준 리포트/공시 존재 여부
-    recent_5_dates = [d.date for d in daily_charts[-5:]] if len(daily_charts) >= 5 else [d.date for d in daily_charts]
-    has_recent_report = any(r.date in recent_5_dates for r in reports if r.date)
-    has_recent_gongsi = any(g.date in recent_5_dates for g in gongsi_list if g.date)
+    # 최근 변화 — 다시 봐야 할 이유가 생겼나.
+    #
+    # 있다/없다가 아니라 몇 건인지 센다. 리포트 한 건과 다섯 건은 무게가
+    # 다른데 배지 하나로는 같아 보였다. 창은 10거래일 — 5일이면 주 하나라
+    # 지난 금요일에 나온 것을 수요일에 놓친다.
+    RECENT_DAYS = 10
+    recent_dates = set(d.date for d in daily_charts[-RECENT_DAYS:])
+    recent_report_count = sum(1 for r in reports if r.date in recent_dates)
+    recent_gongsi_count = sum(1 for g in gongsi_list if g.date in recent_dates)
+    recent_window_days = RECENT_DAYS
+
+    # 지금 주가가 어디쯤인가.
+    #
+    # 값 하나만 보면 비싼지 싼지 알 수 없다. 52주 범위에서 몇 % 자리인지와
+    # 20일선에서 얼마나 떨어졌는지가 '지금 자리'를 말해 준다. 리서치
+    # 프롬프트는 이미 쓰고 있었는데 화면에는 없었다.
+    price_pos = None
+    if stock.current_price and len(daily_charts) >= 20:
+        year = daily_charts[-250:]
+        high52 = max(c.high_price for c in year if c.high_price)
+        low52 = min(c.low_price for c in year if c.low_price)
+        price = float(stock.current_price)
+        pos = round((price - low52) / (high52 - low52) * 100) if high52 > low52 else None
+        gap20 = round((price / ma20_value - 1) * 100, 1) if ma20_value else None
+        price_pos = {
+            'high52': high52, 'low52': low52, 'pos': pos,
+            'gap20': gap20, 'days': len(year),
+        }
+
+    # 사업보고서를 읽고 쓴 리서치가 낡았는지. 리서치 칸까지 내려가야 보이던
+    # 것을 위로 올린다 — '다시 봐야 할 이유'의 대표다.
+    new_report_alert = None
+    if not gongsi_health:
+        _newest = research_slots.latest_regular(stock)
+        _oldest = min(
+            (s['report'].updated_at.date()
+             for g in research_groups if g['name'] == '기업분석'
+             for s in g['slots'] if s['filled'] and s['auto_report']),
+            default=None)
+        if _newest and _oldest and _newest.date > _oldest:
+            new_report_alert = {
+                'title': research_slots._tidy(_newest.title),
+                'date': _newest.date,
+            }
 
     # 최근 수급 (다음 기준, 외국인/기관)
     latest_investor = None
@@ -1570,8 +1610,11 @@ def stock_detail(request, code):
         'holding': holding,
         'sectors': sectors,
         'volume_change_rate': volume_change_rate,
-        'has_recent_report': has_recent_report,
-        'has_recent_gongsi': has_recent_gongsi,
+        'recent_report_count': recent_report_count,
+        'recent_gongsi_count': recent_gongsi_count,
+        'recent_window_days': recent_window_days,
+        'price_pos': price_pos,
+        'new_report_alert': new_report_alert,
         'latest_investor': latest_investor,
         'latest_short': latest_short,
         'target_panel': target_panel,
