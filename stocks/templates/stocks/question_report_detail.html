@@ -114,13 +114,22 @@
                 {{ qr.stock.name }} · {{ qr.created_at|date:"Y-m-d H:i" }}
             </div>
         </div>
-        {# 이 리서치의 프롬프트 하나. 아래 목록에서 다시 고를 필요가 없다. #}
+        {% comment %}
+        맨 윗줄에서 늘 프롬프트에 닿는다.
+        이름이 같은 프롬프트가 있으면 그것 하나, 없으면(새로 만든 리서치)
+        고르러 가는 문. 어느 쪽이든 편집까지 내려갈 일이 없다.
+        {% endcomment %}
         {% if own_prompt %}
         <span class="prompt-pair" style="flex:none;">
             <span class="common-research-btn" role="button"
                   data-question="{{ own_prompt.question }}" data-prompt="{{ own_prompt.prompt }}"
                   title="{{ own_prompt.group }} · {{ own_prompt.question }} 프롬프트를 복사합니다">프롬프트{% if own_prompt.auto_report %} 📄{% elif own_prompt.needs_attachment %} 📎{% endif %}</span>
             <a href="{% url 'stocks:settings' %}#{{ own_prompt.panel }}" target="_blank" rel="noopener" title="이 프롬프트 편집">⚙</a>
+        </span>
+        {% else %}
+        <span class="prompt-pair" style="flex:none;">
+            <span role="button" id="btnPickPrompt"
+                  title="이 리서치를 어느 프롬프트의 것으로 할지 고릅니다">프롬프트 고르기</span>
         </span>
         {% endif %}
     </div>
@@ -163,6 +172,7 @@
         누르면 질문 이름이 그 프롬프트 이름으로 바뀐다. 이미 정해진
         리서치에는 필요 없으므로 접어 둔다.
         {% endcomment %}
+        <div id="promptPicker">
         {% if own_prompt %}
         <details style="margin-bottom:16px;">
             <summary style="font-size:0.78rem;color:var(--text-secondary);cursor:pointer;">다른 프롬프트로 바꾸기</summary>
@@ -224,6 +234,7 @@
             </div>
         </details>
         {% endif %}
+        </div>
         <div style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                 <span style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">리포트</span>
@@ -363,6 +374,15 @@ document.querySelectorAll('.btn-copy-summary-prompt').forEach((btn) => {
             alert('복사 실패: ' + err.message);
         }
     });
+});
+
+// '프롬프트 고르기' — 아직 어느 프롬프트의 것인지 정해지지 않은 리서치.
+// 목록은 편집 폼 안에 있으므로 접혀 있으면 펴고 그 자리로 데려간다.
+document.getElementById('btnPickPrompt')?.addEventListener('click', () => {
+    const picker = document.getElementById('promptPicker');
+    if (!picker) return;
+    picker.querySelectorAll('details').forEach(d => { d.open = true; });
+    picker.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
 // 기업분석 버튼 클릭
