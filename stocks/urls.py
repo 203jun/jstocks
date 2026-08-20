@@ -13,7 +13,6 @@ urlpatterns = [
     path('api/stock/<str:code>/material/', views.material_save, name='material_save'),
     path('api/material/<int:material_id>/update/', views.material_update, name='material_update'),
     path('api/material/<int:material_id>/delete/', views.material_delete, name='material_delete'),
-    path('api/stock/<str:code>/key-briefing/', views.stock_key_briefing_save, name='stock_key_briefing_save'),
     path('api/stock/<str:code>/supply-demand-analysis/', views.stock_supply_demand_analysis_save, name='stock_supply_demand_analysis_save'),
     path('api/stock/<str:code>/financial-analysis-v2/', views.financial_analysis_v2_save, name='financial_analysis_v2_save'),
     path('api/stock/<str:code>/consensus-analysis/', views.consensus_analysis_save, name='consensus_analysis_save'),
@@ -63,11 +62,6 @@ urlpatterns = [
     path('api/diary/<int:diary_id>/delete/', views.diary_delete, name='diary_delete'),
     # 종목별 투자일지
     # 종목별 이벤트
-    path('api/stock/<str:code>/event/', views.stock_event_list, name='stock_event_list'),
-    path('api/stock/<str:code>/event/save/', views.stock_event_save, name='stock_event_save'),
-    path('api/stock/<str:code>/event/<int:event_id>/update/', views.stock_event_update, name='stock_event_update'),
-    path('api/stock/<str:code>/event/<int:event_id>/delete/', views.stock_event_delete, name='stock_event_delete'),
-    path('api/stock/<str:code>/event/<int:event_id>/move/', views.stock_event_move, name='stock_event_move'),
     path('api/dart/<str:code>/', views.fetch_dart, name='fetch_dart'),
     path('api/dart-document/<str:rcept_no>/', views.fetch_dart_document, name='fetch_dart_document'),
     path('api/business-report/<str:code>/', views.fetch_business_report, name='fetch_business_report'),

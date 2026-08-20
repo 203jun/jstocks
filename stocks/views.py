@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET
 from decouple import config
 from telethon import TelegramClient
 from django.views.decorators.http import require_POST
-from .models import Holding, Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Gongsi, IndexChart, MarketTrend, AiNote, InvestorTrend, ShortSelling, MarketDiary, StockEvent, SectorEvent, ETFEvent
+from .models import Holding, Info, Financial, DailyChart, WeeklyChart, MonthlyChart, Report, Gongsi, IndexChart, MarketTrend, AiNote, InvestorTrend, ShortSelling, MarketDiary, SectorEvent, ETFEvent
 from .ai_note import build_note_panel
 from .market_signal import build_market_panel, build_prompt_vars
 from .prompts import (
@@ -749,8 +749,8 @@ def index(request):
     today = date.today()
     d10 = today + timedelta(days=10)
     upcoming_events = []
-    for ev in StockEvent.objects.filter(date__gte=today, date__lte=d10).select_related('stock').order_by('date'):
-        upcoming_events.append({'type': '종목', 'name': ev.stock.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days, 'level': level_of(ev.stock) or ''})
+    # 종목 이벤트는 리서치 '이벤트' 칸으로 내려갔다. 마크다운 글이라 날짜로
+    # 뽑을 수 없어 여기 D-10 목록에서는 빠진다. 섹터·ETF 는 그대로다.
     for ev in SectorEvent.objects.filter(date__gte=today, date__lte=d10).select_related('sector').order_by('date'):
         upcoming_events.append({'type': '섹터', 'name': ev.sector.name, 'date': ev.date, 'date_text': ev.date_text, 'title': ev.title, 'content': ev.content, 'days_left': (ev.date - today).days, 'level': 'all'})
     for ev in ETFEvent.objects.filter(date__gte=today, date__lte=d10).select_related('etf').order_by('date'):
@@ -1231,24 +1231,19 @@ def stock_detail(request, code):
     materials = list(Material.objects.filter(stock=stock))
 
     # 저장된 텔레그램 메시지 (최신순)
-    from .models import TelegramMessage, Schedule
+    from .models import TelegramMessage
     telegram_messages = TelegramMessage.objects.filter(stock=stock).order_by('-date', '-time')
 
-    # 뉴스 프롬프트용 변수 (향후 이벤트 포함)
+    # 뉴스 프롬프트용 변수. 핵심브리핑·이벤트는 리서치 칸에서 읽는다.
     from datetime import date as _date
     from django.db.models import Q as _Q
     _today = _date.today()
-    upcoming_schedules = Schedule.objects.filter(stock=stock).filter(
-        _Q(date_sort__gte=_today) | _Q(date_sort__isnull=True)
-    ).order_by('date_sort')
-    future_events_text = '\n'.join(
-        f"- {s.date_text}: {s.content}" for s in upcoming_schedules
-    )
+    future_events_text = research_text(stock, '이벤트') or research_text(stock, '향후 이벤트')
     news_prompt_vars = {
         'stock_name': stock.name,
         'stock_code': stock.code,
         'sector_name': '',
-        'key_briefing': stock.key_briefing or '',
+        'key_briefing': research_text(stock, '핵심브리핑'),
         'financial_analysis': stock.financial_analysis_v2 or '',
         'consensus_analysis': stock.consensus_analysis or '',
         'future_events': future_events_text,
@@ -1373,9 +1368,6 @@ def stock_detail(request, code):
         if r.report:
             all_content_sections.append(f"## 일반: {r.question} ({r.updated_at.strftime('%Y-%m-%d')})\n{r.report}")
     # 핵심브리핑
-    if stock.key_briefing:
-        kb_date = stock.key_briefing_updated_at.strftime('%Y-%m-%d') if stock.key_briefing_updated_at else ''
-        all_content_sections.append(f"## 핵심브리핑 ({kb_date})\n{stock.key_briefing}")
     # 재무분석
     if stock.financial_analysis_v2:
         fa_date = stock.financial_analysis_v2_updated_at.strftime('%Y-%m-%d') if stock.financial_analysis_v2_updated_at else ''
@@ -1424,8 +1416,6 @@ def stock_detail(request, code):
     if material_parts:
         all_content_sections.append("## 자료\n" + '\n\n'.join(material_parts))
     # 향후 이벤트
-    if future_events_text:
-        all_content_sections.append(f"## 향후 이벤트\n{future_events_text}")
     news_prompt_vars['all_content'] = '\n\n---\n\n'.join(all_content_sections) if all_content_sections else ''
 
     # 업로드 리포트
@@ -1691,62 +1681,9 @@ def stock_detail(request, code):
         'ma10_value': ma10_value,
         'ma20_value': ma20_value,
         'ma60_value': ma60_value,
-        'briefing_data': _build_briefing_data(
-            stock, question_reports, reports,
-            [s['report'] for g in research_groups if g['name'] == '기업분석' for s in g['slots'] if s['filled']],
-            [s['report'] for g in research_groups if g['name'] in ('업데이트', '정리') for s in g['slots'] if s['filled']]),
         'avg_target_price_3m': avg_target_price_3m,
     }
     return render(request, 'stocks/stock_detail.html', context)
-
-
-def _build_briefing_data(stock, question_reports, reports, common_question_reports=None, update_question_reports=None):
-    """핵심브리핑 프롬프트용 데이터 구성"""
-    try:
-        from .models import IncomeStatement
-
-        data = {}
-
-        # {전체내용} 데이터: 기업분석 + 업데이트 리서치
-        all_content_sections = []
-        if common_question_reports:
-            for r in common_question_reports:
-                if r.report:
-                    all_content_sections.append(f"## 기업분석: {r.question} ({r.updated_at.strftime('%Y-%m-%d')})\n{r.report}")
-        if update_question_reports:
-            for r in update_question_reports:
-                if r.report:
-                    all_content_sections.append(f"## 업데이트: {r.question} ({r.updated_at.strftime('%Y-%m-%d')})\n{r.report}")
-        data['all_content'] = '\n\n---\n\n'.join(all_content_sections) if all_content_sections else ''
-
-        # 기업분석기준분기: 포괄손익계산서 최신 비추정 분기
-        latest_quarters = IncomeStatement.objects.filter(
-            stock=stock, quarter__isnull=False
-        ).order_by('-year', '-quarter')
-        base_quarter = ''
-        for q in latest_quarters:
-            if not q.is_estimated:
-                base_quarter = f"{q.year}/{q.quarter}"
-                break
-        data['base_quarter'] = base_quarter
-
-        # 재무분석, 컨센서스분석 (모델 필드)
-        data['financial_analysis'] = stock.financial_analysis_v2 or ''
-        data['consensus_analysis'] = stock.consensus_analysis or ''
-
-        # 리서치 기반 분석 (질문명으로 매칭)
-        qr_map = {}
-        for qr in question_reports:
-            qr_map[qr.question] = qr.report or ''
-
-        data['valuation_analysis'] = qr_map.get('밸류에이션', '')
-        data['macro_analysis'] = qr_map.get('업황/매크로', '')
-        data['event_analysis'] = qr_map.get('향후 이벤트', '')
-        data['competitor_analysis'] = qr_map.get('경쟁사', '')
-
-        return data
-    except Exception:
-        return {}
 
 
 def run_fav_commands(stock_code, action):
@@ -2780,116 +2717,14 @@ def _parse_bool(val):
     return str(val).lower() in ('1', 'true', 'on', 'yes')
 
 
-@require_GET
-def stock_event_list(request, code):
-    """종목별 이벤트 목록 API"""
-    from .models import StockEvent
-    events = StockEvent.objects.filter(stock_id=code)
-    results = []
-    from datetime import date
-    today = date.today()
-    for ev in events:
-        d_day = None
-        if ev.date:
-            delta = (ev.date - today).days
-            d_day = delta
-        results.append({
-            'id': ev.id,
-            'date': ev.date.strftime('%Y-%m-%d') if ev.date else None,
-            'date_text': ev.date_text,
-            'title': ev.title,
-            'content': ev.content,
-            'd_day': d_day,
-        })
-    return JsonResponse({'success': True, 'results': results})
 
 
-@require_POST
-def stock_event_save(request, code):
-    """종목별 이벤트 저장 API"""
-    from .models import StockEvent
-    date_str = request.POST.get('date', '').strip()
-    date_text = request.POST.get('date_text', '').strip()
-    title = request.POST.get('title', '').strip()
-    content = request.POST.get('content', '').strip()
-
-    if not title:
-        return JsonResponse({'error': '제목을 입력하세요.'}, status=400)
-    if not date_text:
-        return JsonResponse({'error': '날짜를 입력하세요.'}, status=400)
-
-    date_val = None
-    if date_str:
-        try:
-            date_val = datetime.strptime(date_str, '%Y-%m-%d').date()
-        except ValueError:
-            pass
-
-    stock = get_object_or_404(Info, code=code)
-    max_order = StockEvent.objects.filter(stock=stock).order_by('-order').values_list('order', flat=True).first()
-    next_order = (max_order or 0) + 1
-    ev = StockEvent.objects.create(
-        stock=stock, date=date_val, date_text=date_text,
-        title=title, content=content, order=next_order
-    )
-    return JsonResponse({'success': True, 'id': ev.id})
 
 
-@require_POST
-def stock_event_update(request, code, event_id):
-    """종목별 이벤트 수정 API"""
-    from .models import StockEvent
-    ev = get_object_or_404(StockEvent, id=event_id, stock_id=code)
-    date_str = request.POST.get('date', '').strip()
-    date_text = request.POST.get('date_text', '').strip()
-    title = request.POST.get('title', '').strip()
-    content = request.POST.get('content', '').strip()
-
-    if not title:
-        return JsonResponse({'error': '제목을 입력하세요.'}, status=400)
-    if not date_text:
-        return JsonResponse({'error': '날짜를 입력하세요.'}, status=400)
-
-    ev.date = None
-    if date_str:
-        try:
-            ev.date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        except ValueError:
-            pass
-
-    ev.date_text = date_text
-    ev.title = title
-    ev.content = content
-    ev.save()
-    return JsonResponse({'success': True})
 
 
-@require_POST
-def stock_event_delete(request, code, event_id):
-    """종목별 이벤트 삭제 API"""
-    from .models import StockEvent
-    ev = get_object_or_404(StockEvent, id=event_id, stock_id=code)
-    ev.delete()
-    return JsonResponse({'success': True})
 
 
-@require_POST
-def stock_event_move(request, code, event_id):
-    """종목별 이벤트 순서 이동 API"""
-    from .models import StockEvent
-    direction = request.POST.get('direction', '')
-    events = list(StockEvent.objects.filter(stock_id=code))
-    idx = next((i for i, e in enumerate(events) if e.id == event_id), None)
-    if idx is None:
-        return JsonResponse({'error': '이벤트를 찾을 수 없습니다.'}, status=404)
-    if direction == 'up' and idx > 0:
-        events[idx], events[idx - 1] = events[idx - 1], events[idx]
-    elif direction == 'down' and idx < len(events) - 1:
-        events[idx], events[idx + 1] = events[idx + 1], events[idx]
-    for i, ev in enumerate(events):
-        if ev.order != i:
-            StockEvent.objects.filter(id=ev.id).update(order=i)
-    return JsonResponse({'success': True})
 
 
 @require_GET
@@ -2923,11 +2758,12 @@ def fetch_stock_data_loader(request, code):
     lines.append(f"=== {stock.name} ({stock.code}) 데이터 ===\n")
 
 
-    # 핵심 브리핑
+    # 핵심 브리핑 — 이제 리서치 칸이다
     if 'key_briefing' in types:
         lines.append("## 핵심 브리핑")
-        if stock.key_briefing:
-            lines.append(stock.key_briefing)
+        _kb = research_text(stock, '핵심브리핑')
+        if _kb:
+            lines.append(_kb)
         else:
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
@@ -3222,11 +3058,12 @@ def fetch_stock_data_loader_with_summary(request, code):
     lines = []
     lines.append(f"=== {stock.name} ({stock.code}) 데이터 ===\n")
 
-# 2. 핵심 브리핑
+# 2. 핵심 브리핑 — 이제 리서치 칸이다
     if 'key_briefing' in data_types:
         lines.append("## 핵심 브리핑")
-        if stock.key_briefing:
-            lines.append(stock.key_briefing)
+        _kb = research_text(stock, '핵심브리핑')
+        if _kb:
+            lines.append(_kb)
         else:
             lines.append("- 저장된 데이터가 없습니다.")
         lines.append("")
@@ -4887,6 +4724,16 @@ def _compute_technical_indicators(stock):
     }
 
 
+def research_text(stock, question):
+    """리서치 칸 하나의 내용. 핵심브리핑처럼 옛 필드를 대신한다."""
+    from .models import StockQuestionReport
+
+    if not stock:
+        return ''
+    row = StockQuestionReport.objects.filter(stock=stock, question=question).first()
+    return (row.report or '') if row else ''
+
+
 def stock_question_report_slot(request, code):
     """
     아직 안 채운 칸.
@@ -5057,12 +4904,8 @@ def stock_question_report_detail(request, report_id, qr=None):
             _short_text = ''
 
         # 향후 이벤트
-        from .models import Schedule
-        from django.db.models import Q as _Q
-        _upcoming = Schedule.objects.filter(stock=qr.stock).filter(
-            _Q(date_sort__gte=_today_d) | _Q(date_sort__isnull=True)
-        ).order_by('date_sort')
-        _events_text = '\n'.join(f"- {s.date_text}: {s.content}" for s in _upcoming)
+        # 향후 이벤트는 리서치 '이벤트' 칸이다
+        _events_text = research_text(qr.stock, '이벤트') or research_text(qr.stock, '향후 이벤트')
 
         # 기술적 지표
         tech = _compute_technical_indicators(qr.stock)
@@ -5112,8 +4955,13 @@ def stock_question_report_detail(request, report_id, qr=None):
             'short_20d': _short_text,
             'consensus_annual_text': _consensus_annual_text,
             'consensus_quarter_text': _consensus_quarter_text,
-            'key_briefing': qr.stock.key_briefing or '',
+            'key_briefing': research_text(qr.stock, '핵심브리핑'),
             'future_events': _events_text,
+            # 핵심브리핑이 리서치 칸으로 내려오면서 필요해진 것들. 리서치가
+            # 아니라 종목에 붙어 있는 분석이라 이름으로 끌어올 수 없다.
+            'financial_analysis': qr.stock.financial_analysis_v2 or '',
+            'consensus_analysis': qr.stock.consensus_analysis or '',
+            'base_quarter': _get_latest_quarter(qr.stock),
             **tech,
             **{f'기업분석: {q}': r for q, r in _qr_map.items()},
         }
@@ -5138,7 +4986,7 @@ def stock_question_report_detail(request, report_id, qr=None):
         all_content_data = {
             'common_reports': _common_reports,
             'quick_reports': _quick_reports,
-            'key_briefing': qr.stock.key_briefing or '',
+            'key_briefing': research_text(qr.stock, '핵심브리핑'),
             'financial_analysis': qr.stock.financial_analysis_v2 or '',
             'consensus_analysis': qr.stock.consensus_analysis or '',
         }
@@ -5867,24 +5715,6 @@ def cash_flow_list(request, code):
     return JsonResponse({'success': True, 'data': data})
 
 
-@require_POST
-def stock_key_briefing_save(request, code):
-    """종목 핵심 브리핑 저장 API"""
-    from datetime import date
-    stock = get_object_or_404(Info, code=code)
-    key_briefing = request.POST.get('key_briefing', '').strip()
-    opinion = request.POST.get('my_opinion', '').strip()
-    update_fields = []
-    if key_briefing != (stock.key_briefing or '').strip():
-        stock.key_briefing = key_briefing
-        stock.key_briefing_updated_at = date.today()
-        update_fields += ['key_briefing', 'key_briefing_updated_at']
-    if opinion != (stock.key_briefing_opinion or '').strip():
-        stock.key_briefing_opinion = opinion
-        update_fields.append('key_briefing_opinion')
-    if update_fields:
-        stock.save(update_fields=update_fields)
-    return JsonResponse({'success': True, 'updated_at': stock.key_briefing_updated_at.strftime('%Y-%m-%d') if stock.key_briefing_updated_at else ''})
 
 
 @require_POST

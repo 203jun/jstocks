@@ -193,23 +193,6 @@ class Info(models.Model):
 
 
     # === 핵심 브리핑 ===
-    key_briefing = models.TextField(
-        blank=True,
-        default='',
-        verbose_name='핵심 브리핑',
-        help_text='투자포인트/리스크/일정 핵심 요약 (마크다운 형식)'
-    )
-    key_briefing_updated_at = models.DateField(
-        null=True,
-        blank=True,
-        verbose_name='핵심 브리핑 업데이트일',
-        help_text='핵심 브리핑 마지막 수정일'
-    )
-
-    key_briefing_opinion = models.TextField(
-        blank=True, default='', verbose_name='핵심브리핑 요약'
-    )
-
     # === 요약 (각 분석별) ===
     financial_analysis_v2_opinion = models.TextField(
         blank=True, default='', verbose_name='재무분석 내생각'
@@ -2072,61 +2055,6 @@ class Gongsi(models.Model):
         return f"{self.stock.name} - {self.date} {self.title[:30]}"
 
 
-class Schedule(models.Model):
-    """
-    종목별 일정 정보
-
-    ※ 구조:
-    - date_text: 표시용 날짜 텍스트 ("내년 상반기", "2025-03-15" 등)
-    - date_sort: 정렬/알림용 날짜 (대략적인 날짜, 선택사항)
-    - content: 일정 내용
-    """
-
-    # === 기본 정보 ===
-    stock = models.ForeignKey(
-        Info,
-        on_delete=models.CASCADE,
-        related_name='schedules',
-        verbose_name='종목',
-        db_index=True
-    )
-    date_text = models.CharField(
-        max_length=50,
-        verbose_name='날짜(표시)',
-        help_text='표시용 날짜 텍스트 (예: "내년 상반기", "2025-03-15")'
-    )
-    date_sort = models.DateField(
-        null=True,
-        blank=True,
-        verbose_name='알림일자',
-        help_text='정렬/알림용 날짜 (대략적인 날짜, 선택사항)',
-        db_index=True
-    )
-    content = models.CharField(
-        max_length=200,
-        verbose_name='내용',
-        help_text='일정 내용'
-    )
-
-    # === 메타 정보 ===
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='생성일시'
-    )
-
-    class Meta:
-        db_table = 'schedule'
-        verbose_name = '일정'
-        verbose_name_plural = '일정'
-        ordering = ['date_sort', 'stock']
-        indexes = [
-            models.Index(fields=['stock', 'date_sort']),
-            models.Index(fields=['date_sort']),
-        ]
-
-    def __str__(self):
-        return f"{self.stock.name} - {self.date_text} {self.content[:20]}"
-
 
 class IndexChart(models.Model):
     """
@@ -2692,56 +2620,6 @@ class StockDiary(models.Model):
     def __str__(self):
         return f"{self.stock.name} {self.date} {self.get_trade_type_display()}"
 
-
-class StockEvent(models.Model):
-    """종목별 이벤트 (미래 일정 관리)"""
-
-    stock = models.ForeignKey(
-        'Info',
-        on_delete=models.CASCADE,
-        related_name='events',
-        verbose_name='종목'
-    )
-    date = models.DateField(
-        null=True,
-        blank=True,
-        verbose_name='날짜'
-    )
-    date_text = models.CharField(
-        max_length=50,
-        verbose_name='날짜 텍스트',
-        help_text='정확한 날짜 또는 대략적 시기 (예: 4월 말경, 2분기 중)'
-    )
-    title = models.CharField(
-        max_length=200,
-        verbose_name='제목'
-    )
-    content = models.TextField(
-        blank=True,
-        default='',
-        verbose_name='내용'
-    )
-    order = models.IntegerField(
-        default=0,
-        verbose_name='정렬순서'
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='생성일시'
-    )
-    updated_at = models.DateTimeField(
-        auto_now=True,
-        verbose_name='수정일시'
-    )
-
-    class Meta:
-        db_table = 'stock_event'
-        verbose_name = '종목 이벤트'
-        verbose_name_plural = '종목 이벤트'
-        ordering = ['order', '-created_at']
-
-    def __str__(self):
-        return f"{self.stock.name} {self.date_text} {self.title}"
 
 
 class TelegramMessage(models.Model):
