@@ -158,9 +158,11 @@
             <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">AI질문</div>
             <textarea name="ai_question" id="aiQuestionInput" rows="4" placeholder="실제 AI에게 한 질문을 입력하세요...">{{ qr.ai_question }}</textarea>
         </div>
-        {# 프롬프트 목록은 '이 리서치가 어느 프롬프트의 것인지' 고르는 자리다.
-           누르면 질문 이름이 그 프롬프트 이름으로 바뀐다. 이미 정해진
-           리서치에는 필요 없으므로 접어 둔다. #}
+        {% comment %}
+        프롬프트 목록은 '이 리서치가 어느 프롬프트의 것인지' 고르는 자리다.
+        누르면 질문 이름이 그 프롬프트 이름으로 바뀐다. 이미 정해진
+        리서치에는 필요 없으므로 접어 둔다.
+        {% endcomment %}
         {% if own_prompt %}
         <details style="margin-bottom:16px;">
             <summary style="font-size:0.78rem;color:var(--text-secondary);cursor:pointer;">다른 프롬프트로 바꾸기</summary>
