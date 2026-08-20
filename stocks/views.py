@@ -4381,7 +4381,10 @@ def stock_question_report_save(request):
     stock_code = request.POST.get('stock_code', '')
     question = request.POST.get('question', '').strip()
     report = request.POST.get('report', '')
-    report_type = request.POST.get('report_type', 'html')
+    # AI 답변은 마크다운으로 온다. 옛 기본값이 html 이라 새 리서치가
+    # 마크다운을 못 그린 채로 생겼다.
+    report_type = request.POST.get('report_type', 'markdown')
+    report_id = request.POST.get('report_id') or ''
 
     if not stock_code:
         return JsonResponse({'success': False, 'error': '종목코드가 필요합니다.'})
@@ -4391,19 +4394,44 @@ def stock_question_report_save(request):
 
     # report_type 유효성 검사
     if report_type not in ('html', 'markdown'):
-        report_type = 'html'
+        report_type = 'markdown'
 
     try:
         stock = Info.objects.get(code=stock_code)
     except Info.DoesNotExist:
         return JsonResponse({'success': False, 'error': '종목을 찾을 수 없습니다.'})
 
+    # 넘어온 칸만 고친다. 붙여넣기 창은 리포트만, 질문·프롬프트 창은
+    # 질문과 프롬프트만 보낸다 — 안 보낸 칸을 빈 값으로 덮으면 지운다.
+    fields = {}
+    if 'report' in request.POST:
+        fields['report'] = report
+        fields['report_type'] = report_type
+    if 'ai_question' in request.POST:
+        fields['ai_question'] = request.POST.get('ai_question', '')
+
+    # report_id 가 오면 그 행을 고친다. 질문 이름을 바꾸는 길은 이것뿐이다 —
+    # (종목, 질문) 으로 찾으면 새 이름의 행이 하나 더 생기고 옛것이 남는다.
+    if report_id:
+        qr = StockQuestionReport.objects.filter(id=report_id, stock=stock).first()
+        if not qr:
+            return JsonResponse({'success': False, 'error': '리서치를 찾을 수 없습니다.'})
+        if (qr.question != question
+                and StockQuestionReport.objects.filter(stock=stock, question=question).exists()):
+            return JsonResponse({'success': False,
+                                 'error': f'"{question}" 리서치가 이미 있습니다.'})
+        qr.question = question
+        for key, value in fields.items():
+            setattr(qr, key, value)
+        qr.save()
+        return JsonResponse({'success': True, 'id': qr.id, 'created': False,
+                             'report_type': qr.report_type})
+
     # 한 종목의 한 질문은 하나다. 화면이 프롬프트를 칸으로 놓고 답을 채우는
     # 방식이라, 같은 칸에 두 번 붙여넣으면 새로 쌓이는 게 아니라 덮어써야
     # 한다. AI 판단이 같은 기준일에 덮어쓰는 것과 같다.
-    fields = {'report': report, 'report_type': report_type}
-    if 'ai_question' in request.POST:
-        fields['ai_question'] = request.POST.get('ai_question', '')
+    fields.setdefault('report', report)
+    fields.setdefault('report_type', report_type)
     qr, created = StockQuestionReport.objects.update_or_create(
         stock=stock, question=question, defaults=fields,
     )
@@ -4871,7 +4899,9 @@ def stock_question_report_slot(request, code):
 
     stock = get_object_or_404(Info, code=code)
     question = (request.GET.get('q') or '').strip()
-    existing = StockQuestionReport.objects.filter(stock=stock, question=question).first()
+    # 이름이 없으면 '일반'을 새로 만드는 길이다. 이때는 행을 찾지 않는다.
+    existing = (StockQuestionReport.objects.filter(stock=stock, question=question).first()
+                if question else None)
     if existing:
         return redirect('stocks:stock_question_report_detail', report_id=existing.id)
     return stock_question_report_detail(

@@ -777,7 +777,7 @@
             <summary>
                 <span class="research-custom-label">일반</span>
                 <span class="research-count">{{ custom_question_reports|length }}</span>
-                <button type="button" class="btn-refresh" id="btnAddQuestionReport" style="padding:2px 10px;font-weight:400;font-size:0.72rem;margin-left:auto;">+ 추가</button>
+                <a href="{% url 'stocks:stock_question_report_slot' stock.code %}" class="btn-refresh" style="padding:2px 10px;font-weight:400;font-size:0.72rem;margin-left:auto;">+ 추가</a>
             </summary>
             {% if custom_question_reports %}
             <div class="research-custom-list">
@@ -1822,35 +1822,6 @@ document.querySelectorAll('.sub-tab').forEach(tab => {
 
 // ===== Research click handler =====
 // ===== 리서치 추가 =====
-document.getElementById('btnAddQuestionReport')?.addEventListener('click', async () => {
-    const btn = document.getElementById('btnAddQuestionReport');
-    btn.disabled = true;
-    btn.textContent = '추가 중...';
-    try {
-        const formData = new FormData();
-        formData.append('stock_code', stockCode);
-        formData.append('question', '새 질문');
-        formData.append('report', '');
-        formData.append('report_type', 'markdown');
-        const response = await fetch('/api/stock/question-report/save/', {
-            method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-            body: formData
-        });
-        const data = await response.json();
-        if (data.success) {
-            location.href = `/research/${data.id}/`;
-        } else {
-            alert(data.error || '추가 실패');
-            btn.disabled = false;
-            btn.textContent = '+ 추가';
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-        btn.disabled = false;
-        btn.textContent = '+ 추가';
-    }
-});
 
 // ===== Marked.js options =====
 marked.setOptions({ breaks: true, gfm: true, headerIds: false, mangle: false });

@@ -34,6 +34,13 @@
     resize: vertical;
 }
 #aiQuestionInput:focus { border-color: #2962ff; outline: none; box-shadow: 0 0 0 2px rgba(41,98,255,0.1); }
+.qr-meta-q {
+    display:block; width:100%; margin-bottom:10px;
+    padding:9px 12px; border:1px solid var(--border-color); border-radius:8px;
+    background:var(--bg-page); color:var(--text-primary);
+    font-family:inherit; font-size:0.85rem;
+}
+.qr-meta-q:focus { outline:none; border-color:var(--text-muted); }
 #preview {
     min-height: 100px;
     padding: 16px;
@@ -96,15 +103,15 @@
 같은 내용을 두 번 보여줬고, 프롬프트를 고르려면 그 사이에 묻힌 칩 스물두
 개를 뒤져야 했다. 이제 프롬프트도 붙여넣기도 맨 윗줄에 있다.
 
-직접 만든 질문(일반)만 편집 폼이 남는다. 질문도 프롬프트도 내가 써야
-하기 때문이다.
+일반도 모양이 같다. 질문과 프롬프트는 내가 써야 하지만, 그것도 창 하나로
+받는다 — 화면에 폼을 펼쳐 두면 다른 리서치와 생김새가 달라진다.
 {% endcomment %}
 <h5 class="section-heading" style="margin-top:0;">질문</h5>
 <div class="brief-card">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
         <div>
             <div style="font-size:0.9rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">
-                {{ qr.question }}
+                {{ qr.question|default:"이름 없는 리서치" }}
             </div>
             <div style="font-size:0.82rem;color:var(--text-secondary);">
                 {{ qr.stock.name }}
@@ -125,11 +132,15 @@
                       title="{{ own_prompt.group }} · {{ own_prompt.question }} 프롬프트를 복사합니다">프롬프트{% if own_prompt.auto_report %} 📄{% elif own_prompt.needs_attachment %} 📎{% endif %}</span>
                 <a href="{% url 'stocks:settings' %}#{{ own_prompt.panel }}" target="_blank" rel="noopener" title="이 프롬프트 편집">⚙</a>
             </span>
-            {% elif qr.ai_question %}
+            {% else %}
+            {# 일반 — 프롬프트도 내가 쓴다. ✎ 자리는 칸 리서치의 ⚙ 과 같다. #}
             <span class="prompt-pair">
+                {% if qr.ai_question %}
                 <span class="common-research-btn" role="button"
                       data-question="{{ qr.question }}" data-prompt="{{ qr.ai_question }}"
                       title="이 질문에 적어둔 프롬프트를 복사합니다">프롬프트</span>
+                {% endif %}
+                <button type="button" id="btnEditMeta" title="질문과 프롬프트 고치기">{% if qr.ai_question %}✎{% else %}질문·프롬프트{% endif %}</button>
             </span>
             {% endif %}
             {# AI 판단의 붙여넣기와 같은 버튼이다 (_ai_note.html 의 data-ma-edit) #}
@@ -138,28 +149,8 @@
     </div>
 </div>
 
-{% if not own_prompt %}
-<!-- 일반 질문 — 질문과 프롬프트를 직접 쓴다 -->
-<form method="post">
-    {% csrf_token %}
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">질문·프롬프트<span style="font-weight:400;"><button type="submit" class="btn-refresh">저장</button></span></h5>
-    <div class="brief-card">
-        <div style="margin-bottom:16px;">
-            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">질문</div>
-            <input type="text" name="question" id="questionInput" value="{{ qr.question }}" placeholder="질문을 입력하세요...">
-        </div>
-        <div>
-            <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">프롬프트</div>
-            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">여기 적어두면 위의 [프롬프트] 버튼으로 복사됩니다. {현재가} {시가총액} 같은 변수도 씁니다.</div>
-            <textarea name="ai_question" id="aiQuestionInput" rows="6" placeholder="이 질문에 쓸 프롬프트를 입력하세요...">{{ qr.ai_question }}</textarea>
-        </div>
-        <input type="hidden" id="reportType" value="{{ qr.report_type|default:'markdown' }}">
-    </div>
-</form>
-{% else %}
 <input type="hidden" id="questionInput" value="{{ qr.question }}">
 <input type="hidden" id="reportType" value="{{ qr.report_type|default:'markdown' }}">
-{% endif %}
 
 <!-- 리포트 -->
 <h5 class="section-heading">리포트</h5>
@@ -500,6 +491,7 @@ document.getElementById('btnDelete')?.addEventListener('click', async () => {
         try {
             const body = new URLSearchParams({
                 stock_code: '{{ qr.stock.code }}',
+                report_id: '{{ qr.id|default_if_none:"" }}',
                 question: (document.getElementById('questionInput')?.value || '{{ qr.question|escapejs }}'),
                 report: box.value,
                 report_type: 'markdown',
@@ -531,4 +523,73 @@ document.getElementById('btnDelete')?.addEventListener('click', async () => {
     modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
 })();
 </script>
+
+{% if not own_prompt %}
+{% comment %}
+질문·프롬프트 창 — 일반 리서치에만. 칸 리서치는 프롬프트가 설정에 있고,
+일반은 내가 쓴다. 화면에 폼을 펼쳐 두는 대신 창으로 받아 다른 리서치와
+생김새를 맞춘다.
+{% endcomment %}
+<div class="modal-overlay" id="qrMetaModal">
+    <div class="modal-box" style="max-width:720px;">
+        <div class="modal-header-custom">
+            <h6>질문 · 프롬프트</h6>
+            <button type="button" class="modal-close-btn" id="qrMetaClose">&times;</button>
+        </div>
+        <div class="ma-note">질문은 목록에 뜨는 이름입니다. 프롬프트를 적어두면 [프롬프트] 버튼으로 복사됩니다 — {현재가} {시가총액} 같은 변수도 그대로 씁니다.</div>
+        <input type="text" id="qrMetaQuestion" class="qr-meta-q" placeholder="질문 (예: 메모리 테스트 핸들러 경쟁 구도)" value="{{ qr.question }}">
+        <textarea id="qrMetaPrompt" class="paste-box" spellcheck="false" placeholder="이 질문에 쓸 프롬프트">{{ qr.ai_question }}</textarea>
+        <div class="mp-foot">
+            <button type="button" class="mp-save" id="qrMetaSave">저장</button>
+            <span class="mp-msg" id="qrMetaMsg"></span>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    const modal = document.getElementById('qrMetaModal');
+    const open = document.getElementById('btnEditMeta');
+    if (!modal || !open) return;
+    const q = document.getElementById('qrMetaQuestion');
+    const prompt = document.getElementById('qrMetaPrompt');
+    const msg = document.getElementById('qrMetaMsg');
+
+    const show = () => { msg.textContent = ''; modal.classList.add('show'); q.focus(); };
+    open.addEventListener('click', show);
+    // 이름도 없는 리서치로 들어왔으면(+ 추가) 바로 연다
+    if (!'{{ qr.question|escapejs }}') show();
+
+    document.getElementById('qrMetaSave').addEventListener('click', async function () {
+        if (!q.value.trim()) { msg.textContent = '질문을 적어주세요'; q.focus(); return; }
+        this.disabled = true;
+        try {
+            const res = await fetch('/api/stock/question-report/save/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: new URLSearchParams({
+                    stock_code: '{{ qr.stock.code }}',
+                    report_id: '{{ qr.id|default_if_none:"" }}',
+                    question: q.value.trim(),
+                    ai_question: prompt.value,
+                }),
+            });
+            const data = await res.json();
+            if (!data.success) { msg.textContent = data.error || '저장 실패'; return; }
+            msg.textContent = '저장했습니다';
+            setTimeout(() => { location.href = '/research/' + data.id + '/'; }, 400);
+        } catch (err) {
+            msg.textContent = '저장 실패: ' + err.message;
+        } finally {
+            this.disabled = false;
+        }
+    });
+
+    document.getElementById('qrMetaClose').addEventListener('click', () => modal.classList.remove('show'));
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
+})();
+</script>
+{% endif %}
 {% endblock %}

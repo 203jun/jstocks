@@ -1505,7 +1505,9 @@ class SectorQuestionReport(models.Model):
     report_type = models.CharField(
         max_length=10,
         choices=[('html', 'HTML'), ('markdown', '마크다운')],
-        default='html',
+        # AI 답변은 마크다운으로 온다. 옛 기본값이 html 이라 새 리서치가
+        # 마크다운을 못 그린 채로 생겼다. 저장된 271건 중 268건이 마크다운이다.
+        default='markdown',
         verbose_name='리포트 형식',
         help_text='리포트의 형식 (HTML 또는 마크다운)'
     )
@@ -1561,7 +1563,9 @@ class StockQuestionReport(models.Model):
     report_type = models.CharField(
         max_length=10,
         choices=[('html', 'HTML'), ('markdown', '마크다운')],
-        default='html',
+        # AI 답변은 마크다운으로 온다. 옛 기본값이 html 이라 새 리서치가
+        # 마크다운을 못 그린 채로 생겼다. 저장된 271건 중 268건이 마크다운이다.
+        default='markdown',
         verbose_name='리포트 형식',
         help_text='리포트의 형식 (HTML 또는 마크다운)'
     )
