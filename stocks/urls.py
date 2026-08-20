@@ -46,10 +46,6 @@ urlpatterns = [
     path('api/stock/<str:code>/prompt-data/', views.fetch_stock_prompt_data, name='fetch_stock_prompt_data'),
     path('api/stock/<str:code>/data-loader/', views.fetch_stock_data_loader, name='fetch_stock_data_loader'),
     path('api/stock/<str:code>/data-loader-with-summary/', views.fetch_stock_data_loader_with_summary, name='fetch_stock_data_loader_with_summary'),
-    path('api/telegram/search/', views.search_telegram, name='search_telegram'),
-    path('api/disclosure/search/', views.search_disclosure, name='search_disclosure'),
-    path('api/report/search/', views.search_report, name='search_report'),
-    path('api/habono/', views.fetch_habono, name='fetch_habono'),
     # 투자일기
     path('api/diary/', views.diary_list, name='diary_list'),
     path('api/diary/save/', views.diary_save, name='diary_save'),
@@ -65,7 +61,6 @@ urlpatterns = [
     path('api/theme/add/', views.theme_add, name='theme_add'),
     path('api/theme/<int:theme_id>/delete/', views.theme_delete, name='theme_delete'),
     path('api/theme/resolve/', views.theme_resolve, name='theme_resolve'),
-    path('api/google/search/', views.search_google, name='search_google'),
     # 애널리스트 리포트
     path('api/report/<int:report_id>/file/delete/', views.report_file_delete, name='report_file_delete'),
     # 텔레그램 (종목)
