@@ -26,7 +26,6 @@ GROUP_SPECS = [
     ('기업분석', 'ResearchPrompt', 'research-prompt'),
     ('업데이트', 'QuickReport', 'quick-report'),
     ('정리', 'SummaryReport', 'summary-report'),
-    ('대기', 'WaitingReport', 'waiting-report'),
 ]
 
 # 한 칸도 안 채운 그룹은 접는다.

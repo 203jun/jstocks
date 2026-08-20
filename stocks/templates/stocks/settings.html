@@ -637,7 +637,6 @@ small.text-muted {
             <button class="prompt-sub-tab" data-target="data-loader-panel" id="data-loader-tab">핵심브리핑</button>
             <button class="prompt-sub-tab" data-target="research-prompt-panel" id="research-prompt-tab">기업분석</button>
             <button class="prompt-sub-tab" data-target="quick-report-panel" id="quick-report-tab">업데이트</button>
-            <button class="prompt-sub-tab" data-target="waiting-report-panel" id="waiting-report-tab">대기</button>
             <!-- <button class="prompt-sub-tab" data-target="fin-analysis-prompt-panel" id="fin-analysis-prompt-tab">재무분석</button> -->
             <!-- <button class="prompt-sub-tab" data-target="consensus-analysis-prompt-panel" id="consensus-analysis-prompt-tab">컨센서스분석</button> -->
             <button class="prompt-sub-tab" data-target="gongsi-prompt-panel" id="gongsi-prompt-tab">공시</button>            <button class="prompt-sub-tab" data-target="youtube-prompt-panel" id="youtube-prompt-tab">유튜브</button>
@@ -703,18 +702,6 @@ small.text-muted {
                     <div style="font-size:0.75rem;color:var(--up-color);margin-bottom:12px;">* 질문명은 종목 리서치와 연결되므로 변경하지 마세요. 변경 시 기존 리서치와의 연결이 끊어집니다.</div>
                     <div id="quickReportList"></div>
                     <div id="quickReportEmpty" class="text-center py-4 d-none" style="color:var(--text-muted);font-size:0.85rem;">등록된 업데이트 프롬프트가 없습니다.</div>
-                </div>
-            </div>
-            <!-- 대기 -->
-            <div class="prompt-panel" id="waiting-report-panel" style="display:none;">
-                <div class="brief-card">
-                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom:16px;">
-                        <span style="font-size:0.88rem;font-weight:600;color:var(--text-primary);">대기 프롬프트</span>
-                        <button type="button" class="btn-refresh" id="btnAddWaitingReport">+ 추가</button>
-                    </div>
-                    <div style="font-size:0.75rem;color:var(--up-color);margin-bottom:12px;">* 질문명은 종목 리서치와 연결되므로 변경하지 마세요. 변경 시 기존 리서치와의 연결이 끊어집니다.</div>
-                    <div id="waitingReportList"></div>
-                    <div id="waitingReportEmpty" class="text-center py-4 d-none" style="color:var(--text-muted);font-size:0.85rem;">등록된 대기가 없습니다.</div>
                 </div>
             </div>
             <!-- 재무분석 프롬프트 -->
@@ -1413,141 +1400,6 @@ quickReportList.addEventListener('click', async (e) => {
 });
 
 loadQuickReports();
-
-// === 대기 관리 ===
-const waitingReportList = document.getElementById('waitingReportList');
-const waitingReportEmpty = document.getElementById('waitingReportEmpty');
-const btnAddWaitingReport = document.getElementById('btnAddWaitingReport');
-
-async function loadWaitingReports() {
-    try {
-        const response = await fetch('/api/waiting-report/');
-        const data = await response.json();
-        if (data.success) renderWaitingReports(data.prompts);
-    } catch (err) {
-        console.error('대기 로드 실패:', err);
-    }
-}
-
-function renderWaitingReports(prompts) {
-    if (prompts.length === 0) {
-        waitingReportList.innerHTML = '';
-        waitingReportEmpty.classList.remove('d-none');
-        return;
-    }
-    waitingReportEmpty.classList.add('d-none');
-    waitingReportList.innerHTML = prompts.map((p, idx) => `
-        <div class="border-bottom p-3" data-id="${p.id}">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <span style="font-size:0.9rem;font-weight:700;color:var(--text-primary);">${escapeHtml(p.question)}</span>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-primary btn-save-waiting" data-id="${p.id}">저장</button>
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-waiting" data-id="${p.id}">삭제</button>
-                </div>
-            </div>
-            <input type="hidden" class="waiting-question" data-id="${p.id}" value="${escapeHtml(p.question)}">
-            <textarea class="form-control form-control-sm waiting-prompt" data-id="${p.id}" rows="8" placeholder="프롬프트 입력...">${escapeHtml(p.prompt)}</textarea>
-            <div class="d-flex align-items-center mt-2">
-                <div class="form-check">
-                    <input class="form-check-input waiting-attachment" type="checkbox" data-id="${p.id}" ${p.needs_attachment ? 'checked' : ''}>
-                    <label class="form-check-label small">첨부파일 필요</label>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-btnAddWaitingReport.addEventListener('click', async () => {
-    const question = prompt('질문명을 입력하세요 (등록 후 수정 불가):');
-    if (!question || !question.trim()) return;
-
-    btnAddWaitingReport.disabled = true;
-    try {
-        const formData = new FormData();
-        formData.append('question', question.trim());
-        formData.append('prompt', '');
-
-        const response = await fetch('/api/waiting-report/add/', {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-        const data = await response.json();
-        if (data.success) loadWaitingReports();
-        else alert(data.error || '추가에 실패했습니다.');
-    } catch (err) {
-        alert('오류: ' + err.message);
-    } finally {
-        btnAddWaitingReport.disabled = false;
-    }
-});
-
-waitingReportList.addEventListener('click', async (e) => {
-    if (!e.target.classList.contains('btn-save-waiting')) return;
-    const btn = e.target;
-    const id = btn.dataset.id;
-    const container = btn.closest('.border-bottom');
-    const question = container.querySelector('.waiting-question').value.trim();
-    const prompt = container.querySelector('.waiting-prompt').value.trim();
-    const needsAttachment = container.querySelector('.waiting-attachment').checked;
-
-    if (!question) { alert('질문을 입력해주세요.'); return; }
-
-    btn.disabled = true;
-    const originalText = btn.textContent;
-    btn.textContent = '저장 중...';
-
-    try {
-        const formData = new FormData();
-        formData.append('question', question);
-        formData.append('prompt', prompt);
-        formData.append('needs_attachment', needsAttachment);
-
-        const response = await fetch(`/api/waiting-report/${id}/update/`, {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-        const data = await response.json();
-        if (data.success) {
-            btn.textContent = '저장됨';
-            setTimeout(() => { btn.textContent = originalText; }, 1500);
-        } else {
-            alert(data.error || '저장에 실패했습니다.');
-            btn.textContent = originalText;
-        }
-    } catch (err) {
-        alert('오류: ' + err.message);
-        btn.textContent = originalText;
-    } finally {
-        btn.disabled = false;
-    }
-});
-
-waitingReportList.addEventListener('click', async (e) => {
-    if (!e.target.classList.contains('btn-delete-waiting')) return;
-    const btn = e.target;
-    const id = btn.dataset.id;
-
-    const ok = await showConfirm('이 대기를 삭제하시겠습니까?');
-    if (!ok) return;
-
-    btn.disabled = true;
-    try {
-        const response = await fetch(`/api/waiting-report/${id}/delete/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
-        const data = await response.json();
-        if (data.success) loadWaitingReports();
-        else { alert(data.error || '삭제에 실패했습니다.'); btn.disabled = false; }
-    } catch (err) {
-        alert('오류: ' + err.message);
-        btn.disabled = false;
-    }
-});
-
-loadWaitingReports();
 
 // 유튜브 프롬프트 저장
 document.getElementById('btnSaveYoutubePrompt').addEventListener('click', function() {

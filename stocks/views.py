@@ -1250,7 +1250,7 @@ def stock_detail(request, code):
     }
 
     # 질문리포트
-    from .models import StockQuestionReport, ResearchPrompt, QuickReport, SummaryReport, WaitingReport
+    from .models import StockQuestionReport, ResearchPrompt, QuickReport, SummaryReport
     question_reports = list(StockQuestionReport.objects.filter(stock=stock).order_by('-created_at'))
 
     # 리서치는 '프롬프트 칸'이다. 등록된 프롬프트가 곧 칸이고, 저장된
@@ -6859,92 +6859,12 @@ def summary_report_delete(request, prompt_id):
 
 # ============ 대기 관리 ============
 
-def waiting_report_list(request):
-    """대기 목록 조회"""
-    from .models import WaitingReport
-
-    prompts = WaitingReport.objects.all()
-    data = [{
-        'id': p.id,
-        'question': p.question,
-        'prompt': p.prompt,
-        'order': p.order,
-        'needs_attachment': p.needs_attachment
-    } for p in prompts]
-
-    return JsonResponse({'success': True, 'prompts': data})
 
 
-@require_POST
-def waiting_report_add(request):
-    """대기 추가"""
-    from django.db.models import Max
-    from .models import WaitingReport
-
-    question = request.POST.get('question', '').strip()
-    prompt = request.POST.get('prompt', '').strip()
-    needs_attachment = request.POST.get('needs_attachment') == 'true'
-
-    if not question:
-        return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
-
-    max_order = WaitingReport.objects.aggregate(Max('order'))['order__max'] or 0
-    obj = WaitingReport.objects.create(
-        question=question,
-        prompt=prompt,
-        order=max_order + 1,
-        needs_attachment=needs_attachment
-    )
-
-    return JsonResponse({
-        'success': True,
-        'id': obj.id,
-        'question': obj.question,
-        'prompt': obj.prompt,
-        'order': obj.order,
-        'needs_attachment': obj.needs_attachment
-    })
 
 
-@require_POST
-def waiting_report_update(request, prompt_id):
-    """대기 수정"""
-    from .models import WaitingReport
-
-    try:
-        obj = WaitingReport.objects.get(id=prompt_id)
-    except WaitingReport.DoesNotExist:
-        return JsonResponse({'success': False, 'error': '프롬프트를 찾을 수 없습니다.'})
-
-    question = request.POST.get('question', '').strip()
-    prompt = request.POST.get('prompt', '').strip()
-    needs_attachment = request.POST.get('needs_attachment') == 'true'
-
-    if not question:
-        return JsonResponse({'success': False, 'error': '질문을 입력해주세요.'})
-
-    obj.question = question
-    obj.prompt = prompt
-    obj.needs_attachment = needs_attachment
-    obj.save()
-
-    return JsonResponse({'success': True})
 
 
-@require_POST
-def waiting_report_delete(request, prompt_id):
-    """대기 삭제"""
-    from .models import WaitingReport
-
-    try:
-        obj = WaitingReport.objects.get(id=prompt_id)
-        obj.delete()
-        return JsonResponse({'success': True})
-    except WaitingReport.DoesNotExist:
-        return JsonResponse({'success': False, 'error': '프롬프트를 찾을 수 없습니다.'})
-
-
-# ============ 섹터 텔레그램 메시지 ============
 
 @require_POST
 def stock_uploaded_report_upload(request):

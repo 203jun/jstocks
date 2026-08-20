@@ -109,10 +109,6 @@ urlpatterns = [
     path('api/summary-report/add/', views.summary_report_add, name='summary_report_add'),
     path('api/summary-report/<int:prompt_id>/update/', views.summary_report_update, name='summary_report_update'),
     path('api/summary-report/<int:prompt_id>/delete/', views.summary_report_delete, name='summary_report_delete'),
-    path('api/waiting-report/', views.waiting_report_list, name='waiting_report_list'),
-    path('api/waiting-report/add/', views.waiting_report_add, name='waiting_report_add'),
-    path('api/waiting-report/<int:prompt_id>/update/', views.waiting_report_update, name='waiting_report_update'),
-    path('api/waiting-report/<int:prompt_id>/delete/', views.waiting_report_delete, name='waiting_report_delete'),
     # 파일 업로드 리포트 (종목)
     path('uploaded-report/<int:report_id>/summary/', views.uploaded_report_summary_page, name='uploaded_report_summary_page'),
     path('api/stock/uploaded-report/upload/', views.stock_uploaded_report_upload, name='stock_uploaded_report_upload'),

@@ -2998,40 +2998,6 @@ class SummaryReport(models.Model):
         return self.question
 
 
-class WaitingReport(models.Model):
-    """
-    대기 프롬프트 (질문-프롬프트 쌍)
-    """
-    question = models.CharField(
-        max_length=200,
-        verbose_name='질문'
-    )
-    prompt = models.TextField(
-        blank=True,
-        verbose_name='프롬프트'
-    )
-    order = models.IntegerField(
-        default=0,
-        verbose_name='순서'
-    )
-    needs_attachment = models.BooleanField(
-        default=False,
-        verbose_name='첨부파일 필요'
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='생성일시'
-    )
-
-    class Meta:
-        db_table = 'waiting_report'
-        verbose_name = '대기'
-        verbose_name_plural = '대기'
-        ordering = ['order', 'id']
-
-    def __str__(self):
-        return self.question
-
 
 class IncomeStatement(models.Model):
     """
