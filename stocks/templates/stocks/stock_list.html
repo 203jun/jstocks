@@ -135,7 +135,42 @@
 한 표에 섞으면 빈 칸이 는다.
 {% endcomment %}
 
-<h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;margin-top:0;">
+{% comment %}
+ETF 는 목록을 두지 않는다. 내가 보는 것이 열댓 개뿐이라 훑을 일이 없고,
+찾는 일은 네이버가 훨씬 낫다. 여기서는 코드를 받아 들여오기만 한다 —
+그 길이 ETF 화면에만 있었는데 그 화면은 없어질 예정이다.
+
+조회와 저장을 두 걸음으로 나눈 것은 이름과 구성종목을 보고 넣게 하려는
+것이다. 코드만 보고 넣으면 엉뚱한 것을 등록한다.
+{% endcomment %}
+<h5 class="section-heading" style="margin-top:0;">ETF 추가</h5>
+<div class="brief-card">
+    <div class="etf-add">
+        {% csrf_token %}
+        <div class="etf-add-row">
+            <a href="https://stock.naver.com/market/stock/kr/etf/priceTop" target="_blank" rel="noopener" class="etf-find">네이버에서 ETF 찾기 ↗</a>
+            <input type="text" id="etfAddCode" class="settings-input" placeholder="종목코드 (예: 069500)" style="max-width:200px;">
+            <button type="button" class="btn-refresh" id="btnEtfLookup">조회</button>
+            <span id="etfLookupMsg" style="font-size:0.8rem;"></span>
+        </div>
+        <div id="etfFound" class="etf-found d-none">
+            <div class="etf-found-head"><b id="etfFoundName"></b> <span id="etfFoundCode" class="stock-code"></span></div>
+            <div class="etf-found-facts">
+                <span>현재가 <b id="etfFoundPrice"></b></span>
+                <span>등락률 <b id="etfFoundRate"></b></span>
+                <span>NAV <b id="etfFoundNav"></b></span>
+                <span>시가총액 <b id="etfFoundCap"></b></span>
+            </div>
+            <div class="etf-found-holdings" id="etfFoundHoldings"></div>
+            <div class="d-flex align-items-center gap-2" style="margin-top:10px;">
+                <button type="button" class="btn-refresh" id="btnEtfSave">관심종목 저장</button>
+                <span id="etfSaveMsg" style="font-size:0.8rem;"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
     종목
     <span style="font-size:0.7rem;font-weight:400;color:var(--text-muted);">
         {% if stock_total > list_limit %}{{ stock_total|intcomma }}개 중 {{ list_limit }}개{% else %}{{ stock_total|intcomma }}개{% endif %}
@@ -203,40 +238,6 @@
     {% endif %}
 </div>
 
-{% comment %}
-ETF 는 목록을 두지 않는다. 내가 보는 것이 열댓 개뿐이라 훑을 일이 없고,
-찾는 일은 네이버가 훨씬 낫다. 여기서는 코드를 받아 들여오기만 한다 —
-그 길이 ETF 화면에만 있었는데 그 화면은 없어질 예정이다.
-
-조회와 저장을 두 걸음으로 나눈 것은 이름과 구성종목을 보고 넣게 하려는
-것이다. 코드만 보고 넣으면 엉뚱한 것을 등록한다.
-{% endcomment %}
-<h5 class="section-heading">ETF 추가</h5>
-<div class="brief-card">
-    <div class="etf-add">
-        {% csrf_token %}
-        <div class="etf-add-row">
-            <a href="https://stock.naver.com/market/stock/kr/etf/priceTop" target="_blank" rel="noopener" class="etf-find">네이버에서 ETF 찾기 ↗</a>
-            <input type="text" id="etfAddCode" class="settings-input" placeholder="종목코드 (예: 069500)" style="max-width:200px;">
-            <button type="button" class="btn-refresh" id="btnEtfLookup">추가</button>
-            <span id="etfLookupMsg" style="font-size:0.8rem;"></span>
-        </div>
-        <div id="etfFound" class="etf-found d-none">
-            <div class="etf-found-head"><b id="etfFoundName"></b> <span id="etfFoundCode" class="stock-code"></span></div>
-            <div class="etf-found-facts">
-                <span>현재가 <b id="etfFoundPrice"></b></span>
-                <span>등락률 <b id="etfFoundRate"></b></span>
-                <span>NAV <b id="etfFoundNav"></b></span>
-                <span>시가총액 <b id="etfFoundCap"></b></span>
-            </div>
-            <div class="etf-found-holdings" id="etfFoundHoldings"></div>
-            <div class="d-flex align-items-center gap-2" style="margin-top:10px;">
-                <button type="button" class="btn-refresh" id="btnEtfSave">관심종목 저장</button>
-                <span id="etfSaveMsg" style="font-size:0.8rem;"></span>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -281,7 +282,7 @@ ETF 는 목록을 두지 않는다. 내가 보는 것이 열댓 개뿐이라 훑
         } catch (err) {
             msg.innerHTML = `<span class="text-down">오류: ${err.message}</span>`;
         } finally {
-            this.disabled = false; this.textContent = '추가';
+            this.disabled = false; this.textContent = '조회';
         }
     });
 

@@ -2696,6 +2696,8 @@ def search_stock(request):
     """종목/ETF 검색 API"""
     from django.db.models import Q
 
+    from .models import InfoETF
+
     query = request.GET.get('q', request.GET.get('keyword', '')).strip()
     if not query:
         return JsonResponse({'success': False, 'error': '검색어를 입력하세요.'})
@@ -3503,6 +3505,8 @@ def etf_detail(request, code):
 def etf_memo_save(request, code):
     """ETF 메모 저장 API"""
     from datetime import date
+    from .models import InfoETF
+
     etf = get_object_or_404(InfoETF, code=code)
     memo = request.POST.get('memo', '').strip()
     if memo != (etf.memo or '').strip():
@@ -3756,6 +3760,7 @@ def fetch_etf_chart(etf, timeframe, mode='all'):
 @require_POST
 def save_etf(request):
     """ETF 관심종목 저장 API"""
+    from .models import InfoETF
 
     code = request.POST.get('code', '').strip()
     name = request.POST.get('name', '').strip()
