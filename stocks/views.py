@@ -3815,6 +3815,18 @@ def save_etf(request):
         }
     )
 
+    # 관심단계가 비어 있으면 '관심'으로 채운다.
+    #
+    # '관심종목 저장'을 눌렀는데 InfoETF 행만 생기고 단계는 비어 있었다.
+    # 그러면 목록에도 안 잡히고 수집 대상에서도 빠져, 넣었는데 아무 일도
+    # 안 일어난 것처럼 보인다.
+    #
+    # 이미 값이 있으면 두는 것은 다시 조회·저장할 때 '대기'로 돌려 둔 것을
+    # 덮지 않기 위해서다.
+    if etf.interest_level is None:
+        etf.interest_level = 'normal'
+        etf.save(update_fields=['interest_level'])
+
     # 새로 생성된 ETF인 경우 차트 데이터도 저장 (mode=all)
     chart_result = None
     if created:
