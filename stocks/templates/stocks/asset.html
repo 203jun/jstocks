@@ -1,10 +1,354 @@
 {% extends 'stocks/base.html' %}
-{% load static %}
 {% load humanize %}
 
 {% block title %}자산 - JStocks{% endblock %}
 
-{% block page_css %}<link rel="stylesheet" href="{% static 'stocks/asset.css' %}">{% endblock %}
+{% block extra_style %}
+.section-heading { font-size:1.05rem; font-weight:700; color:var(--text-primary); margin:28px 0 16px; padding-bottom:10px; border-bottom:1px solid var(--border-color); }
+
+/* Account tabs */
+.account-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+.account-tab {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-muted, #6b7280);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 6px 14px;
+}
+.account-tab:hover { color: var(--text-primary); }
+.account-tab.active {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: #3b82f6;
+    color: #3b82f6;
+    font-weight: 600;
+}
+
+/* Asset section */
+.asset-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 14px 16px 16px;
+    margin-bottom: 24px;
+}
+.asset-chart {
+    width: 100%;
+    height: 300px;
+}
+.asset-chart-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+.asset-legend {
+    display: flex;
+    gap: 14px;
+    font-size: 0.76rem;
+    color: var(--text-muted, #6b7280);
+}
+.asset-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.asset-legend-line {
+    width: 14px;
+    height: 0;
+    border-top: 2px solid currentColor;
+}
+.asset-legend-line.eval { border-top-color: var(--text-primary); }
+.asset-legend-line.principal { border-top-style: dashed; }
+.asset-range {
+    display: flex;
+    gap: 4px;
+}
+.asset-range-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    color: var(--text-muted, #6b7280);
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 3px 9px;
+}
+.asset-range-btn:hover { color: var(--text-primary); }
+.asset-range-btn.active {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #3b82f6;
+    font-weight: 600;
+}
+/* 히어로: 총 평가금액 한 방 */
+.asset-hero {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+.asset-hero-label {
+    font-size: 0.8rem;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: 6px;
+}
+.asset-hero-value {
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+.asset-hero-unit {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-muted, #6b7280);
+    margin-left: 3px;
+}
+.asset-hero-diff {
+    font-size: 1.0rem;
+    font-weight: 600;
+    margin-top: 8px;
+    font-variant-numeric: tabular-nums;
+}
+.asset-hero-diff.up { color: var(--up-color); }
+.asset-hero-diff.down { color: var(--down-color); }
+.asset-hero-diff-note {
+    font-size: 0.78rem;
+    font-weight: 400;
+    color: var(--text-muted, #6b7280);
+    margin-left: 8px;
+}
+
+/* 보조 지표 4개 */
+.asset-sub-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-color);
+}
+.asset-sub-item {
+    padding: 0 16px;
+    border-left: 1px solid var(--border-color);
+    min-width: 0;
+}
+.asset-sub-item:first-child {
+    padding-left: 0;
+    border-left: none;
+}
+.asset-sub-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: 5px;
+}
+.asset-sub-value {
+    font-size: 1.05rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.asset-sub-diff {
+    font-size: 0.72rem;
+    margin-left: 5px;
+    font-variant-numeric: tabular-nums;
+}
+.asset-sub-diff.up { color: var(--up-color); }
+.asset-sub-diff.down { color: var(--down-color); }
+.asset-empty {
+    color: var(--text-muted, #6b7280);
+    padding: 24px 0;
+    text-align: center;
+    font-size: 0.9rem;
+}
+.asset-chart-wrap {
+    position: relative;
+    overflow: hidden;
+}
+.asset-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.76rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    z-index: 10;
+    display: none;
+    min-width: 190px;
+}
+.asset-tooltip-date {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: var(--text-muted, #6b7280);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 4px;
+}
+.asset-tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 2px 0;
+}
+.asset-tooltip-label {
+    color: var(--text-muted, #6b7280);
+}
+.asset-tooltip-value { font-weight: 500; }
+.asset-tooltip-value.highlight-amount { color: var(--text-primary); font-weight: 700; }
+.asset-tooltip-value.highlight-rate-up { color: var(--up-color); font-weight: 700; }
+.asset-tooltip-value.highlight-rate-down { color: var(--down-color); font-weight: 700; }
+.asset-tooltip-value.highlight-rate-zero { color: var(--text-muted, #6b7280); font-weight: 700; }
+@media (max-width: 768px) {
+    /* 좁은 화면에선 카드 여백을 줄여 차트 폭을 최대한 확보 */
+    .asset-card, .holdings-card { padding: 12px 12px 14px; }
+    .asset-chart { height: 240px; }
+    .asset-hero-value { font-size: 1.9rem; }
+    .asset-hero-diff { font-size: 0.9rem; }
+    .asset-sub-row {
+        grid-template-columns: repeat(2, 1fr);
+        row-gap: 14px;
+    }
+    .asset-sub-item { padding: 0 12px; }
+    .asset-sub-item:nth-child(odd) {
+        padding-left: 0;
+        border-left: none;
+    }
+    .asset-sub-value { font-size: 0.95rem; }
+    .asset-sub-diff { display: block; margin-left: 0; margin-top: 2px; }
+
+    /* 기간 버튼은 한 줄 통째로 써서 손가락으로 누를 만한 크기로 */
+    .asset-chart-head { gap: 8px; }
+    .asset-range {
+        width: 100%;
+        gap: 0;
+    }
+    .asset-range-btn {
+        flex: 1;
+        padding: 8px 4px;
+        font-size: 0.78rem;
+    }
+    .asset-tooltip {
+        min-width: 165px;
+        font-size: 0.78rem;
+    }
+}
+
+/* Holdings list — 종목명 / 좌우 막대 / 수익률, 탭하면 상세 */
+.holdings-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px 16px 8px;
+    margin-bottom: 24px;
+}
+.hold-item + .hold-item { border-top: 1px solid var(--border-color); }
+.hold-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 52px minmax(110px, 2.2fr) 66px;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 2px;
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-family: inherit;
+    font-size: 0.85rem;
+    text-align: left;
+    cursor: pointer;
+}
+.hold-row:hover { background: var(--bg-hover, rgba(0,0,0,0.03)); }
+.hold-name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* 정렬 기준이라 눈으로 순서를 확인할 수 있게 값을 드러낸다 */
+.hold-weight {
+    text-align: right;
+    color: var(--text-muted, #6b7280);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+}
+/* 0을 가운데 축으로 두고 수익은 오른쪽, 손실은 왼쪽으로 뻗는다 */
+.hold-bar {
+    display: flex;
+    align-items: center;
+    height: 13px;
+}
+.hold-bar-half {
+    flex: 1;
+    display: flex;
+    height: 100%;
+    min-width: 0;
+}
+.hold-bar-half.left { justify-content: flex-end; }
+.hold-bar-axis {
+    width: 1px;
+    height: 100%;
+    background: var(--border-color);
+    flex: none;
+}
+.hold-bar-half i {
+    display: block;
+    height: 100%;
+    opacity: 0.8;
+}
+.hold-bar-half.left i {
+    background: var(--down-color);
+    border-radius: 2px 0 0 2px;
+}
+.hold-bar-half.right i {
+    background: var(--up-color);
+    border-radius: 0 2px 2px 0;
+}
+.hold-rate {
+    text-align: right;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.hold-detail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    padding: 2px 2px 12px;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+}
+.hold-detail-item em {
+    font-style: normal;
+    color: var(--text-muted, #6b7280);
+    margin-right: 6px;
+}
+.hold-detail-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 600;
+}
+.hold-detail-link:hover { text-decoration: underline; }
+@media (max-width: 768px) {
+    /* 위쪽 미디어쿼리의 .holdings-card 여백은 아래 .holdings-card 규칙에 덮이므로 여기서 다시 지정 */
+    .holdings-card { padding: 6px 12px 8px; }
+    .hold-row {
+        grid-template-columns: minmax(0, 1fr) 44px minmax(84px, 1.4fr) 58px;
+        gap: 7px;
+        font-size: 0.82rem;
+        padding: 12px 2px;
+    }
+    .hold-detail { gap: 5px 14px; font-size: 0.76rem; }
+}
+
+{% endblock %}
 
 {% block content %}
 {% if show_tabs %}
