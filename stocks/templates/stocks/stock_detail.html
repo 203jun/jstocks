@@ -1799,7 +1799,6 @@ a.bi-tag { text-decoration:none; }
 {{ gongsi_all_prompt|json_script:"gongsi-all-prompt-data" }}
 {{ report_prompt|json_script:"report-prompt-data" }}
 {{ supply_prompt|json_script:"supply-prompt-data" }}
-{{ news_prompt_vars|json_script:"news-prompt-vars" }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <!-- 리포트 차트의 x 축을 날짜로 쓰려면 date 어댑터가 필요하다 -->
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -2162,18 +2161,22 @@ function renderChannelContent(channel, channelName, channelData, keyword) {
     return html;
 }
 
-// 뉴스·유튜브 프롬프트는 자료 탭으로 합치면서 쓰이지 않게 됐다
-const newsPromptVars = JSON.parse(document.getElementById('news-prompt-vars').textContent);
-
-// 전체내용복사
+// 전체내용복사 — 누를 때 받아온다.
+// 페이지에 실어 두면 이 종목의 리서치가 통째로 따라온다(동성화인텍 292KB).
 document.getElementById('btnCopyAllContent')?.addEventListener('click', async function() {
-    const text = newsPromptVars.all_content || '';
-    if (!text) { alert('복사할 내용이 없습니다.'); return; }
+    const orig = this.textContent;
+    this.textContent = '모으는 중...';
     try {
-        await copyToClipboard(text);
+        const res = await fetch(`/api/stock/${stockCode}/all-content/`);
+        const data = await res.json();
+        if (!data.success || !data.content) { alert('복사할 내용이 없습니다.'); this.textContent = orig; return; }
+        await copyToClipboard(data.content);
         this.textContent = '복사됨!';
-        setTimeout(() => { this.textContent = '전체내용복사'; }, 1500);
-    } catch (err) { alert('복사 실패: ' + err.message); }
+        setTimeout(() => { this.textContent = orig; }, 1500);
+    } catch (err) {
+        this.textContent = orig;
+        alert('복사 실패: ' + err.message);
+    }
 });
 
 function escHtml(str) {

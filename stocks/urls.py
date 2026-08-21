@@ -54,6 +54,7 @@ urlpatterns = [
     # 종목별 이벤트
     path('api/dart-document/<str:rcept_no>/', views.fetch_dart_document, name='fetch_dart_document'),
     path('api/business-report/<str:code>/', views.fetch_business_report, name='fetch_business_report'),
+    path('api/stock/<str:code>/all-content/', views.fetch_all_content, name='fetch_all_content'),
     path('settings/', views.settings, name='settings'),
     path('api/category/add/', views.category_add, name='category_add'),
     path('api/category/<int:category_id>/delete/', views.category_delete, name='category_delete'),
