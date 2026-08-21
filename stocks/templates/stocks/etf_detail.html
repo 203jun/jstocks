@@ -117,7 +117,7 @@
     </div>
     <div class="d-flex gap-2">
         <button type="button" class="btn-refresh btn-danger" id="delete-etf-btn">삭제</button>
-        <a href="{% url 'stocks:etf' %}" class="btn-refresh">목록</a>
+        <a href="javascript:history.back()" class="btn-refresh">돌아가기</a>
     </div>
 </div>
 
@@ -210,7 +210,7 @@ document.getElementById('delete-etf-btn').addEventListener('click', async functi
         fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
         const res = await fetch('{% url "stocks:delete_etf" etf.code %}', { method:'POST', body:fd });
         const data = await res.json();
-        if (data.success) location.href = '{% url "stocks:etf" %}';
+        if (data.success) location.href = '{% url "stocks:index" %}';
         else { alert(data.error||'삭제 실패'); btn.disabled=false; btn.textContent='삭제'; }
     } catch(e) { alert('오류: '+e.message); btn.disabled=false; btn.textContent='삭제'; }
 });

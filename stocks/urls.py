@@ -34,7 +34,6 @@ urlpatterns = [
     path('api/stock/<str:code>/signal-chart/', views.signal_chart_data, name='signal_chart_data'),
     path('asset/', views.asset, name='asset'),
     path('market/', views.market, name='market'),
-    path('etf/', views.etf, name='etf'),
     path('etf/<str:code>/', views.etf_detail, name='etf_detail'),
     path('api/etf/add/', views.add_etf, name='add_etf'),
     path('api/etf/save/', views.save_etf, name='save_etf'),
