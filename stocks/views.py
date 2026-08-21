@@ -777,7 +777,6 @@ def stock_list(request):
     sort = request.GET.get('sort', '-market_cap')
 
     from django.db.models import Q as _Q
-    from .models import InfoETF
 
     stocks = Info.objects.filter(is_active=True)
     if query:
@@ -788,31 +787,23 @@ def stock_list(request):
     # 눈으로 훑는 목록이라 오십이면 충분하다. 더 보려면 검색어를 좁힌다.
     stocks = stocks.order_by(sort)[:LIST_LIMIT]
 
-    # ETF 는 검색창을 따로 둔다. 시장(코스피/코스닥)·정렬이 종목에만 걸리고
-    # ETF 에는 뜻이 없어서, 한 창을 같이 쓰면 한쪽을 찾을 때 다른 쪽이
-    # 조건에 걸려 사라진다.
-    etf_query = request.GET.get('etf_q', '').strip()
-    etfs = InfoETF.objects.filter(is_active=True)
-    if etf_query:
-        etfs = etfs.filter(_Q(name__icontains=etf_query) | _Q(code__icontains=etf_query))
-    etfs = list(etfs.order_by('-market_cap'))
+    # ETF 는 목록을 두지 않는다. 내가 보는 것이 열댓 개뿐이라 훑을 일이
+    # 없고, 찾는 일은 네이버가 훨씬 낫다. 여기서는 코드를 받아 들여오기만
+    # 한다 — 그 길이 ETF 화면에만 있었는데 그 화면은 없어질 예정이다.
 
     # 보유 표시는 자산에서 가져온다 (수동 플래그는 실제와 어긋나기 쉽다)
-    _held = Holding.objects.all()
-    holding_codes = set(_held.filter(info__isnull=False).values_list('info__code', flat=True))
-    etf_holding_codes = set(_held.filter(info_etf__isnull=False).values_list('info_etf__code', flat=True))
+    holding_codes = set(
+        Holding.objects.filter(info__isnull=False).values_list('info__code', flat=True)
+    )
 
     context = {
         'stocks': stocks,
         'stock_total': total,
         'list_limit': LIST_LIMIT,
-        'etfs': etfs,
-        'etf_query': etf_query,
         'query': query,
         'market': market,
         'sort': sort,
         'holding_codes': holding_codes,
-        'etf_holding_codes': etf_holding_codes,
     }
     return render(request, 'stocks/stock_list.html', context)
 
@@ -2704,7 +2695,6 @@ def fetch_stock_data_loader(request, code):
 def search_stock(request):
     """종목/ETF 검색 API"""
     from django.db.models import Q
-    from .models import InfoETF
 
     query = request.GET.get('q', request.GET.get('keyword', '')).strip()
     if not query:
@@ -3513,7 +3503,6 @@ def etf_detail(request, code):
 def etf_memo_save(request, code):
     """ETF 메모 저장 API"""
     from datetime import date
-    from .models import InfoETF
     etf = get_object_or_404(InfoETF, code=code)
     memo = request.POST.get('memo', '').strip()
     if memo != (etf.memo or '').strip():
@@ -3767,7 +3756,6 @@ def fetch_etf_chart(etf, timeframe, mode='all'):
 @require_POST
 def save_etf(request):
     """ETF 관심종목 저장 API"""
-    from .models import InfoETF
 
     code = request.POST.get('code', '').strip()
     name = request.POST.get('name', '').strip()
