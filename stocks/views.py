@@ -788,17 +788,20 @@ def stock_list(request):
     # 눈으로 훑는 목록이라 오십이면 충분하다. 더 보려면 검색어를 좁힌다.
     stocks = stocks.order_by(sort)[:LIST_LIMIT]
 
-    # ETF 는 다른 표에 있어서 검색이 안 됐다. 화면에는 ETF 검색 링크만
-    # 걸어 두고 남의 사이트로 보내고 있었는데, 내가 보는 ETF 는 18개뿐이라
-    # 여기서 같이 찾는 편이 맞다. 종목과 값이 달라 표는 따로 놓는다.
+    # ETF 는 검색창을 따로 둔다. 시장(코스피/코스닥)·정렬이 종목에만 걸리고
+    # ETF 에는 뜻이 없어서, 한 창을 같이 쓰면 한쪽을 찾을 때 다른 쪽이
+    # 조건에 걸려 사라진다.
+    etf_query = request.GET.get('etf_q', '').strip()
     etfs = InfoETF.objects.filter(is_active=True)
-    if query:
-        etfs = etfs.filter(_Q(name__icontains=query) | _Q(code__icontains=query))
-    # 시장 필터는 ETF 에 없다. 코스피/코스닥을 고르면 ETF 는 대상이 아니다.
-    if market:
-        etfs = etfs.none()
-    etf_sort = sort if sort.lstrip('-') in ('market_cap', 'change_rate', 'name') else '-market_cap'
-    etfs = list(etfs.order_by(etf_sort))
+    if etf_query:
+        etfs = etfs.filter(_Q(name__icontains=etf_query) | _Q(code__icontains=etf_query))
+    etfs = list(etfs.order_by('-market_cap'))
+
+    # 아직 등록 안 한 ETF 를 코드로 찾은 경우. 여기서 바로 들여올 수 있게
+    # 한다 — 예전에는 ETF 화면까지 가야 등록이 됐다.
+    etf_add_code = ''
+    if etf_query and not etfs and len(etf_query) == 6 and etf_query.isalnum():
+        etf_add_code = etf_query.upper()
 
     # 보유 표시는 자산에서 가져온다 (수동 플래그는 실제와 어긋나기 쉽다)
     _held = Holding.objects.all()
@@ -810,6 +813,8 @@ def stock_list(request):
         'stock_total': total,
         'list_limit': LIST_LIMIT,
         'etfs': etfs,
+        'etf_query': etf_query,
+        'etf_add_code': etf_add_code,
         'query': query,
         'market': market,
         'sort': sort,
