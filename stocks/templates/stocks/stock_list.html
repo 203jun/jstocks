@@ -6,7 +6,9 @@
 
 {% block extra_style %}
 /* Section heading */
-.etf-add-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:10px; font-size:0.82rem; color:var(--text-secondary); }
+.etf-add { padding:12px 24px; border-top:1px solid var(--border-color); }
+.etf-add-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:0.82rem; color:var(--text-secondary); }
+.etf-add-label { font-size:0.72rem; font-weight:600; color:var(--text-muted); }
 .etf-found { margin-top:10px; padding:12px 14px; border:1px solid var(--border-color); border-radius:8px; }
 .etf-found-head { font-size:0.9rem; margin-bottom:6px; }
 .etf-found-facts { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:0.82rem; line-height:1.9; }
@@ -214,28 +216,6 @@
         <input type="text" name="etf_q" class="settings-input" placeholder="ETF 이름이나 코드 (예: KODEX, 069500)" value="{{ etf_query }}" style="flex:2;">
         <button type="submit" class="btn-refresh">검색</button>
     </form>
-    {% if etf_add_code %}
-    {% csrf_token %}
-    <div class="etf-add-row">
-        <span>등록된 ETF 에 <b>{{ etf_add_code }}</b> 이(가) 없습니다.</span>
-        <button type="button" class="btn-refresh" id="btnEtfLookup" data-code="{{ etf_add_code }}">네이버에서 조회</button>
-        <span id="etfLookupMsg"></span>
-    </div>
-    <div id="etfFound" class="etf-found d-none">
-        <div class="etf-found-head"><b id="etfFoundName"></b> <span id="etfFoundCode" class="stock-code"></span></div>
-        <div class="etf-found-facts">
-            <span>현재가 <b id="etfFoundPrice"></b></span>
-            <span>등락률 <b id="etfFoundRate"></b></span>
-            <span>NAV <b id="etfFoundNav"></b></span>
-            <span>시가총액 <b id="etfFoundCap"></b></span>
-        </div>
-        <div class="etf-found-holdings" id="etfFoundHoldings"></div>
-        <div class="d-flex align-items-center gap-2" style="margin-top:10px;">
-            <button type="button" class="btn-refresh" id="btnEtfSave">관심종목으로 등록</button>
-            <span id="etfSaveMsg" style="font-size:0.8rem;"></span>
-        </div>
-    </div>
-    {% endif %}
 </div>
 <div class="brief-card" style="padding: 0;">
     <div style="overflow-x: auto;">
@@ -269,20 +249,46 @@
                     <td class="text-end hide-mobile" style="padding-right: 24px;">{% if etf.management_fee %}{{ etf.management_fee }}%{% else %}-{% endif %}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="6" class="text-center" style="padding: 24px; color: var(--text-muted);">{% if market %}시장을 고르면 ETF 는 대상이 아닙니다.{% else %}찾는 ETF 가 없습니다.{% endif %}</td></tr>
+                <tr><td colspan="6" class="text-center" style="padding: 24px; color: var(--text-muted);">찾는 ETF 가 없습니다.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+    {% comment %}
+    ETF 는 남의 사이트에서 받아 와야 등록된다. 예전에는 ETF 화면에만 있었는데
+    그 화면은 없어질 예정이라 여기로 옮긴다. 조회와 저장을 두 걸음으로 나눈
+    것은 이름과 구성종목을 보고 넣게 하려는 것이다 — 코드만 보고 넣으면
+    엉뚱한 것을 등록한다.
+    {% endcomment %}
+    <div class="etf-add">
+        {% csrf_token %}
+        <div class="etf-add-row">
+            <span class="etf-add-label">ETF 추가</span>
+            <input type="text" id="etfAddCode" class="settings-input" placeholder="종목코드 (예: 069500)" style="max-width:200px;">
+            <button type="button" class="btn-refresh" id="btnEtfLookup">추가</button>
+            <span id="etfLookupMsg" style="font-size:0.8rem;"></span>
+        </div>
+        <div id="etfFound" class="etf-found d-none">
+            <div class="etf-found-head"><b id="etfFoundName"></b> <span id="etfFoundCode" class="stock-code"></span></div>
+            <div class="etf-found-facts">
+                <span>현재가 <b id="etfFoundPrice"></b></span>
+                <span>등락률 <b id="etfFoundRate"></b></span>
+                <span>NAV <b id="etfFoundNav"></b></span>
+                <span>시가총액 <b id="etfFoundCap"></b></span>
+            </div>
+            <div class="etf-found-holdings" id="etfFoundHoldings"></div>
+            <div class="d-flex align-items-center gap-2" style="margin-top:10px;">
+                <button type="button" class="btn-refresh" id="btnEtfSave">관심종목 저장</button>
+                <span id="etfSaveMsg" style="font-size:0.8rem;"></span>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-{% if etf_add_code %}
 <script>
-// 등록 안 한 ETF 를 여기서 바로 들여온다. 예전에는 ETF 화면까지 가야 했다.
-// 네이버에서 조회(add_etf) 한 뒤 확인하고 저장(save_etf) 하는 두 걸음이다 —
-// 이름과 구성종목을 보고 나서 넣어야 엉뚱한 코드를 등록하지 않는다.
+// ETF 추가 — 네이버에서 조회(add_etf) 한 뒤 확인하고 저장(save_etf) 한다.
 (function () {
     const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
     const lookup = document.getElementById('btnEtfLookup');
@@ -294,11 +300,13 @@
     const num = (v, unit) => (v || v === 0) ? Number(v).toLocaleString() + (unit || '') : '-';
 
     lookup.addEventListener('click', async function () {
+        const code = document.getElementById('etfAddCode').value.trim();
+        if (!code) { msg.innerHTML = '<span class="text-down">종목코드를 넣어주세요</span>'; return; }
         this.disabled = true; this.textContent = '조회 중...';
-        msg.textContent = '';
+        msg.textContent = ''; found.classList.add('d-none');
         try {
             const body = new FormData();
-            body.append('code', lookup.dataset.code);
+            body.append('code', code);
             body.append('csrfmiddlewaretoken', csrf);
             const res = await fetch('{% url "stocks:add_etf" %}', { method: 'POST', body });
             const d = await res.json();
@@ -320,14 +328,14 @@
         } catch (err) {
             msg.innerHTML = `<span class="text-down">오류: ${err.message}</span>`;
         } finally {
-            this.disabled = false; this.textContent = '네이버에서 조회';
+            this.disabled = false; this.textContent = '추가';
         }
     });
 
     document.getElementById('btnEtfSave').addEventListener('click', async function () {
         if (!etf) return;
         const out = document.getElementById('etfSaveMsg');
-        this.disabled = true; this.textContent = '등록 중...';
+        this.disabled = true; this.textContent = '저장 중...';
         out.innerHTML = '<span style="color:var(--text-muted);">차트까지 받아옵니다 (최대 30초)</span>';
         try {
             const body = new FormData();
@@ -342,16 +350,15 @@
             const res = await fetch('{% url "stocks:save_etf" %}', { method: 'POST', body });
             const d = await res.json();
             if (!d.success) { out.innerHTML = `<span class="text-down">${d.error}</span>`; return; }
-            out.innerHTML = '<span style="color:#059669;">등록했습니다</span>';
+            out.innerHTML = `<span style="color:#059669;">${d.created ? '관심종목에 추가했습니다' : '정보를 갱신했습니다'}</span>`;
             // 표에 새로 뜨도록 다시 그린다
             setTimeout(() => { location.href = `?etf_q=${encodeURIComponent(etf.code)}`; }, 600);
         } catch (err) {
             out.innerHTML = `<span class="text-down">오류: ${err.message}</span>`;
         } finally {
-            this.disabled = false; this.textContent = '관심종목으로 등록';
+            this.disabled = false; this.textContent = '관심종목 저장';
         }
     });
 })();
 </script>
-{% endif %}
 {% endblock %}

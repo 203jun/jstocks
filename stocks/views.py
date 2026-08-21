@@ -797,12 +797,6 @@ def stock_list(request):
         etfs = etfs.filter(_Q(name__icontains=etf_query) | _Q(code__icontains=etf_query))
     etfs = list(etfs.order_by('-market_cap'))
 
-    # 아직 등록 안 한 ETF 를 코드로 찾은 경우. 여기서 바로 들여올 수 있게
-    # 한다 — 예전에는 ETF 화면까지 가야 등록이 됐다.
-    etf_add_code = ''
-    if etf_query and not etfs and len(etf_query) == 6 and etf_query.isalnum():
-        etf_add_code = etf_query.upper()
-
     # 보유 표시는 자산에서 가져온다 (수동 플래그는 실제와 어긋나기 쉽다)
     _held = Holding.objects.all()
     holding_codes = set(_held.filter(info__isnull=False).values_list('info__code', flat=True))
@@ -814,7 +808,6 @@ def stock_list(request):
         'list_limit': LIST_LIMIT,
         'etfs': etfs,
         'etf_query': etf_query,
-        'etf_add_code': etf_add_code,
         'query': query,
         'market': market,
         'sort': sort,
