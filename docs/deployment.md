@@ -100,6 +100,11 @@ python manage.py migrate
 python manage.py collectstatic --noinput
 ```
 
+CSS/JS 를 파일로 빼면서 이 단계가 **필수**가 됐다. gunicorn 앞에 nginx 가
+없어서 WhiteNoise 가 정적 파일을 내주는데, collectstatic 을 안 하면 화면이
+스타일 없이 뜬다. 파일 이름에 내용 해시가 붙으므로(base.a1b2c3.css) 코드를
+고칠 때마다 다시 돌려야 한다.
+
 ---
 
 ## 8. 서버 실행

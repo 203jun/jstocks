@@ -1,0 +1,115 @@
+/* Section heading */
+.etf-add-row { display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-size:0.82rem; color:var(--text-secondary); }
+.etf-find { font-size:0.78rem; color:var(--text-secondary); text-decoration:none; border-bottom:1px dotted var(--text-muted); }
+.etf-find:hover { color:var(--text-primary); }
+.etf-found { margin-top:10px; padding:12px 14px; border:1px solid var(--border-color); border-radius:8px; }
+.etf-found-head { font-size:0.9rem; margin-bottom:6px; }
+.etf-found-facts { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:0.82rem; line-height:1.9; }
+.etf-found-holdings { margin-top:6px; font-size:0.76rem; color:var(--text-muted); line-height:1.6; }
+.section-heading { font-size:1.05rem; font-weight:700; color:var(--text-primary); margin:28px 0 16px; padding-bottom:10px; border-bottom:1px solid var(--border-color); }
+.section-heading .count {
+    font-size: 0.82rem;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+/* Brief card */
+.brief-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    padding: 16px 24px;
+    margin-bottom: 12px;
+}
+
+/* Settings input */
+.settings-input {
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    outline: none;
+}
+.settings-input:focus { border-color: #2962ff; }
+
+/* Refresh button (used for search) */
+.btn-refresh {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 20px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.btn-refresh:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+}
+
+/* Modern table */
+.modern-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+.modern-table thead th {
+    padding: 10px 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 2px solid var(--border-color);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    background: var(--bg-card);
+    z-index: 1;
+}
+.modern-table tbody tr {
+    cursor: pointer;
+    transition: background 0.1s;
+}
+.modern-table tbody tr:hover { background: #f9fafb; }
+.modern-table tbody td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f3f4f6;
+    white-space: nowrap;
+}
+.modern-table tbody td .stock-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.modern-table tbody td .stock-code {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-left: 6px;
+}
+.modern-table tbody td .stock-market {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 1px;
+}
+
+/* ETF 는 목록에 없어서 외부로 보낸다 */
+
+/* Search form layout */
+.search-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.search-form .settings-input { flex: 1; min-width: 160px; }
+.search-form select.settings-input { flex: 0 0 auto; min-width: 120px; }
+
+@media (max-width: 768px) {
+    .hide-mobile { display: none; }
+    .brief-card { padding: 12px 16px; }
+    .search-form .settings-input { min-width: 100%; }
+    .search-form select.settings-input { min-width: calc(50% - 4px); flex: 1; }
+}

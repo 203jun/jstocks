@@ -1,109 +1,11 @@
 {% extends 'stocks/base.html' %}
+{% load static %}
 {% load humanize %}
 {% load num_tags %}
 
 {% block title %}{{ etf.name }} - JStocks{% endblock %}
 
-{% block extra_style %}
-.section-heading { font-size:1.05rem; font-weight:700; color:var(--text-primary); margin:28px 0 16px; padding-bottom:10px; border-bottom:1px solid var(--border-color); }
-.brief-card {
-    background: var(--bg-card); border: 1px solid var(--border-color);
-    border-radius: var(--radius); box-shadow: var(--shadow-card);
-    padding: 24px; margin-bottom: 12px;
-}
-.btn-refresh {
-    background: none; border: 1px solid var(--border-color); border-radius: 6px;
-    padding: 4px 12px; font-size: 0.78rem; color: var(--text-secondary);
-    cursor: pointer; transition: all 0.15s; text-decoration: none;
-}
-.btn-refresh:hover { border-color: var(--text-secondary); color: var(--text-primary); }
-.btn-refresh.btn-primary { background: #2962ff; color: #fff !important; border-color: #2962ff; }
-.btn-refresh.btn-primary:hover { background: #1e4fcc; border-color: #1e4fcc; color: #fff !important; }
-.btn-refresh.btn-danger { color: var(--up-color); border-color: var(--up-color); }
-.btn-refresh.btn-danger:hover { background: var(--up-color); color: #fff !important; }
-
-.stat-item-value { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
-
-/* Modern table */
-.modern-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-.modern-table thead th {
-    padding: 10px 16px; font-weight: 600; color: var(--text-secondary);
-    border-bottom: 2px solid var(--border-color); white-space: nowrap; background: var(--bg-card);
-}
-.modern-table tbody td { padding: 8px 16px; border-bottom: 1px solid #f3f4f6; }
-
-/* Chart card */
-.chart-card {
-    background: var(--bg-card); border: 1px solid var(--border-color);
-    border-radius: var(--radius); box-shadow: var(--shadow-card);
-    padding: 16px; margin-bottom: 12px;
-}
-.chart-card-header {
-    display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
-    flex-wrap: wrap; gap: 8px;
-}
-/* 일봉/주봉/월봉 탭 — 카드 하나 안에서 갈아 끼운다 */
-.tf-tabs { display: flex; gap: 2px; }
-.tf-tab {
-    padding: 4px 12px;
-    border: none;
-    border-radius: 6px;
-    background: none;
-    color: var(--text-muted);
-    font-size: 0.82rem;
-    font-weight: 600;
-    cursor: pointer;
-}
-.tf-tab:hover { color: var(--text-secondary); }
-.tf-tab.active { background: var(--bg-secondary); color: var(--text-primary); }
-.tf-note { font-size: 0.72rem; color: var(--text-muted); }
-/* d-flex 같은 부트스트랩 유틸이 display:flex !important 라 인라인 style 로는 못 숨긴다 */
-.tf-hidden { display: none !important; }
-
-/* Tag badges */
-.tag-badge {
-    display: inline-block; padding: 3px 10px; border-radius: 4px;
-    font-size: 0.75rem; font-weight: 500;
-}
-.tag-badge.etf { background: #eff6ff; color: #2962ff; }
-/* MA toggle */
-.ma-badge {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 32px; height: 22px; border-radius: 4px;
-    font-size: 0.7rem; font-weight: 600; color: #fff; cursor: pointer;
-    opacity: 1; transition: opacity 0.2s; user-select: none;
-}
-.ma-badge:not(.active) { opacity: 0.25; }
-/* 이평선 뱃지 색 = 선 색 (숫자에 고정) */
-.ma-10 { background-color: #16a34a; }
-.ma-20 { background-color: #f97316; }
-.ma-60 { background-color: #2563eb; }
-.ma-120 { background-color: #111827; }
-[data-theme="dark"] .ma-120 { background-color: #e6e9ef; color: #1a1d24; }
-.ma-regime { background-color: #111827; }
-[data-theme="dark"] .ma-regime { background-color: #e6e9ef; color: #1a1d24; }
-
-/* Range buttons */
-.range-btn {
-    padding: 3px 10px; background: none;
-    border: 1px solid var(--border-color); border-radius: 4px;
-    font-size: 0.7rem; font-weight: 500; color: var(--text-muted);
-    cursor: pointer; transition: all 0.15s;
-}
-.range-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
-.range-btn.active { background: var(--text-primary); color: #fff; border-color: var(--text-primary); }
-
-/* Timeline */
-.timeline { position:relative; padding-left:24px; }
-.timeline::before { content:''; position:absolute; left:5px; top:0; bottom:0; width:2px; background:var(--border-color); }
-.timeline-group { margin-bottom:24px; }
-.timeline-date { position:relative; display:inline-block; font-size:0.82rem; font-weight:700; color:var(--text-primary); background:var(--bg-page); padding:3px 10px; border-radius:6px; margin-bottom:12px; margin-left:-8px; }
-.timeline-item { position:relative; margin-bottom:4px; }
-.timeline-item::before { content:''; position:absolute; left:-23px; top:8px; width:8px; height:8px; border-radius:50%; background:#4f46e5; border:2px solid #fff; box-shadow:0 0 0 2px #4f46e5; }
-
-/* Markdown content */
-.markdown-content { line-height:1.8; }
-{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{% static 'stocks/etf_detail.css' %}">{% endblock %}
 
 {% block content %}
 <!-- 헤더 -->

@@ -46,6 +46,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # gunicorn 단독으로 돌린다 — 앞에 nginx 가 없어서 DEBUG=False 면 장고가
+    # 정적 파일을 내주지 않는다. WhiteNoise 가 그 일을 맡는다.
+    # 보안 미들웨어 바로 다음이 제자리다.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -122,6 +126,13 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# 내려받은 파일에 내용 해시를 붙이고 오래 캐시하라고 알린다.
+# 화면 코드를 고치면 이름이 바뀌므로 옛 파일이 남아 있을 걱정이 없다.
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+}
 
 # Media files (User uploaded files)
 MEDIA_URL = '/media/'
