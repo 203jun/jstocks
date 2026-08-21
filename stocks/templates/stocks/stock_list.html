@@ -2,7 +2,7 @@
 {% load humanize %}
 {% load num_tags %}
 
-{% block title %}종목 검색 - JStocks{% endblock %}
+{% block title %}종목·ETF 검색 - JStocks{% endblock %}
 
 {% block extra_style %}
 /* Section heading */
@@ -96,23 +96,6 @@
 }
 
 /* ETF 는 목록에 없어서 외부로 보낸다 */
-.etf-link-row {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border-color);
-    font-size: 0.78rem;
-}
-.etf-link-row a {
-    color: var(--text-secondary);
-    text-decoration: none;
-    font-weight: 600;
-}
-.etf-link-row a:hover { color: var(--text-primary); }
-.etf-link-row a i { font-style: normal; font-size: 0.7rem; opacity: 0.6; }
-.etf-link-row span { color: var(--text-muted); font-size: 0.72rem; }
 
 /* Search form layout */
 .search-form {
@@ -134,14 +117,14 @@
 
 {% block content %}
 <h5 class="section-heading" style="margin-top: 0;">
-    종목 검색
+    종목 · ETF 검색
     <span class="count">{{ stocks|length }}개</span>
 </h5>
 
 <!-- 검색/필터 -->
 <div class="brief-card" style="margin-bottom: 16px;">
     <form method="get" class="search-form">
-        <input type="text" name="q" class="settings-input" placeholder="종목명/코드 검색" value="{{ query }}" style="flex:2;">
+        <input type="text" name="q" class="settings-input" placeholder="종목·ETF 이름이나 코드" value="{{ query }}" style="flex:2;">
         <select name="market" class="settings-input">
             <option value="">전체시장</option>
             <option value="KOSPI" {% if market == 'KOSPI' %}selected{% endif %}>KOSPI</option>
@@ -156,16 +139,20 @@
         </select>
         <button type="submit" class="btn-refresh">검색</button>
     </form>
-    {# ETF 는 이 목록에 없다. 네이버 ETF 시세로 넘긴다. #}
-    <div class="etf-link-row">
-        <a href="https://stock.naver.com/market/stock/kr/etf/priceTop" target="_blank" rel="noopener">
-            ETF 검색 <i>↗</i>
-        </a>
-        <span>네이버 금융에서 열립니다</span>
-    </div>
 </div>
 
-<!-- 종목 테이블 -->
+{% comment %}
+종목과 ETF 를 따로 놓는다. 예전에는 종목만 찾고 ETF 는 네이버로 보내는
+링크만 있었다. 값이 달라(ETF 는 PER·PBR 이 없고 운용보수·NAV 가 있다)
+한 표에 섞으면 빈 칸이 는다.
+{% endcomment %}
+
+<h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;margin-top:0;">
+    종목
+    <span style="font-size:0.7rem;font-weight:400;color:var(--text-muted);">
+        {% if stock_total > list_limit %}{{ stock_total|intcomma }}개 중 {{ list_limit }}개{% else %}{{ stock_total|intcomma }}개{% endif %}
+    </span>
+</h5>
 <div class="brief-card" style="padding: 0;">
     <div style="overflow-x: auto;">
         <table class="modern-table">
@@ -198,7 +185,55 @@
                     <td class="text-end hide-mobile" style="padding-right: 24px;">{% if stock.pbr %}{{ stock.pbr }}{% else %}-{% endif %}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="6" class="text-center" style="padding: 24px; color: var(--text-muted);">검색 결과가 없습니다.</td></tr>
+                <tr><td colspan="6" class="text-center" style="padding: 24px; color: var(--text-muted);">찾는 종목이 없습니다.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if stock_total > list_limit %}
+    <div style="padding:8px 24px;font-size:0.72rem;color:var(--text-muted);border-top:1px solid var(--border-color);">
+        {{ stock_total|intcomma }}개 중 {{ list_limit }}개만 보여줍니다. 검색어를 좁혀 보세요.
+    </div>
+    {% endif %}
+</div>
+
+<h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
+    ETF
+    <span style="font-size:0.7rem;font-weight:400;color:var(--text-muted);">{{ etfs|length }}개</span>
+</h5>
+<div class="brief-card" style="padding: 0;">
+    <div style="overflow-x: auto;">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th style="padding-left: 24px;">ETF명</th>
+                    <th class="text-end">현재가</th>
+                    <th class="text-end">등락율</th>
+                    <th class="text-end hide-mobile">시가총액</th>
+                    <th class="text-end hide-mobile">NAV</th>
+                    <th class="text-end hide-mobile" style="padding-right: 24px;">운용보수</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for etf in etfs %}
+                <tr onclick="location.href='{% url 'stocks:etf_detail' etf.code %}'">
+                    <td style="padding-left: 24px;">
+                        <span class="stock-name">{{ etf.name }}</span>
+                        {% if etf.code in etf_holding_codes %}<span class="ms-1" title="보유중">💰</span>{% endif %}
+                        {% if etf.is_tracking %}<span class="ms-1" title="추적중">👀</span>{% endif %}
+                        <small class="stock-code">{{ etf.code }}</small>
+                        <small class="stock-market">ETF</small>
+                    </td>
+                    <td class="text-end">{% if etf.current_price %}{{ etf.current_price|intcomma }}{% else %}-{% endif %}</td>
+                    <td class="text-end {% if etf.change_rate > 0 %}text-up{% elif etf.change_rate < 0 %}text-down{% endif %}">
+                        {% if etf.change_rate %}{% if etf.change_rate > 0 %}+{% endif %}{{ etf.change_rate }}%{% else %}-{% endif %}
+                    </td>
+                    <td class="text-end hide-mobile">{{ etf.market_cap|eok }}</td>
+                    <td class="text-end hide-mobile">{% if etf.nav %}{{ etf.nav|intcomma }}{% else %}-{% endif %}</td>
+                    <td class="text-end hide-mobile" style="padding-right: 24px;">{% if etf.management_fee %}{{ etf.management_fee }}%{% else %}-{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center" style="padding: 24px; color: var(--text-muted);">{% if market %}시장을 고르면 ETF 는 대상이 아닙니다.{% else %}찾는 ETF 가 없습니다.{% endif %}</td></tr>
                 {% endfor %}
             </tbody>
         </table>

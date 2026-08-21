@@ -762,8 +762,13 @@ def index(request):
     return render(request, 'stocks/index.html', context)
 
 
+# 목록에 한 번에 보여줄 종목 수. 눈으로 훑는 자리라 오십이면 충분하고,
+# 더 봐야 하면 검색어를 좁히는 편이 빠르다. 예전에는 500개를 그렸다.
+LIST_LIMIT = 50
+
+
 def stock_list(request):
-    """종목 리스트 페이지"""
+    """종목·ETF 검색 페이지"""
     # 검색어
     query = request.GET.get('q', '')
     # 시장 필터
@@ -771,27 +776,45 @@ def stock_list(request):
     # 정렬
     sort = request.GET.get('sort', '-market_cap')
 
+    from django.db.models import Q as _Q
+    from .models import InfoETF
+
     stocks = Info.objects.filter(is_active=True)
-
     if query:
-        stocks = stocks.filter(name__icontains=query) | stocks.filter(code__icontains=query)
-
+        stocks = stocks.filter(_Q(name__icontains=query) | _Q(code__icontains=query))
     if market:
         stocks = stocks.filter(market=market)
+    total = stocks.count()
+    # 눈으로 훑는 목록이라 오십이면 충분하다. 더 보려면 검색어를 좁힌다.
+    stocks = stocks.order_by(sort)[:LIST_LIMIT]
 
-    stocks = stocks.order_by(sort)[:500]  # 상위 500개만
+    # ETF 는 다른 표에 있어서 검색이 안 됐다. 화면에는 ETF 검색 링크만
+    # 걸어 두고 남의 사이트로 보내고 있었는데, 내가 보는 ETF 는 18개뿐이라
+    # 여기서 같이 찾는 편이 맞다. 종목과 값이 달라 표는 따로 놓는다.
+    etfs = InfoETF.objects.filter(is_active=True)
+    if query:
+        etfs = etfs.filter(_Q(name__icontains=query) | _Q(code__icontains=query))
+    # 시장 필터는 ETF 에 없다. 코스피/코스닥을 고르면 ETF 는 대상이 아니다.
+    if market:
+        etfs = etfs.none()
+    etf_sort = sort if sort.lstrip('-') in ('market_cap', 'change_rate', 'name') else '-market_cap'
+    etfs = list(etfs.order_by(etf_sort))
 
     # 보유 표시는 자산에서 가져온다 (수동 플래그는 실제와 어긋나기 쉽다)
-    holding_codes = set(
-        Holding.objects.filter(info__isnull=False).values_list('info__code', flat=True)
-    )
+    _held = Holding.objects.all()
+    holding_codes = set(_held.filter(info__isnull=False).values_list('info__code', flat=True))
+    etf_holding_codes = set(_held.filter(info_etf__isnull=False).values_list('info_etf__code', flat=True))
 
     context = {
         'stocks': stocks,
+        'stock_total': total,
+        'list_limit': LIST_LIMIT,
+        'etfs': etfs,
         'query': query,
         'market': market,
         'sort': sort,
         'holding_codes': holding_codes,
+        'etf_holding_codes': etf_holding_codes,
     }
     return render(request, 'stocks/stock_list.html', context)
 
