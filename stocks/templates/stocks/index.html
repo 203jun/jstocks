@@ -4,6 +4,21 @@
 {% block title %}종목 - JStocks{% endblock %}
 
 {% block extra_style %}
+/* 현황 표 — 배열은 이름 앞 화살표, 나머지는 칸별 배지.
+   색은 둘뿐이다: 빨강 기회, 파랑 경고. 종목 화면 슬롯과 같은 규칙. */
+.align-mark { font-size:0.62rem; margin-right:3px; vertical-align:1px; }
+.align-mixed { color:var(--text-muted); opacity:0.45; }
+.st-cell { text-align:center; white-space:nowrap; }
+.st-tag {
+    display:inline-block; margin:1px 2px; padding:1px 6px; border-radius:3px;
+    font-size:0.68rem; font-weight:600; line-height:1.5;
+    text-decoration:none; white-space:nowrap;
+}
+.st-up { background:var(--up-color); color:#fff; }
+.st-down { background:var(--down-color); color:#fff; }
+.st-flat { background:var(--bg-secondary); color:var(--text-secondary); }
+.signal-chart-btn { cursor:pointer; }
+
 /* Dashboard tabs */
 .dash-tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
 .market-tab { padding:10px 22px; background:none; border:1px solid transparent; border-radius:var(--radius); font-size:0.9rem; font-weight:500; color:var(--text-secondary); cursor:pointer; }
@@ -130,17 +145,21 @@
     <div style="overflow-x:auto;">
         <table class="modern-table" id="statusTable">
             <thead>
+                {% comment %}
+                열두 칸이었다. 배열·눌림목·오늘거래량·신호가 다 따로 있어서
+                한 종목을 읽으려면 눈이 옆으로 길게 움직였다.
+
+                배열은 칸을 없애고 이름 앞 화살표로 옮긴다 — 늘 값이 있는
+                상태값이라 칸 하나를 쓸 값어치가 없다. 눌림목·거래량·장대양봉은
+                '차트에서 읽은 것' 한 칸으로 합친다. 종목 화면의 슬롯과 같은
+                말을 쓴다.
+                {% endcomment %}
                 <tr>
                     <th style="padding-left:16px;">종목명</th>
                     <th style="text-align:right;">가격</th>
-                    <th style="text-align:center;">배열</th>
-                    <th style="text-align:center;">눌림목</th>
-                    <th style="text-align:center;">오늘거래량</th>
-                    <th style="text-align:center;">신호</th>
-                    <th style="text-align:center;">기관</th>
-                    <th style="text-align:center;">외국인</th>
-                    <th style="text-align:center;">공시</th>
-                    <th style="text-align:center;">리포트</th>
+                    <th style="text-align:center;">차트</th>
+                    <th style="text-align:center;">수급</th>
+                    <th style="text-align:center;">공시·리포트</th>
                     <th style="text-align:right;">괴리율</th>
                     <th style="text-align:center;">10일</th>
                 </tr>
@@ -149,6 +168,7 @@
                 {% for item in status_stocks %}
                 <tr class="status-row" data-level="{{ item.level }}" onclick="if(!event.target.closest('.signal-chart-btn'))location.href='{{ item.detail_url }}'" style="cursor:pointer;">
                     <td style="padding-left:16px;">
+                        {% if item.ma_align == 'bull' %}<span class="align-mark text-up" title="정배열">&#9650;</span>{% elif item.ma_align == 'bear' %}<span class="align-mark text-down" title="역배열">&#9660;</span>{% else %}<span class="align-mark align-mixed" title="뒤섞임">&#9644;</span>{% endif %}
                         <strong>{{ item.stock.name }}</strong>
                         {% if item.is_etf %}<span class="tag-badge" style="font-size:0.6rem;padding:1px 4px;background:var(--bg-secondary);color:var(--text-muted);">ETF</span>{% endif %}
                         {% if item.has_alert %}<button type="button" class="btn-alert-prompt" data-name="{{ item.stock.name }}" data-code="{{ item.stock.code }}" data-price="{{ item.stock.current_price|default:'' }}" data-conditions="{{ item.alert_conditions }}" data-has-perf="{% if item.recent_perf %}1{% endif %}" onclick="event.stopPropagation();" style="font-size:0.6rem;padding:1px 4px;border:1px solid var(--up-color);border-radius:3px;background:none;color:var(--up-color);cursor:pointer;margin-left:3px;vertical-align:middle;font-weight:600;">분석</button><script type="text/plain" class="recent-perf-data" data-code="{{ item.stock.code }}">{{ item.recent_perf }}</script>{% endif %}
@@ -157,22 +177,25 @@
                         {% if item.stock.current_price %}{{ item.stock.current_price|intcomma }}{% else %}-{% endif %}
                         {% if item.stock.change_rate %}<span style="font-size:0.72rem;margin-left:2px;" class="{% if item.stock.change_rate > 0 %}text-up{% elif item.stock.change_rate < 0 %}text-down{% endif %}">({% if item.stock.change_rate > 0 %}+{% endif %}{{ item.stock.change_rate }}%)</span>{% endif %}
                     </td>
-                    <td style="text-align:center;">
-                        {% if item.ma_align == 'bull' %}<span style="color:var(--up-color);font-size:0.7rem;" title="정배열">&#9650;</span>{% elif item.ma_align == 'bear' %}<span style="color:var(--down-color);font-size:0.7rem;" title="역배열">&#9660;</span>{% elif item.ma_align == 'mixed' %}<span style="color:var(--text-muted);font-size:0.7rem;" title="혼조">&#9644;</span>{% endif %}
+                    {# 차트에서 읽은 것 — 거래량 신고 · 눌림목 · 장대양봉 뒤 #}
+                    <td class="st-cell">
+                        {% if item.vol_high_60 %}<span class="st-tag {% if item.is_bullish %}st-up{% else %}st-down{% endif %}">거래량 60일</span>
+                        {% elif item.vol_high_20 %}<span class="st-tag {% if item.is_bullish %}st-up{% else %}st-down{% endif %}">거래량 20일</span>{% endif %}
+                        {% if item.pullback_label == '얕은눌림' or item.pullback_label == '깊은눌림' %}<span class="st-tag st-up">{{ item.pullback_label }} {{ item.pullback }}%</span>
+                        {% elif item.pullback_label == '이탈' %}<span class="st-tag st-down">이탈 {{ item.pullback }}%</span>{% endif %}
+                        {% if item.signal_info and item.signal_info.signal_days_ago %}<span class="signal-chart-btn st-tag {% if item.signal_info.signal_price_change < 0 %}st-down{% else %}st-up{% endif %}" data-code="{{ item.stock.code }}" data-name="{{ item.stock.name }}" data-signal-date="{{ item.signal_info.signal_date }}" data-signal-open="{{ item.signal_info.signal_open }}" data-signal-close="{{ item.signal_info.signal_close }}" data-current-price="{{ item.signal_info.current_price }}">양봉 {{ item.signal_info.signal_days_ago }}일전 {% if item.signal_info.signal_price_change > 0 %}+{% endif %}{{ item.signal_info.signal_price_change }}%</span>{% endif %}
                     </td>
-                    <td style="text-align:center;">
-                        {% if item.pullback_label %}<span style="font-size:0.72rem;{% if item.pullback_label == '얕은눌림' %}color:#e89800;{% elif item.pullback_label == '깊은눌림' %}color:var(--down-color);{% endif %}">{{ item.pullback_label }}</span><span style="font-size:0.65rem;{% if item.pullback < 0 %}color:var(--down-color);{% else %}color:var(--text-muted);{% endif %}margin-left:2px;">({{ item.pullback }}%)</span>{% endif %}
+                    {# 수급 — 외국인·기관 연속 매수 #}
+                    <td class="st-cell">
+                        {% if item.frgn_label %}<span class="st-tag st-up">외 {{ item.frgn_label }}{% if item.frgn_label != '20일' %}일{% endif %}</span>{% endif %}
+                        {% if item.inst_label %}<span class="st-tag st-up">기 {{ item.inst_label }}{% if item.inst_label != '20일' %}일{% endif %}</span>{% endif %}
                     </td>
-                    <td style="text-align:center;">
-                        {% if item.vol_high_60 %}<span style="color:{% if item.is_bullish %}var(--up-color){% else %}var(--down-color){% endif %};font-size:0.78rem;font-weight:600;">60일</span>{% elif item.vol_high_20 %}<span style="color:{% if item.is_bullish %}var(--up-color){% else %}var(--down-color){% endif %};font-size:0.78rem;font-weight:600;">20일</span>{% endif %}
+                    {# 공시·리포트 — 새로 나온 것 #}
+                    <td class="st-cell" onclick="event.stopPropagation();">
+                        {% if item.gongsi_cat == '호재' %}<a href="{{ item.detail_url }}?tab=disclosure" class="st-tag st-up" title="{{ item.gongsi_title }}">호재</a>
+                        {% elif item.gongsi_cat == '악재' %}<a href="{{ item.detail_url }}?tab=disclosure" class="st-tag st-down" title="{{ item.gongsi_title }}">악재</a>{% endif %}
+                        {% if item.has_report %}<a href="{{ item.detail_url }}?tab=report" class="st-tag st-flat">리포트</a>{% endif %}
                     </td>
-                    <td style="text-align:center;font-size:0.75rem;white-space:nowrap;">
-                        {% if item.signal_info %}{% if item.signal_info.signal_days_ago > 0 %}<span style="color:var(--text-muted);">{{ item.signal_info.signal_days_ago }}일전</span> {% endif %}<span class="signal-chart-btn {% if item.signal_info.signal_price_change > 0 %}text-up{% elif item.signal_info.signal_price_change < 0 %}text-down{% endif %}" style="text-decoration:underline;cursor:pointer;" data-code="{{ item.stock.code }}" data-name="{{ item.stock.name }}" data-signal-date="{{ item.signal_info.signal_date }}" data-signal-open="{{ item.signal_info.signal_open }}" data-signal-close="{{ item.signal_info.signal_close }}" data-current-price="{{ item.signal_info.current_price }}">{% if item.signal_info.signal_price_change > 0 %}+{% endif %}{{ item.signal_info.signal_price_change }}%</span>{% endif %}
-                    </td>
-                    <td style="text-align:center;font-size:0.78rem;">{% if item.inst_label %}<span style="color:var(--up-color);font-weight:600;">{{ item.inst_label }}</span>{% endif %}</td>
-                    <td style="text-align:center;font-size:0.78rem;">{% if item.frgn_label %}<span style="color:var(--up-color);font-weight:600;">{{ item.frgn_label }}</span>{% endif %}</td>
-                    <td style="text-align:center;font-size:0.72rem;" onclick="event.stopPropagation();">{% if item.gongsi_cat %}<a href="{{ item.detail_url }}?tab=disclosure" style="text-decoration:none;font-weight:600;{% if item.gongsi_cat == '악재' %}color:var(--down-color);{% elif item.gongsi_cat == '호재' %}color:var(--up-color);{% else %}color:var(--text-secondary);{% endif %}" title="{{ item.gongsi_title }}">{{ item.gongsi_cat }}</a>{% endif %}</td>
-                    <td style="text-align:center;">{% if item.has_report %}&#10003;{% endif %}</td>
                     <td style="text-align:right;font-size:0.78rem;">
                         {% if item.report_gap is not None %}<span class="{% if item.report_gap > 0 %}text-up{% elif item.report_gap < 0 %}text-down{% endif %}">{% if item.report_gap > 0 %}+{% endif %}{{ item.report_gap }}%</span>{% endif %}
                     </td>
