@@ -142,7 +142,7 @@
     </div>
 </div>
 <!-- 현황 -->
-<div class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">현황 {% help_icon "status_table" %}{% prompt_pair "prompt_status" id="btnCopyStatusPrompt" inline=True %}</div>
+<div class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">현황{% prompt_pair "prompt_status" id="btnCopyStatusPrompt" inline=True %}</div>
 <div class="brief-card" style="padding:0; overflow:hidden;">
     <div style="overflow-x:auto;">
         <table class="modern-table" id="statusTable">
@@ -159,9 +159,9 @@
                 <tr>
                     <th style="padding-left:16px;">종목명</th>
                     <th style="text-align:right;">가격</th>
-                    <th style="text-align:center;">차트</th>
-                    <th style="text-align:center;">수급</th>
-                    <th style="text-align:center;">공시·리포트</th>
+                    <th style="text-align:center;">차트 {% help_icon "status_chart" %}</th>
+                    <th style="text-align:center;">수급 {% help_icon "status_supply" %}</th>
+                    <th style="text-align:center;">리포트 {% help_icon "status_report" %}</th>
                     <th style="text-align:center;">10일</th>
                 </tr>
             </thead>

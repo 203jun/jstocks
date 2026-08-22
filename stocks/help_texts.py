@@ -442,25 +442,22 @@ def _research(market=None):
     ])
 
 
-def _status_table(market=None):
+def _status_chart(market=None):
+    """현황 표의 '차트' 칸. 이름 앞 화살표와 맨 끝 10일 선도 차트에서 읽은 것이라 같이 둔다."""
     from .stock_signal import (ALIGN_MARGIN, BIG_CANDLE_WINDOW, PULLBACK_BANDS,
-                               SLOT_GAP_STRONG, SLOT_GAP_THIN, STREAK_MIN,
                                STREAK_WINDOW)
 
-    shallow = next(e for e, n in PULLBACK_BANDS if n == '얕은눌림')   # -2
-    deep = next(e for e, n in PULLBACK_BANDS if n == '깊은눌림')      # -5
-    trend = next(e for e, n in PULLBACK_BANDS if n == '추세중')       # 2
+    shallow = next(e for e, n in PULLBACK_BANDS if n == '얕은눌림')
+    deep = next(e for e, n in PULLBACK_BANDS if n == '깊은눌림')
+    trend = next(e for e, n in PULLBACK_BANDS if n == '추세중')
 
     return '\n'.join([
-        '한 줄에 한 종목. 배지는 <b>켜질 때만</b> 붙는다.',
-        '',
-        '비어 있는 줄이 정상이다 — 대개 서너 줄 중 하나만 무언가 붙는다. '
-        '빈 줄을 지나치라고 만든 표다.',
+        '차트에서 읽은 것들. 배지는 켜질 때만 붙고, 빈 칸이 정상이다.',
         '',
         '── 이름 앞 화살표 (배열) ──',
         '',
-        '5·20·60·120일선이 순서대로 서 있는지. 눌림목·거래량은 이 화살표가 '
-        '무엇이냐에 따라 뜻이 달라진다.',
+        '5·20·60·120일선이 순서대로 서 있는지. 자리를 아끼려고 칸 대신 이름 '
+        '앞에 뒀다.',
         '',
         '<span class="text-up">▲</span> &nbsp; 정배열 — 5>20>60>120 이고 '
         '120일선 위',
@@ -471,85 +468,128 @@ def _status_table(market=None):
         f'이평선이 붙어 있기만 해도 정배열이라 부르면 거의 모든 날이 정배열이 '
         f'된다. 서로 <b>{(ALIGN_MARGIN - 1) * 100:g}%</b>는 벌어져야 인정한다.',
         '',
-        '── 차트 ──',
+        '아래 눌림목은 이 화살표가 <b>▲일 때만</b> 나온다.',
         '',
-        '<b>거래량</b> 오늘 거래량이 20일(또는 60일) 안에서 가장 많았다. '
-        '색은 오늘 봉이다.',
+        '── 거래량 ──',
         '',
-        '<span class="st-tag st-up">거래량 60일</span> &nbsp; 두 달 만의 '
-        '최대 거래량, 양봉',
-        '<span class="st-tag st-down">거래량 20일</span> &nbsp; 한 달 만의 '
-        '최대 거래량, 음봉 — 같은 거래량이라도 파는 힘이다',
+        f'오늘 거래량이 {STREAK_WINDOW}일(또는 60일) 안에서 가장 많았다. 색은 '
+        f'오늘 봉이다.',
         '',
-        f'<b>눌림목</b> 20일선에서 얼마나 떨어졌는지. <b>정배열일 때만</b> '
-        f'본다 — 역배열에서 20일선 아래는 눌림목이 아니라 그냥 하락이다.',
+        '<span class="st-tag st-up">거래량 60일</span> &nbsp; 두 달 만의 최대 '
+        '거래량, 양봉',
+        '<span class="st-tag st-down">거래량 20일</span> &nbsp; 한 달 만의 최대 '
+        '거래량, 음봉 — 같은 거래량이라도 파는 힘이다',
+        '',
+        '거래량만으로는 방향을 모른다. 터진 날이 음봉이면 받아준 게 아니라 '
+        '던진 것이다.',
+        '',
+        '── 눌림목 ──',
+        '',
+        '20일선에서 얼마나 떨어졌는지. <b>정배열일 때만</b> 본다 — 역배열에서 '
+        '20일선 아래는 눌림목이 아니라 그냥 하락이다.',
         '',
         f'<span class="st-tag st-up">얕은눌림 -0.2%</span> &nbsp; '
         f'{trend}% ~ {shallow}%',
         f'<span class="st-tag st-up">깊은눌림 -3.4%</span> &nbsp; '
         f'{shallow}% ~ {deep}%',
-        f'<span class="st-tag st-down">이탈 -7.1%</span> &nbsp; {deep}% 아래 '
-        f'— 눌린 게 아니라 밀린 것이다',
+        f'<span class="st-tag st-down">이탈 -7.1%</span> &nbsp; {deep}% 아래 — '
+        f'눌린 게 아니라 밀린 것이다',
         '',
-        f'{trend}% 위(추세중·과열)는 배지를 주지 않는다. 눌림목을 찾는 자리라서다.',
+        f'{trend}% 위(추세중·과열)에는 배지를 주지 않는다. 눌린 자리를 찾으려고 '
+        f'만든 칸이라서다.',
         '',
-        f'<b>양봉 N일전</b> 신고 거래량 양봉이 뜬 뒤 <b>{BIG_CANDLE_WINDOW}일</b> '
-        f'동안 따라간다. 그날 이후 지금까지의 등락이다.',
+        '── 양봉 N일전 ──',
         '',
-        '<span class="st-tag st-up">양봉 9일전 +16.8%</span> &nbsp; 터진 뒤 '
-        '더 갔다',
+        f'신고 거래량 양봉이 뜬 뒤 <b>{BIG_CANDLE_WINDOW}일</b> 동안 따라간다. '
+        f'숫자는 그날 이후 지금까지의 등락이다.',
+        '',
+        '<span class="st-tag st-up">양봉 9일전 +16.8%</span> &nbsp; 터진 뒤 더 '
+        '갔다',
         '<span class="st-tag st-down">양봉 9일전 -7.3%</span> &nbsp; 터졌다가 '
         '되돌렸다 — 물량을 털어낸 자리일 수 있다',
         '',
         '눌러보면 그날 캔들부터의 차트가 뜬다.',
         '',
-        '── 수급 ──',
-        '',
-        '<b>외</b>는 외국인, <b>기</b>는 기관. 순매수만 표시한다 — 파는 쪽은 '
-        '여기 안 나온다.',
-        '',
-        f'<span class="st-tag st-up">외 {STREAK_WINDOW}일</span> &nbsp; '
-        f'오늘이 {STREAK_WINDOW}일 중 <b>가장 큰</b> 순매수',
-        f'<span class="st-tag st-up">기 4일</span> &nbsp; <b>나흘 연속</b> '
-        f'순매수',
-        '',
-        f'같은 모양이지만 뜻이 다르다. 앞은 <b>하루의 크기</b>, 뒤는 '
-        f'<b>며칠째</b>다. 숫자가 {STREAK_WINDOW}면 앞쪽으로 읽으면 된다.',
-        '',
-        f'{STREAK_MIN}일 미만은 표시하지 않는다. 이틀 연속은 흔하다.',
-        '',
-        '── 공시·리포트 ──',
-        '',
-        '밖에서 온 소식이다. 눌러서 해당 탭으로 간다.',
-        '',
-        '<span class="st-tag st-up">호재</span> <span class="st-tag st-down">'
-        '악재</span> &nbsp; 공시 제목으로 가른 것. <b>가장 최근 공시일</b> '
-        '하루치만 보고, 그 날짜가 사흘보다 오래됐으면 아무것도 안 띄운다',
-        '<span class="st-tag st-flat">리포트</span> &nbsp; 닷새 안에 새 '
-        '리포트가 나왔다. 좋고 나쁨이 아니라 <b>읽을 게 생겼다</b>는 표시라 '
-        '색이 없다',
-        '',
-        '한 종목에 호재와 악재가 같이 있으면 <b>악재</b>를 띄운다. 좋은 소식은 '
-        '놓쳐도 되지만 나쁜 소식은 아니다.',
-        '',
-        f'<b>괴리</b> 목표가 ÷ 현재가. 양 끝만 켠다.',
-        '',
-        f'<span class="st-tag st-up">괴리 +71.5%</span> &nbsp; '
-        f'+{SLOT_GAP_STRONG}% 넘게 위 — 세게 지른 콜이다',
-        f'<span class="st-tag st-down">괴리 -10.1%</span> &nbsp; '
-        f'+{SLOT_GAP_THIN}% 아래 — 애널리스트도 여력을 거의 못 봤다',
-        '',
-        f'가운데(+{SLOT_GAP_THIN}~+{SLOT_GAP_STRONG}%)는 뜻이 없어서 지웠다. '
-        f'목표가를 현재가보다 넉넉히 잡는 것이 증권사 관행이라 대부분이 여기 '
-        f'모인다.',
-        '',
-        '── 10일 ──',
+        '── 맨 끝 10일 ──',
         '',
         '최근 10거래일 종가를 이은 선. <span class="text-up">붉으면</span> '
         '올랐고 <span class="text-down">푸르면</span> 내렸다.',
         '',
         '숫자를 읽으라고 둔 것이 아니라 <b>모양만</b> 보라고 둔 칸이다.',
     ])
+
+
+def _status_supply(market=None):
+    from .stock_signal import STREAK_MIN, STREAK_WINDOW
+
+    return '\n'.join([
+        '<b>외</b>는 외국인, <b>기</b>는 기관.',
+        '',
+        f'<span class="st-tag st-up">외 {STREAK_WINDOW}일</span> &nbsp; 오늘이 '
+        f'{STREAK_WINDOW}일 중 <b>가장 큰</b> 순매수',
+        '<span class="st-tag st-up">기 4일</span> &nbsp; <b>나흘 연속</b> 순매수',
+        '',
+        f'모양은 같은데 뜻이 다르다. 앞은 <b>하루의 크기</b>, 뒤는 <b>며칠째</b>다. '
+        f'숫자가 {STREAK_WINDOW}면 앞쪽으로 읽으면 된다.',
+        '',
+        '── 안 나오는 것 ──',
+        '',
+        f'<b>파는 쪽은 여기 안 나온다.</b> 순매수만 센다. 기관이 엿새 연속 '
+        f'던지고 있어도 이 칸은 비어 있다 — 종목 화면의 신호 칸에서는 보인다.',
+        '',
+        f'{STREAK_MIN}일 미만도 안 나온다. 이틀 연속은 흔해서 신호가 못 된다.',
+        '',
+        '── 둘을 같이 ──',
+        '',
+        '외국인과 기관은 대체로 반대로 간다. 한쪽만 보면 정반대로 읽는다. '
+        '<b>둘이 같은 방향일 때</b>가 드물고, 그때가 가장 세다.',
+        '',
+        '출처: 다음 금융',
+    ])
+
+
+def _status_report(market=None):
+    from .stock_signal import SLOT_GAP_STRONG, SLOT_GAP_THIN
+
+    return '\n'.join([
+        '밖에서 온 소식. 눌러서 해당 탭으로 간다.',
+        '',
+        '── 공시 ──',
+        '',
+        '<span class="st-tag st-up">호재</span> <span class="st-tag st-down">'
+        '악재</span> &nbsp; 공시 제목으로 가른 것',
+        '',
+        '<b>가장 최근 공시일</b> 하루치만 본다. 그 날짜가 사흘보다 오래됐으면 '
+        '아무것도 안 띄운다 — 지난주 공시가 계속 붙어 있으면 새 소식과 구별이 '
+        '안 된다.',
+        '',
+        '한 종목에 둘 다 있으면 <b>악재</b>를 띄운다. 좋은 소식은 놓쳐도 되지만 '
+        '나쁜 소식은 아니다.',
+        '',
+        '── 리포트 ──',
+        '',
+        '<span class="st-tag st-flat">리포트</span> &nbsp; 닷새 안에 새 리포트가 '
+        '나왔다',
+        '',
+        '좋고 나쁨이 아니라 <b>읽을 게 생겼다</b>는 표시라 색이 없다.',
+        '',
+        '── 괴리 ──',
+        '',
+        '목표가 ÷ 현재가. <b>양 끝만</b> 켠다.',
+        '',
+        f'<span class="st-tag st-up">괴리 +71.5%</span> &nbsp; '
+        f'+{SLOT_GAP_STRONG}% 넘게 위 — 세게 지른 콜이다',
+        f'<span class="st-tag st-down">괴리 -10.1%</span> &nbsp; '
+        f'+{SLOT_GAP_THIN}% 아래 — 애널리스트도 여력을 거의 못 봤다',
+        '',
+        f'가운데(+{SLOT_GAP_THIN}~+{SLOT_GAP_STRONG}%)는 지웠다. 목표가를 '
+        f'현재가보다 넉넉히 잡는 것이 증권사 관행이라 대부분이 여기 모인다. '
+        f'다 켜면 예순여덟 줄에 전부 붙어서 아무 말도 안 하는 칸이 된다.',
+        '',
+        '괴리가 크다고 좋은 종목이 아니라 <b>기대가 크다</b>는 뜻이다. 그만큼 '
+        '어긋날 자리도 크다.',
+    ])
+
 
 
 HELP_TEXTS = {
@@ -565,5 +605,7 @@ HELP_TEXTS = {
     'supply_investor': {'title': '외국인·기관 지분율 변화', 'body': _supply_investor},
     'supply_short_z': {'title': '공매도 강도 (Z)', 'body': _supply_short_z},
     'research': {'title': '리서치', 'body': _research},
-    'status_table': {'title': '현황 표 읽는 법', 'body': _status_table},
+    'status_chart': {'title': '차트', 'body': _status_chart},
+    'status_supply': {'title': '수급', 'body': _status_supply},
+    'status_report': {'title': '리포트', 'body': _status_report},
 }
