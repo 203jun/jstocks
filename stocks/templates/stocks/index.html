@@ -160,7 +160,6 @@
                     <th style="text-align:center;">차트</th>
                     <th style="text-align:center;">수급</th>
                     <th style="text-align:center;">공시·리포트</th>
-                    <th style="text-align:right;">괴리율</th>
                     <th style="text-align:center;">10일</th>
                 </tr>
             </thead>
@@ -190,14 +189,13 @@
                         {% if item.frgn_label %}<span class="st-tag st-up">외 {{ item.frgn_label }}{% if item.frgn_label != '20일' %}일{% endif %}</span>{% endif %}
                         {% if item.inst_label %}<span class="st-tag st-up">기 {{ item.inst_label }}{% if item.inst_label != '20일' %}일{% endif %}</span>{% endif %}
                     </td>
-                    {# 공시·리포트 — 새로 나온 것 #}
+                    {# 공시·리포트 — 새로 나온 것과 괴리율. 셋 다 밖에서 오는 소식이다. #}
                     <td class="st-cell" onclick="event.stopPropagation();">
                         {% if item.gongsi_cat == '호재' %}<a href="{{ item.detail_url }}?tab=disclosure" class="st-tag st-up" title="{{ item.gongsi_title }}">호재</a>
                         {% elif item.gongsi_cat == '악재' %}<a href="{{ item.detail_url }}?tab=disclosure" class="st-tag st-down" title="{{ item.gongsi_title }}">악재</a>{% endif %}
                         {% if item.has_report %}<a href="{{ item.detail_url }}?tab=report" class="st-tag st-flat">리포트</a>{% endif %}
-                    </td>
-                    <td style="text-align:right;font-size:0.78rem;">
-                        {% if item.report_gap is not None %}<span class="{% if item.report_gap > 0 %}text-up{% elif item.report_gap < 0 %}text-down{% endif %}">{% if item.report_gap > 0 %}+{% endif %}{{ item.report_gap }}%</span>{% endif %}
+                        {% if item.report_gap >= 50 %}<span class="st-tag st-up" title="목표가가 현재가보다 그만큼 위다">괴리 +{{ item.report_gap }}%</span>
+                        {% elif item.report_gap is not None and item.report_gap <= 10 %}<span class="st-tag st-down" title="애널리스트도 여력을 거의 못 봤다">괴리 {% if item.report_gap > 0 %}+{% endif %}{{ item.report_gap }}%</span>{% endif %}
                     </td>
                     <td style="text-align:center;"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
                 </tr>
