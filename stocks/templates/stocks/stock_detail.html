@@ -524,6 +524,20 @@
 .bi-tags { gap:4px; }
 /* 신호 배지는 색이 둘뿐이다 — 좋은 것 빨강, 나쁜 것 파랑.
    무엇을 말하는지는 글자가 하고 색은 방향만 말한다. */
+/* 신호 슬롯 — 자리는 늘 같고 켜질 때만 색이 붙는다.
+   꺼진 칸은 "찾으면 보이는" 수준까지 내린다. 어중간하게 흐리면 배경 무늬가
+   되어 켜진 것을 가린다. */
+.sig-slots { display:flex; flex-wrap:wrap; gap:6px; }
+.sig {
+    display:inline-block; min-width:88px; text-align:center;
+    padding:2px 8px; border-radius:3px;
+    font-size:0.72rem; line-height:1.5; white-space:nowrap;
+}
+.sig-off { color:var(--text-primary); opacity:0.18; font-weight:400; }
+.sig-up { background:var(--up-color); color:#fff; font-weight:600; }
+.sig-down { background:var(--down-color); color:#fff; font-weight:600; }
+@media (max-width: 768px) { .sig { min-width:0; flex:1 1 auto; } }
+
 .bi-tag { padding:1px 7px; border-radius:3px; font-size:0.72rem; font-weight:600; }
 .bi-tag-up { background:var(--up-color); color:#fff; }
 .bi-tag-down { background:var(--down-color); color:#fff; }
@@ -591,58 +605,30 @@ a.bi-tag { text-decoration:none; }
 
     <!-- 신호 -->
     {% comment %}
-    메인 현황 표가 보여주던 것들이다. 계산은 stock_signal 한 곳에서 한다 —
-    두 화면이 같은 종목을 두고 다른 말을 하면 안 된다.
-    {% endcomment %}
-    <div class="bi-row">
-        <span class="bi-label bi-label-sig">신호</span>
-        <div class="bi-body">
-            {% comment %}
-            아홉 칸이 늘 같은 자리에 있다. 켜지면 채우고(좋은 것 빨강, 나쁜 것
-            파랑) 꺼지면 연회색으로 자리를 지킨다. 없앴다 넣었다 하면 칸 수가
-            종목마다 달라져 눈이 매번 다른 데를 찾는다.
+    아홉 칸이 늘 같은 자리에 있다. 켜지면 색이 붙고 꺼지면 칸 이름이 아주
+    흐리게 남는다 — 빈칸으로 두면 '오늘 조용하다'와 '자료가 없다'가 구별되지
+    않는다. 계기판의 경고등 자리와 같은 원리다.
 
-            첫 줄은 차트에서 읽는 것, 둘째 줄은 밖에서 오는 것.
-            {% endcomment %}
-            <div class="bi-facts">
-                {% if signal_panel.align == 'bull' %}<span class="bi-tag bi-tag-up">정배열</span>
-                {% elif signal_panel.align == 'bear' %}<span class="bi-tag bi-tag-down">역배열</span>
-                {% else %}<span class="bi-tag bi-tag-off">뒤섞임</span>{% endif %}
-                {% if signal_panel.pullback_label %}<span class="bi-tag bi-tag-{% if signal_panel.pullback > 0 %}up{% else %}down{% endif %}">{{ signal_panel.pullback_label }} {% if signal_panel.pullback > 0 %}+{% endif %}{{ signal_panel.pullback }}%</span>
-                {% else %}<span class="bi-tag bi-tag-off">눌림목 없음</span>{% endif %}
-                {% if signal_panel.vol_high %}<span class="bi-tag bi-tag-up">거래량 {{ signal_panel.vol_high }} 신고</span>
-                {% else %}<span class="bi-tag bi-tag-off">거래량 보통</span>{% endif %}
-                {% if signal_panel.big_candle %}<span class="bi-tag bi-tag-{% if signal_panel.big_candle.move < 0 %}down{% else %}up{% endif %}">장대양봉 {% if signal_panel.big_candle.days_ago %}{{ signal_panel.big_candle.days_ago }}일 전 {% if signal_panel.big_candle.move > 0 %}+{% endif %}{{ signal_panel.big_candle.move }}%{% else %}오늘{% endif %}</span>
-                {% else %}<span class="bi-tag bi-tag-off">장대양봉 없음</span>{% endif %}
-                {% if signal_panel.new_high.is_new %}<span class="bi-tag bi-tag-up">52주 신고가</span>
-                {% else %}<span class="bi-tag bi-tag-off">신고가 아님</span>{% endif %}
+    색은 둘뿐이다. 빨강은 기회, 파랑은 경고. 무엇을 말하는지는 글자가 하고
+    색은 방향만 말한다.
+
+    자리를 익히려면 칸 수가 늘 같아야 한다. 슬롯을 더 늘리지 말 것 —
+    아홉이 상한이다.
+    {% endcomment %}
+    {% for row in slot_panel.rows %}
+    <div class="bi-row">
+        <span class="bi-label bi-label-sig">{{ row.name }}</span>
+        <div class="bi-body">
+            <div class="sig-slots">
+                {% for c in row.slots %}
+                <span class="sig{% if c.on %} sig-{{ c.tone }}{% else %} sig-off{% endif %}"
+                      title="{{ c.key }}">{% if c.on %}{{ c.text }}{% else %}{{ c.key }}{% endif %}</span>
+                {% endfor %}
             </div>
-            <div class="bi-facts">
-                {% if signal_panel.frgn_streak == '20일' %}<span class="bi-tag bi-tag-up">외국인 20일 신고</span>
-                {% elif signal_panel.frgn_streak %}<span class="bi-tag bi-tag-up">외국인 {{ signal_panel.frgn_streak }}일 순매수</span>
-                {% else %}<span class="bi-tag bi-tag-off">외국인 없음</span>{% endif %}
-                {% if signal_panel.inst_streak == '20일' %}<span class="bi-tag bi-tag-up">기관 20일 신고</span>
-                {% elif signal_panel.inst_streak %}<span class="bi-tag bi-tag-up">기관 {{ signal_panel.inst_streak }}일 순매수</span>
-                {% else %}<span class="bi-tag bi-tag-off">기관 없음</span>{% endif %}
-                {% if signal_panel.gongsi_bad %}<a href="#" class="bi-tag bi-tag-down bi-go" data-tab="disclosure-content">악재 {{ signal_panel.gongsi_bad }}{% if signal_panel.gongsi_good %} · 호재 {{ signal_panel.gongsi_good }}{% endif %}</a>
-                {% elif signal_panel.gongsi_good %}<a href="#" class="bi-tag bi-tag-up bi-go" data-tab="disclosure-content">호재 {{ signal_panel.gongsi_good }}</a>
-                {% else %}<span class="bi-tag bi-tag-off">호재·악재 없음</span>{% endif %}
-                {% if signal_panel.report_count %}<a href="#" class="bi-tag bi-tag-up bi-go" data-tab="report-content">리포트 {{ signal_panel.report_count }}건</a>
-                {% else %}<span class="bi-tag bi-tag-off">리포트 없음</span>{% endif %}
-            </div>
-            <div class="bi-facts">
-                {% if signal_panel.new_high %}<span><i>고점대비</i> <span class="{% if signal_panel.new_high.gap < 0 %}text-down{% endif %}">{{ signal_panel.new_high.gap }}%</span></span>{% endif %}
-                {% if signal_panel.report_gap is not None %}<span><i>괴리율</i> <span class="{% if signal_panel.report_gap < 0 %}text-down{% endif %}">{% if signal_panel.report_gap > 0 %}+{% endif %}{{ signal_panel.report_gap }}%</span></span>{% endif %}
-                <span><i>공시</i> {{ signal_panel.gongsi_count }}건</span>
-                <span class="bi-none">최근 {{ signal_panel.window }}거래일 기준</span>
-            </div>
-            {% if new_report_alert %}
-            <div class="bi-alert">⚠️ {{ new_report_alert.title }} 가 {{ new_report_alert.date|date:"y.m.d" }} 에 나왔습니다 — 기업분석 리서치가 그 전 것입니다</div>
-            {% elif research_health %}
-            <div class="bi-alert bi-alert-mute">ℹ️ {{ research_health.text }}</div>
-            {% endif %}
         </div>
     </div>
+    {% endfor %}
+
 
     <!-- 회사 -->
     <div class="bi-row">

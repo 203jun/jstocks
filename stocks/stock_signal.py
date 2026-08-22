@@ -25,6 +25,21 @@ PULLBACK_LAST = '이탈'
 STREAK_MIN = 3
 STREAK_WINDOW = 20
 
+# ── 슬롯용 임계값 ──────────────────────────────────────────────────
+#
+# 종목 화면의 배지는 늘 같은 자리에 있고 켜질 때만 색이 붙는다. 그러려면
+# 꺼져 있는 것이 기본이어야 한다 — 절반이 켜지면 계기판이 아니라 그냥 표다.
+# 관심종목 47개로 재보고 조인 값들이다.
+#
+#   눌림목  과열 36% · 추세중 9% 를 끈다. 둘 다 '지금 사라'가 아니라
+#           '지금 자리'일 뿐이고, 켜져 있으면 진짜 눌림(4%)이 묻힌다.
+#   수급    3일 연속이 17~28% 로 흔했다. 5일로 올리면 한 자릿수가 된다.
+#   장대양봉 20일 신고까지 잡아 36% 였다. 60일 신고만 센다.
+SLOT_PULLBACK_ON = ('얕은눌림', '깊은눌림', '이탈')
+SLOT_STREAK_MIN = 5
+SLOT_GAP_STRONG = 50     # 괴리율이 이만큼 크면 세게 지른 콜
+SLOT_GAP_THIN = 10       # 이만큼 작으면 애널리스트도 여력을 못 봤다
+
 
 def _ma(daily, n, skip=0):
     rows = daily[skip:skip + n]
@@ -90,6 +105,31 @@ def investor_streaks(inv_data):
         return '', ''
     return (_streak([d.institution for d in inv_data]),
             _streak([d.foreign for d in inv_data]))
+
+
+def investor_flow(values, streak_min=SLOT_STREAK_MIN):
+    """
+    슬롯용 — 사는 쪽인지 파는 쪽인지까지 본다. (글자, 방향) 없으면 None.
+
+    investor_streaks 는 사는 쪽만 세고 메인 현황 표가 쓴다. 여기서는 파는
+    쪽도 신호다 — 기관이 엿새 연속 던지는 것은 살 자리가 아니라는 뜻이다.
+    """
+    if not values or not values[0]:
+        return None
+    if values[0] > 0 and values[0] >= max(values):
+        return (f'{STREAK_WINDOW}일 최대', 'up')
+    if values[0] < 0 and values[0] <= min(values):
+        return (f'{STREAK_WINDOW}일 최소', 'down')
+    buying = values[0] > 0
+    days = 0
+    for v in values:
+        if v and (v > 0) == buying:
+            days += 1
+        else:
+            break
+    if days < streak_min:
+        return None
+    return (f'{days}일 연속', 'up' if buying else 'down')
 
 
 def report_gap(stock, latest_report=None):
@@ -169,4 +209,114 @@ def new_high(daily):
     return {'high': high, 'gap': gap, 'is_new': gap >= -NEW_HIGH_MARGIN}
 
 
+def new_low(daily):
+    """52주 저점 대비 %. 고점과 대칭이다."""
+    if not daily:
+        return None
+    year = daily[:250]
+    low = min((d.low_price for d in year if d.low_price), default=None)
+    if not low:
+        return None
+    gap = round((daily[0].closing_price / low - 1) * 100, 1)
+    return {'low': low, 'gap': gap, 'is_new': gap <= NEW_HIGH_MARGIN}
+
+
 ALIGN_NAMES = {'bull': '정배열', 'bear': '역배열', 'mixed': '뒤섞임'}
+
+
+# ── 슬롯 아홉 칸 ──────────────────────────────────────────────────
+#
+# 자리가 늘 같아야 모양만 보고 읽게 된다. 켜지면 색이 붙고, 꺼지면 칸 이름이
+# 아주 흐리게 남는다 — 빈칸으로 두면 '오늘 조용하다'와 '자료가 없다'가
+# 구별되지 않는다.
+#
+# 색은 둘뿐이다. 빨강은 기회, 파랑은 경고.
+SLOT_ROWS = [
+    ('신호', ['눌림목', '거래량', '장대양봉', '고저']),
+    ('수급', ['외국인', '기관']),
+    ('리포트', ['리포트', '공시', '괴리율']),
+]
+
+
+def _slot(text, tone):
+    return {'on': True, 'text': text, 'tone': tone}
+
+
+def build_slots(stock, daily, inv_data, report_count, gongsi_good, gongsi_bad,
+                window_days):
+    """
+    화면에 뿌릴 아홉 칸. 켜진 것만 값이 들어 있고 나머지는 None.
+
+    daily 는 최신이 앞. inv_data 도 최신이 앞(최근 20거래일).
+    """
+    out = {}
+
+    # ── 눌림목 — 정배열에서 20일선까지 밀린 자리. 과열·추세중은 끈다.
+    align = ma_alignment(daily)
+    gap, label = pullback(daily, align)
+    out['눌림목'] = (_slot(f'{label} {gap:+.1f}%', 'down' if label == '이탈' else 'up')
+                  if label in SLOT_PULLBACK_ON else None)
+
+    # ── 거래량 — 오늘 신고거래량인가. 양봉이면 기회, 음봉이면 경고.
+    vh = volume_high(daily)
+    if vh and daily:
+        rising = daily[0].closing_price >= daily[0].opening_price
+        out['거래량'] = _slot(f'{vh} 신고', 'up' if rising else 'down')
+    else:
+        out['거래량'] = None
+
+    # ── 장대양봉 — 돈이 크게 들어온 날 이후 며칠, 그 뒤 얼마나 밀렸나.
+    #    60일 신고만 센다. 20일 신고까지 잡으면 셋에 하나가 걸린다.
+    bc = big_candle(daily)
+    if bc and bc['kind'] == '60일':
+        if bc['days_ago'] == 0:
+            out['장대양봉'] = _slot('오늘', 'up')
+        else:
+            out['장대양봉'] = _slot(f'{bc["days_ago"]}일 {bc["move"]:+.1f}%',
+                                 'down' if bc['move'] < 0 else 'up')
+    else:
+        out['장대양봉'] = None
+
+    # ── 고저 — 52주 고점·저점에 닿았나.
+    nh = new_high(daily)
+    low = new_low(daily)
+    if nh and nh['is_new']:
+        out['고저'] = _slot('52주 신고가', 'up')
+    elif low and low['is_new']:
+        out['고저'] = _slot('52주 신저가', 'down')
+    else:
+        out['고저'] = None
+
+    # ── 수급 — 사는 쪽도 파는 쪽도 신호다.
+    out['외국인'] = out['기관'] = None
+    if inv_data:
+        for key, name in (('foreign', '외국인'), ('institution', '기관')):
+            flow = investor_flow([getattr(d, key) for d in inv_data])
+            out[name] = _slot(*flow) if flow else None
+
+    # ── 리포트·공시 — 창 안에 새로 나온 것.
+    out['리포트'] = _slot(f'{report_count}건', 'up') if report_count else None
+    if gongsi_bad:
+        text = f'악재 {gongsi_bad}' + (f' · 호재 {gongsi_good}' if gongsi_good else '')
+        out['공시'] = _slot(text, 'down')
+    elif gongsi_good:
+        out['공시'] = _slot(f'호재 {gongsi_good}', 'up')
+    else:
+        out['공시'] = None
+
+    # ── 괴리율 — 드문 양끝만 켠다. 가운데(+21~39%)는 증권사 관행이라
+    #    읽어봐야 얻을 것이 없다.
+    gap_now = report_gap(stock)
+    if gap_now is None:
+        out['괴리율'] = None
+    elif gap_now >= SLOT_GAP_STRONG:
+        out['괴리율'] = _slot(f'{gap_now:+.1f}%', 'up')
+    elif gap_now <= SLOT_GAP_THIN:
+        out['괴리율'] = _slot(f'{gap_now:+.1f}%', 'down')
+    else:
+        out['괴리율'] = None
+
+    rows = [{'name': name, 'slots': [{'key': k, **(out[k] or {'on': False})} for k in keys]}
+            for name, keys in SLOT_ROWS]
+    return {'rows': rows, 'window': window_days, 'gap_now': gap_now,
+            'align': align, 'align_name': ALIGN_NAMES.get(align, '')}

@@ -1233,8 +1233,8 @@ def stock_detail(request, code):
     _daily_desc = list(reversed(daily_charts))
     _align = stock_signal.ma_alignment(_daily_desc)
     _gap, _pullback_label = stock_signal.pullback(_daily_desc, _align)
-    _inst_streak, _frgn_streak = stock_signal.investor_streaks(
-        list(InvestorTrend.objects.filter(stock=stock).order_by('-date')[:20]))
+    _inv20 = list(InvestorTrend.objects.filter(stock=stock).order_by('-date')[:20])
+    _inst_streak, _frgn_streak = stock_signal.investor_streaks(_inv20)
     _gongsi_recent = [g for g in gongsi_list if g.date in recent_dates]
     _gongsi_good = sum(1 for g in _gongsi_recent if gongsi_signal.classify(g.title) == '호재')
     _gongsi_bad = sum(1 for g in _gongsi_recent if gongsi_signal.classify(g.title) == '악재')
@@ -1255,6 +1255,9 @@ def stock_detail(request, code):
         'gongsi_bad': _gongsi_bad,
         'window': RECENT_DAYS,
     }
+    slot_panel = stock_signal.build_slots(
+        stock, _daily_desc, _inv20, recent_report_count,
+        _gongsi_good, _gongsi_bad, RECENT_DAYS)
 
     # 사업보고서를 읽고 쓴 리서치가 낡았는지. 리서치 칸까지 내려가야 보이던
     # 것을 위로 올린다 — '다시 봐야 할 이유'의 대표다.
@@ -1428,6 +1431,7 @@ def stock_detail(request, code):
         'recent_window_days': recent_window_days,
         'price_pos': price_pos,
         'signal_panel': signal_panel,
+        'slot_panel': slot_panel,
         'new_report_alert': new_report_alert,
         'latest_investor': latest_investor,
         'latest_short': latest_short,
