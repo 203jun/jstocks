@@ -1,5 +1,6 @@
 {% extends 'stocks/base.html' %}
 {% load humanize %}
+{% load prompt_tags %}
 
 {% block title %}종목 - JStocks{% endblock %}
 
@@ -140,7 +141,7 @@
     </div>
 </div>
 <!-- 현황 -->
-<div class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">현황<span id="btnCopyStatusPrompt" style="font-size:0.6rem;font-weight:400;padding:2px 8px;border-radius:4px;background:#f3f4f6;color:var(--text-secondary);cursor:pointer;">프롬프트</span></div>
+<div class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">현황{% prompt_pair "prompt_status" id="btnCopyStatusPrompt" %}</div>
 <div class="brief-card" style="padding:0; overflow:hidden;">
     <div style="overflow-x:auto;">
         <table class="modern-table" id="statusTable">
