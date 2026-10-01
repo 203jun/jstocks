@@ -139,12 +139,14 @@ class Info(models.Model):
         choices=[
             ('normal', '관심'),
             ('waiting', '대기'),
+            ('shared', '공유'),
         ],
         null=True,
         blank=True,
         verbose_name='관심단계',
         help_text='내가 고르는 단계 (관심 > 대기). 보유는 여기 없다 — '
-                  '자산에서 파생되며 화면에서 관심/대기보다 앞선다.'
+                  '자산에서 파생되며 화면에서 관심/대기보다 앞선다. '
+                  '공유는 로그인 없이 보는 /ontoo/ 페이지에 올라간다.'
     )
     fav_sync_status = models.CharField(
         max_length=20,

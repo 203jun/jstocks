@@ -1,0 +1,152 @@
+{% load humanize %}<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>공유 종목 - JStocks</title>
+<style>
+:root {
+    --bg-page: #f5f6f8;
+    --bg-card: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --text-primary: #1a1a2e;
+    --text-secondary: #6b7280;
+    --text-muted: #9ca3af;
+    --border-color: #e5e7eb;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --radius: 12px;
+    --up-color: #dc3545;
+    --down-color: #2962ff;
+}
+* { box-sizing: border-box; }
+body {
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 64px; }
+.page-title { font-size: 1.1rem; font-weight: 700; margin: 0 0 4px; }
+.page-sub { font-size: 0.8rem; color: var(--text-muted); margin: 0 0 20px; }
+
+/* 현황 표 — 종목 화면과 같은 규칙. 색은 둘뿐이다: 빨강 기회, 파랑 경고. */
+.align-mark { font-size:0.62rem; margin-right:3px; vertical-align:1px; }
+.align-mixed { color:var(--text-muted); opacity:0.45; }
+.st-cell { text-align:center; white-space:nowrap; }
+.st-tag {
+    display:inline-block; margin:1px 2px; padding:1px 6px; border-radius:3px;
+    font-size:0.68rem; font-weight:600; line-height:1.5;
+    text-decoration:none; white-space:nowrap;
+}
+.st-up { background:var(--up-color); color:#fff; }
+.st-down { background:var(--down-color); color:#fff; }
+.st-flat { background:var(--bg-secondary); color:var(--text-secondary); }
+.text-up { color: var(--up-color) !important; }
+.text-down { color: var(--down-color) !important; }
+
+.brief-card { background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius); box-shadow:var(--shadow-card); }
+.modern-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+.modern-table thead th { padding:10px 16px; font-weight:600; color:var(--text-secondary); border-bottom:2px solid var(--border-color); white-space:nowrap; background:var(--bg-card); text-align:left; }
+.modern-table tbody tr { cursor:pointer; transition:background 0.1s; }
+.modern-table tbody tr:hover { background:#f9fafb; }
+.modern-table tbody td { padding:8px 16px; border-bottom:1px solid #f3f4f6; white-space:nowrap; }
+.empty { padding:40px 16px; text-align:center; color:var(--text-muted); font-size:0.85rem; }
+
+@media (max-width: 767px) {
+    #statusTable th:first-child,
+    #statusTable td:first-child {
+        position: sticky; left: 0; z-index: 1;
+        background: var(--bg-card);
+        box-shadow: 6px 0 6px -6px rgba(0,0,0,0.18);
+    }
+    #statusTable thead th:first-child { z-index: 3; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+    <h1 class="page-title">공유 종목</h1>
+    <p class="page-sub">같이 보는 종목의 현황이다. 매일 장 마감 후 갱신된다.</p>
+
+    <div class="brief-card" style="overflow:hidden;">
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="statusTable">
+                <thead>
+                    <tr>
+                        <th style="padding-left:16px;">종목명</th>
+                        <th style="text-align:right;">가격</th>
+                        <th style="text-align:center;">차트</th>
+                        <th style="text-align:center;">수급</th>
+                        <th style="text-align:center;">리포트</th>
+                        <th style="text-align:center;">10일</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in status_stocks %}
+                    <tr onclick="location.href='{{ item.detail_url }}'">
+                        <td style="padding-left:16px;">
+                            {% if item.ma_align == 'bull' %}<span class="align-mark text-up" title="정배열">&#9650;</span>{% elif item.ma_align == 'bear' %}<span class="align-mark text-down" title="역배열">&#9660;</span>{% else %}<span class="align-mark align-mixed" title="뒤섞임">&#9644;</span>{% endif %}
+                            <strong>{{ item.stock.name }}</strong>
+                        </td>
+                        <td style="text-align:right;">
+                            {% if item.stock.current_price %}{{ item.stock.current_price|intcomma }}{% else %}-{% endif %}
+                            {% if item.stock.change_rate %}<span style="font-size:0.72rem;margin-left:2px;" class="{% if item.stock.change_rate > 0 %}text-up{% elif item.stock.change_rate < 0 %}text-down{% endif %}">({% if item.stock.change_rate > 0 %}+{% endif %}{{ item.stock.change_rate }}%)</span>{% endif %}
+                        </td>
+                        {# 차트에서 읽은 것 — 거래량 신고 · 눌림목 · 장대양봉 뒤 #}
+                        <td class="st-cell">
+                            {% if item.vol_high_60 %}<span class="st-tag {% if item.is_bullish %}st-up{% else %}st-down{% endif %}">거래량 60일</span>
+                            {% elif item.vol_high_20 %}<span class="st-tag {% if item.is_bullish %}st-up{% else %}st-down{% endif %}">거래량 20일</span>{% endif %}
+                            {% if item.pullback_label == '얕은눌림' or item.pullback_label == '깊은눌림' %}<span class="st-tag st-up">{{ item.pullback_label }} {{ item.pullback }}%</span>
+                            {% elif item.pullback_label == '이탈' %}<span class="st-tag st-down">이탈 {{ item.pullback }}%</span>{% endif %}
+                            {% if item.signal_info and item.signal_info.signal_days_ago %}<span class="st-tag {% if item.signal_info.signal_price_change < 0 %}st-down{% else %}st-up{% endif %}">양봉 {{ item.signal_info.signal_days_ago }}일전 {% if item.signal_info.signal_price_change > 0 %}+{% endif %}{{ item.signal_info.signal_price_change }}%</span>{% endif %}
+                        </td>
+                        {# 수급 — 외국인·기관 연속 매수 #}
+                        <td class="st-cell">
+                            {% if item.frgn_label %}<span class="st-tag st-up">외 {{ item.frgn_label }}{% if item.frgn_label != '20일' %}일{% endif %}</span>{% endif %}
+                            {% if item.inst_label %}<span class="st-tag st-up">기 {{ item.inst_label }}{% if item.inst_label != '20일' %}일{% endif %}</span>{% endif %}
+                        </td>
+                        {# 공시·리포트 — 새로 나온 것과 괴리율 #}
+                        <td class="st-cell">
+                            {% if item.gongsi_cat == '호재' %}<span class="st-tag st-up" title="{{ item.gongsi_title }}">호재</span>
+                            {% elif item.gongsi_cat == '악재' %}<span class="st-tag st-down" title="{{ item.gongsi_title }}">악재</span>{% endif %}
+                            {% if item.has_report %}<span class="st-tag st-flat">리포트</span>{% endif %}
+                            {% if item.report_gap >= 50 %}<span class="st-tag st-up" title="목표가가 현재가보다 그만큼 위다">괴리 +{{ item.report_gap }}%</span>
+                            {% elif item.report_gap is not None and item.report_gap <= 10 %}<span class="st-tag st-down" title="애널리스트도 여력을 거의 못 봤다">괴리 {% if item.report_gap > 0 %}+{% endif %}{{ item.report_gap }}%</span>{% endif %}
+                        </td>
+                        <td style="text-align:center;"><canvas class="sparkline" data-values="{{ item.sparkline|join:',' }}" width="60" height="20"></canvas></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="empty">공유로 지정한 종목이 없다. 종목 화면에서 관심단계를 '공유'로 바꾸면 여기 올라온다.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// 스파크라인 — 종목 화면과 같은 그림
+document.querySelectorAll('.sparkline').forEach(canvas => {
+    const values = canvas.dataset.values.split(',').map(Number);
+    if (values.length < 2) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    const min = Math.min(...values), max = Math.max(...values);
+    const range = max - min || 1;
+    ctx.strokeStyle = values[values.length - 1] >= values[0] ? '#ef5350' : '#2196f3';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    values.forEach((v, i) => {
+        const x = (i / (values.length - 1)) * w;
+        const y = h - ((v - min) / range) * (h - 4) - 2;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+});
+</script>
+</body>
+</html>
