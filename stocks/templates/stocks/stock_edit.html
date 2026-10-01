@@ -153,6 +153,13 @@
                             <span style="color:var(--text-muted); font-size:0.78rem; margin-left:4px;">단기 매매를 위해 추적 중</span>
                         </span>
                     </label>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                        <input type="checkbox" id="is_shared" name="is_shared" {% if stock.is_shared %}checked{% endif %} style="width:16px; height:16px;">
+                        <span>
+                            <strong>공유</strong>
+                            <span style="color:var(--text-muted); font-size:0.78rem; margin-left:4px;">여럿이 보는 OnToo 에 올린다 (관심·대기와 같이 켤 수 있다)</span>
+                        </span>
+                    </label>
                 </div>
             </div>
             <div style="border-top:1px solid var(--border-color); margin-top:12px; padding-top:12px;">

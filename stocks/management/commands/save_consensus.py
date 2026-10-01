@@ -6,7 +6,7 @@ import requests
 from django.core.management.base import BaseCommand
 
 from stocks.logger import StockLogger
-from stocks.models import Consensus, Info
+from stocks.models import FAV_FILTER, Consensus, Info
 
 
 class Command(BaseCommand):
@@ -72,7 +72,7 @@ class Command(BaseCommand):
             stocks = Info.objects.filter(is_active=True)
             target = '전체 종목'
         elif code == 'fav':
-            stocks = Info.objects.filter(is_active=True, interest_level__isnull=False)
+            stocks = Info.objects.filter(is_active=True).filter(FAV_FILTER)
             target = '관심 종목'
         else:
             stocks = Info.objects.filter(code=options['code'])

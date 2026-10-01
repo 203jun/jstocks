@@ -168,7 +168,7 @@
             </thead>
             <tbody>
                 {% for item in status_stocks %}
-                <tr class="status-row" data-level="{{ item.level }}" onclick="if(!event.target.closest('.signal-chart-btn'))location.href='{{ item.detail_url }}'" style="cursor:pointer;">
+                <tr class="status-row" data-level="{{ item.level }}" data-shared="{% if item.is_shared %}1{% else %}0{% endif %}" onclick="if(!event.target.closest('.signal-chart-btn'))location.href='{{ item.detail_url }}'" style="cursor:pointer;">
                     <td style="padding-left:16px;">
                         {% if item.ma_align == 'bull' %}<span class="align-mark text-up" title="정배열">&#9650;</span>{% elif item.ma_align == 'bear' %}<span class="align-mark text-down" title="역배열">&#9660;</span>{% else %}<span class="align-mark align-mixed" title="뒤섞임">&#9644;</span>{% endif %}
                         <strong>{{ item.stock.name }}</strong>
@@ -286,9 +286,13 @@ updateTabCounts();
 
 // 초기 필터 적용 (보유)
 function applyFilter(filter) {
-    // 현황 테이블 필터링
+    // 현황 테이블 필터링.
+    // 공유는 단계가 아니라 깃발이다 — 관심이면서 공유인 종목은 두 탭에 다 뜬다.
     document.querySelectorAll('.status-row').forEach(row => {
-        row.style.display = row.dataset.level === filter ? '' : 'none';
+        const show = filter === 'shared'
+            ? row.dataset.shared === '1'
+            : row.dataset.level === filter;
+        row.style.display = show ? '' : 'none';
     });
 }
 

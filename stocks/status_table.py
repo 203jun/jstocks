@@ -179,6 +179,7 @@ def build_status_rows(target_stocks, holding_codes, card_c_stocks=None, include_
     # 종목 행에도 링크를 실어 둔다 (ETF 와 같은 표에서 같은 방식으로 쓰기 위해)
     for _row in status_stocks:
         _row['is_etf'] = False
+        _row['is_shared'] = bool(getattr(_row['stock'], 'is_shared', False))
         _row['detail_url'] = f"/stocks/{_row['stock'].code}/"
 
     if not include_etf:
@@ -210,6 +211,7 @@ def build_status_rows(target_stocks, holding_codes, card_c_stocks=None, include_
             'gongsi_cat': '', 'gongsi_title': '',
             'has_report': False, 'report_gap': None,
             'sparkline': [], 'has_alert': False, 'alert_conditions': '', 'recent_perf': '',
+            'is_shared': False,   # ETF 는 아직 공유하지 않는다
         }
         if daily:
             today_d = daily[0]

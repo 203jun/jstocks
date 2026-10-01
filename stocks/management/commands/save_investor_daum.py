@@ -2,7 +2,7 @@ import time
 import requests
 from datetime import datetime
 from django.core.management.base import BaseCommand
-from stocks.models import Info, InvestorTrend
+from stocks.models import FAV_FILTER, Info, InvestorTrend
 from stocks.logger import StockLogger
 
 
@@ -53,7 +53,7 @@ class Command(BaseCommand):
             stocks = Info.objects.filter(is_active=True)
 
             if code.lower() == 'fav':
-                stocks = stocks.filter(interest_level__isnull=False)
+                stocks = stocks.filter(FAV_FILTER)
                 target_name = '관심 종목'
             else:
                 target_name = '전체 종목'

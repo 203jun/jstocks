@@ -2,7 +2,7 @@ import time
 import re
 from datetime import datetime
 from django.core.management.base import BaseCommand
-from stocks.models import Info, Nodaji
+from stocks.models import FAV_FILTER, Info, Nodaji
 from stocks.logger import StockLogger
 
 
@@ -102,7 +102,7 @@ class Command(BaseCommand):
         stocks = Info.objects.filter(is_active=True)
 
         if fav_only:
-            stocks = stocks.filter(interest_level__isnull=False)
+            stocks = stocks.filter(FAV_FILTER)
             mode = '관심 종목'
         else:
             mode = '전체 종목'

@@ -1,5 +1,12 @@
 from urllib.parse import urlparse
 from django.db import models
+from django.db.models import Q
+
+
+# '--code fav' 가 고르는 종목 — 관심단계를 둔 것과 공유로 올린 것 모두다.
+# 공유만 켠 종목에 수급·공매도·공시·리포트가 안 들어오면 OnToo 표에 빈 칸만
+# 남는다. 일곱 개 명령이 같은 뜻을 각자 적고 있었어서 여기로 올린다.
+FAV_FILTER = Q(interest_level__isnull=False) | Q(is_shared=True)
 
 
 class ThemeCategory(models.Model):
@@ -139,14 +146,13 @@ class Info(models.Model):
         choices=[
             ('normal', '관심'),
             ('waiting', '대기'),
-            ('shared', '공유'),
         ],
         null=True,
         blank=True,
         verbose_name='관심단계',
-        help_text='내가 고르는 단계 (관심 > 대기). 보유는 여기 없다 — '
-                  '자산에서 파생되며 화면에서 관심/대기보다 앞선다. '
-                  '공유는 로그인 없이 보는 /ontoo/ 페이지에 올라간다.'
+        help_text='내가 고르는 단계 (관심 > 대기). 둘 중 하나만 고른다. '
+                  '보유는 여기 없다 — 자산에서 파생되며 화면에서 관심/대기보다 '
+                  '앞선다. 공유는 단계가 아니라 깃발이다 (is_shared).'
     )
     fav_sync_status = models.CharField(
         max_length=20,
@@ -175,6 +181,17 @@ class Info(models.Model):
         default=False,
         verbose_name='추적중',
         help_text='단기 매매를 위해 추적 중인 종목 여부'
+    )
+
+    # === 공유 ===
+    # 처음에는 관심단계의 값으로 넣었다. 단계는 하나만 골라지므로 '관심이면서
+    # 공유' 가 안 됐다. 관심과 대기는 서로 못 겹치지만 공유는 둘 다와 겹친다 —
+    # 단계가 아니라 성질이라서 깃발로 둔다.
+    is_shared = models.BooleanField(
+        default=False,
+        verbose_name='공유',
+        help_text='로그인 없이 여럿이 보는 /ontoo/ 페이지에 올릴 종목 여부. '
+                  '관심·대기와 같이 켤 수 있다.'
     )
 
     # === 사용자 정의 업종 ===

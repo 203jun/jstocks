@@ -77,7 +77,9 @@ def index(request):
     # 보유 중이면 관심 등록을 안 했어도 현황에 들어와야 한다
     target_stocks = sort_by_theme(
         base_qs.filter(
-            Q(interest_level__in=['normal', 'waiting', 'shared']) | Q(code__in=holding_codes)
+            Q(interest_level__in=['normal', 'waiting'])
+            | Q(is_shared=True)
+            | Q(code__in=holding_codes)
         )
     )
 
@@ -477,11 +479,15 @@ def index(request):
     prompt_status = SystemSetting.objects.filter(key='prompt_status').values_list('value', flat=True).first() or ''
 
     # 현황 데이터 블록 텍스트 생성 (레벨별)
+    # 공유는 단계가 아니라 깃발이다. 관심이면서 공유인 종목은 두 탭에 다 든다.
     status_blocks_by_level = {'holding': [], 'normal': [], 'waiting': [], 'shared': []}
     for item in status_stocks:
+        text = status_block_text(item)
         level = item.get('level', 'normal')
         if level in status_blocks_by_level:
-            status_blocks_by_level[level].append(status_block_text(item))
+            status_blocks_by_level[level].append(text)
+        if item.get('is_shared'):
+            status_blocks_by_level['shared'].append(text)
     status_data_by_level = {k: '\n\n---\n\n'.join(v) for k, v in status_blocks_by_level.items()}
 
     context = {
@@ -1328,9 +1334,11 @@ def stock_edit(request, code):
 
     if request.method == 'POST':
         old_interest_level = stock.interest_level  # 변경 전 값 저장
+        old_is_shared = stock.is_shared
 
         interest_level = request.POST.get('interest_level', '')
         new_interest_level = interest_level if interest_level else None
+        new_is_shared = request.POST.get('is_shared') == 'on'
 
         # 보유 중이면 관심을 뗄 수 없다. 떼는 순간 run_fav_commands(remove) 가
         # 수급·공매도·공시·리포트를 지운다. 계좌 동기화가 다음 날 등급을 도로
@@ -1341,6 +1349,7 @@ def stock_edit(request, code):
             return redirect('stocks:stock_edit', code=code)
 
         stock.interest_level = new_interest_level
+        stock.is_shared = new_is_shared
         stock.is_tracking = request.POST.get('is_tracking') == 'on'
 
         stock.save()
@@ -1350,14 +1359,18 @@ def stock_edit(request, code):
         theme_ids = request.POST.getlist('themes')
         stock.themes.set(Theme.objects.filter(id__in=theme_ids))
 
-        # 관심 종목 변경 시 데이터 수집/삭제
-        if old_interest_level is None and new_interest_level is not None:
+        # 자료 수집·삭제는 fav 인지 아닌지가 바뀔 때만 돈다. 공유만 켠 종목도
+        # 수급·공시·리포트가 있어야 OnToo 표에 빈 칸만 남지 않는다. 예전에는
+        # 관심단계만 봐서, 공유를 켜둔 채 관심을 떼면 자료가 지워졌다.
+        was_fav = old_interest_level is not None or old_is_shared
+        now_fav = new_interest_level is not None or new_is_shared
+        if not was_fav and now_fav:
             # 관심 등록: 데이터 수집
             stock.fav_sync_status = 'syncing'
             stock.save(update_fields=['fav_sync_status'])
             run_fav_commands(code, 'add')
             messages.success(request, f'{stock.name} 정보가 저장되었습니다. (데이터 수집 중...)')
-        elif old_interest_level is not None and new_interest_level is None:
+        elif was_fav and not now_fav:
             # 관심 해제: 데이터 삭제
             stock.fav_sync_status = 'deleting'
             stock.save(update_fields=['fav_sync_status'])

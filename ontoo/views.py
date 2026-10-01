@@ -14,18 +14,17 @@ from django.shortcuts import render
 from stocks.models import Info, SystemSetting
 from stocks.status_table import build_status_rows, status_block_text
 
-LEVEL = 'shared'
 PROMPT_KEY = 'prompt_status'
 
 
 def index(request):
     """공유 종목 현황"""
     stocks = list(
-        Info.objects.filter(is_active=True, interest_level=LEVEL)
+        Info.objects.filter(is_active=True, is_shared=True)
         .prefetch_related('themes__category')
         .order_by('name')
     )
-    # 보유 표시 없음 — 두 번째 인자가 빈 집합이면 level 은 'shared' 로 남는다
+    # 보유 표시 없음 — 두 번째 인자가 빈 집합이면 보유 여부가 새지 않는다
     status_stocks = build_status_rows(stocks, set(), include_etf=False)
 
     # 프롬프트는 복사만 한다. 고치는 길(⚙)도, 본문을 띄우는 창도 두지 않는다 —
