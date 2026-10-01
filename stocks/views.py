@@ -29,7 +29,7 @@ from .gongsi_prompt import (
 from .gongsi_signal import classify as _classify_gongsi
 from .report_prompt import REPORT_VARIABLES, build_report_prompt_vars
 from .report_signal import build_target_panel, gap_band
-from .status_table import build_status_rows
+from .status_table import build_status_rows, status_block_text
 from .supply_signal import (
     FLOW_LONG_DAYS, FLOW_SHORT_DAYS, flow_band, short_z_band, turn,
 )
@@ -479,61 +479,9 @@ def index(request):
     # 현황 데이터 블록 텍스트 생성 (레벨별)
     status_blocks_by_level = {'holding': [], 'normal': [], 'waiting': [], 'shared': []}
     for item in status_stocks:
-        s = item['stock']
-        lines = [f"종목명: {s.name}"]
-        price_str = f"{s.current_price:,}" if s.current_price else '-'
-        rate_str = f"{'+' if s.change_rate and s.change_rate > 0 else ''}{s.change_rate}%" if s.change_rate else ''
-        lines.append(f"현재가: {price_str} ({rate_str})" if rate_str else f"현재가: {price_str}")
-        align_map = {'bull': '정배열(▲)', 'bear': '역배열(▼)', 'mixed': '혼조(▬)'}
-        lines.append(f"배열: {align_map.get(item['ma_align'], '-')}")
-        if item['pullback_label']:
-            lines.append(f"눌림목: {item['pullback_label']} (MA20 대비 {'+' if item['pullback'] > 0 else ''}{item['pullback']}%)")
-        vol_parts = []
-        if item.get('vol_high_60'):
-            vol_parts.append(f"60일 최대 ({'양봉' if item.get('is_bullish') else '음봉'})")
-        elif item.get('vol_high_20'):
-            vol_parts.append(f"20일 최대 ({'양봉' if item.get('is_bullish') else '음봉'})")
-        if vol_parts:
-            lines.append(f"거래량: {', '.join(vol_parts)}")
-        si = item.get('signal_info')
-        if si:
-            si_data = si if isinstance(si, dict) else {'signal_days_ago': si.get('signal_days_ago', 0), 'signal_price_change': si.get('signal_price_change', 0)} if hasattr(si, 'get') else None
-            if si_data:
-                days_ago = si_data.get('signal_days_ago', 0)
-                pct = si_data.get('signal_price_change', 0)
-                ago_str = f"{days_ago}일전 " if days_ago > 0 else ''
-                lines.append(f"신호: {ago_str}{'+' if pct > 0 else ''}{pct}%")
-        if item['inst_label']:
-            label = '20일 최대 순매수' if item['inst_label'] == '20일' else f"{item['inst_label']}일 연속 순매수"
-            lines.append(f"기관: {label}")
-        if item['frgn_label']:
-            label = '20일 최대 순매수' if item['frgn_label'] == '20일' else f"{item['frgn_label']}일 연속 순매수"
-            lines.append(f"외국인: {label}")
-        if item['gongsi_cat']:
-            gongsi_str = f"공시: {item['gongsi_cat']}"
-            if item.get('gongsi_title'):
-                gongsi_str += f" — {item['gongsi_title']}"
-            lines.append(gongsi_str)
-        if item.get('recent_reports'):
-            gap_str = f" (괴리율 {'+' if item['report_gap'] > 0 else ''}{item['report_gap']}%)" if item.get('report_gap') is not None else ''
-            titles = ', '.join(r.title for r in item['recent_reports'] if r.title)
-            lines.append(f"리포트: {titles}{gap_str}" if titles else f"리포트: 있음{gap_str}")
-        elif item.get('report_gap') is not None:
-            lines.append(f"괴리율: {'+' if item['report_gap'] > 0 else ''}{item['report_gap']}%")
-        # 신호 종목: 수급/공매도 20일 데이터
-        if item.get('inv_data'):
-            inv_lines = ['  날짜 | 외국인 | 기관']
-            for d in item['inv_data']:
-                inv_lines.append(f"  {d.date.strftime('%Y-%m-%d')} | {d.foreign:,} | {d.institution:,}")
-            lines.append("수급 20일:\n" + '\n'.join(inv_lines))
-        if item.get('short_data'):
-            short_lines = ['  날짜 | 공매도량 | 비중(%)']
-            for d in item['short_data']:
-                short_lines.append(f"  {d.date.strftime('%Y-%m-%d')} | {d.short_volume:,} | {d.trading_weight}%")
-            lines.append("공매도 20일:\n" + '\n'.join(short_lines))
         level = item.get('level', 'normal')
         if level in status_blocks_by_level:
-            status_blocks_by_level[level].append('\n'.join(lines))
+            status_blocks_by_level[level].append(status_block_text(item))
     status_data_by_level = {k: '\n\n---\n\n'.join(v) for k, v in status_blocks_by_level.items()}
 
     context = {

@@ -1,4 +1,4 @@
-{% load humanize %}<!DOCTYPE html>
+{% load humanize %}{% load help_tags %}<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -30,7 +30,8 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 64px; }
-.page-title { font-size: 1.1rem; font-weight: 700; margin: 0 0 20px; }
+.page-title { font-size: 1.1rem; font-weight: 700; margin: 0; }
+.title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
 
 /* 현황 표 — 종목 화면과 같은 규칙. 색은 둘뿐이다: 빨강 기회, 파랑 경고. */
 .align-mark { font-size:0.62rem; margin-right:3px; vertical-align:1px; }
@@ -55,6 +56,47 @@ body {
 .modern-table tbody td { padding:8px 16px; border-bottom:1px solid var(--border-color); white-space:nowrap; }
 .empty { padding:40px 16px; text-align:center; color:var(--text-muted); font-size:0.85rem; }
 
+/* 프롬프트 버튼 — base.html 의 .prompt-pair 다크 모양. 복사 하나뿐이다. */
+.prompt-pair {
+    display: inline-flex; align-items: stretch; vertical-align: middle;
+    border-radius: 6px; overflow: hidden; line-height: 1;
+    font-size: 0.72rem; font-weight: 500;
+}
+.prompt-pair > * {
+    display: inline-flex; align-items: center;
+    background: #e5e7eb; color: #111827;
+    border: none; padding: 5px 10px; cursor: pointer;
+    font-size: inherit; font-weight: inherit; font-family: inherit;
+    text-decoration: none; white-space: nowrap;
+    transition: background 0.15s;
+}
+.prompt-pair > *:hover { background: #f3f4f6; }
+
+/* ⓘ 설명 아이콘 — 종목 화면과 같은 것 (base.html) */
+.hlp {
+    position: relative; display: inline-flex; align-items: center; justify-content: center;
+    width: 15px; height: 15px; padding: 0; margin-left: 3px;
+    border: none; background: none; color: var(--text-muted);
+    font-size: 0.72rem; line-height: 1; cursor: pointer; vertical-align: middle;
+}
+.hlp:hover { color: var(--text-primary); }
+/* 손가락으로 누를 수 있게 실제 터치 영역만 넓힌다 (레이아웃은 그대로) */
+.hlp::after { content: ''; position: absolute; width: 32px; height: 32px; margin: -8px; }
+.hlp-overlay {
+    display: none; position: fixed; inset: 0; z-index: 1080;
+    background: rgba(0,0,0,0.45); padding: 20px; overflow-y: auto;
+}
+.hlp-overlay.show { display: flex; align-items: center; justify-content: center; }
+.hlp-box {
+    width: 100%; max-width: 420px; padding: 18px 20px 20px;
+    border-radius: var(--radius); background: var(--bg-card);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+.hlp-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.hlp-head h6 { margin: 0; font-size: 0.92rem; font-weight: 700; color: var(--text-primary); }
+.hlp-close { border: none; background: none; color: var(--text-muted); font-size: 1.3rem; line-height: 1; cursor: pointer; }
+.hlp-body { font-size: 0.8rem; line-height: 1.65; color: var(--text-secondary); white-space: pre-line; word-break: keep-all; }
+
 @media (max-width: 767px) {
     #statusTable th:first-child,
     #statusTable td:first-child {
@@ -69,7 +111,12 @@ body {
 <body>
 
 <div class="wrap">
-    <h1 class="page-title">OnToo</h1>
+    <div class="title-row">
+        <h1 class="page-title">OnToo</h1>
+        {% if can_copy_prompt %}
+        <span class="prompt-pair"><span id="btnCopyPrompt" role="button">프롬프트</span></span>
+        {% endif %}
+    </div>
 
     <div class="brief-card" style="overflow:hidden;">
         <div style="overflow-x:auto;">
@@ -78,9 +125,9 @@ body {
                     <tr>
                         <th style="padding-left:16px;">종목명</th>
                         <th style="text-align:right;">가격</th>
-                        <th style="text-align:center;">차트</th>
-                        <th style="text-align:center;">수급</th>
-                        <th style="text-align:center;">리포트</th>
+                        <th style="text-align:center;">차트 {% help_icon "status_chart" %}</th>
+                        <th style="text-align:center;">수급 {% help_icon "status_supply" %}</th>
+                        <th style="text-align:center;">리포트 {% help_icon "status_report" %}</th>
                         <th style="text-align:center;">10일</th>
                     </tr>
                 </thead>
@@ -127,6 +174,22 @@ body {
     </div>
 </div>
 
+<!-- ⓘ 설명 팝업 -->
+<div class="hlp-overlay" id="helpOverlay">
+    <div class="hlp-box">
+        <div class="hlp-head">
+            <h6 id="helpTitle"></h6>
+            <button type="button" class="hlp-close" id="helpClose" aria-label="닫기">&times;</button>
+        </div>
+        <div class="hlp-body" id="helpBody"></div>
+    </div>
+</div>
+
+{% if can_copy_prompt %}
+{{ prompt_template|json_script:"prompt-template-data" }}
+{{ status_data|json_script:"status-data" }}
+{% endif %}
+
 <script>
 // 스파크라인 — 종목 화면과 같은 그림
 document.querySelectorAll('.sparkline').forEach(canvas => {
@@ -147,6 +210,73 @@ document.querySelectorAll('.sparkline').forEach(canvas => {
     });
     ctx.stroke();
 });
+
+// ⓘ 설명 — 종목 화면(base.html)과 같은 동작
+(function () {
+    const overlay = document.getElementById('helpOverlay');
+    const close = () => overlay.classList.remove('show');
+    function open(icon) {
+        document.getElementById('helpTitle').textContent = icon.dataset.helpTitle || '';
+        // 설명 본문은 코드가 쓴다(사용자 입력이 아니다). 그래서 서식을 허용해
+        // 화면에 실제로 뜨는 색·배지를 설명 안에서 그대로 보여줄 수 있게 한다.
+        document.getElementById('helpBody').innerHTML = icon.dataset.helpBody || '';
+        overlay.classList.add('show');
+    }
+    document.addEventListener('click', e => {
+        const icon = e.target.closest('.hlp');
+        if (!icon) return;
+        e.preventDefault();
+        e.stopPropagation();
+        open(icon);
+    }, true);
+    // span 이라 키보드 조작을 직접 붙여준다
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const icon = e.target.closest && e.target.closest('.hlp');
+        if (!icon) return;
+        e.preventDefault();
+        open(icon);
+    });
+    document.getElementById('helpClose').addEventListener('click', close);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && overlay.classList.contains('show')) close();
+    });
+})();
+
+// 프롬프트 복사 — 고치는 길도, 본문을 띄우는 창도 없다. 복사 하나뿐이다.
+(function () {
+    const btn = document.getElementById('btnCopyPrompt');
+    if (!btn) return;
+    // json_script 로 넘긴다. 프롬프트 안의 ${...} 나 역따옴표가 살아남아
+    // 페이지를 터뜨리는 일이 없게.
+    const template = JSON.parse(document.getElementById('prompt-template-data').textContent);
+    const statusData = JSON.parse(document.getElementById('status-data').textContent);
+
+    btn.addEventListener('click', async function () {
+        const today = new Date().toISOString().slice(0, 10);
+        const text = template
+            .replace(/\{현황데이터\}/g, statusData)
+            .replace(/\{오늘날짜\}/g, today);
+        const done = () => {
+            const orig = this.textContent;
+            this.textContent = '복사됨!';
+            setTimeout(() => { this.textContent = orig; }, 1500);
+        };
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                // HTTPS 가 아니면 navigator.clipboard 가 없어 textarea 로 되돌아간다
+                const ta = document.createElement('textarea');
+                ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+                document.body.appendChild(ta); ta.select();
+                document.execCommand('copy'); ta.remove();
+            }
+            done.call(this);
+        } catch (err) { alert('복사 실패: ' + err.message); }
+    });
+})();
 </script>
 </body>
 </html>

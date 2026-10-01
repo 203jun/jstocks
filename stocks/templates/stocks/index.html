@@ -692,7 +692,8 @@ document.getElementById('btnCopyStatusPrompt')?.addEventListener('click', async 
     const statusDataByLevel = {
         holding: `{{ status_data_by_level.holding|escapejs }}`,
         normal: `{{ status_data_by_level.normal|escapejs }}`,
-        waiting: `{{ status_data_by_level.waiting|escapejs }}`
+        waiting: `{{ status_data_by_level.waiting|escapejs }}`,
+        shared: `{{ status_data_by_level.shared|escapejs }}`
     };
     const activeFilter = document.querySelector('#dashboardTabs button.active')?.dataset.filter || 'holding';
     const statusData = statusDataByLevel[activeFilter] || '';
