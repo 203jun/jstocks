@@ -775,9 +775,10 @@ a.bi-tag { text-decoration:none; }
             <div class="research-chips">
                 {% for s in g.slots %}
                 {% if s.filled %}
-                <span class="research-common-chip research-no-link{% if '매매근거' in s.question %} research-trade-chip{% endif %}" title="{{ s.question }}">
+                <a href="/ontoo/research/{{ s.report.id }}/" class="research-common-chip{% if '매매근거' in s.question %} research-trade-chip{% endif %}" title="{{ s.question }}">
                     <span class="chip-title">{{ s.question|truncatechars:30 }}</span>
-                </span>
+                    <span class="chip-date" data-date="{{ s.report.updated_at|date:'Y-m-d' }}">{{ s.report.updated_at|date:"y.m.d" }}</span>
+                </a>
                 {% else %}
                 <span class="research-common-chip research-empty-chip research-no-link" title="{{ s.question }} — 아직 없습니다">
                     <span class="chip-title">{{ s.question|truncatechars:30 }}</span>
@@ -795,9 +796,10 @@ a.bi-tag { text-decoration:none; }
             {% if custom_question_reports %}
             <div class="research-custom-list">
                 {% for qr in custom_question_reports %}
-                <span class="research-custom-item research-no-link">
+                <a href="/ontoo/research/{{ qr.id }}/" class="research-custom-item">
                     <span class="research-custom-title">{{ qr.question|truncatechars:80 }}</span>
-                </span>
+                    <span class="research-custom-date chip-date" data-date="{{ qr.updated_at|date:'Y-m-d' }}">{{ qr.updated_at|date:"y.m.d" }}</span>
+                </a>
                 {% endfor %}
             </div>
             {% else %}

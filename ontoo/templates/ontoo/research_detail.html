@@ -1,0 +1,114 @@
+{% extends 'ontoo/base.html' %}
+
+{% comment %}
+공유 종목의 리서치 하나를 읽는 자리.
+
+읽기만 한다 — 삭제·붙여넣기·프롬프트·⚙ 가 없다. 그래서 뷰도 가볍다.
+내 화면의 리서치 뷰는 프롬프트를 만들려고 밸류에이션 값까지 모으는
+이백오십 줄이지만, 읽는 데 필요한 것은 질문과 리포트 본문뿐이다.
+
+울타리 — 공유로 지정한 종목의 리서치만 열린다. report_id 는 종목과 무관한
+전역 번호라서, 확인하지 않으면 번호를 바꿔가며 공유하지 않은 종목의
+매매근거까지 전부 읽힌다.
+{% endcomment %}
+
+{% block title %}{{ qr.question|default:"리서치" }} - {{ qr.stock.name }} - OnToo{% endblock %}
+
+{% block extra_style %}
+.section-heading { font-size:1.05rem; font-weight:700; color:var(--text-primary); margin:28px 0 16px; padding-bottom:10px; border-bottom:1px solid var(--border-color); }
+.brief-card { background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius); box-shadow:var(--shadow-card); padding:24px; margin-bottom:12px; }
+.back { display:inline-block; margin-bottom:14px; font-size:0.78rem; color:var(--text-muted); text-decoration:none; }
+.back:hover { color:var(--text-primary); }
+#preview {
+    min-height: 100px;
+    padding: 16px;
+    background: #f9fafb;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    line-height: 1.7;
+    color: var(--text-primary);
+    font-size: 0.88rem;
+}
+#preview h1 { font-size: 1.5rem; font-weight: 700; margin: 1.5rem 0 0.75rem; padding-bottom: 0.3rem; border-bottom: 2px solid var(--border-color); }
+#preview h2 { font-size: 1.3rem; font-weight: 700; margin: 1.25rem 0 0.5rem; padding-bottom: 0.25rem; border-bottom: 1px solid var(--border-color); }
+#preview h3 { font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+#preview h4 { font-size: 1rem; font-weight: 600; margin: 0.75rem 0 0.5rem; }
+#preview p { margin: 0.5rem 0; }
+#preview ul, #preview ol { padding-left: 1.75rem; margin: 0.5rem 0; }
+#preview li { margin: 0.25rem 0; }
+#preview table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; }
+#preview th, #preview td { border: 1px solid var(--border-color); padding: 10px 12px; text-align: left; }
+#preview th { background: #f9fafb; font-weight: 600; }
+#preview tr:hover { background: #f9fafb; }
+#preview blockquote { border-left: 4px solid var(--border-color); padding: 0.5rem 1rem; margin: 1rem 0; background: #f9fafb; color: var(--text-secondary); }
+#preview code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; color: #d63384; }
+#preview pre { background: #282c34; color: #abb2bf; padding: 1rem; border-radius: var(--radius-sm); overflow-x: auto; }
+#preview pre code { background: none; color: inherit; padding: 0; }
+#preview strong { font-weight: 600; }
+#preview hr { border: none; border-top: 1px solid var(--border-color); margin: 1.5rem 0; }
+#preview a { color: #2962ff; text-decoration: none; }
+#preview a:hover { text-decoration: underline; }
+#preview img { max-width: 100%; }
+.slot-alert { margin-top:8px; font-size:0.78rem; line-height:1.5; }
+.slot-alert-behind { color:#f59e0b; }
+.slot-alert-none, .slot-alert-stale { color:var(--text-muted); }
+.form-control { border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.85rem; color:var(--text-primary); }
+.form-control:focus { border-color:#2962ff; box-shadow:0 0 0 2px rgba(41,98,255,0.1); }
+
+[data-theme="dark"] #preview { background: #22262f !important; }
+[data-theme="dark"] #preview th { background: #1a1d24 !important; color: var(--text-primary); }
+[data-theme="dark"] #preview tr:hover { background: #1a1d24 !important; }
+[data-theme="dark"] #preview blockquote { background: #1a1d24 !important; color: var(--text-secondary) !important; }
+[data-theme="dark"] #preview code { background: #1a1d24 !important; color: #f472b6 !important; }
+[data-theme="dark"] #preview a { color: #5b8def !important; }
+
+{% endblock %}
+
+{% block content %}
+<a class="back" href="/ontoo/stock/{{ qr.stock.code }}/">← {{ qr.stock.name }}</a>
+
+<h5 class="section-heading" style="margin-top:0;">질문</h5>
+<div class="brief-card">
+    <div style="font-size:0.9rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;">
+        {{ qr.question|default:"이름 없는 리서치" }}
+    </div>
+    <div style="font-size:0.82rem;color:var(--text-secondary);">
+        {{ qr.stock.name }} · {{ qr.updated_at|date:"Y-m-d" }}
+    </div>
+</div>
+
+<h5 class="section-heading">리포트</h5>
+<div class="brief-card" style="padding:0;">
+    <div id="preview" style="border:none;border-radius:var(--radius);"></div>
+</div>
+<script type="text/plain" id="reportRaw">{{ qr.report }}</script>
+<input type="hidden" id="reportType" value="{{ qr.report_type|default:'markdown' }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+// 내 화면의 question_report_detail.html 과 같은 방식으로 그린다.
+// 저장된 원문은 textarea 가 아니라 <script type="text/plain"> 에 있다.
+const preview = document.getElementById('preview');
+const reportRaw = (document.getElementById('reportRaw')?.textContent || '');
+const reportType = document.getElementById('reportType');
+
+marked.setOptions({ breaks: true });
+marked.use({ extensions: [{ name: 'highlight', level: 'inline', childTokens: ['tokens'], start(src) { return src.indexOf('=='); }, tokenizer(src) { const match = src.match(/^==([^=]+)==/); if (match) { const token = { type: 'highlight', raw: match[0], text: match[1], tokens: [] }; this.lexer.inline(token.text, token.tokens); return token; } }, renderer(token) { return `<mark>${this.parser.parseInline(token.tokens)}</mark>`; } }] });
+
+(function updatePreview() {
+    let content = reportRaw;
+    if (!content.trim()) {
+        preview.innerHTML = '<span style="color:var(--text-muted);padding:24px;display:block;">아직 없습니다.</span>';
+        return;
+    }
+    if ((reportType?.value || 'markdown') === 'markdown') {
+        content = content.replace(/~/g, '&#126;');
+        preview.innerHTML = marked.parse(content);
+    } else {
+        preview.innerHTML = content;
+    }
+})();
+</script>
+{% endblock %}

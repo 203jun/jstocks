@@ -9,9 +9,10 @@
 표와 프롬프트 본문을 만드는 일은 stocks.status_table 한 곳에 있다. 종목
 화면과 같은 함수를 쓰므로 한쪽만 고쳐져 어긋나는 일이 없다.
 """
+from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 
-from stocks.models import Info, SystemSetting
+from stocks.models import Info, StockQuestionReport, SystemSetting
 from stocks.status_table import build_status_rows, status_block_text
 from stocks.views import build_stock_detail_context
 
@@ -54,3 +55,21 @@ def stock_detail(request, code):
     get_object_or_404(Info, code=code, is_active=True, is_shared=True)
     # 데이터는 내 종목 화면과 같은 함수에서 온다. 화면만 갈라진다.
     return render(request, 'ontoo/stock_detail.html', build_stock_detail_context(code))
+
+
+def research_detail(request, report_id):
+    """공유 종목의 리서치 하나를 읽는 자리.
+
+    report_id 는 종목과 무관한 전역 번호다. 그래서 번호만 맞으면 열리게
+    두면 안 된다 — 번호를 바꿔가며 공유하지 않은 종목의 매매근거까지
+    읽힌다. 그 리서치가 붙은 종목이 공유인지 여기서 본다.
+
+    읽기만 하므로 내 화면의 뷰(프롬프트를 만들려고 밸류에이션 값까지 모은다)
+    를 쓰지 않는다. 필요한 것은 질문과 리포트 본문뿐이다.
+    """
+    qr = get_object_or_404(
+        StockQuestionReport.objects.select_related('stock'), id=report_id)
+    stock = qr.stock
+    if not (stock and stock.is_active and stock.is_shared):
+        raise Http404('공유 종목의 리서치가 아닙니다')
+    return render(request, 'ontoo/research_detail.html', {'qr': qr})
