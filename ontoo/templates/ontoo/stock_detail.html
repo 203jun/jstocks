@@ -746,8 +746,6 @@ a.bi-tag { text-decoration:none; }
             </div>
         </div>
     </div>
-        </div>
-    </div>
 
     <!-- 리서치 -->
     {% comment %}
@@ -914,6 +912,12 @@ a.bi-tag { text-decoration:none; }
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
+// 차트 색 — stock_detail.html 과 같은 값. 테마는 다크 전용이다.
+const chartBg = '#1a1d24';
+const chartText = '#9ca3af';
+const chartGrid = '#2a2e38';
+const chartBorder = '#2a2e38';
+
 // ===== Marked.js options =====
 marked.setOptions({ breaks: true, gfm: true, headerIds: false, mangle: false });
 marked.use({ extensions: [{ name: 'highlight', level: 'inline', childTokens: ['tokens'], start(src) { return src.indexOf('=='); }, tokenizer(src) { const match = src.match(/^==([^=]+)==/); if (match) { const token = { type: 'highlight', raw: match[0], text: match[1], tokens: [] }; this.lexer.inline(token.text, token.tokens); return token; } }, renderer(token) { return `<mark>${this.parser.parseInline(token.tokens)}</mark>`; } }] });
