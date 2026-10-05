@@ -1,61 +1,1423 @@
-{% load humanize %}<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow">
-<title>{{ stock.name }} - OnToo</title>
-<style>
-/* 목록 화면과 같은 팔레트 */
-:root {
-    --bg-page: #0f1115;
-    --bg-card: #1a1d24;
-    --bg-secondary: #22262f;
-    --text-primary: #c2c7d0;
-    --text-secondary: #8a909b;
-    --text-muted: #5f6671;
-    --border-color: #2a2e38;
-    --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
-    --radius: 12px;
-    --up-color: #ef5350;
-    --down-color: #5b8def;
-}
-* { box-sizing: border-box; }
-body {
-    color-scheme: dark;
-    background-color: var(--bg-page);
-    color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-    margin: 0;
-    -webkit-font-smoothing: antialiased;
-}
-.wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 64px; }
-.back { display:inline-block; margin-bottom:16px; font-size:0.78rem; color:var(--text-muted); text-decoration:none; }
-.back:hover { color:var(--text-primary); }
-.name { font-size:1.3rem; font-weight:700; margin:0 0 2px; }
-.code { font-size:0.78rem; color:var(--text-muted); }
-.price { font-size:1.6rem; font-weight:700; margin-top:12px; }
-.rate { font-size:0.9rem; margin-left:6px; }
-.text-up { color: var(--up-color); }
-.text-down { color: var(--down-color); }
-.card { background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius); box-shadow:var(--shadow-card); padding:20px; }
-.todo { margin-top:20px; font-size:0.8rem; color:var(--text-muted); line-height:1.8; }
-</style>
-</head>
-<body>
-<div class="wrap">
-    <a class="back" href="/ontoo/">← 공유 종목</a>
+{% extends 'ontoo/base.html' %}
+{% load humanize %}
+{% load num_tags %}
+{% load help_tags %}
 
-    <div class="card">
-        <h1 class="name">{{ stock.name }}</h1>
-        <div class="code">{{ stock.code }}{% if stock.market %} · {{ stock.market }}{% endif %}</div>
-        <div class="price">
-            {% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}
-            {% if stock.change_rate %}<span class="rate {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}">{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%</span>{% endif %}
+{% comment %}
+공유 종목 상세. stocks/stock_detail.html 의 기본정보 쪽을 옮겨 온 것이다.
+
+데이터는 stocks.views.build_stock_detail_context 한 곳에서 온다. 화면은
+갈라지지만 숫자가 갈라지면 안 된다.
+
+옮기면서 뺀 것 — 쓰기와 내 사정
+  정보수정 · 전체내용복사 · 메모 수정 · 리서치 '일반 추가'
+  보유 줄 (수익률·평가손익·매입단가가 다 들어 있다)
+  이름 밑 배지에서 보유·관심단계·추적중 (시장만 남겼다)
+  리서치 칩의 링크 (제목만 보인다)
+  자료 탭
+
+아직 안 옮긴 탭(수급·공시·리포트)은 흐리게 두고 누를 수 없게 했다.
+{% endcomment %}
+
+{% block title %}{{ stock.name }} - OnToo{% endblock %}
+
+{% block extra_style %}
+.section-heading { font-size:1.05rem; font-weight:700; color:var(--text-primary); margin:28px 0 16px; padding-bottom:10px; border-bottom:1px solid var(--border-color); }
+.brief-card {
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius); box-shadow: var(--shadow-card);
+    padding: 24px; margin-bottom: 12px;
+}
+.btn-refresh {
+    background: none; border: 1px solid var(--border-color); border-radius: 6px;
+    padding: 4px 12px; font-size: 0.78rem; color: var(--text-secondary);
+    cursor: pointer; transition: all 0.15s; text-decoration: none;
+}
+.btn-refresh:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+
+/* Tabs */
+.market-tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+.market-tab {
+    padding: 8px 16px; background: none; border: 1px solid transparent;
+    border-radius: var(--radius); font-size: 0.85rem; font-weight: 500;
+    color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
+}
+@media (max-width: 768px) {
+    .market-tabs { gap: 4px; }
+    .market-tab { padding: 6px 10px; font-size: 0.78rem; }
+}
+.market-tab:hover { color: var(--text-primary); }
+.market-tab.active {
+    color: var(--text-primary); font-weight: 700; border-color: var(--border-color);
+    background: var(--bg-card); box-shadow: var(--shadow-card);
+}
+.tab-count {
+    display: inline-block; background: var(--border-color); color: var(--text-secondary);
+    font-size: 0.7rem; padding: 1px 6px; border-radius: 10px; margin-left: 4px; font-weight: 600;
+}
+
+/* Sub tabs (inside panels) */
+.sub-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+.sub-tab {
+    padding: 6px 16px; background: none; border: 1px solid var(--border-color);
+    border-radius: 6px; font-size: 0.82rem; font-weight: 500;
+    color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
+}
+.sub-tab:hover { color: var(--text-primary); }
+.sub-tab.active { color: var(--text-primary); font-weight: 600; background: var(--bg-card); border-color: var(--text-primary); }
+
+/* Modern table */
+.modern-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.modern-table thead th {
+    padding: 10px 16px; font-weight: 600; color: var(--text-secondary);
+    border-bottom: 2px solid var(--border-color); white-space: nowrap; background: var(--bg-card);
+}
+.modern-table tbody tr { cursor: pointer; transition: background 0.1s; }
+.modern-table tbody tr:hover { background: #f9fafb; }
+.modern-table tbody td { padding: 8px 16px; border-bottom: 1px solid #f3f4f6; white-space: nowrap; }
+
+/* List items */
+.list-item {
+    padding: 14px 0; border-bottom: 1px solid #f3f4f6;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+}
+.list-item:last-child { border-bottom: none; }
+.list-item-title {
+    font-size: 0.85rem; font-weight: 500; color: var(--text-primary);
+    text-decoration: none; display: block;
+}
+.list-item-title:hover { color: #2962ff; }
+.list-item-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+/* Tag badges */
+.tag-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 4px;
+    font-size: 0.75rem; font-weight: 500;
+}
+.tag-badge.theme { background: #eff6ff; color: #2962ff; }
+.tag-badge.theme-cat { background: #f3f4f6; color: var(--text-muted); font-weight: 500; }
+.tag-badge.theme-name {
+    background: linear-gradient(135deg, #2962ff, #1e40af);
+    color: #fff; font-weight: 700; font-size: 0.78rem;
+    padding: 4px 12px; border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(41, 98, 255, 0.25);
+}
+[data-theme="dark"] .tag-badge.theme-cat { background: #22262f; color: var(--text-secondary); }
+[data-theme="dark"] .tag-badge.theme-name {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.4);
+}
+
+/* 리서치: 그룹 레이아웃 */
+.research-group {
+    display:flex; gap:10px; padding:12px 16px;
+    border-bottom:1px solid var(--border-color); align-items:flex-start;
+}
+.research-group:last-child { border-bottom:none; }
+.research-chips { display:flex; flex-wrap:wrap; gap:6px; align-items:center; flex:1; }
+.research-custom-list { display:flex; flex-direction:column; flex:1; }
+
+/* 그룹 상자 — 한 칸도 안 채웠으면 접힌다 */
+.research-group-box { border-bottom:1px solid var(--border-color); }
+.research-group-box:last-child { border-bottom:none; }
+.research-group-box > summary {
+    display:flex; align-items:center; gap:8px;
+    padding:10px 16px; cursor:pointer; list-style:none;
+}
+.research-group-box > summary::-webkit-details-marker { display:none; }
+.research-group-box > summary::before {
+    content:'▸'; color:var(--text-muted); font-size:0.7rem; width:9px;
+}
+.research-group-box[open] > summary::before { content:'▾'; }
+.research-group-box > .research-chips,
+.research-group-box > .research-custom-list { padding:0 16px 12px 33px; }
+.research-count { font-size:0.7rem; color:var(--text-muted); }
+/* 새 정기보고서가 나온 뒤로 갱신 안 한 칸. 접힌 그룹에서도 보여야 한다 —
+   리서치는 그냥 두면 넉 달씩 묵는다(관측 중앙 124일). */
+.research-behind { font-size:0.68rem; color:#f59e0b; }
+.chip-behind { font-size:0.62rem; }
+.research-health {
+    padding:9px 16px; font-size:0.74rem; color:var(--text-secondary);
+    background:var(--bg-secondary); border-bottom:1px solid var(--border-color);
+}
+
+/* 아직 안 채운 칸. 눌러서 프롬프트를 복사하고 답을 붙여넣는다. */
+.research-empty-chip {
+    background:transparent !important;
+    border:1px dashed var(--border-color);
+    color:var(--text-muted) !important;
+    cursor:pointer;
+}
+.research-empty-chip:hover { background:var(--bg-hover, #f3f4f6) !important; color:var(--text-secondary) !important; }
+[data-theme="dark"] .research-empty-chip:hover { background:#22262f !important; }
+
+/* 리서치 그룹 라벨 */
+.research-common-label, .research-update-label, .research-judge-label, .research-custom-label {
+    display:inline-block; font-size:0.65rem; padding:2px 7px; border-radius:3px;
+    font-weight:600; flex-shrink:0; min-width:38px; text-align:center; margin-top:3px;
+}
+.research-common-label { background:#e8f0fe; color:#1a73e8; }
+.research-update-label { background:#fef3c7; color:#b45309; }
+.research-judge-label { background:#f5f3ff; color:#7c3aed; }
+.research-custom-label { background:#f3f4f6; color:var(--text-muted); }
+[data-theme="dark"] .research-common-label { background:#1e2e4a; color:#93b4ff; }
+[data-theme="dark"] .research-update-label { background:#3a2e10; color:#fbbf24; }
+[data-theme="dark"] .research-judge-label { background:#2a1f47; color:#c4b5fd; }
+[data-theme="dark"] .research-custom-label { background:#22262f; color:var(--text-secondary); }
+
+/* 칩 (기업분석·상황추적·투자판단) */
+.research-common-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 10px; border-radius:14px;
+    background:#f3f4f6; color:var(--text-primary); font-size:0.78rem;
+    text-decoration:none; transition:background 0.15s;
+}
+.research-common-chip:hover { background:#e5e7eb; color:var(--text-primary); }
+.research-common-chip .chip-date { font-size:0.7rem; color:var(--text-muted); }
+.chip-date.stale { color:#f59e0b !important; }
+[data-theme="dark"] .research-common-chip { background:#22262f; color:var(--text-primary); }
+[data-theme="dark"] .research-common-chip:hover { background:#2c313b; }
+
+/* 매매근거 강조 칩 */
+.research-trade-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 10px; border-radius:14px;
+    background:#fee2e2; color:#b91c1c; font-size:0.78rem; font-weight:600;
+    text-decoration:none; transition:background 0.15s;
+    border:1px solid #fca5a5;
+}
+.research-trade-chip:hover { background:#fecaca; color:#b91c1c; }
+.research-trade-chip .chip-date { font-size:0.7rem; color:#dc2626; font-weight:400; }
+/* 실적확인 강조 칩 (인풋 데이터) */
+.research-input-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 10px; border-radius:14px;
+    background:#eff6ff; color:#1d4ed8; font-size:0.78rem; font-weight:600;
+    text-decoration:none; transition:background 0.15s;
+    border:1px solid #93c5fd;
+}
+.research-input-chip:hover { background:#dbeafe; color:#1d4ed8; }
+.research-input-chip .chip-date { font-size:0.7rem; color:#3b82f6; font-weight:400; }
+[data-theme="dark"] .research-input-chip { background:#1e2a3a; color:#60a5fa; border-color:#2563eb; }
+[data-theme="dark"] .research-input-chip:hover { background:#1e3a5f; }
+[data-theme="dark"] .research-trade-chip { background:#3b1318; color:#fca5a5; border-color:#7f1d1d; }
+[data-theme="dark"] .research-trade-chip:hover { background:#4c1820; }
+[data-theme="dark"] .research-trade-chip .chip-date { color:#f87171; }
+
+/* 일반 리서치 아이템 (컴팩트) */
+.research-custom-item {
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+    padding:5px 0; text-decoration:none; color:var(--text-primary);
+    font-size:0.82rem; border-bottom:1px solid #f3f4f6;
+}
+.research-custom-item:last-child { border-bottom:none; }
+.research-custom-item:hover { color:var(--text-primary); background:#fafafa; }
+.research-custom-title { color:var(--text-primary); }
+.research-custom-date { font-size:0.7rem; color:var(--text-muted); flex-shrink:0; }
+[data-theme="dark"] .research-custom-item { border-bottom-color:#2a2e36; }
+[data-theme="dark"] .research-custom-item:hover { background:#1f232b; }
+.tag-badge.sector { background: #ecfdf5; color: #059669; }
+.tag-badge.market-kospi { background: #eff6ff; color: #2962ff; }
+.tag-badge.market-kosdaq { background: #ecfdf5; color: #059669; }
+.tag-badge.holding { background: #ecfdf5; color: #059669; }
+.tag-badge.tracking { background: #eff6ff; color: #2563eb; }
+.tag-badge.interest-normal { background: #fffbeb; color: #d97706; }
+.tag-badge.interest-waiting { background: #f3f4f6; color: var(--text-muted); }
+
+/* Holding info (보유 현황 2-line stacked cells) */
+
+/* Status badge */
+.status-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 0.72rem; font-weight: 500;
+    line-height: 1.4; border: none; background: none;
+    vertical-align: middle; box-sizing: border-box;
+}
+.status-badge.done { background: #ecfdf5; color: #059669; }
+.status-badge.pending { background: #f3f4f6; color: var(--text-muted); }
+.status-badge.info { background: #eff6ff; color: #2962ff; }
+
+/* Channel badge */
+.channel-badge {
+    display: inline-block; padding: 2px 8px; background: #f3f4f6;
+    border-radius: 4px; font-size: 0.72rem; color: var(--text-secondary);
+}
+
+/* Modal overlay */
+.modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4); z-index: 1000;
+    justify-content: center; align-items: center;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+    background: #fff; border-radius: var(--radius);
+    max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto;
+    padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+.modal-box-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);
+}
+.modal-close {
+    background: none; border: none; font-size: 1.2rem; color: var(--text-muted);
+    cursor: pointer; padding: 4px 8px;
+}
+.modal-close:hover { color: var(--text-primary); }
+
+/* Chart card */
+.chart-card {
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius); box-shadow: var(--shadow-card);
+    padding: 16px; margin-bottom: 12px;
+}
+.chart-card-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+    flex-wrap: wrap; gap: 8px;
+}
+/* 일봉/주봉/월봉 탭 — 카드 하나 안에서 갈아 끼운다 */
+.tf-tabs { display: flex; gap: 2px; }
+/* 컨센 탭도 같은 생김새를 쓰되 클래스는 나눈다 — 차트 탭 핸들러가
+   .tf-tab 전체에 걸려 있어, 같은 클래스를 쓰면 컨센을 눌렀을 때
+   showTimeframe(undefined) 가 돌아 차트가 통째로 숨겨진다 */
+.tf-tab, .cs-tab {
+    padding: 4px 12px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.tf-tab:hover, .cs-tab:hover { color: var(--text-secondary); }
+.tf-tab.active, .cs-tab.active { background: var(--bg-secondary); color: var(--text-primary); }
+.tf-note { font-size: 0.72rem; color: var(--text-muted); }
+/* d-flex 같은 부트스트랩 유틸이 display:flex !important 라 인라인 style 로는 못 숨긴다 */
+.tf-hidden { display: none !important; }
+/* Timeline */
+.timeline { position: relative; padding-left: 24px; }
+.timeline::before { content:''; position:absolute; left:5px; top:0; bottom:0; width:2px; background:var(--border-color); }
+.timeline-group { margin-bottom: 24px; }
+.timeline-date { position:relative; display:inline-block; font-size:0.82rem; font-weight:700; color:var(--text-primary); background:var(--bg-page); padding:3px 10px; border-radius:6px; margin-bottom:12px; margin-left:-8px; }
+.timeline-item { position:relative; margin-bottom:4px; }
+.timeline-item::before { content:''; position:absolute; left:-23px; top:8px; width:8px; height:8px; border-radius:50%; background:#4f46e5; border:2px solid #fff; box-shadow:0 0 0 2px #4f46e5; }
+
+.legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 4px;
+}
+
+/* Stat grid */
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media (max-width: 768px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+.stat-item-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; }
+.stat-item-value { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+
+/* Info box */
+.info-box {
+    background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm);
+    padding: 12px 16px; font-size: 0.82rem; color: #92400e; margin-bottom: 12px;
+}
+
+/* MA toggle */
+.ma-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 22px; border-radius: 4px;
+    font-size: 0.7rem; font-weight: 600; color: #fff; cursor: pointer;
+    opacity: 1; transition: opacity 0.2s; user-select: none;
+}
+.ma-badge:not(.active) { opacity: 0.25; }
+/* 이평선 뱃지 색 = 선 색 (숫자에 고정) */
+.ma-10 { background-color: #16a34a; }
+.ma-20 { background-color: #f97316; }
+.ma-60 { background-color: #2563eb; }
+.ma-120 { background-color: #111827; }
+[data-theme="dark"] .ma-120 { background-color: #e6e9ef; color: #1a1d24; }
+.ma-regime { background-color: #111827; }
+[data-theme="dark"] .ma-regime { background-color: #e6e9ef; color: #1a1d24; }
+
+/* Range buttons */
+.range-btn {
+    padding: 3px 10px; background: none;
+    border: 1px solid var(--border-color); border-radius: 4px;
+    font-size: 0.7rem; font-weight: 500; color: var(--text-muted);
+    cursor: pointer; transition: all 0.15s;
+}
+.range-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+.range-btn.active { background: var(--text-secondary); color: #fff; border-color: var(--text-secondary); }
+
+/* Markdown content */
+.markdown-content { font-size: 0.9rem; line-height: 1.7; color: #333; }
+.markdown-content h1 { font-size: 1.3rem; font-weight: 700; margin: 1.25rem 0 0.5rem; padding-bottom: 0.25rem; border-bottom: 2px solid #e9ecef; }
+.markdown-content h2 { font-size: 1.15rem; font-weight: 700; margin: 1rem 0 0.4rem; padding-bottom: 0.2rem; border-bottom: 1px solid #e9ecef; }
+.markdown-content h3 { font-size: 1rem; font-weight: 600; margin: 0.8rem 0 0.4rem; }
+.markdown-content h4 { font-size: 0.95rem; font-weight: 600; margin: 0.6rem 0 0.3rem; }
+.markdown-content p { margin: 0.4rem 0; }
+.markdown-content ul, .markdown-content ol { padding-left: 1.5rem; margin: 0.4rem 0; }
+.markdown-content li { margin: 0.2rem 0; }
+.markdown-content table { width: 100%; border-collapse: collapse; margin: 0.8rem 0; font-size: 0.85rem; }
+.markdown-content th, .markdown-content td { border: 1px solid #dee2e6; padding: 8px 10px; text-align: left; }
+.markdown-content th { background: #f8f9fa; font-weight: 600; }
+.markdown-content tr:hover { background: #f8f9fa; }
+.markdown-content blockquote { border-left: 4px solid #6c757d; padding: 0.4rem 0.8rem; margin: 0.8rem 0; background: #f8f9fa; color: #555; }
+.markdown-content code { background: #f1f3f4; padding: 2px 5px; border-radius: 4px; font-size: 0.85em; color: #d63384; }
+.markdown-content pre { background: #282c34; color: #abb2bf; padding: 0.8rem; border-radius: 6px; overflow-x: auto; }
+.markdown-content pre code { background: none; color: inherit; padding: 0; }
+.markdown-content strong { font-weight: 600; }
+.markdown-content hr { border: none; border-top: 1px solid #e9ecef; margin: 1rem 0; }
+.markdown-content a { color: #0d6efd; text-decoration: none; }
+.markdown-content a:hover { text-decoration: underline; }
+
+/* Report channel tabs */
+.report-channel-tabs {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+    padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color);
+}
+@media (min-width: 768px) { .report-channel-tabs { grid-template-columns: repeat(6, 1fr); } }
+.report-channel-tab {
+    display: block; width: 100%; padding: 4px 6px; font-size: 0.7rem;
+    border-radius: 4px; border: 1px solid var(--border-color); background: #f9fafb;
+    color: var(--text-secondary); text-align: center; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+}
+.report-channel-tab:hover { background: #f0f0f0; }
+.report-channel-tab.active { background: #2962ff; color: #fff; border-color: #2962ff; }
+[data-theme="dark"] .report-channel-tab { background: #22262f; color: var(--text-secondary); border-color: var(--border-color); }
+[data-theme="dark"] .report-channel-tab:hover { background: #2c313b; }
+[data-theme="dark"] .report-channel-tab.active { background: #1e3a8a; color: #dbeafe; border-color: #1e3a8a; }
+
+.highlight { background-color: #fef3c7; padding: 0 2px; border-radius: 2px; font-weight: bold; }
+[data-theme="dark"] .highlight { background-color: #3a2f15; color: #fbbf24; }
+
+.edit-list-item { padding:14px 16px; border-bottom:1px solid #f3f4f6; }
+.edit-list-item:last-child { border-bottom:none; }
+
+.saved-item-body { cursor:pointer; }
+.saved-item[data-expanded="false"] .item-title-text { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.saved-item[data-expanded="false"] .item-body-text { max-height:3em; overflow:hidden; }
+.saved-item[data-expanded="true"] .item-title-text { white-space:normal; word-break:break-word; }
+.saved-item[data-expanded="true"] .item-body-text { max-height:none; }
+.saved-item .expand-only { display:none; }
+.saved-item[data-expanded="true"] .expand-only { display:block; }
+.toggle-hint { font-size:0.72rem; color:var(--text-muted); margin-top:4px; user-select:none; }
+
+.search-group { display:flex; gap:8px; align-items:center; }
+.spinner-sm { display:inline-block; width:14px; height:14px; border:2px solid var(--border-color); border-top-color:var(--text-primary); border-radius:50%; animation:spin 0.6s linear infinite; }
+.prompt-badge { display:inline-block; padding:3px 10px; border-radius:4px; font-size:0.72rem; font-weight:500; cursor:pointer; background:#ecfdf5; color:#059669; transition:all 0.15s; }
+.prompt-badge:hover { background:#d1fae5; }
+.pending-item { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border:1px dashed var(--border-color); border-radius:6px; margin-bottom:6px; font-size:0.82rem; background:var(--bg-body, transparent); }
+.pending-item:hover { background:var(--bg-hover, rgba(0,0,0,0.03)); }
+.pending-btn { padding:4px 12px; font-size:0.75rem; cursor:pointer; border:1px solid var(--border-color); border-radius:4px; background:var(--bg-card); color:var(--text-body); }
+.pending-btn:hover { background:var(--bg-hover); }
+
+/* YouTube timeline */
+.timeline { position:relative; padding-left:24px; }
+.timeline::before { content:''; position:absolute; left:5px; top:0; bottom:0; width:2px; background:var(--border-color); }
+.timeline-date { position:relative; display:inline-block; font-size:0.82rem; font-weight:700; color:var(--text-primary); background:var(--bg-page); padding:3px 10px; border-radius:6px; margin-bottom:12px; margin-left:-8px; }
+.timeline-item { position:relative; margin-bottom:14px; }
+.timeline-item::before { content:''; position:absolute; left:-23px; top:18px; width:8px; height:8px; border-radius:50%; background:#4f46e5; border:2px solid #fff; box-shadow:0 0 0 2px #4f46e5; }
+.timeline-card { background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius); padding:16px 20px; transition:box-shadow 0.2s; display:flex; gap:16px; }
+.timeline-card:hover { box-shadow:var(--shadow-card-hover); }
+.yt-thumb { flex-shrink:0; width:140px; height:79px; border-radius:8px; object-fit:cover; }
+.yt-card-body { flex:1; min-width:0; }
+.timeline-card-title { font-size:0.88rem; font-weight:600; color:var(--text-primary); margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+.timeline-card-title a { color:var(--text-primary); text-decoration:none; }
+.timeline-card-title a:hover { text-decoration:underline; }
+.timeline-card-summary { font-size:0.82rem; color:var(--text-secondary); line-height:1.6; max-height:3.2em; overflow:hidden; position:relative; transition:max-height 0.3s ease; }
+.timeline-card-summary.expanded { max-height:none; }
+.btn-yt-toggle { font-size:0.72rem; color:#4f46e5; cursor:pointer; margin-top:4px; display:inline-block; }
+.timeline-group { margin-bottom:24px; }
+.yt-channel { display:inline-block; font-size:0.72rem; color:var(--text-muted); background:var(--bg-page); padding:2px 8px; border-radius:4px; margin-top:6px; }
+@media (max-width:767px) { .yt-thumb { width:100px; height:56px; } }
+
+/* Refresh spin */
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* 수급 대시보드 점수판 */
+.sd-cells { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.sd-cell {
+    flex: 1; min-width: 120px; padding: 12px;
+    border-radius: 8px; background: var(--bg-secondary); text-align: center;
+}
+.sd-label { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 4px; }
+.sd-value { font-size: 1.1rem; font-weight: 700; }
+.sd-sub { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+/* 최근 20일 — 60일 흐름 아래에 한 줄 더. 둘이 엇갈릴 때가 가장 큰 신호다 */
+.sd-second {
+    margin-top: 6px; padding-top: 6px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.74rem; color: var(--text-muted);
+}
+.sd-second b { font-weight: 700; color: var(--text-primary); }
+/* 모양은 base.html 에 있다 (설명 팝업이 같이 쓴다). 여기서는 자리만 잡는다 */
+.sd-second .sd-turn { margin-left: 4px; }
+
+/* 자료 탭 */
+.mt-row { margin-bottom: 10px; }
+.mt-row label { display:block; font-size:0.76rem; color:var(--text-muted); margin-bottom:4px; }
+.mt-item { border-bottom: 1px solid var(--border-color); }
+.mt-item:last-child { border-bottom: none; }
+.mt-head {
+    display:flex; align-items:baseline; gap:8px;
+    padding:12px 16px; cursor:pointer;
+}
+.mt-head:hover { background: var(--bg-hover); }
+.mt-icon { flex:none; font-size:0.85rem; }
+.mt-title {
+    flex:1; font-size:0.85rem; font-weight:600; color:var(--text-primary);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.mt-date { flex:none; font-size:0.72rem; color:var(--text-muted); }
+/* 접혀 있을 때는 제목 줄만 보인다 */
+.mt-item[data-expanded="false"] .mt-body { display:none; }
+.mt-body { padding:0 16px 14px; }
+.mt-actions { display:flex; justify-content:flex-end; gap:6px; margin-top:8px; }
+.mt-badge { cursor:pointer; font-size:0.68rem; text-decoration:none; }
+
+/* 목표가 카드 (리포트 탭) */
+.tgt-head { display:flex; align-items:baseline; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+.tgt-price { font-size:1.35rem; font-weight:700; }
+.tgt-src { font-size:0.72rem; color:var(--text-muted); }
+.tgt-rows { display:flex; flex-direction:column; gap:7px; }
+.tgt-row { display:flex; align-items:baseline; flex-wrap:wrap; gap:8px; font-size:0.85rem; }
+.tgt-label { width:44px; flex:none; color:var(--text-muted); font-size:0.78rem; }
+.tgt-value { font-weight:600; }
+.tgt-note { font-size:0.72rem; color:var(--text-muted); }
+.tgt-reading {
+    margin-top:12px; padding-top:12px; border-top:1px solid var(--border-color);
+    font-size:0.82rem; line-height:1.65; color:var(--text-secondary);
+}
+@media (max-width: 768px) {
+    /* 라벨과 값은 한 줄에 두고, 설명만 아래로 흘린다 */
+    .tgt-note { width:100%; padding-left:52px; margin-top:-3px; }
+}
+
+/* 리포트 괴리율 강조 — 흔한 가운데는 흐리게, 드문 양끝만 세운다 (stocks/report_signal.py) */
+.gap-strong { color: var(--up-color); font-weight: 700; }    /* 이례적으로 센 콜 */
+.gap-thin   { color: #e8590c; font-weight: 700; }            /* 여력 거의 없음 = 돌려 말한 매도 */
+.gap-over   { color: var(--down-color); font-weight: 700; }  /* 발행 시점에 주가 > 목표가 */
+.gap-plain  { color: var(--text-muted); }                    /* 한국 리포트 관행 구간 */
+[data-theme="dark"] .gap-thin { color: #ff922b; }
+
+/* Two-column layout */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+
+/* Performance chart layout */
+.perf-charts { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
+@media (max-width: 768px) { .perf-charts { grid-template-columns: 1fr; } }
+.consensus-charts .modern-table { font-size: 0.74rem; white-space: nowrap; }
+.consensus-charts .modern-table th, .consensus-charts .modern-table td { padding: 6px 10px; }
+@media (max-width: 768px) {
+    .consensus-charts .modern-table { font-size: 0.7rem; }
+    .consensus-charts .modern-table th, .consensus-charts .modern-table td { padding: 4px 6px; }
+}
+
+/* 기본 정보 카드 — 성격대로 줄을 나눈다 (라벨 · 내용) */
+.bi-card { padding:0; }
+/* 줄 사이에만 선을 긋는다. :last-of-type 은 태그 기준이라 종류가 다른
+   줄이 끼면 엉뚱한 줄의 선이 사라진다. */
+.bi-card > * + * { border-top:1px solid var(--border-color); }
+.bi-row { display:flex; gap:10px; padding:9px 16px; }
+.bi-label {
+    flex:none; width:38px; padding-top:2px;
+    font-size:0.66rem; font-weight:600; color:var(--text-muted);
+}
+.bi-label-hold { color:#047857; }
+.bi-label-sig { color:#7c3aed; }
+.bi-body { flex:1; min-width:0; }
+.bi-price { display:flex; align-items:baseline; gap:8px; margin-bottom:4px; }
+.bi-change { font-size:1.05rem; font-weight:700; }
+.bi-facts { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:0.82rem; line-height:1.9; }
+.bi-facts i { font-style:normal; color:var(--text-muted); margin-right:3px; }
+.bi-facts b { font-weight:700; }
+.bi-none { color:var(--text-muted); }
+.bi-tags { gap:4px; }
+/* 신호 배지는 색이 둘뿐이다 — 좋은 것 빨강, 나쁜 것 파랑.
+   무엇을 말하는지는 글자가 하고 색은 방향만 말한다. */
+/* 신호 슬롯 — 자리는 늘 같고 켜질 때만 색이 붙는다.
+   꺼진 칸은 "찾으면 보이는" 수준까지 내린다. 어중간하게 흐리면 배경 무늬가
+   되어 켜진 것을 가린다. */
+.sig-slots { display:flex; flex-wrap:wrap; gap:6px; }
+.sig {
+    display:inline-block; min-width:88px; text-align:center;
+    padding:2px 8px; border-radius:3px;
+    font-size:0.72rem; line-height:1.5; white-space:nowrap;
+}
+.sig-off { color:var(--text-primary); opacity:0.18; font-weight:400; }
+.sig-up { background:var(--up-color); color:#fff; font-weight:600; }
+.sig-down { background:var(--down-color); color:#fff; font-weight:600; }
+@media (max-width: 768px) { .sig { min-width:0; flex:1 1 auto; } }
+
+.bi-tag { padding:1px 7px; border-radius:3px; font-size:0.72rem; font-weight:600; }
+.bi-tag-up { background:var(--up-color); color:#fff; }
+.bi-tag-down { background:var(--down-color); color:#fff; }
+/* 꺼진 칸도 자리를 지킨다. 없애면 칸 수가 종목마다 달라진다. */
+.bi-tag-off { background:var(--bg-secondary); color:var(--text-muted); font-weight:400; }
+a.bi-tag { text-decoration:none; }
+.bi-alert { margin-top:4px; font-size:0.76rem; line-height:1.5; color:#f59e0b; }
+.bi-alert-mute { color:var(--text-muted); }
+.bi-go { color:#2962ff; text-decoration:none; font-weight:600; }
+.bi-go:hover { text-decoration:underline; }
+.bi-links { display:flex; flex-wrap:wrap; gap:10px; padding:8px 16px; }
+.bi-links a, .bi-links span {
+    font-size:0.68rem; color:var(--text-muted); text-decoration:none; cursor:pointer;
+}
+.bi-links a:hover, .bi-links span:hover { color:var(--text-primary); }
+
+/* Price + Memo layout */
+.price-memo-grid { margin-bottom: 12px; }
+
+/* OnToo 에서 더한 것 */
+
+/* 아직 안 옮긴 탭. 누를 수 없다는 것이 보여야 한다 —
+   눌렀는데 아무 일도 없으면 고장으로 읽힌다. */
+.market-tab.is-soon { opacity: 0.35; cursor: not-allowed; }
+.market-tab.is-soon:hover { color: var(--text-secondary); }
+
+/* 리서치는 제목만 보인다. 내용은 내 화면에만 있다.
+   모양은 그대로 두고 누르는 느낌만 없앤다. */
+.research-no-link { cursor: default; }
+.research-no-link:hover { background: inherit; }
+{% endblock %}
+
+{% block content %}
+<a href="/ontoo/" style="display:inline-block;margin-bottom:14px;font-size:0.78rem;color:var(--text-muted);text-decoration:none;">← 공유 종목</a>
+<!-- 종목 헤더 -->
+<div class="d-flex justify-content-between align-items-center" style="margin-bottom:20px;">
+    <div>
+        <h5 style="font-weight:700;margin:0;color:var(--text-primary);">
+            {{ stock.name }}
+            <span style="font-size:0.7rem;font-weight:400;color:var(--text-muted);margin-left:8px;">{{ stock.code }}</span>
+        </h5>
+        <div class="entity-badges">
+            <span class="eb eb-market">{{ stock.market|default:"—" }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- 기본 정보 (항상 표시) -->
+{% comment %}
+성격대로 줄을 나눈다. 예전에는 한 줄에 시세·보유·외부링크가 같이 있었고,
+보유 정보가 맨 위와 아래에 두 번 나왔다.
+
+  시세   어제 무슨 일이 있었나
+  회사   어떤 크기·값인가          자주 안 보므로 접어 둔다
+  수급   누가 사고 있나
+  변화   다시 봐야 할 이유가 생겼나
+  보유   돈이 얼마나 들어가 있나   보유일 때만
+  업종
+{% endcomment %}
+<h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;margin-top:0;">기본 정보</h5>
+<div class="brief-card bi-card">
+
+    <!-- 시세 -->
+    <div class="bi-row">
+        <span class="bi-label">시세</span>
+        <div class="bi-body">
+            <div class="bi-price">
+                <span class="stat-item-value" id="currentPrice">{% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}</span>
+                <span class="bi-change {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}" id="changeRate">{% if stock.change_rate %}{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%{% else %}-{% endif %}</span>
+            </div>
+            <div class="bi-facts">
+                <span><i>거래량</i> <span id="volume">{% if stock.volume %}{{ stock.volume|intcomma }}{% else %}-{% endif %}</span>{% if volume_change_rate is not None %} <span class="{% if volume_change_rate > 0 %}text-up{% elif volume_change_rate < 0 %}text-down{% endif %}" id="volumeChange">{% if volume_change_rate > 0 %}+{% endif %}{{ volume_change_rate }}%</span>{% endif %}</span>
+                {% if price_pos %}
+                <span><i>52주</i> {{ price_pos.low52|intcomma }}~{{ price_pos.high52|intcomma }} <b>{{ price_pos.pos }}%</b> 자리</span>
+                {% if price_pos.gap20 is not None %}<span><i>20일선</i> <span class="{% if price_pos.gap20 > 0 %}text-up{% elif price_pos.gap20 < 0 %}text-down{% endif %}">{% if price_pos.gap20 > 0 %}+{% endif %}{{ price_pos.gap20 }}%</span></span>{% endif %}
+                {% endif %}
+            </div>
         </div>
     </div>
 
-    <div class="todo">여기에 블록을 하나씩 옮긴다 — 차트 · 실적 · 재무 · 수급 · 공시 · 리포트 · 자료</div>
+    <!-- 신호 -->
+    {% comment %}
+    아홉 칸이 늘 같은 자리에 있다. 켜지면 색이 붙고 꺼지면 칸 이름이 아주
+    흐리게 남는다 — 빈칸으로 두면 '오늘 조용하다'와 '자료가 없다'가 구별되지
+    않는다. 계기판의 경고등 자리와 같은 원리다.
+
+    색은 둘뿐이다. 빨강은 기회, 파랑은 경고. 무엇을 말하는지는 글자가 하고
+    색은 방향만 말한다.
+
+    자리를 익히려면 칸 수가 늘 같아야 한다. 슬롯을 더 늘리지 말 것 —
+    아홉이 상한이다.
+    {% endcomment %}
+    {% for row in slot_panel.rows %}
+    <div class="bi-row">
+        <span class="bi-label bi-label-sig">{{ row.name }}</span>
+        <div class="bi-body">
+            <div class="sig-slots">
+                {% for c in row.slots %}
+                <span class="sig{% if c.on %} sig-{{ c.tone }}{% else %} sig-off{% endif %}"
+                      title="{{ c.key }}">{% if c.on %}{{ c.text }}{% else %}{{ c.key }}{% endif %}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+
+    <!-- 회사 -->
+    <div class="bi-row">
+        <span class="bi-label">회사</span>
+        <div class="bi-body">
+            {# 크기·수익성 한 줄, 주식 구조 한 줄 (한 줄에 흘리면 끊기는 자리가 화면 폭마다 달라진다) #}
+            <div class="bi-facts">
+                <span><i>시총</i> {{ stock.market_cap|eok }}</span>
+                <span><i>PER</i> {% if stock.per %}{{ stock.per }}배{% else %}-{% endif %}</span>
+                <span><i>PBR</i> {% if stock.pbr %}{{ stock.pbr }}배{% else %}-{% endif %}</span>
+                <span><i>ROE</i> {% if stock.roe %}{{ stock.roe }}%{% else %}-{% endif %}</span>
+            </div>
+            <div class="bi-facts">
+                <span><i>유통비율</i> {% if stock.listed_ratio %}{{ stock.listed_ratio }}%{% else %}-{% endif %}</span>
+                <span><i>신용비율</i> {% if stock.credit_ratio %}{{ stock.credit_ratio }}%{% else %}-{% endif %}</span>
+                <span><i>외인소진률</i> {% if stock.foreign_exhaustion %}{{ stock.foreign_exhaustion }}%{% else %}-{% endif %}</span>
+                {# 같은 업종 네 곳과 매출·영업이익·PER 을 나란히 놓고 본다 (FnGuide) #}
+                <a href="https://comp.wisereport.co.kr/company/c1060001.aspx?cmp_cd={{ stock.code }}" target="_blank" rel="noopener" class="bi-go">경쟁사 비교 ↗</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 수급 -->
+    <div class="bi-row">
+        <span class="bi-label">수급</span>
+        <div class="bi-body">
+            <div class="bi-facts">
+                {% if latest_investor %}
+                <span><i>어제</i> <span class="{% if latest_investor.foreign > 0 %}text-up{% elif latest_investor.foreign < 0 %}text-down{% endif %}">외 {% if latest_investor.foreign > 0 %}+{% endif %}{{ latest_investor.foreign|intcomma }}</span> <span class="{% if latest_investor.institution > 0 %}text-up{% elif latest_investor.institution < 0 %}text-down{% endif %}">기 {% if latest_investor.institution > 0 %}+{% endif %}{{ latest_investor.institution|intcomma }}</span></span>
+                {% endif %}
+                {% if supply_dashboard %}
+                <span><i>60일 지분율</i> <span class="{% if supply_dashboard.foreign_pct > 0 %}text-up{% elif supply_dashboard.foreign_pct < 0 %}text-down{% endif %}">외 {% if supply_dashboard.foreign_pct > 0 %}+{% endif %}{{ supply_dashboard.foreign_pct }}%</span> <span class="{% if supply_dashboard.inst_pct > 0 %}text-up{% elif supply_dashboard.inst_pct < 0 %}text-down{% endif %}">기 {% if supply_dashboard.inst_pct > 0 %}+{% endif %}{{ supply_dashboard.inst_pct }}%</span></span>
+                {% endif %}
+                {% if latest_short %}<span><i>공매도</i> {{ latest_short.weight }}%</span>{% endif %}
+                {% if not latest_investor and not supply_dashboard and not latest_short %}<span class="bi-none">받는 자료가 없습니다</span>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 업종 -->
+    {% if stock.themes.all or sectors %}
+    <div class="bi-row">
+        <span class="bi-label">업종</span>
+        <div class="bi-body">
+            <div class="bi-facts bi-tags">
+                {% regroup stock.themes.all by category as theme_groups %}
+                {% for group in theme_groups %}
+                <span class="tag-badge theme-cat">{{ group.grouper.name }}</span>
+                {% for theme in group.list %}<span class="tag-badge theme-name">{{ theme.name }}</span>{% endfor %}
+                {% endfor %}
+                {% for s in sectors %}<span class="tag-badge" style="background:#f3f4f6;color:var(--text-muted);">{{ s.name }}</span>{% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 바깥으로 나가는 길. 자주 누르는 것이 아니라 맨 아래에 둔다. -->
+    <div class="bi-links">
+        <a href="https://finance.naver.com/item/board.naver?code={{ stock.code }}" target="_blank">종토방</a>
+        <a href="https://comp.fnguide.com/SVO2/ASP/SVD_Main.asp?pGB=1&gicode=A{{ stock.code }}&cID=&MenuYn=Y&ReportGB=&NewMenuID=101&stkGb=701" target="_blank">fNG</a>
+        <a href="https://stockeasy.intellio.kr/stock-analysis?tab=stock_info&code={{ stock.code }}&stockTab=info" target="_blank">StockEasy</a>
+    </div>
 </div>
-</body>
-</html>
+<span id="priceChange" style="display:none;">{% if stock.price_change %}{{ stock.price_change }}{% endif %}</span>
+
+<!-- 메인 탭 -->
+<div class="market-tabs">
+    <button class="market-tab active" data-target="info-content">기본정보</button>
+    <!-- <button class="market-tab" data-target="analysis-content">기업분석</button> -->
+    <button class="market-tab is-soon" type="button" disabled title="준비 중">수급</button>
+    <button class="market-tab is-soon" type="button" disabled title="준비 중">공시</button>
+    <button class="market-tab is-soon" type="button" disabled title="준비 중">리포트</button>
+</div>
+
+<!-- ========== 기본정보 탭 ========== -->
+<div id="info-content" class="tab-panel">
+    <!-- 메모 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">메모{% if stock.memo_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="memoUpdatedAt">update: {{ stock.memo_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
+    <div class="brief-card">
+        <!-- 보기 모드 -->
+        <div id="memoViewMode">
+            <div style="max-height:400px;overflow-y:auto;">
+                <div class="content markdown-content" style="font-size:0.85rem;" id="memoMarkdown"></div>
+                <script type="text/plain" id="memoRaw">{{ stock.memo|default:""|safe }}</script>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+
+    <!-- 리서치 -->
+    {% comment %}
+    리서치는 '프롬프트 칸'이다. 등록된 프롬프트가 곧 칸이고, 채운 칸은
+    진하게 날짜와 함께, 안 채운 칸은 흐리게 나온다. 무엇을 안 했는지가
+    보여야 하기 때문이다.
+
+    한 칸도 안 채운 그룹은 접는다. 관심종목 1,576개 중 리서치를 시작한
+    것이 28개뿐이라, 접지 않으면 나머지 종목에서 빈 칸 스물몇 개가
+    화면을 채운다.
+    {% endcomment %}
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;"><span>리서치 {% help_icon "research" %} <span class="tab-count">{{ research_filled }}</span></span></h5>
+    <div class="brief-card" style="padding:0; overflow:hidden;" id="researchList">
+        {% if research_health %}
+        <div class="research-health">ℹ️ {{ research_health.text }}</div>
+        {% endif %}
+        {% for g in research_groups %}
+        <details class="research-group-box" {% if g.open %}open{% endif %}>
+            <summary>
+                <span class="{{ g.label_class }}">{{ g.name }}</span>
+                <span class="research-count">{{ g.filled }}/{{ g.total }}</span>
+                {% if g.behind %}<span class="research-behind" title="새 정기보고서가 나온 뒤로 갱신하지 않은 칸">⚠️ {{ g.behind }}</span>{% endif %}
+            </summary>
+            <div class="research-chips">
+                {% for s in g.slots %}
+                {% if s.filled %}
+                <span class="research-common-chip research-no-link{% if '매매근거' in s.question %} research-trade-chip{% endif %}" title="{{ s.question }}">
+                    <span class="chip-title">{{ s.question|truncatechars:30 }}</span>
+                </span>
+                {% else %}
+                <span class="research-common-chip research-empty-chip research-no-link" title="{{ s.question }} — 아직 없습니다">
+                    <span class="chip-title">{{ s.question|truncatechars:30 }}</span>
+                </span>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </details>
+        {% endfor %}
+        <details class="research-group-box" {% if custom_question_reports %}open{% endif %}>
+            <summary>
+                <span class="research-custom-label">일반</span>
+                <span class="research-count">{{ custom_question_reports|length }}</span>
+            </summary>
+            {% if custom_question_reports %}
+            <div class="research-custom-list">
+                {% for qr in custom_question_reports %}
+                <span class="research-custom-item research-no-link">
+                    <span class="research-custom-title">{{ qr.question|truncatechars:80 }}</span>
+                </span>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="padding:10px 14px;color:var(--text-muted);font-size:0.78rem;">아직 없습니다.</div>
+            {% endif %}
+        </details>
+    </div>
+    <script>
+    (function(){
+        const now = new Date();
+        const threshold = 30 * 24 * 60 * 60 * 1000;
+        document.querySelectorAll('#researchList .chip-date[data-date]').forEach(el => {
+            const d = new Date(el.dataset.date);
+            if (now - d > threshold) el.classList.add('stale');
+        });
+    })();
+    </script>
+
+    <!-- 실적 -->
+    <h5 class="section-heading">실적</h5>
+    <div class="perf-charts">
+        <div class="chart-card" style="margin-bottom:0;">
+            <div class="chart-card-header">
+                <span style="font-size:0.82rem;color:var(--text-secondary);">연간</span>
+            </div>
+            <div style="height:400px;">
+                <canvas id="annualChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card" style="margin-bottom:0;">
+            <div class="chart-card-header">
+                <span style="font-size:0.82rem;color:var(--text-secondary);">분기</span>
+            </div>
+            <div style="height:400px;">
+                <canvas id="quarterlyChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    {% if has_consensus %}
+    <!-- 컨센 (테이블, 연간/분기 5:5) — 주간 배치(save_consensus)가 채운다 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
+        컨센
+        <a href="https://comp.wisereport.co.kr/company/c1050001.aspx?cmp_cd={{ stock.code }}&cn=" target="_blank" rel="noopener"
+           style="font-size:0.72rem;font-weight:400;color:var(--text-muted);text-decoration:none;">원본 ↗</a>
+    </h5>
+    <div class="chart-card consensus-charts" style="margin-bottom:0;">
+        <div class="chart-card-header">
+            <div class="tf-tabs">
+                <button type="button" class="cs-tab active" data-cs="annual">연간</button>
+                <button type="button" class="cs-tab" data-cs="quarter">분기</button>
+            </div>
+        </div>
+        <div class="cs-pane" data-cs="annual" style="overflow-x:auto;">
+            <table class="modern-table" id="consensusAnnualTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
+        </div>
+        <div class="cs-pane tf-hidden" data-cs="quarter" style="overflow-x:auto;">
+            <table class="modern-table" id="consensusQuarterTable"><thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody></table>
+        </div>
+    </div>
+    <div style="font-size:0.72rem;color:var(--text-muted);margin:8px 2px 0;line-height:1.6;">
+        (E)=추정치 · 증감율은 직전 기간 대비 · 매출액·영업이익 단위 억원
+    </div>
+    {% endif %}
+
+    <!-- 차트 -->
+    <h5 class="section-heading">차트</h5>
+    <div class="chart-card">
+        <div class="chart-card-header">
+            <div class="tf-tabs">
+                <button type="button" class="tf-tab active" data-tf="daily">일봉</button>
+                <button type="button" class="tf-tab" data-tf="weekly">주봉</button>
+                <button type="button" class="tf-tab" data-tf="monthly">월봉</button>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <div class="d-flex gap-1 tf-only" data-tf="daily" id="dailyRangeBtns">
+                    <button class="range-btn" data-days="20">20일</button>
+                    <button class="range-btn" data-days="60">60일</button>
+                    <button class="range-btn" data-days="120">120일</button>
+                    <button class="range-btn active" data-days="240">240일</button>
+                </div>
+                <div style="width:1px;height:16px;background:var(--border-color);" class="tf-only" data-tf="daily"></div>
+                <div class="d-flex gap-1 tf-only" data-tf="daily">
+                    <span class="ma-badge ma-toggle active ma-10" data-ma="10">10</span>
+                    <span class="ma-badge ma-toggle active ma-20" data-ma="20">20</span>
+                    <span class="ma-badge ma-toggle active ma-60" data-ma="60">60</span>
+                    <span class="ma-badge ma-toggle active ma-120" data-ma="120">120</span>
+                </div>
+                <span class="tf-note tf-only" data-tf="weekly">최근 2년</span>
+                <div class="d-flex gap-1 tf-only" data-tf="weekly">
+                    <span class="ma-badge weekly-ma-toggle active ma-20" data-ma="20">20</span>
+                    <span class="ma-badge weekly-ma-toggle active ma-60" data-ma="60">60</span>
+                </div>
+                <span class="tf-note tf-only" data-tf="monthly">최근 6년</span>
+                <div class="d-flex gap-1 tf-only" data-tf="monthly">
+                    <span class="ma-badge monthly-ma-toggle active ma-regime" data-ma="12">12</span>
+                </div>
+            </div>
+        </div>
+        <div id="dailyChart" class="tf-pane" data-tf="daily" style="height:400px;"></div>
+        <div id="weeklyChart" class="tf-pane tf-hidden" data-tf="weekly" style="height:400px;"></div>
+        <div id="monthlyChart" class="tf-pane tf-hidden" data-tf="monthly" style="height:400px;"></div>
+    </div>
+
+    <!-- 업데이트 시간 -->
+    <div style="text-align:right;font-size:0.75rem;color:var(--text-muted);margin-top:8px;">
+        업데이트: {{ stock.updated_at|date:"Y-m-d H:i" }}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+// ===== Marked.js options =====
+marked.setOptions({ breaks: true, gfm: true, headerIds: false, mangle: false });
+marked.use({ extensions: [{ name: 'highlight', level: 'inline', childTokens: ['tokens'], start(src) { return src.indexOf('=='); }, tokenizer(src) { const match = src.match(/^==([^=]+)==/); if (match) { const token = { type: 'highlight', raw: match[0], text: match[1], tokens: [] }; this.lexer.inline(token.text, token.tokens); return token; } }, renderer(token) { return `<mark>${this.parser.parseInline(token.tokens)}</mark>`; } }] });
+// ===== Content rendering (HTML/markdown auto-detect, citation cleanup) =====
+function renderContent(rawId, markdownId) {
+    const rawEl = document.getElementById(rawId);
+    const markdownEl = document.getElementById(markdownId);
+    if (rawEl && markdownEl) {
+        let content = rawEl.textContent;
+        const textOnly = content.replace(/<[^>]*>/g, '').trim();
+        if (content && textOnly !== '-' && textOnly !== '') {
+            content = content.replace(/\[cite_start\]/g, '');
+            content = content.replace(/\[cite_end\]/g, '');
+            content = content.replace(/\[cite:\s*[\d,\s]+\]/g, '');
+            content = content.replace(/\[\/cite\]/g, '');
+
+            const htmlTagPattern = /<(div|span|p|br|hr|table|tr|td|th|thead|tbody|ul|ol|li|a|img|h[1-6]|strong|em|b|i|code|pre|blockquote|section|article|header|footer|nav|main|aside|figure|figcaption|form|input|button|label|select|option|textarea|iframe|script|style|link|meta|head|body|html)[\s>\/]/i;
+            if (htmlTagPattern.test(content)) {
+                markdownEl.innerHTML = content;
+            } else {
+                // ~취소선 방지: 파싱 전 ~를 이스케이프하고 파싱 후 복원
+                content = content.replace(/~/g, '&#126;');
+                markdownEl.innerHTML = marked.parse(content);
+            }
+        } else {
+            markdownEl.textContent = '-';
+        }
+    }
+}
+
+renderContent('memoRaw', 'memoMarkdown');
+renderContent('analysisRaw', 'analysisMarkdown');
+renderContent('finAnalysisV2Raw', 'finAnalysisV2Markdown');
+renderContent('consensusAnalysisRaw', 'consensusAnalysisMarkdown');
+renderContent('sdAnalysisRaw', 'sdAnalysisMarkdown');
+
+// ===== MA calculation =====
+function calculateMA(data, period) {
+    const result = [];
+    for (let i = period - 1; i < data.length; i++) {
+        let sum = 0;
+        for (let j = 0; j < period; j++) sum += data[i - j].close;
+        result.push({ time: data[i].time, value: Math.round(sum / period) });
+    }
+    return result;
+}
+
+// ===== Daily chart with MA + range buttons =====
+const fullDailyCandle = {{ daily_candle_data|safe }};
+const fullDailyVolume = {{ daily_volume_data|safe }};
+// 이평선 색은 사이트 전체에서 숫자에 고정한다 (10 초록 / 20 주황 / 60 파랑 / 120·200·12 무채색).
+// 20과 60은 색상환 정반대(주황/파랑)에 둬야 얇은 선에서도 확실히 갈린다.
+// 굵기는 등급 — 단기 1px / 중기 2px / 장기 3px
+const REGIME_MA_COLOR = (document.documentElement.getAttribute('data-theme') === 'dark') ? '#e6e9ef' : '#111827';
+const maConfig = {
+    10: { color: '#16a34a', width: 1 },
+    20: { color: '#f97316', width: 1 },
+    60: { color: '#2563eb', width: 2 },
+    120: { color: REGIME_MA_COLOR, width: 3 },
+};
+
+// LightweightCharts 는 setData 에 넘긴 객체의 time 을 {year,month,day} 로 덮어쓴다.
+// 원본 배열을 그대로 넘기면 두 번째 호출부터 날짜 비교가 조용히 어긋난다.
+function timeToStr(t) {
+    return typeof t === 'string'
+        ? t
+        : `${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`;
+}
+let dailyMaSeries = {};
+let dailyChartInstance = null;
+let dailyCandleSeries = null;
+// 고른 기간의 고점·저점을 가격선으로 긋는다. 캔들만 봐서는 "이번 고점에서
+// 얼마나 빠졌나"가 눈대중이 되므로 선 이름에 현재가 대비 %를 적는다.
+// rows 의 time 은 반드시 문자열이어야 한다 — setData 가 원본의 time 을
+// {year,month,day} 로 바꿔 놓으므로 그 전에 복사해 넘긴다.
+// 캔들과 거래량이 한 창을 나눠 쓴다. 캔들 축이 0~100% 를 다 쓰면 아래 20% 에
+// 그려지는 거래량과 겹쳐, 기간 저점 가격선과 이름이 막대에 파묻힌다.
+// 캔들 5~72% / 거래량 80~100% 로 갈라 두고 사이 8% 는 저점 선 이름 자리로 비운다.
+const CANDLE_MARGINS = { top: 0.05, bottom: 0.28 };
+const VOLUME_MARGINS = { top: 0.80, bottom: 0 };
+
+function addRangeLines(chart, series, rows) {
+    if (!rows.length) return;
+    let high = rows[0].high, low = rows[0].low, highAt = rows[0].time, lowAt = rows[0].time;
+    rows.forEach(d => {
+        if (d.high > high) { high = d.high; highAt = d.time; }
+        if (d.low < low) { low = d.low; lowAt = d.time; }
+    });
+    const last = rows[rows.length - 1].close;
+    const pct = from => {
+        const v = (last / from - 1) * 100;
+        return (v > 0 ? '+' : '') + v.toFixed(2) + '%';
+    };
+    const md = t => String(t).slice(5).replace('-', '/');
+    [[high, '#ef5350', `고점 ${md(highAt)} ${pct(high)}`],
+     [low, '#5b8def', `저점 ${md(lowAt)} ${pct(low)}`]].forEach(([price, color, title]) => {
+        series.createPriceLine({
+            price, color, title, lineWidth: 1,
+            lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true,
+        });
+    });
+}
+
+function initDailyChart(days, visibleDays) {
+    const container = document.getElementById('dailyChart');
+    container.innerHTML = '';
+    dailyMaSeries = {};
+
+    if (!fullDailyCandle.length) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">일봉 데이터가 없습니다.</div>';
+        return;
+    }
+
+    // setData 가 원본을 변질시키므로 복사본을 만들고 time 을 문자열로 되돌린다
+    const fullCandle = fullDailyCandle.map(d => ({ ...d, time: timeToStr(d.time) }));
+    const candleData = fullCandle.slice(-days);
+    const volumeData = fullDailyVolume.slice(-days).map(d => ({ ...d, time: timeToStr(d.time) }));
+    const fromTime = candleData[0].time;
+
+    const chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth, height: 400,
+        layout: { backgroundColor: chartBg, textColor: chartText },
+        grid: { vertLines: { color: chartGrid }, horzLines: { color: chartGrid } },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        rightPriceScale: { borderColor: chartBorder, scaleMargins: CANDLE_MARGINS },
+        timeScale: { borderColor: chartBorder, timeVisible: true, fixLeftEdge: true, fixRightEdge: true },
+        handleScale: { axisPressedMouseMove: { price: false } },
+    });
+
+    const candleSeries = chart.addCandlestickSeries({
+        upColor: '#ef5350', downColor: '#26a69a',
+        borderUpColor: '#ef5350', borderDownColor: '#26a69a',
+        wickUpColor: '#ef5350', wickDownColor: '#26a69a',
+    });
+    // 고점·저점은 실제로 보이는 구간 기준. setData 전에 시각을 문자열로 떠 둔다.
+    const shownRows = (visibleDays && candleData.length > visibleDays)
+        ? candleData.slice(-visibleDays) : candleData;
+    const rangeRows = shownRows.map(d => ({ high: d.high, low: d.low, close: d.close, time: d.time }));
+    candleSeries.setData(candleData);
+    addRangeLines(chart, candleSeries, rangeRows);
+    dailyCandleSeries = candleSeries;
+
+
+    // 이평선은 전체 이력으로 계산한 뒤 보이는 구간만 잘라 넘긴다.
+    // 잘린 구간만으로 계산하면 20일 화면에서 60·120일선이 아예 안 나온다.
+    for (const [period, cfg] of Object.entries(maConfig)) {
+        const s = chart.addLineSeries({
+            color: cfg.color, lineWidth: cfg.width,
+            priceLineVisible: false, lastValueVisible: false,
+        });
+        s.setData(calculateMA(fullCandle, parseInt(period)).filter(d => d.time >= fromTime));
+        dailyMaSeries[period] = s;
+    }
+
+    const volumeSeries = chart.addHistogramSeries({
+        color: '#26a69a', priceFormat: { type: 'volume' },
+        priceScaleId: '', scaleMargins: VOLUME_MARGINS,
+    });
+    volumeSeries.setData(volumeData);
+
+    // visibleDays가 지정되면 최근 N봉만 보이도록 줌, 아니면 전체 fit
+    if (visibleDays && candleData.length > visibleDays) {
+        const fromTime = candleData[candleData.length - visibleDays].time;
+        const toTime = candleData[candleData.length - 1].time;
+        chart.timeScale().setVisibleRange({ from: fromTime, to: toTime });
+    } else {
+        chart.timeScale().fitContent();
+    }
+    new ResizeObserver(entries => { if (entries.length) chart.applyOptions({ width: entries[0].contentRect.width }); }).observe(container);
+    dailyChartInstance = chart;
+
+    // Re-apply MA toggle states
+    document.querySelectorAll('.ma-toggle').forEach(badge => {
+        const series = dailyMaSeries[badge.dataset.ma];
+        if (series) series.applyOptions({ visible: badge.classList.contains('active') });
+    });
+}
+
+// Init daily chart (240일 데이터, 최근 60봉 줌)
+initDailyChart(240, 60);
+
+// Range buttons
+document.getElementById('dailyRangeBtns').querySelectorAll('.range-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('#dailyRangeBtns .range-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const days = parseInt(this.dataset.days);
+        initDailyChart(days);
+    });
+});
+
+// MA toggle
+document.querySelectorAll('.ma-toggle').forEach(badge => {
+    badge.addEventListener('click', function() {
+        const series = dailyMaSeries[this.dataset.ma];
+        if (!series) return;
+        const isActive = this.classList.toggle('active');
+        series.applyOptions({ visible: isActive });
+    });
+});
+
+// ===== Simple candle chart (weekly/monthly) =====
+function createCandleChart(containerId, candleData, volumeData, emptyMessage) {
+    const container = document.getElementById(containerId);
+    if (!candleData.length) {
+        container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted);">${emptyMessage}</div>`;
+        return;
+    }
+
+    const chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth, height: 400,
+        layout: { backgroundColor: chartBg, textColor: chartText },
+        grid: { vertLines: { color: chartGrid }, horzLines: { color: chartGrid } },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        rightPriceScale: { borderColor: chartBorder, scaleMargins: CANDLE_MARGINS },
+        timeScale: { borderColor: chartBorder, timeVisible: true, fixLeftEdge: true, fixRightEdge: true },
+        handleScale: { axisPressedMouseMove: { price: false } },
+    });
+
+    const candleSeries = chart.addCandlestickSeries({
+        upColor: '#ef5350', downColor: '#26a69a',
+        borderUpColor: '#ef5350', borderDownColor: '#26a69a',
+        wickUpColor: '#ef5350', wickDownColor: '#26a69a',
+    });
+    candleSeries.setData(candleData);
+
+    const volumeSeries = chart.addHistogramSeries({
+        color: '#26a69a', priceFormat: { type: 'volume' },
+        priceScaleId: '', scaleMargins: VOLUME_MARGINS,
+    });
+    volumeSeries.setData(volumeData);
+    chart.timeScale().fitContent();
+    new ResizeObserver(entries => { if (entries.length) chart.applyOptions({ width: entries[0].contentRect.width }); }).observe(container);
+}
+
+function initWeeklyChart() {
+    // 60주선 계산분까지 받아서, 화면에는 최근 104주만 그린다
+    const fullCandle = ({{ weekly_candle_data|safe }}).map(d => ({ ...d, time: timeToStr(d.time) }));
+    const candleData = fullCandle.slice(-104);
+    const volumeData = ({{ weekly_volume_data|safe }}).slice(-104).map(d => ({ ...d, time: timeToStr(d.time) }));
+    const fromTime = candleData.length ? candleData[0].time : '';
+    const container = document.getElementById('weeklyChart');
+    if (!candleData.length) { container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">주봉 데이터가 없습니다.</div>'; return; }
+
+    const chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth, height: 400,
+        layout: { backgroundColor: chartBg, textColor: chartText },
+        grid: { vertLines:{color: chartGrid}, horzLines:{color: chartGrid} },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        rightPriceScale: { borderColor: chartBorder, scaleMargins: CANDLE_MARGINS },
+        timeScale: { borderColor: chartBorder, timeVisible:true, fixLeftEdge:true, fixRightEdge:true },
+        handleScale: { axisPressedMouseMove:{price:false} },
+    });
+    const candleSeries = chart.addCandlestickSeries({ upColor:'#ef5350', downColor:'#26a69a', borderUpColor:'#ef5350', borderDownColor:'#26a69a', wickUpColor:'#ef5350', wickDownColor:'#26a69a' });
+    const rangeRows = candleData.map(d => ({ high: d.high, low: d.low, close: d.close, time: d.time }));
+    candleSeries.setData(candleData);
+    addRangeLines(chart, candleSeries, rangeRows);
+
+
+    const weeklyMaConfig = { 20: { color:'#f97316', width:1 }, 60: { color:'#2563eb', width:2 } };
+    const weeklyMaSeries = {};
+    for (const [p, cfg] of Object.entries(weeklyMaConfig)) {
+        const s = chart.addLineSeries({ color: cfg.color, lineWidth: cfg.width, priceLineVisible:false, lastValueVisible:false });
+        s.setData(calculateMA(fullCandle, parseInt(p)).filter(d => d.time >= fromTime));
+        weeklyMaSeries[p] = s;
+    }
+
+    chart.addHistogramSeries({ color:'#26a69a', priceFormat:{type:'volume'}, priceScaleId:'', scaleMargins:VOLUME_MARGINS }).setData(volumeData);
+    chart.timeScale().fitContent();
+    new ResizeObserver(entries => { if(entries.length) chart.applyOptions({width:entries[0].contentRect.width}); }).observe(container);
+
+    document.querySelectorAll('.weekly-ma-toggle').forEach(badge => {
+        badge.addEventListener('click', function() {
+            const s = weeklyMaSeries[this.dataset.ma];
+            if (s) s.applyOptions({ visible: this.classList.toggle('active') });
+        });
+    });
+}
+
+function initMonthlyChart() {
+    // 12개월선 계산분까지 받아서, 화면에는 최근 72개월만 그린다
+    const fullCandle = ({{ monthly_candle_data|safe }}).map(d => ({ ...d, time: timeToStr(d.time) }));
+    const candleData = fullCandle.slice(-72);
+    const volumeData = ({{ monthly_volume_data|safe }}).slice(-72).map(d => ({ ...d, time: timeToStr(d.time) }));
+    const fromTime = candleData.length ? candleData[0].time : '';
+    const container = document.getElementById('monthlyChart');
+    if (!candleData.length) { container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">월봉 데이터가 없습니다.</div>'; return; }
+
+    const chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth, height: 400,
+        layout: { backgroundColor: chartBg, textColor: chartText },
+        grid: { vertLines:{color: chartGrid}, horzLines:{color: chartGrid} },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        rightPriceScale: { borderColor: chartBorder, scaleMargins: CANDLE_MARGINS },
+        timeScale: { borderColor: chartBorder, timeVisible:true, fixLeftEdge:true, fixRightEdge:true },
+        handleScale: { axisPressedMouseMove:{price:false} },
+    });
+    const candleSeries = chart.addCandlestickSeries({ upColor:'#ef5350', downColor:'#26a69a', borderUpColor:'#ef5350', borderDownColor:'#26a69a', wickUpColor:'#ef5350', wickDownColor:'#26a69a' });
+    const rangeRows = candleData.map(d => ({ high: d.high, low: d.low, close: d.close, time: d.time }));
+    candleSeries.setData(candleData);
+    addRangeLines(chart, candleSeries, rangeRows);
+
+
+    const monthlyMaConfig = { 12: { color: REGIME_MA_COLOR, width: 3 } };
+    const monthlyMaSeries = {};
+    for (const [p, cfg] of Object.entries(monthlyMaConfig)) {
+        const s = chart.addLineSeries({ color: cfg.color, lineWidth: cfg.width, priceLineVisible:false, lastValueVisible:false });
+        s.setData(calculateMA(fullCandle, parseInt(p)).filter(d => d.time >= fromTime));
+        monthlyMaSeries[p] = s;
+    }
+
+    chart.addHistogramSeries({ color:'#26a69a', priceFormat:{type:'volume'}, priceScaleId:'', scaleMargins:VOLUME_MARGINS }).setData(volumeData);
+    chart.timeScale().fitContent();
+    new ResizeObserver(entries => { if(entries.length) chart.applyOptions({width:entries[0].contentRect.width}); }).observe(container);
+
+    document.querySelectorAll('.monthly-ma-toggle').forEach(badge => {
+        badge.addEventListener('click', function() {
+            const s = monthlyMaSeries[this.dataset.ma];
+            if (s) s.applyOptions({ visible: this.classList.toggle('active') });
+        });
+    });
+}
+
+// ===== 차트 탭 (일봉/주봉/월봉) =====
+// 숨겨진 컨테이너는 폭이 0이라 Lightweight Charts 가 그리지 못한다.
+// 그래서 탭을 처음 누를 때 그린다. 일봉은 기본 탭이라 위에서 이미 그렸다.
+const tfInit = { daily: true, weekly: false, monthly: false };
+const tfInitializers = { weekly: initWeeklyChart, monthly: initMonthlyChart };
+
+function showTimeframe(tf) {
+    if (!(tf in tfInit)) return;   // 모르는 값이면 건드리지 않는다
+    document.querySelectorAll('.tf-tab').forEach(b => b.classList.toggle('active', b.dataset.tf === tf));
+    document.querySelectorAll('.tf-pane').forEach(p => p.classList.toggle('tf-hidden', p.dataset.tf !== tf));
+    // 해당 봉에만 있는 조작(기간 버튼·이평선 뱃지)도 같이 갈아 끼운다
+    document.querySelectorAll('.tf-only').forEach(el => el.classList.toggle('tf-hidden', el.dataset.tf !== tf));
+
+    if (!tfInit[tf]) {
+        tfInit[tf] = true;
+        tfInitializers[tf]();
+    }
+}
+
+document.querySelectorAll('.tf-tab').forEach(btn => {
+    btn.addEventListener('click', () => showTimeframe(btn.dataset.tf));
+});
+showTimeframe('daily');
+
+// ===== Empty content check =====
+document.querySelectorAll('.content').forEach(el => {
+    const text = el.textContent.trim();
+    if (!text || text === '') {
+        el.innerHTML = '<span style="color:var(--text-muted);">-</span>';
+    }
+});
+
+// ===== Performance charts (Chart.js) =====
+const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: { size: 11 } } }
+    },
+    scales: {
+        y: {
+            type: 'linear', position: 'left', beginAtZero: true,
+            ticks: { callback: function(value) { return value.toLocaleString(); }, font: { size: 10 } },
+            title: { display: true, text: '매출(억)', font: { size: 10 } }
+        },
+        y1: {
+            type: 'linear', position: 'right', beginAtZero: true,
+            grid: { drawOnChartArea: false },
+            ticks: { callback: function(value) { return value.toLocaleString(); }, font: { size: 10 } },
+            title: { display: true, text: '영업이익(억)', font: { size: 10 } }
+        },
+        x: { ticks: { font: { size: 10 } } }
+    }
+};
+
+function getBarColors(estimated) {
+    return estimated.map(e => e ? 'rgba(54, 162, 235, 0.3)' : 'rgba(54, 162, 235, 0.7)');
+}
+function getPointColors(estimated) {
+    return estimated.map(e => e ? 'rgba(255, 99, 132, 0.4)' : 'rgba(255, 99, 132, 1)');
+}
+
+const annualEstimated = {{ annual_estimated|safe }};
+const quarterlyEstimated = {{ quarterly_estimated|safe }};
+
+new Chart(document.getElementById('annualChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ annual_labels|safe }},
+        datasets: [
+            {
+                label: '매출(억)', data: {{ annual_revenue|safe }},
+                backgroundColor: getBarColors(annualEstimated), yAxisID: 'y', order: 2
+            },
+            {
+                label: '영업이익(억)', data: {{ annual_op|safe }},
+                type: 'line', borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.1)', borderWidth: 2, pointRadius: 4,
+                pointBackgroundColor: getPointColors(annualEstimated),
+                segment: {
+                    borderColor: ctx => annualEstimated[ctx.p1DataIndex] ? 'rgba(255, 99, 132, 0.4)' : 'rgba(255, 99, 132, 1)',
+                    borderDash: ctx => annualEstimated[ctx.p1DataIndex] ? [5, 5] : []
+                },
+                yAxisID: 'y1', order: 1
+            }
+        ]
+    },
+    options: chartOptions
+});
+
+new Chart(document.getElementById('quarterlyChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ quarterly_labels|safe }},
+        datasets: [
+            {
+                label: '매출(억)', data: {{ quarterly_revenue|safe }},
+                backgroundColor: getBarColors(quarterlyEstimated), yAxisID: 'y', order: 2
+            },
+            {
+                label: '영업이익(억)', data: {{ quarterly_op|safe }},
+                type: 'line', borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.1)', borderWidth: 2, pointRadius: 4,
+                pointBackgroundColor: getPointColors(quarterlyEstimated),
+                segment: {
+                    borderColor: ctx => quarterlyEstimated[ctx.p1DataIndex] ? 'rgba(255, 99, 132, 0.4)' : 'rgba(255, 99, 132, 1)',
+                    borderDash: ctx => quarterlyEstimated[ctx.p1DataIndex] ? [5, 5] : []
+                },
+                yAxisID: 'y1', order: 1
+            }
+        ]
+    },
+    options: chartOptions
+});
+
+{% if has_consensus %}
+// ===== 컨센 테이블 (연간/분기) — 매출액·영업이익·EPS·PER·PBR·ROE + 증감율 =====
+(function() {
+    function renderConsensusTable(tableId, rows, fields) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        if (!rows.length) {
+            table.innerHTML = '<thead><tr><th>항목</th></tr></thead><tbody><tr><td style="color:var(--text-muted);font-size:0.8rem;">데이터 없음</td></tr></tbody>';
+            return;
+        }
+        const periods = rows.map(r => r.period + (r.is_estimated ? '(E)' : ''));
+        let html = '<thead><tr><th style="text-align:left;">항목</th>';
+        periods.forEach(p => { html += `<th style="text-align:right;">${p}</th>`; });
+        html += '</tr></thead><tbody>';
+        fields.forEach(f => {
+            html += `<tr><td style="font-weight:500;white-space:nowrap;">${f.label}</td>`;
+            rows.forEach((r, idx) => {
+                const val = r[f.key];
+                let display = '-', valColor = '', changeHtml = '';
+                if (val !== null && val !== undefined) {
+                    const num = parseFloat(val);
+                    display = f.key === 'eps' ? num.toLocaleString() : num.toLocaleString(undefined, {minimumFractionDigits:1, maximumFractionDigits:1});
+                    if (num < 0) valColor = 'color:#dc2626;';
+                    if (idx > 0) {
+                        const prevVal = rows[idx - 1][f.key];
+                        if (prevVal !== null && prevVal !== undefined) {
+                            const prev = parseFloat(prevVal);
+                            if (prev !== 0) {
+                                const rate = ((num - prev) / Math.abs(prev) * 100).toFixed(1);
+                                const rateColor = rate > 0 ? '#dc2626' : rate < 0 ? '#2962ff' : 'var(--text-muted)';
+                                const sign = rate > 0 ? '+' : '';
+                                changeHtml = `<div style="font-size:0.68rem;color:${rateColor};">${sign}${rate}%</div>`;
+                            }
+                        }
+                    }
+                }
+                html += `<td style="text-align:right;${valColor}">${display}${changeHtml}</td>`;
+            });
+            html += '</tr>';
+        });
+        html += '</tbody>';
+        table.innerHTML = html;
+    }
+    const fields = [
+        { key: 'revenue', label: '매출액(억원)' },
+        { key: 'operating_profit', label: '영업이익(억원)' },
+        { key: 'eps', label: 'EPS(원)' },
+        { key: 'per', label: 'PER(배)' },
+        { key: 'pbr', label: 'PBR(배)' },
+        { key: 'roe', label: 'ROE(%)' },
+    ];
+    // 연간/분기 탭 — 표는 이미 채워져 있으니 보이는 것만 바꾼다
+    document.querySelectorAll('.cs-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const cs = btn.dataset.cs;
+            document.querySelectorAll('.cs-tab').forEach(b => b.classList.toggle('active', b.dataset.cs === cs));
+            document.querySelectorAll('.cs-pane').forEach(p => p.classList.toggle('tf-hidden', p.dataset.cs !== cs));
+        });
+    });
+
+    renderConsensusTable('consensusAnnualTable', {{ consensus_annual_rows|safe }}, fields);
+    renderConsensusTable('consensusQuarterTable', {{ consensus_quarter_rows|safe }}, fields);
+})();
+{% endif %}
+
+
+</script>
+{% endblock %}

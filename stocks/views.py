@@ -553,7 +553,12 @@ def stock_list(request):
     return render(request, 'stocks/stock_list.html', context)
 
 
-def stock_detail(request, code):
+def build_stock_detail_context(code):
+    """종목 상세의 데이터를 만든다.
+
+    내 종목 화면과 OnToo 상세가 같은 데이터를 쓴다. 화면은 갈라지지만
+    숫자가 갈라지면 안 되므로 만드는 일은 여기 한 곳에 둔다.
+    """
     """종목 상세 페이지"""
     from django.db.models import Q
     stock = get_object_or_404(Info.objects.prefetch_related('themes__category'), code=code)
@@ -1274,9 +1279,13 @@ def stock_detail(request, code):
         'ma60_value': ma60_value,
         'avg_target_price_3m': avg_target_price_3m,
     }
-    return render(request, 'stocks/stock_detail.html', context)
+
+    return context
 
 
+def stock_detail(request, code):
+    """종목 상세 페이지"""
+    return render(request, 'stocks/stock_detail.html', build_stock_detail_context(code))
 def run_fav_commands(stock_code, action):
     """관심 종목 변경 시 명령어 백그라운드 실행"""
     import threading

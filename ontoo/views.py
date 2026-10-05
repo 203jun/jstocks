@@ -13,6 +13,7 @@ from django.shortcuts import get_object_or_404, render
 
 from stocks.models import Info, SystemSetting
 from stocks.status_table import build_status_rows, status_block_text
+from stocks.views import build_stock_detail_context
 
 PROMPT_KEY = 'prompt_status'
 
@@ -50,5 +51,6 @@ def stock_detail(request, code):
     공유로 지정한 종목만 열린다. 종목코드만 바꿔 넣어 공유하지 않은 종목을
     들여다볼 수 있으면 안 된다 — 그쪽에는 내 메모와 매매근거가 들어 있다.
     """
-    stock = get_object_or_404(Info, code=code, is_active=True, is_shared=True)
-    return render(request, 'ontoo/stock_detail.html', {'stock': stock})
+    get_object_or_404(Info, code=code, is_active=True, is_shared=True)
+    # 데이터는 내 종목 화면과 같은 함수에서 온다. 화면만 갈라진다.
+    return render(request, 'ontoo/stock_detail.html', build_stock_detail_context(code))
