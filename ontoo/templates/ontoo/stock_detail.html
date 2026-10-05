@@ -1,0 +1,61 @@
+{% load humanize %}<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>{{ stock.name }} - OnToo</title>
+<style>
+/* 목록 화면과 같은 팔레트 */
+:root {
+    --bg-page: #0f1115;
+    --bg-card: #1a1d24;
+    --bg-secondary: #22262f;
+    --text-primary: #c2c7d0;
+    --text-secondary: #8a909b;
+    --text-muted: #5f6671;
+    --border-color: #2a2e38;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+    --radius: 12px;
+    --up-color: #ef5350;
+    --down-color: #5b8def;
+}
+* { box-sizing: border-box; }
+body {
+    color-scheme: dark;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 64px; }
+.back { display:inline-block; margin-bottom:16px; font-size:0.78rem; color:var(--text-muted); text-decoration:none; }
+.back:hover { color:var(--text-primary); }
+.name { font-size:1.3rem; font-weight:700; margin:0 0 2px; }
+.code { font-size:0.78rem; color:var(--text-muted); }
+.price { font-size:1.6rem; font-weight:700; margin-top:12px; }
+.rate { font-size:0.9rem; margin-left:6px; }
+.text-up { color: var(--up-color); }
+.text-down { color: var(--down-color); }
+.card { background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius); box-shadow:var(--shadow-card); padding:20px; }
+.todo { margin-top:20px; font-size:0.8rem; color:var(--text-muted); line-height:1.8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <a class="back" href="/ontoo/">← 공유 종목</a>
+
+    <div class="card">
+        <h1 class="name">{{ stock.name }}</h1>
+        <div class="code">{{ stock.code }}{% if stock.market %} · {{ stock.market }}{% endif %}</div>
+        <div class="price">
+            {% if stock.current_price %}{{ stock.current_price|intcomma }}{% else %}-{% endif %}
+            {% if stock.change_rate %}<span class="rate {% if stock.change_rate > 0 %}text-up{% elif stock.change_rate < 0 %}text-down{% endif %}">{% if stock.change_rate > 0 %}+{% endif %}{{ stock.change_rate }}%</span>{% endif %}
+        </div>
+    </div>
+
+    <div class="todo">여기에 블록을 하나씩 옮긴다 — 차트 · 실적 · 재무 · 수급 · 공시 · 리포트 · 자료</div>
+</div>
+</body>
+</html>

@@ -9,7 +9,7 @@
 표와 프롬프트 본문을 만드는 일은 stocks.status_table 한 곳에 있다. 종목
 화면과 같은 함수를 쓰므로 한쪽만 고쳐져 어긋나는 일이 없다.
 """
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 
 from stocks.models import Info, SystemSetting
 from stocks.status_table import build_status_rows, status_block_text
@@ -26,6 +26,8 @@ def index(request):
     )
     # 보유 표시 없음 — 두 번째 인자가 빈 집합이면 보유 여부가 새지 않는다
     status_stocks = build_status_rows(stocks, set(), include_etf=False)
+    for row in status_stocks:
+        row['detail_url'] = f"/ontoo/stock/{row['stock'].code}/"
 
     # 프롬프트는 복사만 한다. 고치는 길(⚙)도, 본문을 띄우는 창도 두지 않는다 —
     # 여기서 고치면 내 종목 화면의 프롬프트까지 같이 바뀐다.
@@ -40,3 +42,13 @@ def index(request):
         'prompt_template': prompt_template,
         'status_data': status_data,
     })
+
+
+def stock_detail(request, code):
+    """공유 종목 상세.
+
+    공유로 지정한 종목만 열린다. 종목코드만 바꿔 넣어 공유하지 않은 종목을
+    들여다볼 수 있으면 안 된다 — 그쪽에는 내 메모와 매매근거가 들어 있다.
+    """
+    stock = get_object_or_404(Info, code=code, is_active=True, is_shared=True)
+    return render(request, 'ontoo/stock_detail.html', {'stock': stock})
