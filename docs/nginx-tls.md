@@ -10,14 +10,44 @@
 
 ---
 
-## 0. 준비 확인
+## 0. 준비 확인 — 여기서 걸릴 만한 것이 둘 있다
+
+도메인은 카페24 기본 호스트네임을 쓴다. 조회해 보면 이 서버를 가리킨다.
 
 ```bash
-dig +short YOUR_DOMAIN          # 175.126.73.5 가 나와야 한다
+dig +short cantoluna3.cafe24.com          # 175.126.73.5
 ```
 
-도메인이 이 서버를 가리키지 않으면 인증서 발급이 실패한다. 80 포트도 열려
-있어야 한다 (certbot 이 그 포트로 소유를 확인한다).
+### (1) 80 · 443 이 바깥에서 닿아야 한다
+
+바깥에서 재 보니 둘 다 응답이 없었다. 아무것도 안 듣고 있는 것인지, 카페24
+쪽에서 막은 것인지를 먼저 가른다. 앞이면 nginx 를 띄우면 되고, **뒤면
+certbot 의 HTTP-01 방식으로는 인증서를 받을 수 없다.**
+
+```bash
+ss -lntp | grep -E ':80|:443'     # 아무것도 없으면 '안 듣는 중'
+ufw status                         # 서버 방화벽
+iptables -L INPUT -n | head -20
+```
+
+서버에서는 아무것도 안 막고 있는데 바깥에서 안 닿으면 카페24 쪽 차단이다.
+그 경우는 호스팅 설정이나 고객센터에서 80·443 인바운드를 열어야 한다.
+
+### (2) 발급 한도 — 이름이 남의 것과 같은 지붕 아래 있다
+
+`cafe24.com` 은 Public Suffix List 에 없다. 그래서 Let's Encrypt 는 발급 한도를
+`cafe24.com` 하나로 묶어 센다 — 카페24 고객 누군가가 그 주를 다 써 버렸으면
+내 발급도 거절된다 ("too many certificates already issued for: cafe24.com").
+
+그래서 **먼저 연습 발급으로 길을 확인한다.**
+
+```bash
+certbot certonly --nginx -d cantoluna3.cafe24.com --dry-run
+```
+
+연습은 다른 서버(staging)를 쓰고 한도가 느슨하다. 즉 **연습이 되는 것은
+'설정과 80 포트가 맞다' 는 뜻이고, 실제 발급의 한도까지 보장하지는 않는다.**
+실제 발급에서 한도로 막히면 아래 '한도에 막혔을 때' 로 간다.
 
 ---
 
@@ -37,7 +67,6 @@ cd /home/stock/jstocks
 git pull
 
 cp deploy/nginx/jstocks.conf /etc/nginx/sites-available/jstocks
-sed -i 's/YOUR_DOMAIN/실제도메인/g' /etc/nginx/sites-available/jstocks
 
 ln -sf /etc/nginx/sites-available/jstocks /etc/nginx/sites-enabled/jstocks
 rm -f /etc/nginx/sites-enabled/default      # 기본 사이트가 요청을 먹는 일이 있다
@@ -45,7 +74,7 @@ rm -f /etc/nginx/sites-enabled/default      # 기본 사이트가 요청을 먹�
 nginx -t                                     # 통과해야 다음으로 간다
 systemctl reload nginx
 
-curl -I http://실제도메인/ontoo/              # 200
+curl -I http://cantoluna3.cafe24.com/ontoo/              # 200
 ```
 
 여기까지는 평문이다. 아직 Django 설정도 안 바꿨으니 되돌릴 것도 없다.
@@ -55,15 +84,15 @@ curl -I http://실제도메인/ontoo/              # 200
 ## 3. 인증서 발급 — certbot 이 TLS 를 써 넣는다
 
 ```bash
-certbot --nginx -d 실제도메인
+certbot --nginx -d cantoluna3.cafe24.com
 ```
 
 certbot 이 위 파일에 443 블록, 인증서 경로, http→https 리다이렉트를 **그 서버의
 nginx 버전에 맞게** 직접 써 넣는다. 그래서 설정 파일에 443 을 미리 적지 않았다.
 
 ```bash
-curl -I https://실제도메인/ontoo/            # 200
-curl -I http://실제도메인/ontoo/             # 301 -> https
+curl -I https://cantoluna3.cafe24.com/ontoo/            # 200
+curl -I http://cantoluna3.cafe24.com/ontoo/             # 301 -> https
 ```
 
 갱신은 `certbot.timer` 가 자동으로 돈다.
@@ -83,7 +112,7 @@ admin 화면의 CSS·JS 자리다. 그동안 아무것도 서빙하지 않아 ad
 ```bash
 cd /home/stock/jstocks
 venv/bin/python manage.py collectstatic --noinput
-curl -I https://실제도메인/static/admin/css/base.css     # 200
+curl -I https://cantoluna3.cafe24.com/static/admin/css/base.css     # 200
 ```
 
 ---
@@ -94,9 +123,9 @@ curl -I https://실제도메인/static/admin/css/base.css     # 200
 넣는다 — 없으면 Django 가 전부 400 으로 끊는다.
 
 ```
-ALLOWED_HOSTS=실제도메인,175.126.73.5,localhost,127.0.0.1
+ALLOWED_HOSTS=cantoluna3.cafe24.com,175.126.73.5,localhost,127.0.0.1
 BEHIND_TLS_PROXY=True
-CSRF_TRUSTED_ORIGINS=https://실제도메인
+CSRF_TRUSTED_ORIGINS=https://cantoluna3.cafe24.com
 SECURE_COOKIES=True
 ```
 
@@ -146,7 +175,41 @@ ufw status
 
 ---
 
-## 7. 되돌리기
+## 7. 들어오는 문을 내 IP 만 열기
+
+고정 IP 를 쓰므로 할 수 있다. 모르는 사람은 로그인 화면 자체를 못 본다.
+HTTPS 를 붙이기 전이라도 이것만으로 상당히 줄어든다.
+
+먼저 **내 접속 IP** 를 안다. 서버 IP(175.126.73.5)가 아니라, 내가 앉아 있는
+쪽의 주소다.
+
+```bash
+# 내 PC 에서
+curl ifconfig.me
+```
+
+`/etc/nginx/sites-available/jstocks` 아래쪽 주석을 풀고 YOUR_IP 를 그 값으로
+바꾼다. `/ontoo/` 는 건드리지 않는다 — 동료가 보는 자리다.
+
+```bash
+nginx -t && systemctl reload nginx
+```
+
+확인 — 내 PC 에서는 로그인 화면이 뜨고, 휴대폰 LTE 처럼 다른 회선에서는
+403 이 나와야 한다.
+
+```bash
+curl -I https://cantoluna3.cafe24.com/login/     # 내 PC: 200
+                                                  # 다른 회선: 403
+curl -I https://cantoluna3.cafe24.com/ontoo/     # 어디서나: 200
+```
+
+회선을 바꾸거나 IP 가 바뀌면 나도 못 들어온다. 그때는 서버에 ssh 로 들어가
+그 두 location 을 다시 주석 처리하면 된다.
+
+---
+
+## 8. 되돌리기
 
 못 들어오게 되면 `.env` 의 세 줄(`BEHIND_TLS_PROXY`, `CSRF_TRUSTED_ORIGINS`,
 `SECURE_COOKIES`)을 지우고 재시작하면 평문 상태로 돌아온다. 유닛을 바꿨다면
@@ -158,6 +221,18 @@ systemctl restart jstocks
 
 ---
 
+## 한도에 막혔을 때
+
+`cafe24.com` 한도로 거절되면 이름을 하나 더 두는 수밖에 없다.
+
+- **무료 호스트네임** — DuckDNS 같은 곳에서 `아무이름.duckdns.org` 를 받아
+  175.126.73.5 를 가리키게 한다. duckdns.org 는 Public Suffix List 에 있어서
+  내 이름 몫의 한도를 따로 받는다. 동료에게 주는 주소가 그 이름으로 바뀐다.
+- **IP 제한만으로 버티기** — HTTPS 를 미루고 아래 7 번만 한다. 고정 IP 가 있어
+  할 수 있는 선택이고, 남는 위험은 내 회선에서 서버까지의 구간이다.
+
+---
+
 ## 남는 것
 
 - **로그인 시도 제한** — `/login/` 과 `/admin/login/` 에 무제한으로 시도할 수
@@ -166,4 +241,4 @@ systemctl restart jstocks
 - **SECRET_KEY 교체** — 한 번 외부에 보인 적이 있다. 바꾸면 세션이 끊겨 다시
   로그인하는 것이 전부다.
 - **/ontoo/ 는 그대로 열어 둔다.** 동료가 보는 자리다. https 가 되면 주소만
-  `https://실제도메인/ontoo/` 로 바뀐다.
+  `https://cantoluna3.cafe24.com/ontoo/` 로 바뀐다.
