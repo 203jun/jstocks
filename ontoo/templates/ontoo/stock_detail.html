@@ -574,11 +574,6 @@ a.bi-tag { text-decoration:none; }
 
 /* OnToo 에서 더한 것 */
 
-/* 아직 안 옮긴 탭. 누를 수 없다는 것이 보여야 한다 —
-   눌렀는데 아무 일도 없으면 고장으로 읽힌다. */
-.market-tab.is-soon { opacity: 0.35; cursor: not-allowed; }
-.market-tab.is-soon:hover { color: var(--text-secondary); }
-
 /* 리서치는 제목만 보인다. 내용은 내 화면에만 있다.
    모양은 그대로 두고 누르는 느낌만 없앤다. */
 .research-no-link { cursor: default; }
@@ -591,6 +586,7 @@ a.bi-tag { text-decoration:none; }
 {# 공시 프롬프트 — 한 건용과 탭 전체용. 각각 본문(template)과 값(vars)을 들고 온다 #}
 {{ gongsi_prompt|json_script:"gongsi-prompt-data" }}
 {{ gongsi_all_prompt|json_script:"gongsi-all-prompt-data" }}
+{{ report_prompt|json_script:"report-prompt-data" }}
 <a href="/ontoo/" style="display:inline-block;margin-bottom:14px;font-size:0.78rem;color:var(--text-muted);text-decoration:none;">← 공유 종목</a>
 <!-- 종목 헤더 -->
 <div class="d-flex justify-content-between align-items-center" style="margin-bottom:20px;">
@@ -732,10 +728,9 @@ a.bi-tag { text-decoration:none; }
 <!-- 메인 탭 -->
 <div class="market-tabs">
     <button class="market-tab active" data-target="info-content">기본정보</button>
-    <!-- <button class="market-tab" data-target="analysis-content">기업분석</button> -->
     <button class="market-tab" data-target="supply-content" type="button">수급</button>
     <button class="market-tab" data-target="disclosure-content" type="button">공시</button>
-    <button class="market-tab is-soon" type="button" disabled title="준비 중">리포트</button>
+    <button class="market-tab" data-target="report-content" type="button">리포트</button>
 </div>
 
 <!-- ========== 기본정보 탭 ========== -->
@@ -1308,6 +1303,120 @@ a.bi-tag { text-decoration:none; }
         <div style="color:var(--text-muted);font-size:0.85rem;">공시가 없습니다.</div>
         {% endif %}
     </div>
+</div>
+
+<!-- ========== 리포트 탭 ========== -->
+<div id="report-content" class="tab-panel" style="display:none;">
+    <h5 class="section-heading" style="margin-top:0;">AI 판단</h5>
+    <div class="brief-card" style="padding:0;overflow:hidden;">
+        {% include 'stocks/_ai_note.html' with kind='report' key=stock.code note=report_note note_id='ai-note-report' prompt_key='prompt_report' prompt_id='btnCopyReportPrompt' readonly=True %}
+    </div>
+
+    {% if target_panel %}
+    <h5 class="section-heading">목표가 {% help_icon "target_panel" %}</h5>
+    <div class="brief-card tgt-card">
+        <div class="tgt-head">
+            <div class="tgt-price">{{ target_panel.target|intcomma }}원</div>
+            <div class="tgt-src">{{ target_panel.date|date:"y.m.d" }}{% if target_panel.provider %} · {{ target_panel.provider }}{% endif %}</div>
+        </div>
+        <div class="tgt-rows">
+            <div class="tgt-row">
+                <span class="tgt-label">괴리율</span>
+                {% if target_panel.gap_now is not None %}
+                <span class="tgt-value {{ target_panel.gap_band }}">{% if target_panel.gap_now > 0 %}+{% endif %}{{ target_panel.gap_now }}%</span>
+                <span class="tgt-note">{% if target_panel.gap_issued is not None %}발행시 {% if target_panel.gap_issued > 0 %}+{% endif %}{{ target_panel.gap_issued }}%{% endif %}{% if target_panel.price_move is not None %} · 그 뒤 주가 {% if target_panel.price_move > 0 %}+{% endif %}{{ target_panel.price_move }}%{% endif %}</span>
+                {% else %}<span class="tgt-value" style="color:var(--text-muted);">-</span>{% endif %}
+            </div>
+            {% if target_panel.recent_n %}
+            <div class="tgt-row">
+                <span class="tgt-label">컨센</span>
+                <span class="tgt-value">{{ target_panel.consensus|intcomma }}원</span>
+                <span class="tgt-note">최근 {{ target_panel.window }}일 · 증권사 {{ target_panel.providers }}곳{% if target_panel.consensus_gap is not None %} · 이 목표가는 평균 {% if target_panel.consensus_gap > 0 %}+{% endif %}{{ target_panel.consensus_gap }}%{% endif %}{% if target_panel.outlier %} <strong class="gap-thin">혼자 튐</strong>{% endif %}</span>
+            </div>
+            <div class="tgt-row">
+                <span class="tgt-label">방향</span>
+                <span class="tgt-value">
+                    <span class="{% if target_panel.up %}text-up{% endif %}">▲{{ target_panel.up }}</span>
+                    <span style="color:var(--text-muted);">—{{ target_panel.flat }}</span>
+                    <span class="{% if target_panel.down %}text-down{% endif %}">▼{{ target_panel.down }}</span>
+                </span>
+                <span class="tgt-note">최근 {{ target_panel.window }}일 · 같은 증권사의 직전 목표가 대비</span>
+            </div>
+            {% else %}
+            <div class="tgt-row">
+                <span class="tgt-label"></span>
+                <span class="tgt-value" style="color:var(--text-muted);font-weight:400;">최근 {{ target_panel.window }}일 새 리포트 없음 — 컨센·방향을 낼 수 없다</span>
+            </div>
+            {% endif %}
+        </div>
+        {% if target_panel.reading %}
+        <div class="tgt-reading">{{ target_panel.reading }}</div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if reports %}
+    <h5 class="section-heading">주가 vs 목표가</h5>
+    <div class="chart-card">
+        <div class="chart-legend">
+            <span class="chart-legend-item"><i style="background:var(--up-color);"></i>목표가 평균</span>
+            <span class="chart-legend-item"><i class="legend-band"></i>목표가 범위</span>
+            <span class="chart-legend-item"><i style="background:var(--down-color);"></i>주가</span>
+            <span class="chart-legend-note">점 = 리포트가 나온 날</span>
+        </div>
+        <div style="position:relative;height:320px;">
+            <canvas id="priceTargetChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">애널리스트 리포트<a href="https://stockeasy.intellio.kr/stock-analysis?tab=stock_info&code={{ stock.code }}&stockTab=synthesis&source=report" target="_blank" class="btn-refresh" style="font-weight:400;font-size:0.72rem;">StockEasy</a></h5>
+    <div class="brief-card">
+        {% if reports %}
+        <div style="overflow-x:auto;">
+            <table class="modern-table" id="reportTable">
+                <thead>
+                    <tr>
+                        <th style="width:80px;">일자</th>
+                        <th>제목</th>
+                        <th style="width:100px;" class="d-none d-md-table-cell">애널리스트</th>
+                        <th style="width:90px;" class="d-none d-md-table-cell">증권사</th>
+                        <th style="width:90px;text-align:right;">목표가</th>
+                        <th style="width:70px;text-align:right;">괴리율 {% help_icon "report_gap" %}</th>
+                    </tr>
+                </thead>
+                <tbody id="reportTableBody">
+                    {% for report in reports %}
+                    <tr>
+                        <td style="color:var(--text-muted);font-size:0.78rem;">{{ report.date|date:"y/m/d" }}</td>
+                        <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;" title="{{ report.title }}">
+                            <a href="https://www.google.com/search?q={{ report.title|urlencode }}+pdf" target="_blank" rel="noopener"
+                               style="text-decoration:none;color:var(--text-primary);" title="'{{ report.title }} pdf' 로 구글 검색">{{ report.title }}</a>
+                        </td>
+                        <td style="font-size:0.78rem;" class="d-none d-md-table-cell">{{ report.author }}</td>
+                        <td style="font-size:0.78rem;" class="d-none d-md-table-cell">{{ report.provider }}</td>
+                        <td style="text-align:right;">
+                            {% if report.target_price %}
+                            <strong class="text-up">{{ report.target_price|intcomma }}원</strong>
+                            {% else %}<span style="color:var(--text-muted);">-</span>{% endif %}
+                        </td>
+                        <td style="text-align:right;">
+                            {% if report.gap_rate != None %}
+                            <span class="{{ report.gap_band }}">
+                                {% if report.gap_rate > 0 %}+{% endif %}{{ report.gap_rate }}%
+                            </span>
+                            {% else %}<span style="color:var(--text-muted);">-</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="color:var(--text-muted);font-size:0.85rem;">리포트가 없습니다.</div>
+        {% endif %}
+    </div>
+
 </div>
 
 {% endblock %}
@@ -2086,6 +2195,122 @@ if (investorChartDataDaum && investorChartDataDaum.length > 0) {
         });
     });
 })();
+
+
+// ===== 리포트 프롬프트 (복사만) =====
+(function () {
+    const btn = document.getElementById('btnCopyReportPrompt');
+    if (!btn) return;
+    const data = JSON.parse(document.getElementById('report-prompt-data')?.textContent || '{}');
+    btn.addEventListener('click', async function () {
+        const template = data.template || '';
+        if (!template) { alert('리포트 프롬프트가 등록되지 않았습니다.'); return; }
+        // 변수명에 정규식 특수문자({})가 있어 split/join 으로 바꾼다
+        const text = Object.entries(data.vars || {})
+            .reduce((acc, [name, value]) => acc.split(name).join(value), template);
+        try {
+            await copyToClipboard(text);
+            const orig = this.textContent;
+            this.textContent = '복사됨!';
+            setTimeout(() => { this.textContent = orig; }, 1500);
+        } catch (err) { alert('복사 실패: ' + err.message); }
+    });
+})();
+
+// ===== 주가 vs 목표가 =====
+// 목표가는 날짜별로 묶어 평균 하나만 찍고, 최저~최고를 밴드로 두른다.
+// 같은 날 증권사끼리 24만원까지 갈리므로 개별 점을 선으로 이으면 지그재그가 된다.
+const priceChartData = {{ price_chart_data|safe }};
+const targetChartData = {{ target_chart_data|safe }};
+let priceTargetChart = null;
+
+function initPriceTargetChart() {
+    if (priceTargetChart) return;
+    if (!targetChartData.length) return;
+    const ctx = document.getElementById('priceTargetChart');
+    if (!ctx) return;
+
+    // 시장·종목 차트와 같은 규칙으로 맞춘다. 빨강은 목표가, 파랑은 주가.
+    const band = _isDarkTheme ? 'rgba(220, 53, 69, 0.16)' : 'rgba(220, 53, 69, 0.10)';
+    priceTargetChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [
+                // 밴드: 최고선이 바로 다음 데이터셋(최저선)까지 채운다
+                { label: '목표가 최고', data: targetChartData.map(d => ({ x: d.x, y: d.high })),
+                  borderWidth: 0, pointRadius: 0, fill: '+1', backgroundColor: band, order: 3 },
+                { label: '목표가 최저', data: targetChartData.map(d => ({ x: d.x, y: d.low })),
+                  borderWidth: 0, pointRadius: 0, fill: false, order: 3 },
+                // 툴팁은 이 점에서만 뜬다. 점은 작게 두고 잡히는 범위만 넓힌다.
+                { label: '목표가 평균', data: targetChartData.map(d => ({ x: d.x, y: d.avg })),
+                  borderColor: '#dc3545', borderWidth: 2,
+                  pointRadius: 3, pointHitRadius: 14,
+                  pointBackgroundColor: '#dc3545', pointBorderColor: chartBg, pointBorderWidth: 1.5,
+                  fill: false, order: 1 },
+                { label: '주가', data: priceChartData,
+                  borderColor: '#2962ff', borderWidth: 1.5, pointRadius: 0, fill: false, order: 2 },
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            // 목표가가 있는 날에만 툴팁을 띄운다. 목표가 없는 날의 주가만 보는
+            // 툴팁은 읽을 게 없어 오히려 방해가 된다.
+            interaction: { mode: 'point', intersect: true },
+            plugins: {
+                // 범례는 차트 위에 HTML 로 둔다. Chart.js 기본 범례는 네모 상자에
+                // 아래쪽이라 다른 차트들과 결이 달랐다.
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: _isDarkTheme ? '#22262f' : 'rgba(255,255,255,0.96)',
+                    titleColor: chartText, bodyColor: chartText,
+                    borderColor: chartBorder, borderWidth: 1,
+                    padding: 10, displayColors: false,
+                    // 주가선과 밴드에는 툴팁을 붙이지 않는다
+                    filter: item => item.dataset.label === '목표가 평균',
+                    callbacks: {
+                        label: function(ctx) {
+                            const d = targetChartData[ctx.dataIndex];
+                            const lines = [`목표가 평균 ${d.avg.toLocaleString()}원 (${d.count}건)`];
+                            if (d.low !== d.high) {
+                                lines.push(`범위 ${d.low.toLocaleString()} ~ ${d.high.toLocaleString()}`);
+                            }
+                            if (d.close) {
+                                lines.push(`주가 ${d.close.toLocaleString()}원`);
+                            }
+                            if (d.gap !== null) {
+                                lines.push(`괴리율 ${d.gap > 0 ? '+' : ''}${d.gap}%`);
+                            }
+                            return lines;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { type: 'time', time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd',
+                                           displayFormats: { day: 'yy.MM' } },
+                     grid: { color: chartGrid },
+                     border: { color: chartBorder },
+                     ticks: { maxTicksLimit: 8, color: chartText, font: { size: 10 } } },
+                y: { grid: { color: chartGrid },
+                     border: { display: false },
+                     ticks: { callback: v => v.toLocaleString(),
+                              color: chartText, font: { size: 10 } } },
+            }
+        }
+    });
+}
+
+
+// 목표가 차트는 숨어 있는 캔버스에 그린다. 폭이 0 이면 그려지지 않으므로
+// 리포트 탭을 처음 열 때 그린다 (내 화면의 탭 전환도 같은 방식이다).
+document.querySelector('.market-tab[data-target="report-content"]')
+    ?.addEventListener('click', function () {
+        if (!priceTargetChart) {
+            setTimeout(initPriceTargetChart, 50);
+        } else {
+            priceTargetChart.resize();
+        }
+    });
 
 </script>
 {% endblock %}
