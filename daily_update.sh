@@ -22,7 +22,7 @@ cd /home/stock/jstocks
 source venv/bin/activate
 source ./batch_lib.sh
 
-batch_start "일일" 18
+batch_start "일일" 18 "📊"
 
 # 토큰 발급 (키움 API 사용 전 필수)
 step "토큰 발급" python manage.py get_token

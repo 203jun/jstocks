@@ -22,7 +22,7 @@ cd /home/stock/jstocks
 source venv/bin/activate
 source ./batch_lib.sh
 
-batch_start "주간" 2
+batch_start "주간" 2 "📈"
 
 # 재무제표 (네이버)
 step "재무제표" python manage.py save_financial_naver --code all --log-level info

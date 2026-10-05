@@ -26,18 +26,22 @@ send_telegram() {
     python manage.py tele_api_test -m "$1" > /dev/null 2>&1
 }
 
-# batch_start "라벨" 전체단계수
+# batch_start "라벨" 전체단계수 [시작아이콘]
+#
+# 시작아이콘을 주면 시작 알림을 보낸다. 안 주면 안 보낸다 — 다음 금융 수급은
+# 한 단계뿐이라 예전부터 완료만 보냈다. 보낼지 말지는 스크립트가 정할 일이다.
 batch_start() {
     BATCH_LABEL="$1"
     TOTAL_STEPS="$2"
+    local start_icon="$3"
     STEP_NO=0
     FAIL_NAMES=()
     WARN_NAMES=()
     DETAIL=""
 
-    local icon="📊"
-    [ "$BATCH_LABEL" = "주간" ] && icon="📈"
-    send_telegram "${icon} ${BATCH_LABEL} 업데이트 시작 ($(date '+%H:%M'))"
+    if [ -n "$start_icon" ]; then
+        send_telegram "${start_icon} ${BATCH_LABEL} 업데이트 시작 ($(date '+%H:%M'))"
+    fi
 
     echo "========================================"
     echo "${BATCH_LABEL} 업데이트 시작: $(date '+%Y-%m-%d %H:%M:%S')"
