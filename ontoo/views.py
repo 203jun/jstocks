@@ -2,7 +2,9 @@
 
 동료와 같이 보는 자리다. 그래서 두 가지를 지킨다.
 
-  - 읽기만 한다. POST 경로를 두지 않는다.
+  - 읽기만 한다. 모든 뷰가 @require_GET 이다. POST 로 들어오면 405 다.
+    쓰는 코드가 없으니 그냥 그려 줘도 해는 없지만, 읽기 전용은 '마침 쓰는
+    코드가 없어서' 가 아니라 못 박아 두는 편이 낫다.
   - 보유는 드러내지 않는다. 무엇을 들고 있는지는 내 사정이고,
     표에 필요한 값도 아니다 (build_status_rows 에 빈 집합을 준다).
 
@@ -11,6 +13,7 @@
 """
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
+from django.views.decorators.http import require_GET
 
 from stocks.models import Gongsi, Info, StockQuestionReport, SystemSetting
 from stocks.status_table import build_status_rows, status_block_text
@@ -20,6 +23,7 @@ PROMPT_KEY = 'prompt_status'
 SIGNAL_PROMPT_KEY = 'prompt_signal_analysis'
 
 
+@require_GET
 def index(request):
     """공유 종목 현황"""
     stocks = list(
@@ -56,6 +60,7 @@ def index(request):
     })
 
 
+@require_GET
 def stock_detail(request, code):
     """공유 종목 상세.
 
@@ -67,6 +72,7 @@ def stock_detail(request, code):
     return render(request, 'ontoo/stock_detail.html', build_stock_detail_context(code))
 
 
+@require_GET
 def research_detail(request, report_id):
     """공유 종목의 리서치 하나를 읽는 자리.
 
@@ -85,6 +91,7 @@ def research_detail(request, report_id):
     return render(request, 'ontoo/research_detail.html', {'qr': qr})
 
 
+@require_GET
 def dart_document(request, rcept_no):
     """공시 본문 조회 — 공유 종목의 공시만.
 
