@@ -344,6 +344,24 @@ class Info(models.Model):
         help_text='메모 마지막 수정일'
     )
 
+    # === 공유 메모 ===
+    # 위 memo 와 아무 관계가 없다. 같은 종목이 관심이면서 공유일 때 두 글이
+    # 서로 보이면 안 된다 — 하나는 나한테 쓰는 글이고 하나는 스무 명에게
+    # 보여주는 글이다. 쓰는 곳은 로그인한 내 종목 화면뿐이고, OnToo 는
+    # 읽기로만 보여준다.
+    shared_memo = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='공유 메모',
+        help_text='OnToo(/ontoo/)에 보여줄 메모. 내 메모와 따로 저장된다.'
+    )
+    shared_memo_updated_at = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='공유 메모 업데이트일',
+        help_text='공유 메모 마지막 수정일'
+    )
+
     recent_trade_judgment = models.TextField(
         blank=True, default='', verbose_name='최근매매판별',
         help_text='AI 매매 판단 결과 저장'

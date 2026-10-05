@@ -735,15 +735,18 @@ a.bi-tag { text-decoration:none; }
 
 <!-- ========== 기본정보 탭 ========== -->
 <div id="info-content" class="tab-panel">
-    <!-- 메모 -->
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">메모{% if stock.memo_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="memoUpdatedAt">update: {{ stock.memo_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
+    {% comment %}
+    공유 메모(shared_memo)다. 내 메모(memo)가 아니다 — 그쪽은 나한테 쓰는
+    글이라 여기 올 것이 아니다. 쓰는 곳은 로그인한 내 종목 화면뿐이고
+    여기서는 읽기만 한다.
+
+    비어 있어도 카드는 둔다. 자리가 늘 같아야 눈이 찾아가지 않는다.
+    {% endcomment %}
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">메모{% if stock.shared_memo_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">update: {{ stock.shared_memo_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
     <div class="brief-card">
-        <!-- 보기 모드 -->
-        <div id="memoViewMode">
-            <div style="max-height:400px;overflow-y:auto;">
-                <div class="content markdown-content" style="font-size:0.85rem;" id="memoMarkdown"></div>
-                <script type="text/plain" id="memoRaw">{{ stock.memo|default:""|safe }}</script>
-            </div>
+        <div style="max-height:400px;overflow-y:auto;">
+            <div class="content markdown-content" style="font-size:0.85rem;" id="sharedMemoMarkdown"></div>
+            <script type="text/plain" id="sharedMemoRaw">{{ stock.shared_memo|default:""|safe }}</script>
         </div>
     </div>
 
@@ -948,7 +951,7 @@ function renderContent(rawId, markdownId) {
     }
 }
 
-renderContent('memoRaw', 'memoMarkdown');
+renderContent('sharedMemoRaw', 'sharedMemoMarkdown');
 renderContent('analysisRaw', 'analysisMarkdown');
 renderContent('finAnalysisV2Raw', 'finAnalysisV2Markdown');
 renderContent('consensusAnalysisRaw', 'consensusAnalysisMarkdown');

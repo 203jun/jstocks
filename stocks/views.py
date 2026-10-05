@@ -4997,6 +4997,29 @@ def stock_memo_save(request, code):
 
 
 @require_POST
+def stock_shared_memo_save(request, code):
+    """공유 메모 저장 API.
+
+    쓰는 곳은 로그인한 내 종목 화면뿐이다. /api/ 는 로그인 없이 못 들어오고,
+    OnToo 쪽에는 저장 경로를 두지 않았다 — 거기는 읽기만 하는 자리다.
+
+    내 메모(memo)와 아무 관계가 없다. 한쪽을 고쳐 다른 쪽이 따라가면
+    나한테 쓴 글이 스무 명에게 새거나 그 반대가 된다.
+    """
+    from datetime import date
+    stock = get_object_or_404(Info, code=code)
+    memo = request.POST.get('memo', '').strip()
+    if memo != (stock.shared_memo or '').strip():
+        stock.shared_memo = memo
+        stock.shared_memo_updated_at = date.today()
+        stock.save(update_fields=['shared_memo', 'shared_memo_updated_at'])
+    return JsonResponse({
+        'success': True,
+        'updated_at': stock.shared_memo_updated_at.strftime('%Y-%m-%d') if stock.shared_memo_updated_at else '',
+    })
+
+
+@require_POST
 def report_file_delete(request, report_id):
     """애널리스트 리포트 첨부파일 삭제 API"""
     from .models import Report

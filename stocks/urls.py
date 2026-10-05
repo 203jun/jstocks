@@ -9,6 +9,7 @@ urlpatterns = [
     path('stocks/<str:code>/', views.stock_detail, name='stock_detail'),
     path('stocks/<str:code>/edit/', views.stock_edit, name='stock_edit'),
     path('api/stock/<str:code>/memo/', views.stock_memo_save, name='stock_memo_save'),
+    path('api/stock/<str:code>/shared-memo/', views.stock_shared_memo_save, name='stock_shared_memo_save'),
     # 자료 (뉴스·유튜브 등 다시 읽을 링크와 그 요약)
     path('api/stock/<str:code>/material/', views.material_save, name='material_save'),
     path('api/material/<int:material_id>/update/', views.material_update, name='material_update'),
