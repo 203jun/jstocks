@@ -16,6 +16,12 @@ stock-py3.14/
 logs/
 db.sqlite3
 db.sqlite3-journal
+# 백업도 같이 막는다. db.sqlite3 만 막아 두었더니 손으로 뜬 백업은 추적
+# 대상으로 남아 있었다 — git add -A 한 번에 메모·매매근거·계좌가 통째로
+# 공개 저장소에 올라갈 자리였다.
+db.sqlite3.backup*
+db.sqlite3.bak*
+.cache/
 /media
 /staticfiles
 /static

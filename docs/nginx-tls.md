@@ -141,25 +141,43 @@ systemctl restart jstocks
 ## 6. 8000 포트 닫기
 
 여기까지면 https 로 들어온다. 그런데 8000 이 아직 열려 있어 평문으로 건너뛸
-수 있다. 그러면 인증서를 붙인 뜻이 없다.
+수 있다. 그러면 인증서를 붙인 뜻이 없고, 실제로 사고가 난다 — :8000 으로
+들어가면 쿠키의 Secure 때문에 브라우저가 CSRF 쿠키를 안 보내 로그인이 막힌다.
+
+유닛 파일은 덮어쓰지 않는다. ExecStart 하나만 drop-in 으로 바꾼다.
 
 ```bash
-systemctl cat jstocks            # 지금 돌고 있는 것을 먼저 본다
-cat deploy/jstocks.service       # 새로 쓸 것
+cd /home/stock/jstocks
+systemctl cat jstocks | grep -E "WorkingDirectory|EnvironmentFile|ExecStart"
 ```
 
-**두 파일의 경로(WorkingDirectory·EnvironmentFile)를 비교하고 맞는지 확인한
-뒤에** 바꾼다. 레포에 있던 옛 유닛은 경로가 실제와 달랐다.
+원본에 **EnvironmentFile 이 없는 것이 정상이다.** 환경변수는 python-decouple 이
+.env 를 직접 읽는다. 여기에 EnvironmentFile 을 더하면 systemd 도 같은 파일을
+파싱해 환경변수로 넣고, decouple 은 환경변수를 먼저 본다. SECRET_KEY 에
+`$ % ! ^ @ )` 가 섞여 있어 systemd 가 다르게 해석하면 키가 조용히 달라진다 —
+세션이 전부 깨진다. 그래서 건드리지 않는다.
 
 ```bash
-cp deploy/jstocks.service /etc/systemd/system/jstocks.service
+mkdir -p /etc/systemd/system/jstocks.service.d
+cp deploy/systemd/jstocks-bind.conf /etc/systemd/system/jstocks.service.d/bind.conf
+
 systemctl daemon-reload
 systemctl restart jstocks
-systemctl status jstocks --no-pager
+systemctl status jstocks --no-pager | head -5
 
-curl -I http://127.0.0.1:8000/ontoo/       # 200 (서버 안에서는 된다)
-curl -I http://175.126.73.5:8000/ontoo/    # 안 되어야 한다
+# 바뀐 ExecStart 가 먹었는지
+systemctl show jstocks -p ExecStart | tr ';' '\n' | grep -o '\-\-bind [^ ]*'
 ```
+
+확인한다.
+
+```bash
+curl -I http://127.0.0.1:8000/ontoo/              # 200 (서버 안에서는 된다)
+curl -I https://cantoluna3.cafe24.com/ontoo/      # 200
+```
+
+바깥에서 8000 이 막혔는지는 서버 안에서 알 수 없다. 다른 회선(휴대폰 등)에서
+`http://175.126.73.5:8000/` 를 열어 **안 되는 것**을 확인한다.
 
 방화벽에서도 막는다. **22 번을 먼저 허용하고** ufw 를 켠다 — 순서를 바꾸면
 ssh 가 끊긴다.
@@ -168,10 +186,12 @@ ssh 가 끊긴다.
 ufw allow 22
 ufw allow 80
 ufw allow 443
-ufw deny 8000
 ufw enable
 ufw status
 ```
+
+8000 은 이제 127.0.0.1 만 듣고 있으니 ufw 에서 따로 막을 것이 없다. 그래도
+이중으로 두고 싶으면 `ufw deny 8000` 을 더한다.
 
 ---
 
@@ -212,11 +232,18 @@ curl -I https://cantoluna3.cafe24.com/ontoo/     # 어디서나: 200
 ## 8. 되돌리기
 
 못 들어오게 되면 `.env` 의 세 줄(`BEHIND_TLS_PROXY`, `CSRF_TRUSTED_ORIGINS`,
-`SECURE_COOKIES`)을 지우고 재시작하면 평문 상태로 돌아온다. 유닛을 바꿨다면
-`--bind 0.0.0.0:8000` 으로 되돌린다.
+`SECURE_COOKIES`)을 지우고 재시작하면 평문 상태로 돌아온다.
 
 ```bash
 systemctl restart jstocks
+```
+
+8000 을 다시 열려면 drop-in 을 지운다. 원본 유닛은 건드린 적이 없으므로 그대로
+돌아온다.
+
+```bash
+rm -rf /etc/systemd/system/jstocks.service.d
+systemctl daemon-reload && systemctl restart jstocks
 ```
 
 ---
