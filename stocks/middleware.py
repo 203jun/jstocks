@@ -36,3 +36,19 @@ class LoginRequiredMiddleware:
             return redirect(self.login_url)
 
         return self.get_response(request)
+
+
+def client_ip(request):
+    """진짜 접속자 IP. django-axes 가 로그인 실패를 셀 때 쓴다.
+
+    nginx 뒤에 있으므로 REMOTE_ADDR 은 전부 127.0.0.1 이다. 그대로 두면 한
+    사람이 열 번 틀렸을 때 모두가 잠긴다.
+
+    X-Forwarded-For 는 쓰지 않는다. nginx 가 $proxy_add_x_forwarded_for 로
+    '클라이언트가 보낸 값 + 실제 주소' 를 이어 붙이므로 왼쪽 값은 접속자가
+    적어 넣을 수 있다. X-Real-IP 는 nginx 가 $remote_addr 로 덮어쓰기 때문에
+    위조가 안 된다.
+
+    앞에 프록시를 하나 더 두게 되면 이 함수를 다시 봐야 한다.
+    """
+    return request.META.get('HTTP_X_REAL_IP') or request.META.get('REMOTE_ADDR')

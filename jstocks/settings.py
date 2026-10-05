@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    'axes',   # 로그인 시도 제한
     'stocks',
     'ontoo',
 ]
@@ -78,6 +79,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'stocks.middleware.LoginRequiredMiddleware',
+    # axes 는 맨 뒤여야 한다 (패키지 문서의 요구).
+    'axes.middleware.AxesMiddleware',
 ]
 
 ROOT_URLCONF = 'jstocks.urls'
@@ -158,6 +161,42 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Authentication
+#
+# axes 백엔드가 먼저 와야 로그인 시도를 세고 잠긴 주소를 막는다. ModelBackend
+# 는 그대로 남겨 둔다 — 실제 인증은 그쪽이 한다.
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+# === 로그인 시도 제한 (django-axes) ===
+#
+# /login/ 과 /admin/login/ 에 무제한으로 시도할 수 있었다. 들어오는 문이 둘뿐인
+# 자리라 이것만 막아도 크게 줄어든다.
+AXES_FAILURE_LIMIT = config('AXES_FAILURE_LIMIT', default=10, cast=int)
+
+# 주소로 센다. 아이디로 세면 공격자가 내 아이디를 열 번 틀려 나를 잠글 수 있다
+# — 쓰는 사람이 나뿐이라 그쪽이 더 나쁘다.
+AXES_LOCKOUT_PARAMETERS = ['ip_address']
+
+# 한 시간 뒤 저절로 풀린다. 영구 잠금은 내가 오타를 냈을 때도 영구다.
+AXES_COOLOFF_TIME = config('AXES_COOLOFF_HOURS', default=1, cast=int)
+
+# 한 번 성공하면 지금까지의 실패를 지운다.
+AXES_RESET_ON_SUCCESS = True
+
+# 잠겼을 때 뜨는 말. 나머지 화면이 한국어라 맞춘다.
+AXES_COOLOFF_MESSAGE = (
+    f'로그인 시도가 너무 많습니다. '
+    f'{config("AXES_COOLOFF_HOURS", default=1, cast=int)}시간 뒤에 다시 시도하세요.'
+)
+
+# 진짜 접속자 IP 를 읽는 법.
+#
+# nginx 뒤라 REMOTE_ADDR 은 전부 127.0.0.1 이다. 기본값(REMOTE_ADDR)을 그대로
+# 두면 한 사람이 열 번 틀렸을 때 모두가 잠긴다. 자세한 이유는 그 함수에 적었다.
+AXES_CLIENT_IP_CALLABLE = 'stocks.middleware.client_ip'
+
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = 'login'
