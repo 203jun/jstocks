@@ -26,7 +26,7 @@ register = template.Library()
 
 
 @register.simple_tag
-def prompt_pair(key, id='', cls='', label='프롬프트', inline=False, source=''):
+def prompt_pair(key, id='', cls='', label='프롬프트', inline=False, source='', gear=True):
     # source 는 '요약' 프롬프트가 어느 입력칸을 원문으로 쓸지 가리킨다.
     main = format_html(
         '<span class="{}" role="button"{}{}>{}</span>',
@@ -35,14 +35,19 @@ def prompt_pair(key, id='', cls='', label='프롬프트', inline=False, source='
         format_html(' data-source="{}"', source) if source else '',
         label,
     )
+    # 읽기만 하는 자리(OnToo)는 복사 하나뿐이다. 거기서 고치면 내 프롬프트가
+    # 같이 바뀌고, 애초에 고칠 사람이 보는 화면이 아니다.
+    if not gear:
+        return format_html('<span class="prompt-pair">{}</span>', main)
+
     if inline:
-        gear = format_html(
+        gear_html = format_html(
             '<button type="button" data-prompt-edit="{}" title="이 프롬프트 편집">⚙</button>', key)
     else:
-        gear = format_html(
+        gear_html = format_html(
             '<a href="{}#{}" target="_blank" rel="noopener" title="이 프롬프트 편집">⚙</a>',
             reverse('stocks:settings'), PROMPT_PANELS.get(key, ''))
-    return format_html('<span class="prompt-pair">{}{}</span>', main, gear)
+    return format_html('<span class="prompt-pair">{}{}</span>', main, gear_html)
 
 
 @register.simple_tag

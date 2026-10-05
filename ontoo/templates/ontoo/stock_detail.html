@@ -586,6 +586,8 @@ a.bi-tag { text-decoration:none; }
 {% endblock %}
 
 {% block content %}
+{# 수급 프롬프트 — 본문(template)과 값(vars)이 한 덩어리로 온다 #}
+{{ supply_prompt|json_script:"supply-prompt-data" }}
 <a href="/ontoo/" style="display:inline-block;margin-bottom:14px;font-size:0.78rem;color:var(--text-muted);text-decoration:none;">← 공유 종목</a>
 <!-- 종목 헤더 -->
 <div class="d-flex justify-content-between align-items-center" style="margin-bottom:20px;">
@@ -728,7 +730,7 @@ a.bi-tag { text-decoration:none; }
 <div class="market-tabs">
     <button class="market-tab active" data-target="info-content">기본정보</button>
     <!-- <button class="market-tab" data-target="analysis-content">기업분석</button> -->
-    <button class="market-tab is-soon" type="button" disabled title="준비 중">수급</button>
+    <button class="market-tab" data-target="supply-content" type="button">수급</button>
     <button class="market-tab is-soon" type="button" disabled title="준비 중">공시</button>
     <button class="market-tab is-soon" type="button" disabled title="준비 중">리포트</button>
 </div>
@@ -910,6 +912,363 @@ a.bi-tag { text-decoration:none; }
     </div>
 </div>
 
+<!-- ========== 수급 탭 ========== -->
+<div id="supply-content" class="tab-panel" style="display:none;">
+    <h5 class="section-heading" style="margin-top:0;">AI 판단</h5>
+    <div class="brief-card" style="padding:0;overflow:hidden;">
+        {% include 'stocks/_ai_note.html' with kind='supply' key=stock.code note=supply_note note_id='ai-note-supply' prompt_key='prompt_supply_demand_analysis' prompt_id='btnCopySdAnalysisPrompt' readonly=True %}
+    </div>
+
+    <!-- 수급 대시보드 -->
+    <h5 class="section-heading">수급 대시보드</h5>
+    {% if not supply_dashboard %}
+    <div class="brief-card" style="padding:16px;">
+        <div style="font-size:0.82rem;color:var(--text-muted);text-align:center;">{{ supply_dashboard_reason }}</div>
+    </div>
+    {% else %}
+    <div class="brief-card" style="padding:16px;">
+        <div class="sd-cells">
+            <div class="sd-cell">
+                <div class="sd-label">외국인 {% help_icon "supply_investor" %}</div>
+                {% if supply_dashboard.foreign_pct is not None %}
+                <div class="sd-value {{ supply_dashboard.foreign_band }}">
+                    {% if supply_dashboard.foreign_pct > 0 %}+{% endif %}{{ supply_dashboard.foreign_pct }}%
+                </div>
+                <div class="sd-sub">{{ supply_dashboard.window60 }}일 · {% if supply_dashboard.foreign_amt > 0 %}+{% endif %}{{ supply_dashboard.foreign_amt|intcomma }}억</div>
+                <div class="sd-second">
+                    {{ supply_dashboard.window20 }}일
+                    <b>{% if supply_dashboard.foreign_pct20 > 0 %}+{% endif %}{{ supply_dashboard.foreign_pct20 }}%</b>
+                    {% if supply_dashboard.foreign_turn %}<span class="sd-turn sd-turn-{% if supply_dashboard.foreign_turn == '도는 중' %}up{% else %}down{% endif %}">{{ supply_dashboard.foreign_turn }}</span>{% endif %}
+                </div>
+                {% else %}
+                <div class="sd-value">-</div>
+                <div class="sd-sub">상장주식수 없음</div>
+                {% endif %}
+            </div>
+            <div class="sd-cell">
+                <div class="sd-label">기관 {% help_icon "supply_investor" %}</div>
+                {% if supply_dashboard.inst_pct is not None %}
+                <div class="sd-value {{ supply_dashboard.inst_band }}">
+                    {% if supply_dashboard.inst_pct > 0 %}+{% endif %}{{ supply_dashboard.inst_pct }}%
+                </div>
+                <div class="sd-sub">{{ supply_dashboard.window60 }}일 · {% if supply_dashboard.inst_amt > 0 %}+{% endif %}{{ supply_dashboard.inst_amt|intcomma }}억</div>
+                <div class="sd-second">
+                    {{ supply_dashboard.window20 }}일
+                    <b>{% if supply_dashboard.inst_pct20 > 0 %}+{% endif %}{{ supply_dashboard.inst_pct20 }}%</b>
+                    {% if supply_dashboard.inst_turn %}<span class="sd-turn sd-turn-{% if supply_dashboard.inst_turn == '도는 중' %}up{% else %}down{% endif %}">{{ supply_dashboard.inst_turn }}</span>{% endif %}
+                </div>
+                {% else %}
+                <div class="sd-value">-</div>
+                <div class="sd-sub">상장주식수 없음</div>
+                {% endif %}
+            </div>
+            <div class="sd-cell">
+                <div class="sd-label">공매도 강도 {% help_icon "supply_short_z" %}</div>
+                <div class="sd-value {{ supply_dashboard.z_band }}">Z {{ supply_dashboard.z_score }}</div>
+                <div class="sd-sub">오늘 {{ supply_dashboard.short_weight }}%</div>
+            </div>
+        </div>
+
+        <!-- 이중축 차트 -->
+        <div style="position:relative;height:260px;">
+            <canvas id="supplyDashboardChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+    window._supplyDashboardData = {{ supply_dashboard_chart|safe }};
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chartData = window._supplyDashboardData;
+        if (!chartData || !chartData.length) return;
+
+        const labels = chartData.map(d => d.label);
+        const foreignData = chartData.map(d => d.foreign);
+        const instData = chartData.map(d => d.institution);
+        const shortData = chartData.map(d => d.short_weight);
+
+        // 누적 계산
+        let foreignCum = [], instCum = [];
+        let fSum = 0, iSum = 0;
+        for (let i = 0; i < chartData.length; i++) {
+            fSum += foreignData[i];
+            iSum += instData[i];
+            foreignCum.push(fSum);
+            instCum.push(iSum);
+        }
+
+        const ctx = document.getElementById('supplyDashboardChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '외국인',
+                        type: 'line',
+                        data: foreignCum,
+                        borderColor: INVESTOR_COLORS.foreign,
+                        backgroundColor: INVESTOR_COLORS.foreign,
+                        borderWidth: 2,
+                        pointRadius: 2,
+                        pointBackgroundColor: INVESTOR_COLORS.foreign,
+                        tension: 0.3,
+                        fill: false,
+                        yAxisID: 'y',
+                        order: 1,
+                    },
+                    {
+                        label: '기관',
+                        type: 'line',
+                        data: instCum,
+                        borderColor: INVESTOR_COLORS.institution,
+                        backgroundColor: INVESTOR_COLORS.institution,
+                        borderWidth: 2,
+                        pointRadius: 2,
+                        pointBackgroundColor: INVESTOR_COLORS.institution,
+                        tension: 0.3,
+                        fill: false,
+                        yAxisID: 'y',
+                        order: 2,
+                    },
+                    {
+                        label: '공매도 비중(%)',
+                        data: shortData,
+                        backgroundColor: 'rgba(150,150,150,0.3)',
+                        borderRadius: 2,
+                        yAxisID: 'y1',
+                        order: 3,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        align: 'end',
+                        labels: {
+                            font: { size: 11 },
+                            boxWidth: 8,
+                            boxHeight: 8,
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            padding: 12,
+                        },
+                    },
+                },
+                scales: {
+                    y: {
+                        position: 'left',
+                        title: { display: true, text: '누적 순매수', font: { size: 10 } },
+                        ticks: { font: { size: 10 } },
+                        grid: { color: 'rgba(128,128,128,0.1)' },
+                    },
+                    y1: {
+                        position: 'right',
+                        title: { display: true, text: '공매도 비중(%)', font: { size: 10 } },
+                        ticks: { font: { size: 10 } },
+                        grid: { drawOnChartArea: false },
+                        min: 0,
+                    },
+                    x: {
+                        ticks: { font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
+                        grid: { display: false },
+                    },
+                },
+            },
+        });
+    });
+    </script>
+    {% endif %}
+
+    <h5 class="section-heading">수급</h5>
+    <!-- 다음/키움 서브탭 -->
+    <div class="sub-tabs">
+        <button class="sub-tab active" data-sub-target="supply-daum">다음</button>
+        <button class="sub-tab" data-sub-target="supply-kiwoom">키움</button>
+    </div>
+
+    <!-- 다음 -->
+    <div id="supply-daum" class="sub-panel">
+        {% if investor_trends_daum %}
+        <div class="chart-card">
+            <div class="chart-card-header">
+                <span style="font-size:0.82rem;color:var(--text-secondary);">누적 순매수</span>
+                <div class="d-flex gap-3">
+                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:var(--investor-foreign);"></span>외국인</span>
+                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:var(--investor-institution);"></span>기관</span>
+                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:var(--down-color);opacity:0.55;"></span>주가</span>
+                </div>
+            </div>
+            <div style="height:280px;">
+                <canvas id="investorTrendChartDaum"></canvas>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="brief-card">
+            <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
+                <span style="font-size:0.82rem;color:var(--text-secondary);">투자자별 매매동향</span>
+                <span style="font-size:0.72rem;color:var(--text-muted);">최근 60일</span>
+            </div>
+            {% if investor_trends_daum %}
+            <div style="max-height:500px;overflow-y:auto;">
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>일자</th>
+                            <th style="text-align:right;">외국인</th>
+                            <th style="text-align:right;">기관</th>
+                            <th style="text-align:right;">등락률</th>
+                            <th style="text-align:right;">거래량</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in investor_trends_daum %}
+                        <tr>
+                            <td style="color:var(--text-muted);">{{ t.date|date:"m.d" }}</td>
+                            <td style="text-align:right;" class="{% if t.daum_foreign > 0 %}text-up{% elif t.daum_foreign < 0 %}text-down{% endif %}">{{ t.daum_foreign|intcomma }}</td>
+                            <td style="text-align:right;" class="{% if t.daum_institution > 0 %}text-up{% elif t.daum_institution < 0 %}text-down{% endif %}">{{ t.daum_institution|intcomma }}</td>
+                            <td style="text-align:right;" class="{% if t.change_rate > 0 %}text-up{% elif t.change_rate < 0 %}text-down{% endif %}">{% if t.change_rate is not None %}{{ t.change_rate }}%{% else %}-{% endif %}</td>
+                            <td style="text-align:right;">{% if t.trading_volume %}{{ t.trading_volume|intcomma }}{% else %}-{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align:center;color:var(--text-muted);padding:24px 0;">
+                수급 데이터가 없습니다.<br>
+                <span style="font-size:0.78rem;color:var(--text-muted);">python manage.py save_investor_daum --code {{ stock.code }} --mode all</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 키움 -->
+    <div id="supply-kiwoom" class="sub-panel" style="display:none;">
+        {% if investor_trends %}
+        <div class="chart-card">
+            <div class="chart-card-header">
+                <span style="font-size:0.82rem;color:var(--text-secondary);">누적 순매수</span>
+                <div class="d-flex gap-3">
+                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:var(--investor-individual);"></span>개인</span>
+                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:var(--investor-foreign);"></span>외국인</span>
+                    <span style="font-size:0.75rem;color:var(--text-secondary);"><span class="legend-dot" style="background:var(--investor-institution);"></span>기관</span>
+                </div>
+            </div>
+            <div style="height:280px;">
+                <canvas id="investorTrendChart"></canvas>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="brief-card">
+            <div class="d-flex justify-content-between align-items-center" style="margin-bottom:12px;">
+                <span style="font-size:0.82rem;color:var(--text-secondary);">투자자별 매매동향</span>
+                <span style="font-size:0.72rem;color:var(--text-muted);">최근 60일</span>
+            </div>
+            {% if investor_trends %}
+            <div style="max-height:500px;overflow-y:auto;overflow-x:auto;">
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>일자</th>
+                            <th style="text-align:right;">개인</th>
+                            <th style="text-align:right;">외국인</th>
+                            <th style="text-align:right;">기관</th>
+                            <th style="text-align:right;">금융투자</th>
+                            <th style="text-align:right;">보험</th>
+                            <th style="text-align:right;">투신</th>
+                            <th style="text-align:right;">은행</th>
+                            <th style="text-align:right;">연기금</th>
+                            <th style="text-align:right;">사모</th>
+                            <th style="text-align:right;">기타법인</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in investor_trends %}
+                        <tr>
+                            <td style="color:var(--text-muted);">{{ t.date|date:"m.d" }}</td>
+                            <td style="text-align:right;" class="{% if t.individual > 0 %}text-up{% elif t.individual < 0 %}text-down{% endif %}">{{ t.individual|intcomma }}</td>
+                            <td style="text-align:right;" class="{% if t.foreign > 0 %}text-up{% elif t.foreign < 0 %}text-down{% endif %}">{{ t.foreign|intcomma }}</td>
+                            <td style="text-align:right;" class="{% if t.institution > 0 %}text-up{% elif t.institution < 0 %}text-down{% endif %}">{{ t.institution|intcomma }}</td>
+                            <td style="text-align:right;" class="{% if t.financial > 0 %}text-up{% elif t.financial < 0 %}text-down{% endif %}">{{ t.financial|intcomma }}</td>
+                            <td style="text-align:right;" class="{% if t.insurance > 0 %}text-up{% elif t.insurance < 0 %}text-down{% endif %}">{{ t.insurance|intcomma }}</td>
+                            <td style="text-align:right;" class="{% if t.investment_trust > 0 %}text-up{% elif t.investment_trust < 0 %}text-down{% endif %}">{{ t.investment_trust|intcomma }}</td>
+                            <td style="text-align:right;" class="{% if t.bank > 0 %}text-up{% elif t.bank < 0 %}text-down{% endif %}">{{ t.bank|intcomma }}</td>
+                            <td style="text-align:right;" class="{% if t.pension_fund > 0 %}text-up{% elif t.pension_fund < 0 %}text-down{% endif %}">{{ t.pension_fund|intcomma }}</td>
+                            <td style="text-align:right;" class="{% if t.private_fund > 0 %}text-up{% elif t.private_fund < 0 %}text-down{% endif %}">{{ t.private_fund|intcomma }}</td>
+                            <td style="text-align:right;" class="{% if t.other_corporation > 0 %}text-up{% elif t.other_corporation < 0 %}text-down{% endif %}">{{ t.other_corporation|intcomma }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align:center;color:var(--text-muted);padding:24px 0;">
+                수급 데이터가 없습니다.<br>
+                <span style="font-size:0.78rem;color:var(--text-muted);">python manage.py save_investor_trend --code {{ stock.code }} --mode all</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 공매도 현황 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">공매도 현황<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">최근 60일</span></h5>
+    <div class="brief-card">
+        {% if short_sellings %}
+        <div style="max-height:500px;overflow-y:auto;">
+            <table class="modern-table">
+                <thead>
+                    <tr>
+                        <th>일자</th>
+                        <th style="text-align:right;">거래량</th>
+                        <th style="text-align:right;">공매도량</th>
+                        <th style="text-align:right;">비중(%)</th>
+                        <th style="text-align:right;">공매도대금</th>
+                        <th style="text-align:right;">평균가</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in short_sellings %}
+                    <tr>
+                        <td style="color:var(--text-muted);">{{ s.date|date:"m.d" }}</td>
+                        <td style="text-align:right;">{{ s.trading_volume|intcomma }}</td>
+                        <td style="text-align:right;">{{ s.short_volume|intcomma }}</td>
+                        <td style="text-align:right;{% if s.trading_weight >= 10 %}color:var(--up-color);font-weight:700;{% elif s.trading_weight >= 5 %}color:#d97706;{% endif %}">{{ s.trading_weight }}%</td>
+                        <td style="text-align:right;">{{ s.short_trading_value|intcomma }}</td>
+                        <td style="text-align:right;">{{ s.short_average_price|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align:center;color:var(--text-muted);padding:24px 0;">
+            공매도 데이터가 없습니다.<br>
+            <span style="font-size:0.78rem;color:var(--text-muted);">python manage.py save_short_selling --code {{ stock.code }} --mode all</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 수급분석 -->
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">수급분석{% if stock.supply_demand_analysis_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="sdAnalysisUpdatedAt">update: {{ stock.supply_demand_analysis_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
+    <div class="brief-card">
+        <!-- 보기 모드 -->
+        <div style="max-height:400px;overflow-y:auto;">
+            <div class="markdown-content" id="sdAnalysisMarkdown"></div>
+            <script type="text/plain" id="sdAnalysisRaw">{{ stock.supply_demand_analysis|default:""|safe }}</script>
+        </div>
+    </div>
+</div>
+
+
 {% endblock %}
 
 {% block extra_js %}
@@ -954,6 +1313,7 @@ function renderContent(rawId, markdownId) {
 }
 
 renderContent('sharedMemoRaw', 'sharedMemoMarkdown');
+renderContent('sdAnalysisRaw', 'sdAnalysisMarkdown');
 renderContent('analysisRaw', 'analysisMarkdown');
 renderContent('finAnalysisV2Raw', 'finAnalysisV2Markdown');
 renderContent('consensusAnalysisRaw', 'consensusAnalysisMarkdown');
@@ -1426,6 +1786,163 @@ new Chart(document.getElementById('quarterlyChart'), {
     renderConsensusTable('consensusQuarterTable', {{ consensus_quarter_rows|safe }}, fields);
 })();
 {% endif %}
+
+
+
+// ===== 메인 탭 전환 =====
+// 옮겨 온 탭만 누를 수 있다. 아직 안 옮긴 것은 disabled 라 여기 오지 않는다.
+document.querySelectorAll('.market-tab[data-target]').forEach(tab => {
+    tab.addEventListener('click', function () {
+        document.querySelectorAll('.market-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+        document.getElementById(this.dataset.target).style.display = 'block';
+        // 숨어 있던 캔버스는 폭이 0이어서 그려지지 않는다. 보일 때 다시 그린다.
+        if (typeof Chart !== 'undefined') {
+            Object.values(Chart.instances || {}).forEach(c => c.resize());
+        }
+    });
+});
+
+// ===== Sub-tab switching (supply tab) =====
+document.querySelectorAll('.sub-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.sub-panel').forEach(p => p.style.display = 'none');
+        document.getElementById(this.dataset.subTarget).style.display = 'block';
+    });
+});
+
+// ===== Research click handler =====
+
+// ===== AI 판단 (읽기) =====
+// 날짜 칩과 펼치기만 가져온다. 붙여넣기·저장은 _ai_note_modal.html 에 있고
+// 그 조각은 가져오지 않았다 — 여기는 읽는 자리다.
+(function () {
+    function entriesOf(block) {
+        const el = document.getElementById('ai-note-' + block.dataset.kind);
+        try { return JSON.parse(el.textContent) || []; } catch (e) { return []; }
+    }
+    document.addEventListener('click', function (e) {
+        const chip = e.target.closest('.ma-date');
+        if (chip) {
+            const block = chip.closest('.ai-note');
+            const entry = entriesOf(block).find(x => x.date === chip.dataset.date);
+            if (!entry) return;
+            block.querySelectorAll('.ma-date').forEach(c => c.classList.toggle('active', c === chip));
+            block.querySelector('[data-role="headline"]').textContent = entry.headline || '';
+            block.querySelector('[data-role="body"]').innerHTML = entry.content_html || '';
+            const stance = block.querySelector('[data-role="stance"]');
+            if (stance) { stance.textContent = entry.stance || ''; stance.hidden = !entry.stance; }
+            const when = block.querySelector('[data-role="when"]');
+            if (when) when.textContent = entry.label || '';
+            return;
+        }
+        const head = e.target.closest('.ai-note .ma-head');
+        if (!head || e.target.closest('.ma-date')) return;
+        const body = head.closest('.ai-note').querySelector('[data-role="body"]');
+        if (!body) return;
+        body.hidden = !body.hidden;
+        head.setAttribute('aria-expanded', String(!body.hidden));
+    });
+})();
+
+// ===== 수급 프롬프트 (복사만) =====
+// 내 화면은 편집 창의 값을 이어 쓰지만 여기에는 창이 없다. 현황 페이지와
+// 같은 방식으로 본문만 받아 치환하고 복사한다.
+(function () {
+    const btn = document.getElementById('btnCopySdAnalysisPrompt');
+    if (!btn) return;
+    const dataEl = document.getElementById('supply-prompt-data');
+    const payload = dataEl ? JSON.parse(dataEl.textContent) : {};
+    const template = payload.template || '';
+
+    btn.addEventListener('click', async function () {
+        if (!template) { alert('수급 프롬프트가 등록되지 않았습니다.'); return; }
+        const vars = payload.vars || {};
+        if (!Object.keys(vars).length) { alert('수급 데이터가 아직 모자라 프롬프트를 만들 수 없습니다.'); return; }
+        // 변수명에 정규식 특수문자({})가 있어 split/join 으로 바꾼다
+        const text = Object.entries(vars).reduce((acc, [name, value]) => acc.split(name).join(value), template);
+        try {
+            await copyToClipboard(text);
+            const orig = this.textContent;
+            this.textContent = '복사됨!';
+            setTimeout(() => { this.textContent = orig; }, 1500);
+        } catch (err) { alert('복사 실패: ' + err.message); }
+    });
+})();
+
+// ===== Investor trend chart (Kiwoom) =====
+const investorChartData = {{ investor_chart_data|safe }};
+if (investorChartData && investorChartData.length > 0) {
+    const ctx = document.getElementById('investorTrendChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: investorChartData.map(d => d.date),
+                datasets: [
+                    { label: '개인', data: investorChartData.map(d => d.individual), borderColor: INVESTOR_COLORS.individual, borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false },
+                    { label: '외국인', data: investorChartData.map(d => d.foreign), borderColor: INVESTOR_COLORS.foreign, borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false },
+                    { label: '기관', data: investorChartData.map(d => d.institution), borderColor: INVESTOR_COLORS.institution, borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.raw.toLocaleString('ko-KR') } }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } },
+                    y: { ticks: { callback: v => Math.abs(v) >= 100000000 ? (v/100000000).toFixed(1)+'억' : Math.abs(v) >= 10000 ? (v/10000).toFixed(1)+'만' : v.toFixed(0) }, grid: { color: chartGrid } }
+                }
+            }
+        });
+    }
+}
+
+// ===== Investor trend chart (Daum) =====
+const investorChartDataDaum = {{ investor_chart_data_daum|safe }};
+if (investorChartDataDaum && investorChartDataDaum.length > 0) {
+    const ctx = document.getElementById('investorTrendChartDaum');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: investorChartDataDaum.map(d => d.date),
+                datasets: [
+                    { label: '외국인', data: investorChartDataDaum.map(d => d.foreign), borderColor: INVESTOR_COLORS.foreign, borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false, yAxisID: 'y' },
+                    { label: '기관', data: investorChartDataDaum.map(d => d.institution), borderColor: INVESTOR_COLORS.institution, borderWidth: 2, tension: 0.3, pointRadius: 2, fill: false, yAxisID: 'y' },
+                    { label: '주가', data: investorChartDataDaum.map(d => d.price), borderColor: 'rgba(41, 98, 255, 0.45)', borderWidth: 1.5, tension: 0.3, pointRadius: 1, fill: false, yAxisID: 'y1' }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + (ctx.raw ? ctx.raw.toLocaleString('ko-KR') : '-') } }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } },
+                    y: {
+                        position: 'left',
+                        ticks: { callback: v => Math.abs(v) >= 100000000 ? (v/100000000).toFixed(1)+'억' : Math.abs(v) >= 10000 ? (v/10000).toFixed(1)+'만' : v.toFixed(0) },
+                        grid: { color: chartGrid }
+                    },
+                    y1: {
+                        position: 'right',
+                        ticks: { callback: v => v ? v.toLocaleString('ko-KR') : '' },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+}
 
 
 </script>
