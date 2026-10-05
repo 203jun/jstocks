@@ -1,7 +1,7 @@
 import time
 import re
 from datetime import datetime
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from stocks.models import FAV_FILTER, Info, Gongsi
 from stocks.logger import StockLogger
 
@@ -165,6 +165,9 @@ DART 공시 조회 및 저장
                 '먼저 볼 곳 — chromium 바이너리: '
                 'venv/bin/python -m playwright install chromium'
             )
+            # 비정상 종료로 끝낸다. 날마다 도는 스크립트가 종료코드를 보고
+            # 텔레그램에 실패를 실어 보낸다 — 0 으로 끝내면 '완료' 가 간다.
+            raise CommandError(f'공시 수집 실패 ({total_count}개 전부)')
 
     def fetch_and_save(self, stock, silent=False):
         """DART 공시 조회 및 저장"""
