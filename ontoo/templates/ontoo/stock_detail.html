@@ -593,11 +593,17 @@
     것이 28개뿐이라, 접지 않으면 나머지 종목에서 빈 칸 스물몇 개가
     화면을 채운다.
     {% endcomment %}
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;"><span>리서치 {% help_icon "research" %} <span class="tab-count">{{ research_filled }}</span></span></h5>
+    {% comment %}
+    리서치 ⓘ 는 넣지 않는다. 설명 본문이 내 작업 방식이다 — 프롬프트를 받아
+    붙여넣는 절차, 관심등급을 설정하라는 안내, 집계 수치. 동료가 쓸 데가 없고
+    내부 사정만 드러난다.
+    {% endcomment %}
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;"><span>리서치 <span class="tab-count">{{ research_filled }}</span></span></h5>
     <div class="brief-card" style="padding:0; overflow:hidden;" id="researchList">
-        {% if research_health %}
-        <div class="research-health">ℹ️ {{ research_health.text }}</div>
-        {% endif %}
+        {% comment %}
+        research_health 는 내가 할 일을 알리는 줄이다. 동료가 할 수 있는 일이
+        아니고 내부 사정을 드러내므로 넣지 않는다.
+        {% endcomment %}
         {% for g in research_groups %}
         <details class="research-group-box" {% if g.open %}open{% endif %}>
             <summary>
@@ -975,7 +981,7 @@
             {% else %}
             <div style="text-align:center;color:var(--text-muted);padding:24px 0;">
                 수급 데이터가 없습니다.<br>
-                <span style="font-size:0.78rem;color:var(--text-muted);">python manage.py save_investor_daum --code {{ stock.code }} --mode all</span>
+                <span style="font-size:0.78rem;color:var(--text-muted);">아직 받은 자료가 없습니다.</span>
             </div>
             {% endif %}
         </div>
@@ -1044,7 +1050,7 @@
             {% else %}
             <div style="text-align:center;color:var(--text-muted);padding:24px 0;">
                 수급 데이터가 없습니다.<br>
-                <span style="font-size:0.78rem;color:var(--text-muted);">python manage.py save_investor_trend --code {{ stock.code }} --mode all</span>
+                <span style="font-size:0.78rem;color:var(--text-muted);">아직 받은 자료가 없습니다.</span>
             </div>
             {% endif %}
         </div>
@@ -1083,7 +1089,7 @@
         {% else %}
         <div style="text-align:center;color:var(--text-muted);padding:24px 0;">
             공매도 데이터가 없습니다.<br>
-            <span style="font-size:0.78rem;color:var(--text-muted);">python manage.py save_short_selling --code {{ stock.code }} --mode all</span>
+            <span style="font-size:0.78rem;color:var(--text-muted);">아직 받은 자료가 없습니다.</span>
         </div>
         {% endif %}
     </div>
