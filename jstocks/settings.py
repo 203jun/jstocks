@@ -32,6 +32,29 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='', cast=Csv())
 # HTTP 환경에서 COOP 헤더 경고 비활성화
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 
+
+# === nginx 뒤에서 돌 때 ===
+#
+# 전부 .env 로 가른다. TLS 를 켜기 전에 코드만 올려도 아무것도 달라지지 않고,
+# 인증서가 붙은 뒤 .env 를 고쳐 켜면 된다. 반대로 하면 — 쿠키를 먼저 https
+# 전용으로 바꾸면 — 그 순간 로그인이 안 된다.
+
+# nginx 가 X-Forwarded-Proto 를 넘긴다. 이것이 없으면 Django 는 https 요청을
+# http 로 알고, 리다이렉트 주소와 CSRF 판정이 어긋난다.
+if config('BEHIND_TLS_PROXY', default=False, cast=bool):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Django 4 부터 POST 는 Origin 과 이 목록을 맞춘다. 스킴까지 적어야 한다.
+#   CSRF_TRUSTED_ORIGINS=https://example.com
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=Csv())
+
+# 쿠키를 https 에서만 보낸다. 인증서가 실제로 뜬 뒤에 켠다.
+SESSION_COOKIE_SECURE = config('SECURE_COOKIES', default=False, cast=bool)
+CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
+
+# http -> https 는 nginx 가 돌린다. 여기서 또 하면 리다이렉트가 두 번 돈다.
+SECURE_SSL_REDIRECT = False
+
 # Application definition
 
 INSTALLED_APPS = [
