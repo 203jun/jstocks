@@ -90,7 +90,16 @@ DART 공시 조회 및 저장
             return
 
         self.log.separator()
-        result = self.fetch_and_save(stock)
+        try:
+            result = self.fetch_and_save(stock)
+        except Exception as e:
+            # 조회가 깨진 것과 공시가 없는 것은 다른 일이다. 같은 말로 적으면
+            # 안 된다 — 그래서 두 달을 모르고 지나갔다.
+            self.log.separator()
+            self.log.error(f'조회 실패 | {stock.name}({stock_code}): {e}')
+            self.log.error('먼저 볼 곳 — chromium 바이너리: '
+                           'venv/bin/python -m playwright install chromium')
+            return
         self.log.separator()
         if result:
             self.log.info(f'완료 | {result}', success=True)
@@ -146,6 +155,16 @@ DART 공시 조회 및 저장
             self.log.info(f'완료 | 성공: {success_count}개, 데이터없음: {len(no_data_list)}개', success=True)
         else:
             self.log.info(f'완료 | 성공: {success_count}개', success=True)
+
+        # 한 건도 못 받았으면 종목 사정이 아니라 수집이 깨진 것이다. 날마다
+        # 도는 일이라 이 줄이 없으면 또 두 달을 모르고 지나간다.
+        if total_count and success_count == 0:
+            self.log.error(
+                f'공시를 한 건도 받지 못했습니다 ({total_count}개 전부). '
+                '종목 사정이 아니라 수집이 깨진 것으로 봐야 합니다. '
+                '먼저 볼 곳 — chromium 바이너리: '
+                'venv/bin/python -m playwright install chromium'
+            )
 
     def fetch_and_save(self, stock, silent=False):
         """DART 공시 조회 및 저장"""
@@ -217,50 +236,50 @@ DART 공시 조회 및 저장
         return None
 
     def fetch_dart(self, code):
-        """DART 공시 조회 (Playwright 사용)"""
-        try:
-            from playwright.sync_api import sync_playwright
-            from bs4 import BeautifulSoup
-        except ImportError as e:
-            self.log.error(f'필수 모듈 없음: {e}')
-            return []
+        """DART 공시 조회 (Playwright 사용)
+
+        실패하면 예외를 그대로 올린다. 삼키고 빈 목록을 돌려주면 바깥에서
+        '공시가 없는 종목' 과 구분이 안 된다 — chromium 바이너리가 사라진 것을
+        두 달 동안 모르고 지나간 적이 있다. 매일 도는 일에서 조용한 실패는
+        실패가 아니라 거짓 성공이다.
+
+        종목별 예외는 handle() 의 루프가 받아 error_list 에 쌓고 끝에 보고한다.
+        """
+        from playwright.sync_api import sync_playwright
+        from bs4 import BeautifulSoup
 
         url = f'https://dart.fss.or.kr/html/search/SearchCompany_M2.html?textCrpNM={code}'
 
-        try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            try:
                 page = browser.new_page()
                 page.goto(url, wait_until='domcontentloaded', timeout=60000)
                 page.wait_for_timeout(5000)
-
                 html = page.content()
+            finally:
                 browser.close()
 
-                soup = BeautifulSoup(html, 'html.parser')
-                table = soup.select_one('table')
-                rows = table.select('tbody tr') if table else []
+        soup = BeautifulSoup(html, 'html.parser')
+        table = soup.select_one('table')
+        rows = table.select('tbody tr') if table else []
 
-                results = []
-                for row in rows[:30]:  # 최대 30개
-                    cells = row.select('td')
-                    if len(cells) >= 5:
-                        report_el = cells[2].select_one('a')
-                        report_name = report_el.get_text(strip=True) if report_el else ''
-                        report_link = report_el.get('href', '') if report_el else ''
+        results = []
+        for row in rows[:30]:  # 최대 30개
+            cells = row.select('td')
+            if len(cells) >= 5:
+                report_el = cells[2].select_one('a')
+                report_name = report_el.get_text(strip=True) if report_el else ''
+                report_link = report_el.get('href', '') if report_el else ''
 
-                        if report_link and not report_link.startswith('http'):
-                            report_link = 'https://dart.fss.or.kr' + report_link
+                if report_link and not report_link.startswith('http'):
+                    report_link = 'https://dart.fss.or.kr' + report_link
 
-                        results.append({
-                            'date': cells[4].get_text(strip=True),
-                            'title': report_name,
-                            'link': report_link,
-                            'submitter': cells[3].get_text(strip=True),
-                        })
+                results.append({
+                    'date': cells[4].get_text(strip=True),
+                    'title': report_name,
+                    'link': report_link,
+                    'submitter': cells[3].get_text(strip=True),
+                })
 
-                return results
-
-        except Exception as e:
-            self.log.debug(f'Playwright 에러: {e}')
-            return []
+        return results
