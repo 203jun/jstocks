@@ -12,7 +12,7 @@
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 
-from stocks.models import Info, StockQuestionReport, SystemSetting
+from stocks.models import Gongsi, Info, StockQuestionReport, SystemSetting
 from stocks.status_table import build_status_rows, status_block_text
 from stocks.views import build_stock_detail_context
 
@@ -73,3 +73,30 @@ def research_detail(request, report_id):
     if not (stock and stock.is_active and stock.is_shared):
         raise Http404('공유 종목의 리서치가 아닙니다')
     return render(request, 'ontoo/research_detail.html', {'qr': qr})
+
+
+def dart_document(request, rcept_no):
+    """공시 본문 조회 — 공유 종목의 공시만.
+
+    서버가 DART 에 직접 붙어 본문을 긁어오는 길이다. 번호만 맞으면 통과하게
+    두면 주소를 아는 사람이 번호를 바꿔가며 이 서버를 거쳐 DART 를 긁을 수
+    있다. 그래서 그 접수번호가 공유 종목의 공시인지 먼저 본다.
+
+    Gongsi 에는 접수번호 칸이 없다. link 안에 rcpNo=<번호> 로 들어 있어서
+    그것으로 찾는다 (stocks.views 의 다른 곳도 같은 방법을 쓴다).
+    """
+    if not rcept_no.isdigit():
+        raise Http404('접수번호가 아닙니다')
+
+    is_shared_gongsi = Gongsi.objects.filter(
+        stock__is_shared=True,
+        stock__is_active=True,
+        link__contains=f'rcpNo={rcept_no}',
+    ).exists()
+    if not is_shared_gongsi:
+        raise Http404('공유 종목의 공시가 아닙니다')
+
+    # 받아오는 일 자체는 내 화면과 같은 함수를 쓴다. 긁는 방법이 갈라지면
+    # 한쪽만 DART 화면 변경을 따라가게 된다.
+    from stocks.views import fetch_dart_document
+    return fetch_dart_document(request, rcept_no)

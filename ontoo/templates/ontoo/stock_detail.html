@@ -588,6 +588,9 @@ a.bi-tag { text-decoration:none; }
 {% block content %}
 {# 수급 프롬프트 — 본문(template)과 값(vars)이 한 덩어리로 온다 #}
 {{ supply_prompt|json_script:"supply-prompt-data" }}
+{# 공시 프롬프트 — 한 건용과 탭 전체용. 각각 본문(template)과 값(vars)을 들고 온다 #}
+{{ gongsi_prompt|json_script:"gongsi-prompt-data" }}
+{{ gongsi_all_prompt|json_script:"gongsi-all-prompt-data" }}
 <a href="/ontoo/" style="display:inline-block;margin-bottom:14px;font-size:0.78rem;color:var(--text-muted);text-decoration:none;">← 공유 종목</a>
 <!-- 종목 헤더 -->
 <div class="d-flex justify-content-between align-items-center" style="margin-bottom:20px;">
@@ -731,7 +734,7 @@ a.bi-tag { text-decoration:none; }
     <button class="market-tab active" data-target="info-content">기본정보</button>
     <!-- <button class="market-tab" data-target="analysis-content">기업분석</button> -->
     <button class="market-tab" data-target="supply-content" type="button">수급</button>
-    <button class="market-tab is-soon" type="button" disabled title="준비 중">공시</button>
+    <button class="market-tab" data-target="disclosure-content" type="button">공시</button>
     <button class="market-tab is-soon" type="button" disabled title="준비 중">리포트</button>
 </div>
 
@@ -1268,6 +1271,44 @@ a.bi-tag { text-decoration:none; }
     </div>
 </div>
 
+
+<!-- ========== 공시 탭 ========== -->
+<div id="disclosure-content" class="tab-panel" style="display:none;">
+    <h5 class="section-heading" style="margin-top:0;">AI 판단</h5>
+    <div class="brief-card" style="padding:0;overflow:hidden;">
+        {% include 'stocks/_ai_note.html' with kind='gongsi' key=stock.code note=gongsi_note note_id='ai-note-gongsi' prompt_key='prompt_gongsi_all' prompt_id='btnCopyGongsiAllPrompt' readonly=True %}
+    </div>
+
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">DART 공시<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);display:flex;align-items:center;gap:8px;">전자공시시스템</span></h5>
+    <div class="brief-card">
+        {% if gongsi_list %}
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th style="width:100px;">접수일</th>
+                    <th>보고서명</th>
+                    <th style="width:100px;" class="d-none d-md-table-cell">제출인</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for gongsi in gongsi_list %}
+                <tr>
+                    <td style="color:var(--text-muted);font-size:0.78rem;">{{ gongsi.date|date:"Y-m-d"|default:"-" }}</td>
+                    <td>
+                        <a href="{{ gongsi.link }}" target="_blank" style="text-decoration:none;color:var(--text-primary);">{{ gongsi.title }}</a>
+                        {% if gongsi.cat %}<span style="display:inline-block;font-size:0.65rem;font-weight:600;padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle;{% if gongsi.cat == '악재' %}background:rgba(255,75,75,0.15);color:var(--down-color);{% elif gongsi.cat == '호재' %}background:rgba(46,204,113,0.15);color:var(--up-color);{% else %}background:var(--bg-hover);color:var(--text-secondary);{% endif %}">{{ gongsi.cat }}</span>{% endif %}
+                        <span class="prompt-pair prompt-pair-sm" style="margin-left:4px;"><button type="button" class="btn-gongsi-prompt" data-link="{{ gongsi.link }}" data-title="{{ gongsi.title }}" data-date="{{ gongsi.date|date:'Y-m-d'|default:'' }}" data-cat="{{ gongsi.cat|default:'' }}">프롬프트</button></span>
+                    </td>
+                    <td style="font-size:0.78rem;" class="d-none d-md-table-cell">{{ gongsi.submitter }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="color:var(--text-muted);font-size:0.85rem;">공시가 없습니다.</div>
+        {% endif %}
+    </div>
+</div>
 
 {% endblock %}
 
@@ -1944,6 +1985,107 @@ if (investorChartDataDaum && investorChartDataDaum.length > 0) {
     }
 }
 
+
+
+// ===== 공시 프롬프트 (복사만) =====
+//
+// DART 링크(dsaf001/main.do)는 프레임셋 껍데기라 AI 가 열어도 본문이 없다.
+// 그래서 링크만 주지 않고 본문을 받아 넣는다. 받는 자리는 OnToo 쪽 경로이고,
+// 그쪽은 공유 종목의 공시 번호만 통과시킨다.
+(function () {
+    const GONGSI_BODY_CHARS = 2500;
+    const one = JSON.parse(document.getElementById('gongsi-prompt-data')?.textContent || '{}');
+    const all = JSON.parse(document.getElementById('gongsi-all-prompt-data')?.textContent || '{}');
+
+    async function fetchBody(rcpNo) {
+        const resp = await fetch(`/ontoo/api/dart-document/${rcpNo}/`);
+        const data = await resp.json();
+        if (!data.success) throw new Error(data.error || '본문을 못 받았다');
+        return data.content;
+    }
+
+    async function buildBodies(targets) {
+        const parts = [];
+        for (const t of targets) {
+            let body = '';
+            try {
+                body = await fetchBody(t.rcept_no);
+            } catch (err) {
+                body = `(본문을 못 받았다: ${err.message})`;
+            }
+            if (body.length > GONGSI_BODY_CHARS) {
+                body = body.slice(0, GONGSI_BODY_CHARS) + '\n… (본문이 길어 여기까지)';
+            }
+            parts.push(`── ${t.date} [${t.cat}] ${t.title}\n${t.link}\n\n${body}`);
+        }
+        return parts.join('\n\n') || '(본문을 받아올 공시가 없다)';
+    }
+
+    function fill(template, vars) {
+        // 변수명에 정규식 특수문자({})가 있어 split/join 으로 바꾼다
+        return Object.entries(vars).reduce((acc, [name, value]) => acc.split(name).join(value), template);
+    }
+
+    // 탭 전체
+    const btnAll = document.getElementById('btnCopyGongsiAllPrompt');
+    if (btnAll) btnAll.addEventListener('click', async function () {
+        const template = all.template || '';
+        if (!template) { alert('공시 프롬프트가 등록되지 않았습니다.'); return; }
+        const orig = this.textContent;
+        this.textContent = '본문 받는 중...';
+        this.disabled = true;
+        try {
+            const text = fill(template, {
+                ...(all.vars || {}),
+                '{공시본문}': await buildBodies(all.bodies || []),
+            });
+            await copyToClipboard(text);
+            this.textContent = '복사됨!';
+            setTimeout(() => { this.textContent = orig; }, 1500);
+        } catch (err) {
+            alert('복사 실패: ' + err.message);
+            this.textContent = orig;
+        } finally {
+            this.disabled = false;
+        }
+    });
+
+    // 한 건
+    document.querySelectorAll('.btn-gongsi-prompt').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const template = one.template || '';
+            if (!template) { alert('공시 프롬프트가 등록되지 않았습니다.'); return; }
+
+            let rcpNo = '';
+            try { rcpNo = new URL(btn.dataset.link).searchParams.get('rcpNo') || ''; } catch { rcpNo = ''; }
+            if (!rcpNo) { alert('이 공시에서 접수번호를 추출할 수 없습니다.'); return; }
+
+            const orig = btn.textContent;
+            btn.textContent = '로딩...';
+            btn.disabled = true;
+            try {
+                const content = await fetchBody(rcpNo);
+                const text = fill(template, {
+                    ...(one.vars || {}),
+                    '{공시제목}': btn.dataset.title,
+                    '{공시일자}': btn.dataset.date,
+                    '{공시분류}': btn.dataset.cat || '없음',
+                    '{공시내용}': content,
+                    '{공시링크}': btn.dataset.link,
+                });
+                await copyToClipboard(text);
+                btn.textContent = '복사됨!';
+                setTimeout(() => { btn.textContent = orig; }, 1500);
+            } catch (err) {
+                alert('복사 실패: ' + err.message);
+                btn.textContent = orig;
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    });
+})();
 
 </script>
 {% endblock %}
