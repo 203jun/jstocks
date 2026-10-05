@@ -56,6 +56,13 @@ body {
 .modern-table tbody td { padding:8px 16px; border-bottom:1px solid var(--border-color); white-space:nowrap; }
 .empty { padding:40px 16px; text-align:center; color:var(--text-muted); font-size:0.85rem; }
 
+/* [분석] 버튼 — 신호가 걸린 종목 이름 옆. 누르면 프롬프트를 복사한다. */
+.btn-alert-prompt {
+    font-size:0.6rem; padding:1px 4px; margin-left:3px; vertical-align:middle;
+    border:1px solid var(--up-color); border-radius:3px;
+    background:none; color:var(--up-color); font-weight:600; cursor:pointer;
+}
+
 /* 프롬프트 버튼 — base.html 의 .prompt-pair 다크 모양. 복사 하나뿐이다. */
 .prompt-pair {
     display: inline-flex; align-items: stretch; vertical-align: middle;
@@ -137,6 +144,7 @@ body {
                         <td style="padding-left:16px;">
                             {% if item.ma_align == 'bull' %}<span class="align-mark text-up" title="정배열">&#9650;</span>{% elif item.ma_align == 'bear' %}<span class="align-mark text-down" title="역배열">&#9660;</span>{% else %}<span class="align-mark align-mixed" title="뒤섞임">&#9644;</span>{% endif %}
                             <strong>{{ item.stock.name }}</strong>
+                            {% if signal_prompt and item.has_alert %}<button type="button" class="btn-alert-prompt" data-name="{{ item.stock.name }}" data-code="{{ item.stock.code }}" data-price="{{ item.stock.current_price|default:'' }}" data-conditions="{{ item.alert_conditions }}" onclick="event.stopPropagation();">분석</button><script type="text/plain" class="recent-perf-data" data-code="{{ item.stock.code }}">{{ item.recent_perf }}</script>{% endif %}
                         </td>
                         <td style="text-align:right;">
                             {% if item.stock.current_price %}{{ item.stock.current_price|intcomma }}{% else %}-{% endif %}
@@ -189,6 +197,7 @@ body {
 {{ prompt_template|json_script:"prompt-template-data" }}
 {{ status_data|json_script:"status-data" }}
 {% endif %}
+{% if signal_prompt %}{{ signal_prompt|json_script:"signal-prompt-data" }}{% endif %}
 
 <script>
 // 스파크라인 — 종목 화면과 같은 그림
@@ -244,6 +253,64 @@ document.querySelectorAll('.sparkline').forEach(canvas => {
     });
 })();
 
+// 클립보드 복사. 이 화면은 base 를 쓰지 않는 단독 문서라 여기 둔다.
+// 아래 두 버튼([분석], [프롬프트])이 같이 쓴다.
+function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+    }
+    // HTTPS 가 아니면 navigator.clipboard 가 없어 textarea 로 되돌아간다
+    return new Promise((resolve, reject) => {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); resolve(); }
+        catch (err) { reject(err); }
+        finally { ta.remove(); }
+    });
+}
+
+// [분석] 버튼 — 신호분석 프롬프트 복사.
+//
+// 내 화면은 /api/setting/get/ 으로 프롬프트를 받아 가는데 그 경로는 로그인
+// 뒤에 있다. 여기서는 뷰가 json_script 로 내려준 것을 쓴다. 치환 규칙은
+// 내 화면과 같게 둔다 — 다르면 같은 버튼이 다른 글을 만든다.
+//
+// 내 화면에 있는 안내 두 개는 뺐다. '설정에서 프롬프트를 등록하세요' 와
+// '리서치에서 최근실적을 먼저 작성하세요' 는 내가 할 일이고, 동료에게는
+// 할 수 있는 일이 아니다. 프롬프트가 없으면 버튼 자체를 그리지 않는다.
+(function () {
+    const el = document.getElementById('signal-prompt-data');
+    if (!el) return;
+    const template = JSON.parse(el.textContent) || '';
+    if (!template) return;
+
+    const d = new Date();
+    const today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+                                 + '-' + String(d.getDate()).padStart(2, '0');
+
+    document.querySelectorAll('.btn-alert-prompt').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const code = btn.dataset.code;
+            const price = btn.dataset.price ? Number(btn.dataset.price).toLocaleString() : '';
+            const perfEl = document.querySelector(`.recent-perf-data[data-code="${code}"]`);
+            const text = template
+                .replace(/\{종목명\}/g, btn.dataset.name)
+                .replace(/\{종목코드\}/g, code)
+                .replace(/\{현재가\}/g, price)
+                .replace(/\{오늘날짜\}/g, today)
+                .replace(/\{조건리스트\}/g, btn.dataset.conditions || '')
+                .replace(/\{최근실적\}/g, perfEl ? perfEl.textContent.trim() : '');
+            try {
+                await copyToClipboard(text);
+                const orig = btn.textContent;
+                btn.textContent = '복사됨!';
+                setTimeout(() => { btn.textContent = orig; }, 1500);
+            } catch (err) { alert('복사 실패: ' + err.message); }
+        });
+    });
+})();
+
 // 프롬프트 복사 — 고치는 길도, 본문을 띄우는 창도 없다. 복사 하나뿐이다.
 (function () {
     const btn = document.getElementById('btnCopyPrompt');
@@ -264,15 +331,7 @@ document.querySelectorAll('.sparkline').forEach(canvas => {
             setTimeout(() => { this.textContent = orig; }, 1500);
         };
         try {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                await navigator.clipboard.writeText(text);
-            } else {
-                // HTTPS 가 아니면 navigator.clipboard 가 없어 textarea 로 되돌아간다
-                const ta = document.createElement('textarea');
-                ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
-                document.body.appendChild(ta); ta.select();
-                document.execCommand('copy'); ta.remove();
-            }
+            await copyToClipboard(text);
             done.call(this);
         } catch (err) { alert('복사 실패: ' + err.message); }
     });

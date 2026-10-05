@@ -17,6 +17,7 @@ from stocks.status_table import build_status_rows, status_block_text
 from stocks.views import build_stock_detail_context
 
 PROMPT_KEY = 'prompt_status'
+SIGNAL_PROMPT_KEY = 'prompt_signal_analysis'
 
 
 def index(request):
@@ -37,12 +38,21 @@ def index(request):
         key=PROMPT_KEY).values_list('value', flat=True).first() or ''
     status_data = '\n\n---\n\n'.join(status_block_text(i) for i in status_stocks)
 
+    # [분석] 버튼의 프롬프트. 내 화면은 /api/setting/get/ 으로 받아 가는데 그
+    # 경로는 로그인 뒤에 있다. 여기서는 뷰가 내려준다 — 현황 프롬프트와 같은
+    # 방식이다. 버튼은 복사만 하고 서버에 아무것도 쓰지 않는다.
+    signal_prompt = SystemSetting.objects.filter(
+        key=SIGNAL_PROMPT_KEY).values_list('value', flat=True).first() or ''
+
     return render(request, 'ontoo/index.html', {
         'status_stocks': status_stocks,
         # 둘 다 있어야 복사가 뜻이 있다. 하나라도 없으면 버튼을 그리지 않는다.
         'can_copy_prompt': bool(prompt_template and status_data),
         'prompt_template': prompt_template,
         'status_data': status_data,
+        # 프롬프트가 없으면 버튼을 그리지 않는다. 공개 자리에서 '설정에서 먼저
+        # 등록하세요' 라고 알릴 상대가 없다.
+        'signal_prompt': signal_prompt,
     })
 
 
