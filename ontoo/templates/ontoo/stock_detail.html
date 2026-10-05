@@ -1426,7 +1426,9 @@ a.bi-tag { text-decoration:none; }
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
-// 차트 색 — stock_detail.html 과 같은 값. 테마는 다크 전용이다.
+// 차트 색 — stock_detail.html 과 같은 값. 테마는 다크 전용이므로 값을 고정한다.
+// (내 화면은 data-theme 을 읽어 가르지만 여기는 갈릴 일이 없다)
+const _isDarkTheme = true;
 const chartBg = '#1a1d24';
 const chartText = '#9ca3af';
 const chartGrid = '#2a2e38';
