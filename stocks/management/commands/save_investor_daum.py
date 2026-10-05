@@ -5,6 +5,9 @@ from django.core.management.base import BaseCommand
 from stocks.models import FAV_FILTER, Info, InvestorTrend
 from stocks.logger import StockLogger
 
+# --mode last 가 받아오는 날수. 하루만 받으면 늦게 올라온 날을 영구히 놓친다.
+LAST_MODE_DAYS = 5
+
 
 class Command(BaseCommand):
     help = '''
@@ -116,7 +119,15 @@ class Command(BaseCommand):
             'Referer': f'https://finance.daum.net/quotes/{symbol}',
         }
 
-        per_page = 60 if mode == 'all' else 1
+        # last 는 '최근 1일' 이 아니라 '최근 며칠' 이다.
+        #
+        # 한 건만 받으면, 다음 금융이 그날 수급을 저녁 늦게 올리는 날에는 전날
+        # 것을 받고 끝난다. 그날 칸은 비어 있고(뷰는 daum_foreign 이 채워진 행만
+        # 다음 차트에 넣는다) 다음 실행까지 화면에서 빠진다.
+        #
+        # 며칠치를 받으면 늦게 올라온 날도 그다음 실행이 저절로 메운다. 이미
+        # 있는 날은 같은 값으로 덮으므로 해가 없고, 호출 수는 그대로 한 번이다.
+        per_page = 60 if mode == 'all' else LAST_MODE_DAYS
 
         url = f'https://finance.daum.net/api/investor/days?symbolCode={symbol}&perPage={per_page}&page=1'
 
@@ -139,8 +150,19 @@ class Command(BaseCommand):
             return None
 
     def save_to_db(self, stock, data_list):
-        """DB에 저장하고 업데이트 건수 반환"""
+        """다음 칸만 채운다. 행이 없으면 건너뛴다.
+
+        키움 칸(individual·foreign·institution·domestic_foreign)은 null 을
+        허용하지 않는다. 그래서 행을 새로 만들려면 0 을 넣어야 하는데, 그 0 은
+        '자료 없음' 이 아니라 숫자 0 으로 읽힌다 — 키움 차트에 그대로 찍히고
+        진짜 0 과 구분되지 않는다.
+
+        키움은 같은 날 15:40 에, 다음은 19:40 에 돌므로 행은 이미 있다. 없다면
+        키움 쪽이 실패한 날이고, 그 구멍을 가짜 0 으로 덮을 일이 아니다.
+        키움이 메워진 뒤 다음 실행이 채운다 (last 모드가 며칠치를 받으므로).
+        """
         updated_count = 0
+        skipped_dates = []
 
         for item in data_list:
             try:
@@ -150,31 +172,23 @@ class Command(BaseCommand):
                 foreign = item.get('foreignStraightPurchaseVolume', 0) or 0
                 institution = item.get('institutionStraightPurchaseVolume', 0) or 0
 
-                # 기존 레코드 확인
-                existing = InvestorTrend.objects.filter(stock=stock, date=date).first()
-
-                if existing:
-                    # 기존 레코드가 있으면 daum 필드만 업데이트
-                    existing.daum_foreign = foreign
-                    existing.daum_institution = institution
-                    existing.save(update_fields=['daum_foreign', 'daum_institution'])
+                updated = InvestorTrend.objects.filter(stock=stock, date=date).update(
+                    daum_foreign=foreign,
+                    daum_institution=institution,
+                )
+                if updated:
+                    updated_count += 1
                 else:
-                    # 새로 생성 시 필수 필드 포함
-                    InvestorTrend.objects.create(
-                        stock=stock,
-                        date=date,
-                        individual=0,
-                        foreign=0,
-                        institution=0,
-                        domestic_foreign=0,
-                        daum_foreign=foreign,
-                        daum_institution=institution,
-                    )
-
-                updated_count += 1
+                    skipped_dates.append(date_str)
 
             except Exception as e:
                 self.log.debug(f'저장 실패 ({item.get("date")}): {str(e)}')
+
+        if skipped_dates:
+            self.log.warning(
+                f'{stock.name}({stock.code}) 키움 행이 없어 건너뜀: '
+                f'{", ".join(skipped_dates)}'
+            )
 
         return updated_count
 
