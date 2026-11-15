@@ -15,7 +15,6 @@ class LoginRequiredMiddleware:
         # /login/ 으로 먼저 들어온 뒤에야 admin 이 열린다.
         self.open_prefixes = [
             f'/{self.login_url}',
-            '/ontoo',   # 동료와 같이 보는 공유 페이지 (읽기 전용)
         ]
 
     def _is_open(self, path):
@@ -24,10 +23,9 @@ class LoginRequiredMiddleware:
         끝 슬래시가 없는 꼴도 열어야 한다. Django 의 APPEND_SLASH 는
         CommonMiddleware 가 '응답이 404 일 때' 돌려주는 것인데, 여기서 먼저
         로그인으로 돌려보내면 404 가 될 일이 없어 슬래시가 붙지 않는다.
-        그래서 /ontoo 를 치면 공유 페이지가 아니라 로그인 화면이 떴다.
 
-        그렇다고 startswith 하나로 비교하면 /ontoostocks/ 처럼 이어붙인
-        주소까지 열린다. 그래서 '같은가' 와 '그 아래인가' 를 따로 본다.
+        그렇다고 startswith 하나로 비교하면 /loginx/ 처럼 이어붙인 주소까지
+        열린다. 그래서 '같은가' 와 '그 아래인가' 를 따로 본다.
         """
         return any(path == p or path.startswith(p + '/') for p in self.open_prefixes)
 
