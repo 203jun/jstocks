@@ -1,25 +1,49 @@
-import re
+# -*- coding: utf-8 -*-
 import time
 from decimal import Decimal, InvalidOperation
+
 import requests
-from bs4 import BeautifulSoup
-from django.core.management.base import BaseCommand
-from stocks.models import Info, Financial
+from django.core.management.base import BaseCommand, CommandError
+
 from stocks.logger import StockLogger
+from stocks.models import Financial, Info
 
 
-# 월 -> 분기 매핑
-MONTH_TO_QUARTER = {
-    '03': '1Q',
-    '06': '2Q',
-    '09': '3Q',
-    '12': '4Q',
+# 결산월 -> 분기
+MONTH_TO_QUARTER = {'03': '1Q', '06': '2Q', '09': '3Q', '12': '4Q'}
+
+# 네이버 항목 이름 -> Financial 필드.
+#
+# 'ROE' 는 예전 화면에 'ROE(지배주주)' 로 적혀 있던 것이다. 상용에 쌓인
+# 2023·2024·2025 값과 하나씩 대조해 같은 값임을 확인했다(4.15 / 9.03 / 10.85).
+#
+# 받아오는 항목은 이 여섯 말고도 열 가지가 더 있다 — 부채비율, 당좌비율,
+# 유보율, EPS, PER, BPS, PBR, 주당배당금, 지배주주순이익, 비지배주주순이익.
+# 지금 Financial 에 칸이 없어 버린다. 쓸 일이 생기면 여기에 더하면 된다.
+FIELD_MAP = {
+    '매출액': 'revenue',
+    '영업이익': 'operating_profit',
+    '당기순이익': 'net_income',
+    '영업이익률': 'operating_margin',
+    '순이익률': 'net_margin',
+    'ROE': 'roe',
 }
+
+# 네이버는 억 단위로 준다. 칼럼은 원 단위다.
+EOK = 100_000_000
+MONEY_FIELDS = {'revenue', 'operating_profit', 'net_income'}
+
+
+class FetchFailed(Exception):
+    """못 받았다. '받을 것이 없다' 와 다른 일이다."""
 
 
 class Command(BaseCommand):
     help = '''
-재무제표 데이터 크롤링 및 저장 (네이버 금융)
+재무제표 저장 (네이버)
+
+연간 4기, 분기 6기를 받아 Financial 에 넣는다. 마지막 기간은 대개
+컨센서스(추정치)이며 is_estimated 로 구분해 저장한다.
 
 옵션:
   --code      (필수*) 종목코드 또는 "all" (전체 종목)
@@ -34,27 +58,29 @@ class Command(BaseCommand):
   python manage.py save_financial_naver --clear
 '''
 
+    # 예전에는 finance.naver.com/item/main.naver 의 재무 테이블을 CSS
+    # 셀렉터로 긁었다. 네이버가 그 화면을 Next.js 앱으로 다시 만들면서
+    # 구조가 통째로 사라졌다 — 주소는 200 을 주고 셀렉터만 안 맞는다.
+    API = 'https://m.stock.naver.com/api/stock/{code}/finance/{period}'
+
+    HEADERS = {
+        'User-Agent': ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+                       'AppleWebKit/537.36'),
+        'Referer': 'https://m.stock.naver.com/',
+        'Accept': 'application/json',
+    }
+
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--code',
-            type=str,
-            help='종목코드 또는 "all" (전체 종목)'
-        )
-        parser.add_argument(
-            '--clear',
-            action='store_true',
-            help='전체 데이터 삭제'
-        )
+        parser.add_argument('--code', type=str, help='종목코드 또는 "all" (전체 종목)')
+        parser.add_argument('--clear', action='store_true', help='전체 데이터 삭제')
         StockLogger.add_arguments(parser)
 
     def handle(self, *args, **options):
-        # --clear 옵션 처리
         if options.get('clear'):
             deleted_count, _ = Financial.objects.all().delete()
             self.stdout.write(self.style.SUCCESS(f'Financial 데이터 {deleted_count}건 삭제 완료'))
             return
 
-        # 필수 옵션 체크
         if not options.get('code'):
             self.print_help('manage.py', 'save_financial_naver')
             return
@@ -68,26 +94,27 @@ class Command(BaseCommand):
             self.process_single_stock(stock_code)
 
     def process_single_stock(self, stock_code):
-        """단일 종목 처리"""
         try:
             info = Info.objects.get(code=stock_code)
         except Info.DoesNotExist:
-            self.log.error(f'종목코드 {stock_code}가 Info에 없습니다.')
-            return
+            raise CommandError(f'종목코드 {stock_code}가 Info에 없습니다.')
 
         self.log.info(f'종목: {info.name}({stock_code})')
         self.log.separator()
 
-        data = self.crawl_naver_finance(stock_code)
-        if not data:
-            self.log.error('크롤링 실패')
+        try:
+            records = self.fetch_financials(stock_code)
+        except FetchFailed as e:
+            raise CommandError(f'{stock_code} {info.name}: {e}')
+
+        if not records:
+            self.log.warning('받을 재무 데이터가 없습니다.')
             return
 
-        self.save_to_db(info, data)
+        self.save_records(info, records)
 
     def process_all_stocks(self):
-        """전체 종목 처리"""
-        stocks = Info.objects.filter(is_active=True).values_list('code', 'name')
+        stocks = list(Info.objects.filter(is_active=True).values_list('code', 'name'))
         total = len(stocks)
 
         self.log.info(f'재무제표 저장 시작 (대상: {total}개 종목)')
@@ -98,236 +125,169 @@ class Command(BaseCommand):
 
         for idx, (code, name) in enumerate(stocks, 1):
             try:
-                data = self.crawl_naver_finance(code)
-                if data:
-                    info = Info.objects.get(code=code)
-                    saved, updated, skipped = self.save_to_db(info, data, silent=True)
-                    self.log.info(f'[{idx}/{total}] {code} {name}: 신규 {saved}건, 업데이트 {updated}건, 스킵 {skipped}건')
-                    success_count += 1
-                else:
-                    self.log.info(f'[{idx}/{total}] {code} {name}: 데이터 없음')
-                    no_data_list.append((code, name))
+                records = self.fetch_financials(code)
+            except FetchFailed as e:
+                self.log.error(f'[{idx}/{total}] {code} {name}: {e}')
+                error_list.append((code, name, str(e)))
+                time.sleep(0.3)
+                continue
             except Exception as e:
                 self.log.error(f'[{idx}/{total}] {code} {name}: 실패 - {e}')
                 error_list.append((code, name, str(e)))
+                time.sleep(0.3)
+                continue
 
+            if not records:
+                self.log.info(f'[{idx}/{total}] {code} {name}: 데이터 없음')
+                no_data_list.append((code, name))
+            else:
+                info = Info.objects.get(code=code)
+                saved, updated, skipped = self.save_records(info, records, silent=True)
+                self.log.info(f'[{idx}/{total}] {code} {name}: '
+                              f'신규 {saved}건, 업데이트 {updated}건, 스킵 {skipped}건')
+                success_count += 1
             time.sleep(0.3)
 
         self.log.separator()
         if error_list:
-            self.log.info(f'완료 | 성공: {success_count}개, 데이터없음: {len(no_data_list)}개, 오류: {len(error_list)}개', success=True)
+            self.log.info(f'완료 | 성공: {success_count}개, 데이터없음: {len(no_data_list)}개, '
+                          f'오류: {len(error_list)}개', success=True)
             self.log.info('')
             self.log.info('[오류 목록]')
             for code, name, err in error_list:
                 self.log.error(f'  {code} {name}: {err}')
         elif no_data_list:
-            self.log.info(f'완료 | 성공: {success_count}개, 데이터없음: {len(no_data_list)}개', success=True)
+            self.log.info(f'완료 | 성공: {success_count}개, '
+                          f'데이터없음: {len(no_data_list)}개', success=True)
         else:
             self.log.info(f'완료 | 성공: {success_count}개', success=True)
 
-    def crawl_naver_finance(self, stock_code):
-        """네이버 금융에서 재무제표 테이블 크롤링"""
-        url = f'https://finance.naver.com/item/main.naver?code={stock_code}'
-        headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
+        # 한 종목도 못 받았으면 비정상 종료로 끝낸다. 로그만 찍고 0 으로 끝나면
+        # 배치가 '완료' 를 보낸다 — ETF 쪽이 그렇게 넉 달을 멈춰 있었다.
+        if error_list and success_count == 0:
+            raise CommandError(
+                f'재무 데이터를 한 종목도 받지 못했습니다 ({len(error_list)}개 전부). '
+                '네이버가 응답 모양을 바꾼 것으로 봐야 합니다.'
+            )
 
+    # ── 받아오기 ────────────────────────────────────────────────────
+
+    def fetch_financials(self, code):
+        """연간 + 분기를 한 줄로 늘어놓는다.
+
+        반환: [{'year','quarter','is_estimated','values':{항목:문자열}}, ...]
+        """
+        records = []
+        for period in ('annual', 'quarter'):
+            records.extend(self.fetch_period(code, period))
+        return records
+
+    def fetch_period(self, code, period):
+        url = self.API.format(code=code, period=period)
         try:
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
+            r = requests.get(url, headers=self.HEADERS, timeout=10)
+            # 상장폐지·신규상장이면 404 다. 종목이 없는 것이지 고장이 아니다.
+            if r.status_code == 404:
+                return []
+            r.raise_for_status()
+            data = r.json()
         except Exception as e:
-            self.log.error(f'HTTP 요청 실패: {e}')
-            return None
+            raise FetchFailed(f'{period} 조회 실패: {e}') from e
 
-        soup = BeautifulSoup(response.text, 'lxml')
-        table = soup.select_one('#content > div.section.cop_analysis > div.sub_section > table')
+        info = (data or {}).get('financeInfo') or {}
+        titles = info.get('trTitleList')
+        rows = info.get('rowList')
+        if titles is None or rows is None:
+            raise FetchFailed(
+                f'{period} 응답 모양이 다르다 (trTitleList/rowList 없음): {str(data)[:120]}')
 
-        if not table:
-            self.log.error('테이블을 찾을 수 없습니다.')
-            return None
+        # 항목 이름 -> {기간키: 값}
+        by_name = {}
+        for row in rows:
+            title = row.get('title')
+            if title in FIELD_MAP:
+                by_name[title] = {k: (v or {}).get('value')
+                                  for k, v in (row.get('columns') or {}).items()}
 
-        # 헤더 파싱
-        headers = [th.get_text(strip=True) for th in table.select('thead th')]
+        out = []
+        for t in titles:
+            key = t.get('key')            # '202512'
+            if not key or len(key) != 6:
+                continue
+            year, month = int(key[:4]), key[4:]
+            quarter = MONTH_TO_QUARTER.get(month)
+            if not quarter:
+                continue
+            out.append({
+                'year': year,
+                # 연간은 quarter=None 으로 둔다. 모델이 그렇게 구분한다.
+                'quarter': None if period == 'annual' else quarter,
+                # 마지막 기간은 대개 컨센서스다. 네이버가 깃발로 알려준다 —
+                # 예전에는 머리글의 '(E)' 를 정규식으로 찾아냈다.
+                'is_estimated': t.get('isConsensus') == 'Y',
+                'values': {name: cols.get(key) for name, cols in by_name.items()},
+            })
+        return out
 
-        # 연간/분기 컬럼 인덱스 찾기
-        # 헤더 구조: [주요재무정보, 최근 연간 실적, 최근 분기 실적, 연간1, 연간2, 연간3, 연간4, 분기1, 분기2, ...]
-        # 연간: 인덱스 3~6 (4개)
-        # 분기: 인덱스 7~12 (6개)
-        annual_columns = []  # (index, year, is_estimated)
-        quarterly_columns = []  # (index, year, quarter, is_estimated)
+    # ── 저장 ────────────────────────────────────────────────────────
 
-        annual_start = 3
-        annual_end = 7  # exclusive
-        quarterly_start = 7
-        quarterly_end = 13  # exclusive
+    def save_records(self, info, records, silent=False):
+        saved = updated = skipped = 0
+        for rec in records:
+            result = self.save_one(info, rec)
+            if result == 'created':
+                saved += 1
+            elif result == 'updated':
+                updated += 1
+            else:
+                skipped += 1
 
-        for idx in range(annual_start, min(annual_end, len(headers))):
-            parsed = self.parse_header(headers[idx])
-            if parsed:
-                year, quarter, is_estimated = parsed
-                annual_columns.append((idx, year, is_estimated))
+        if not silent:
+            self.log.info(f'{info.name}({info.code}) 저장 완료: '
+                          f'신규 {saved}건, 업데이트 {updated}건, 스킵 {skipped}건',
+                          success=True)
+        return saved, updated, skipped
 
-        for idx in range(quarterly_start, min(quarterly_end, len(headers))):
-            parsed = self.parse_header(headers[idx])
-            if parsed:
-                year, quarter, is_estimated = parsed
-                quarterly_columns.append((idx, year, quarter, is_estimated))
+    def save_one(self, info, rec):
+        new_data = {'is_estimated': rec['is_estimated']}
+        for name, field in FIELD_MAP.items():
+            raw = rec['values'].get(name)
+            if field in MONEY_FIELDS:
+                value = self.parse_int(raw)
+                new_data[field] = value * EOK if value is not None else None
+            else:
+                new_data[field] = self.parse_decimal(raw)
 
-        # 데이터 행 파싱
-        row_data = {}
-        for tr in table.select('tbody tr'):
-            row_header = tr.select_one('th')
-            cells = tr.select('td')
-            if row_header:
-                row_name = row_header.get_text(strip=True)
-                values = [td.get_text(strip=True) for td in cells]
-                row_data[row_name] = values
+        existing = Financial.objects.filter(
+            stock=info, year=rec['year'], quarter=rec['quarter']).first()
 
-        return {
-            'annual_columns': annual_columns,
-            'quarterly_columns': quarterly_columns,
-            'row_data': row_data,
-        }
+        if existing is None:
+            Financial.objects.create(stock=info, year=rec['year'],
+                                     quarter=rec['quarter'], **new_data)
+            return 'created'
 
-    def parse_header(self, header):
-        """헤더 파싱: '2025.12(E)' -> (2025, '4Q', True)"""
-        # 연간: 2024.12, 2025.12(E)
-        # 분기: 2024.09, 2025.03(E)
-        match = re.match(r'(\d{4})\.(\d{2})(\(E\))?', header)
-        if not match:
-            return None
+        if all(getattr(existing, f) == v for f, v in new_data.items()):
+            return 'skipped'
 
-        year = int(match.group(1))
-        month = match.group(2)
-        is_estimated = match.group(3) is not None
+        for field, value in new_data.items():
+            setattr(existing, field, value)
+        existing.save()
+        return 'updated'
 
-        quarter = MONTH_TO_QUARTER.get(month)
-        if not quarter:
-            return None
-
-        return year, quarter, is_estimated
-
-    def parse_value(self, value):
-        """값 파싱: '3,022,314' -> 3022314"""
-        if not value or value == '-' or value == '':
+    def parse_int(self, value):
+        """'3,336,059' -> 3336059 (억원)"""
+        if value in (None, '', '-'):
             return None
         try:
-            # 쉼표 제거
-            cleaned = value.replace(',', '')
-            return int(cleaned)
+            return int(str(value).replace(',', '').strip())
         except (ValueError, TypeError):
             return None
 
     def parse_decimal(self, value):
-        """소수점 값 파싱: '14.35' -> Decimal('14.35')"""
-        if not value or value == '-' or value == '':
+        """'13.07' -> Decimal('13.07')"""
+        if value in (None, '', '-'):
             return None
         try:
-            return Decimal(value)
+            return Decimal(str(value).replace(',', '').strip())
         except InvalidOperation:
             return None
-
-    def save_to_db(self, info, data, silent=False):
-        """크롤링 데이터를 DB에 저장"""
-        annual_columns = data['annual_columns']
-        quarterly_columns = data['quarterly_columns']
-        row_data = data['row_data']
-
-        saved_count = 0
-        updated_count = 0
-        skipped_count = 0
-
-        # 연간 데이터 저장
-        for idx, year, is_estimated in annual_columns:
-            result = self.save_financial_record(
-                info=info,
-                year=year,
-                quarter=None,
-                is_estimated=is_estimated,
-                row_data=row_data,
-                col_idx=idx - 3,  # 헤더 오프셋 조정 (첫 3개는 헤더)
-            )
-            if result == 'created':
-                saved_count += 1
-            elif result == 'updated':
-                updated_count += 1
-            elif result == 'skipped':
-                skipped_count += 1
-
-        # 분기 데이터 저장
-        for idx, year, quarter, is_estimated in quarterly_columns:
-            result = self.save_financial_record(
-                info=info,
-                year=year,
-                quarter=quarter,
-                is_estimated=is_estimated,
-                row_data=row_data,
-                col_idx=idx - 3,  # 헤더 오프셋 조정
-            )
-            if result == 'created':
-                saved_count += 1
-            elif result == 'updated':
-                updated_count += 1
-            elif result == 'skipped':
-                skipped_count += 1
-
-        if not silent:
-            self.log.info(f'{info.name}({info.code}) 저장 완료: 신규 {saved_count}건, 업데이트 {updated_count}건, 스킵 {skipped_count}건', success=True)
-
-        return saved_count, updated_count, skipped_count
-
-    def save_financial_record(self, info, year, quarter, is_estimated, row_data, col_idx):
-        """개별 재무 레코드 저장"""
-        # 값 추출
-        revenue = self.parse_value(row_data.get('매출액', [])[col_idx] if col_idx < len(row_data.get('매출액', [])) else None)
-        operating_profit = self.parse_value(row_data.get('영업이익', [])[col_idx] if col_idx < len(row_data.get('영업이익', [])) else None)
-        net_income = self.parse_value(row_data.get('당기순이익', [])[col_idx] if col_idx < len(row_data.get('당기순이익', [])) else None)
-        operating_margin = self.parse_decimal(row_data.get('영업이익률', [])[col_idx] if col_idx < len(row_data.get('영업이익률', [])) else None)
-        net_margin = self.parse_decimal(row_data.get('순이익률', [])[col_idx] if col_idx < len(row_data.get('순이익률', [])) else None)
-        roe = self.parse_decimal(row_data.get('ROE(지배주주)', [])[col_idx] if col_idx < len(row_data.get('ROE(지배주주)', [])) else None)
-
-        # 네이버는 억 단위 -> 원 단위로 변환 (억 * 1억)
-        if revenue:
-            revenue = revenue * 100000000
-        if operating_profit:
-            operating_profit = operating_profit * 100000000
-        if net_income:
-            net_income = net_income * 100000000
-
-        new_data = {
-            'revenue': revenue,
-            'operating_profit': operating_profit,
-            'net_income': net_income,
-            'operating_margin': operating_margin,
-            'net_margin': net_margin,
-            'roe': roe,
-            'is_estimated': is_estimated,
-        }
-
-        # 기존 레코드 조회
-        try:
-            existing = Financial.objects.get(stock=info, year=year, quarter=quarter)
-
-            # 값 비교 (변경된 경우에만 업데이트)
-            has_changes = False
-            for field, new_val in new_data.items():
-                old_val = getattr(existing, field)
-                if old_val != new_val:
-                    has_changes = True
-                    break
-
-            if has_changes:
-                for field, new_val in new_data.items():
-                    setattr(existing, field, new_val)
-                existing.save()
-                return 'updated'
-            else:
-                return 'skipped'
-
-        except Financial.DoesNotExist:
-            # 신규 생성
-            Financial.objects.create(
-                stock=info,
-                year=year,
-                quarter=quarter,
-                **new_data
-            )
-            return 'created'
