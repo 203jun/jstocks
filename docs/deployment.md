@@ -181,10 +181,13 @@ venv/bin/python manage.py save_stock_info --code all --log-level info
 세 개가 돈다. 실패를 알리는 장치는 `batch_lib.sh` 하나에 있고 셋이 같이 쓴다 —
 걸린 단계의 이름과 원인을 텔레그램에 실어 보낸다.
 
+저녁 배치가 따로 있는 것은 수급 때문이다. 시장·종목 수급은 장이 끝나고
+한참 뒤에야 공개되어 15:40 에 받으면 전날 값이 온다.
+
 ```
-40 15 * * 1-5  /home/stock/jstocks/daily_update.sh  >> logs/daily_update.log 2>&1
-40 19 * * 1-5  /home/stock/jstocks/daum_update.sh   >> logs/daum_update.log 2>&1
-0  23 * * 5    /home/stock/jstocks/weekly_update.sh >> logs/weekly_update.log 2>&1
+40 15 * * 1-5  /home/stock/jstocks/daily_update.sh   >> logs/daily_update.log 2>&1
+40 19 * * 1-5  /home/stock/jstocks/evening_update.sh >> logs/evening_update.log 2>&1
+0  23 * * 5    /home/stock/jstocks/weekly_update.sh  >> logs/weekly_update.log 2>&1
 ```
 
 ```bash

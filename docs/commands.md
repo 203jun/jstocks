@@ -40,7 +40,6 @@ python manage.py check_market_open || exit 0
 
 # 시황
 python manage.py save_index_chart --mode last
-python manage.py save_market_trend --mode last
 
 # 종목
 python manage.py save_stock_info --code all
@@ -61,9 +60,14 @@ python manage.py save_etf_chart --mode last
 python manage.py save_etf_info
 ```
 
-### 다음 금융 수급 (daum_update.sh)
+### 저녁 수급 (evening_update.sh)
+
+수급은 장이 끝나고 한참 뒤에야 공개된다. 일일 배치(15:40)에서 받으면
+전날 값이 오므로 수급만 따로 19:40 에 받는다.
 
 ```bash
+python manage.py save_market_trend --mode last
+python manage.py save_market_indicator --mode last
 python manage.py save_investor_daum --code fav --mode last
 ```
 

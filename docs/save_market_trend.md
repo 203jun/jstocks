@@ -65,4 +65,4 @@ GET https://m.stock.naver.com/api/index/{KOSPI|KOSDAQ}/trend?bizdate=YYYYMMDD
 
 ## 실행 주기
 
-일 1회
+일 1회 (evening_update.sh, 평일 19:40)

@@ -22,7 +22,7 @@ cd /home/stock/jstocks
 source venv/bin/activate
 source ./batch_lib.sh
 
-batch_start "일일" 18 "📊"
+batch_start "일일" 16 "📊"
 
 # 토큰 발급 (키움 API 사용 전 필수)
 step "토큰 발급" python manage.py get_token
@@ -34,10 +34,11 @@ echo "[${STEP_NO}/${TOTAL_STEPS}] 휴장일 체크..."
 python manage.py check_market_open || exit 0
 
 # 시황
+#
+# 시장 동향(수급)과 그것을 읽는 시장 지표는 여기에 없다. 네이버가 그날
+# 수급을 저녁에야 올려서 15:40 에 받으면 전날 값이 온다. 둘 다
+# evening_update.sh(19:40) 로 옮겼다.
 step "지수 차트"   python manage.py save_index_chart --mode last --log-level info
-step "시장 동향"   python manage.py save_market_trend --mode last --log-level info
-# 시장 지표 (지수 차트 + 시장 동향 이후 실행)
-step "시장 지표"   python manage.py save_market_indicator --mode last --log-level info
 
 # 종목 기본정보
 step "종목 기본정보" python manage.py save_stock_info --code all --log-level info

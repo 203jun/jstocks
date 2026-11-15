@@ -44,7 +44,7 @@ python manage.py save_investor_daum --code fav --mode last
 
 ## 실행 주기
 
-일 1회 (daum_update.sh)
+일 1회 (evening_update.sh, 평일 19:40)
 
 ## 주의사항
 
