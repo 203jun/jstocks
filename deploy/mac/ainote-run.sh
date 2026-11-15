@@ -12,7 +12,7 @@
 #   claude -p                       여기서 부르고
 #   ssh jstocks  --save-answer      서버에 저장
 #
-# launchd 가 평일 23:00 에 부른다. 기상 예약도 같은 분이어야 한다 —
+# launchd 가 평일 20:00 에 부른다. 기상 예약도 같은 분이어야 한다 —
 # 뚜껑 닫힌 맥북은 깨어난 뒤 붙잡는 것이 없으면 10초 만에 도로 잠든다.
 #
 # 손으로 돌려볼 때:  ~/jstocks-ainote/run.sh
