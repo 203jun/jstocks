@@ -83,7 +83,7 @@ claude 바이너리(Bun 기반)가 그것을 요구한다. 상품 사양을 올�
 그래서 **부르는 일만 맥에서** 하고 나머지는 서버에서 한다.
 
 ```
-맥 (평일 20:00, launchd + pmset 예약 기상)
+맥 (평일 20:20, launchd + pmset 예약 기상)
   ├ ssh jstocks  run_ai_note --list-pending      무엇이 필요한가
   ├ ssh jstocks  run_ai_note --emit-prompt       프롬프트를 받아
   ├ claude -p                                    맥에서 부르고
@@ -166,5 +166,5 @@ sudo -u stock claude login
 ## 실행 주기
 
 서버 배치에는 넣지 않는다 — 여기서는 claude 가 돌지 않는다.
-맥에서 평일 20:00 에 돈다. `evening_update.sh`(19:40)의 시장 동향·시장
+맥에서 평일 20:20 에 돈다. `evening_update.sh`(19:40)의 시장 동향·시장
 지표가 그 전에 끝난다. 대상은 코스피·코스닥 시황 둘뿐이다.

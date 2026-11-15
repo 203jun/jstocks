@@ -13,7 +13,7 @@ CPU 모델은 그대로다. 메모리도 968Mi 로 공식 요구사항(4GB)에 �
 그래서 **부르는 일만 맥에서** 하고 나머지는 서버가 한다.
 
 ```
-맥 (평일 20:00, launchd + pmset 예약 기상)
+맥 (평일 20:20, launchd + pmset 예약 기상)
   ├ ssh jstocks  run_ai_note --list-pending    무엇이 필요한가
   ├ ssh jstocks  run_ai_note --emit-prompt     프롬프트를 받아
   ├ claude -p                                  맥에서 부르고
@@ -79,19 +79,19 @@ launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.jstocks.ainote.plist
 ### 3. 예약 기상
 
 ```bash
-sudo pmset repeat wakeorpoweron MTWRF 20:00:00
+sudo pmset repeat wakeorpoweron MTWRF 20:20:00
 pmset -g sched
 ```
 
 ## 왜 20:00 인가
 
 서버의 `evening_update.sh` 가 19:40 에 돈다. 그 배치의 1·2단계(시장 동향,
-시장 지표)가 2~3분 안에 끝나고, 시황 판단이 읽는 것이 그 둘이다. 뒤따르는
+시장 지표)가 2~3분 안에 끝나고, 시황 판단이 읽는 것이 그 둘이다. 20:20 이면 넉넉하다. 뒤따르는
 80종목 수급은 시황과 무관하므로 기다릴 것 없다.
 
 ## 기상 시각과 실행 시각은 같은 분이어야 한다
 
-여기서 한 번 틀렸다. 기상을 20:00 에, 실행을 20:01 에 걸면 돌지 않는다.
+여기서 한 번 틀렸다. 기상을 20:20 에, 실행을 20:21 에 걸면 돌지 않는다.
 
 뚜껑 닫힌 맥북은 예약 기상 뒤 붙잡는 것이 없으면 **10초 만에** 도로 잠든다.
 실측한 기록이다.
