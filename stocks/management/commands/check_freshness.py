@@ -3,7 +3,7 @@ from datetime import datetime
 
 from django.core.management.base import BaseCommand, CommandError
 
-from stocks.freshness import CHECKS, MAX_LAG_BUSINESS_DAYS, run
+from stocks.freshness import MAX_LAG_BUSINESS_DAYS, run
 from stocks.logger import StockLogger
 
 
@@ -54,7 +54,7 @@ save_market_indicator 는 엉터리 값을 계산하면서 날마다 '완료' �
         self.log.separator()
         # '오류: N개' 는 배치가 출력에서 집어내는 공통 관례다 (batch_lib.sh).
         if problems:
-            self.log.info(f'완료 | 점검 {len(CHECKS)}개, 오류: {len(problems)}개',
+            self.log.info(f'완료 | 점검 {len(status)}개, 오류: {len(problems)}개',
                           success=True)
             self.log.info('')
             self.log.info('[오류 목록]')
@@ -64,25 +64,27 @@ save_market_indicator 는 엉터리 값을 계산하면서 날마다 '완료' �
             # 있는 것이라, 자기가 조용히 끝나면 뜻이 없다.
             raise CommandError(f'신선하지 않은 데이터 {len(problems)}건')
 
-        self.log.info(f'완료 | 점검 {len(CHECKS)}개, 모두 최신 (기준 {reference})',
+        self.log.info(f'완료 | 점검 {len(status)}개, 모두 정상 (기준 {reference})',
                       success=True)
 
     def print_table(self, reference, status):
         self.log.info(f'기준일 {reference} '
                       f'(가장 앞선 데이터. 전체 지각 한도 {MAX_LAG_BUSINESS_DAYS}영업일)')
         self.log.separator()
-        self.log.info(f'{"항목":14s} {"최신일":12s} {"뒤처짐":>8s}')
+        self.log.info(f'{"항목":14s} {"최신일":12s} {"상태":>12s}')
         for s in status:
-            behind = s.get('behind')
-            if behind is None:
-                mark = '데이터 없음'
-            elif behind == 0:
-                mark = '-'
+            # 신선도 항목은 check 를, 정체·교차 항목은 label 을 들고 온다.
+            label = s['check'].label if 'check' in s else s['label']
+            if 'note' in s:
+                mark = s['note']
             else:
-                mark = f'{behind}영업일'
-            self.log.info(f'  {s["check"].label:12s} {str(s["overall"]):12s} {mark:>8s}')
+                behind = s.get('behind')
+                mark = ('데이터 없음' if behind is None
+                        else '-' if behind == 0 else f'{behind}영업일')
+            shown = str(s['overall']) if s['overall'] else ''
+            self.log.info(f'  {label:12s} {shown:12s} {mark:>12s}')
             # 그룹이 서로 어긋날 때만 펼친다. 같으면 줄만 늘어난다.
-            groups = s['groups']
-            if groups and len(set(groups.values())) > 1:
+            groups = s.get('groups') or {}
+            if len(set(groups.values())) > 1:
                 for name, d in sorted(groups.items()):
                     self.log.info(f'      └ {name:10s} {d}')

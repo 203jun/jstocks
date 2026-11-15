@@ -31,7 +31,7 @@ cd /home/stock/jstocks
 source venv/bin/activate
 source ./batch_lib.sh
 
-batch_start "저녁 수급" 3
+batch_start "저녁 수급" 4
 
 # 시장 수급 (네이버) — 코스피·코스닥 개인/외국인/기관
 step "시장 동향"   python manage.py save_market_trend --mode last --log-level info
@@ -41,5 +41,12 @@ step "시장 지표"   python manage.py save_market_indicator --mode last --log-
 
 # 종목 수급 (다음 금융, 관심 종목만)
 step "수급 데이터 (다음 금융)" python manage.py save_investor_daum --code fav --mode last --log-level info
+
+# 신선도 점검 — 맨 끝에 둔다. 그날 데이터가 다 들어온 뒤라야 뜻이 있다.
+#
+# 명령이 실패하면 종료코드로 알지만, 그것으로 못 잡는 고장이 있다. 명령은
+# 성공했는데 입력이 썩은 경우다 — 수급이 석 달 끊긴 동안 시장 지표는
+# 엉터리 값을 만들며 날마다 '완료' 를 찍었다.
+step "신선도 점검" python manage.py check_freshness --quiet --log-level info
 
 batch_finish "저녁 수급"

@@ -33,13 +33,14 @@
 
 무엇이 언제 늘어야 하는지는 추측할 수 없다. 아래 CHECKS 에 적어 둔다.
 """
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 
 from django.db.models import Max
 
 from stocks.models import (DailyAccountSnapshot, DailyChart, DailyChartETF,
-                           DailyTradeDiary, IndexChart, InvestorTrend,
-                           MarketIndicator, MarketTrend, Sector, ShortSelling)
+                           DailyTradeDiary, Financial, Gongsi, IndexChart,
+                           Info, InfoETF, InvestorTrend, MarketIndicator,
+                           MarketTrend, Report, Sector, ShortSelling)
 
 
 class Daily:
@@ -90,6 +91,101 @@ CHECKS = [
     Daily('매매일지', DailyTradeDiary),
 ]
 
+class Gap:
+    """부정기 데이터. 거래일마다 늘지는 않지만 너무 오래 비면 의심스럽다.
+
+    공시·리포트는 종목에 따라 며칠씩 없을 수 있다. 다만 관심종목이 여든 개가
+    넘어 실제로는 거의 날마다 뭔가 들어온다 — 최근 120개 날짜를 재 보니
+    간격 중앙값 1일, 최대 5일이었다. 10일을 넘기면 수집이 멈춘 것이다.
+    """
+
+    def __init__(self, label, model, days, field='date'):
+        self.label = label
+        self.model = model
+        self.days = days
+        self.field = field
+
+    def latest(self):
+        value = self.model.objects.aggregate(Max(self.field))[f'{self.field}__max']
+        # updated_at 처럼 시각까지 든 칸은 날짜만 떼어 견준다.
+        return value.date() if isinstance(value, datetime) else value
+
+
+class Cross:
+    """두 출처가 같은 값을 말하는지 본다.
+
+    날짜 칸이 없는 데이터를 보는 유일한 방법이다. InfoETF 는 행이 늘지 않고
+    값만 바뀌는데, 코드가 updated_at 은 매번 갱신하면서 current_price 는
+    그대로 두는 바람에 넉 달 동안 겉보기로 멀쩡했다. 차트와 견줬더니 최대
+    163% 어긋나 있었다 — 그 비교를 여기에 옮긴다.
+    """
+
+    def __init__(self, label, fn):
+        self.label = label
+        self.fn = fn
+
+
+def etf_price_vs_chart():
+    """ETF 대시보드 현재가 vs 일봉 최신 종가. (어긋난 수, 전체, 보기)"""
+    bad, total, examples = 0, 0, []
+    for etf in InfoETF.objects.filter(is_active=True):
+        chart = DailyChartETF.objects.filter(etf=etf).order_by('-date').first()
+        if not chart:
+            continue
+        total += 1
+        if etf.current_price != chart.closing_price:
+            bad += 1
+            if len(examples) < 3:
+                examples.append(f'{etf.code} {etf.name[:12]} '
+                                f'{etf.current_price or 0:,} vs {chart.closing_price:,}')
+    return bad, total, examples
+
+
+def stock_price_vs_chart():
+    """종목 현재가 vs 일봉 최신 종가. 관심종목만 본다 — 전체가 멈추면
+    관심종목도 같이 멈추므로 그것으로 충분하다."""
+    bad, total, examples = 0, 0, []
+    for stock in Info.objects.filter(interest_level__isnull=False):
+        chart = DailyChart.objects.filter(stock=stock).order_by('-date').first()
+        if not chart:
+            continue
+        total += 1
+        if stock.current_price != chart.closing_price:
+            bad += 1
+            if len(examples) < 3:
+                examples.append(f'{stock.code} {stock.name[:12]} '
+                                f'{stock.current_price or 0:,} vs {chart.closing_price:,}')
+    return bad, total, examples
+
+
+# 부정기 데이터. days 는 달력일이다.
+GAPS = [
+    Gap('공시', Gongsi, days=10),
+    Gap('리포트', Report, days=10),
+    # 재무는 주간 배치다. 값이 안 바뀐 행은 건드리지 않으므로 종목 하나만
+    # 보면 안 되고, 전체에서 가장 최근에 바뀐 것을 본다. 1,249종목을 훑으면
+    # 컨센서스가 움직인 것이 늘 몇 개는 있다.
+    Gap('재무', Financial, days=10, field='updated_at'),
+]
+
+CROSSES = [
+    Cross('ETF 대시보드', etf_price_vs_chart),
+    Cross('종목 현재가', stock_price_vs_chart),
+]
+
+# 어긋난 비율이 이보다 크면 고장으로 본다.
+#
+# 한두 종목이 어긋나는 것은 거래정지·상장폐지처럼 늘 있는 일이다. 수집이
+# 멈추면 하나가 아니라 전부 어긋난다 — ETF 때도 스물셋이 전부였다.
+CROSS_BAD_RATIO = 0.3
+
+# 장중에는 교차 검증을 건너뛴다. 현재가와 전일 종가가 다른 것이 당연해서
+# 전부 어긋난 것처럼 보인다. 배치는 저녁에 도니 걸릴 일이 없고, 손으로
+# 낮에 돌렸을 때만 해당한다.
+MARKET_OPEN = time(9, 0)
+MARKET_CLOSE = time(16, 0)
+
+
 # 기준일이 오늘로부터 이만큼(영업일) 넘게 떨어지면 전체가 멈춘 것으로 본다.
 # 설·추석 연휴가 이보다 길면 오경보가 난다 — 1년에 한두 번이다.
 MAX_LAG_BUSINESS_DAYS = 3
@@ -112,7 +208,12 @@ def business_days_between(start, end):
     return days
 
 
-def run(today=None):
+def is_market_hours(now=None):
+    now = now or datetime.now()
+    return now.weekday() < 5 and MARKET_OPEN <= now.time() <= MARKET_CLOSE
+
+
+def run(today=None, now=None):
     """전부 훑는다. (기준일, 문제목록, 현황목록)
 
     문제목록의 각 항목은 사람이 읽을 한 줄이다.
@@ -171,6 +272,39 @@ def run(today=None):
                 problems.append(
                     f'{check.label}[{name}]: {g_behind}영업일 뒤처짐 '
                     f'(최신 {g_latest}, 기준 {reference})'
+                )
+
+    # ④ 정체 — 부정기 데이터. 달력일로 센다. 거래일마다 늘지 않으므로
+    #    기준일과 견주는 ③ 방식을 쓸 수 없다.
+    for gap in GAPS:
+        latest = gap.latest()
+        if latest is None:
+            problems.append(f'{gap.label}: 데이터가 한 건도 없습니다')
+            status.append({'label': gap.label, 'overall': None, 'note': '데이터 없음'})
+            continue
+        days = (today - latest).days
+        status.append({'label': gap.label, 'overall': latest,
+                       'note': f'{days}일 전' if days else '오늘'})
+        if days > gap.days:
+            problems.append(
+                f'{gap.label}: {days}일째 새로 들어온 것이 없습니다 '
+                f'(최신 {latest}, 한도 {gap.days}일)'
+            )
+
+    # ⑤ 교차 검증 — 두 출처가 어긋나는지. 날짜 칸이 없는 데이터를 보는
+    #    유일한 방법이다.
+    if is_market_hours(now):
+        status.append({'label': '교차 검증', 'overall': None,
+                       'note': '장중이라 건너뜀'})
+    else:
+        for cross in CROSSES:
+            bad, total, examples = cross.fn()
+            status.append({'label': cross.label, 'overall': None,
+                           'note': f'{bad}/{total} 어긋남' if total else '볼 것 없음'})
+            if total and bad / total > CROSS_BAD_RATIO:
+                detail = ' · '.join(examples)
+                problems.append(
+                    f'{cross.label}: {total}개 중 {bad}개가 차트와 어긋납니다. {detail}'
                 )
 
     return reference, problems, status
