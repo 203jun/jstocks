@@ -34,13 +34,26 @@ TOOLS=WebSearch
 
 log() { echo "[$(date '+%H:%M:%S')] $*" | tee -a "$LOG"; }
 
-# 텔레그램은 서버를 거쳐 보낸다. 토큰이 서버 .env 에만 있고, 기존 배치
-# 알림과 같은 통로를 써야 한곳에서 보인다.
-# 메시지를 인자가 아니라 stdin 으로 넘긴다. ssh 를 거치면 따옴표가 한 겹 더
-# 벗겨져, 줄바꿈이나 따옴표가 든 글을 인자로 실으면 깨진다.
+# 텔레그램은 맥에서 **직접** 보낸다. 서버를 거치지 않는다.
+#
+# 감시자가 감시 대상에 기대면 안 된다. 서버가 죽었을 때 그것을 알리는 것이
+# 이 스크립트의 일인데, 알리는 길이 서버를 지나면 같이 죽는다.
+#
+# 그래서 봇 토큰을 맥에도 둔다(telegram.env, 600). 맥에는 이미 서버로 드는
+# SSH 키가 있으므로 비밀이 하나 더 는다고 크게 달라지지 않는다.
+TELEGRAM_ENV=$HOME/jstocks-ainote/telegram.env
+
 notify() {
-    printf '%s' "$1" \
-        | ssh "$REMOTE" "$APP tele_api_test -m \"\$(cat)\"" > /dev/null 2>&1 \
+    if [ ! -r "$TELEGRAM_ENV" ]; then
+        log "텔레그램 설정이 없다: $TELEGRAM_ENV"
+        return
+    fi
+    # shellcheck disable=SC1090
+    . "$TELEGRAM_ENV"
+    curl -s -m 20 -o /dev/null \
+        -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+        --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+        --data-urlencode "text=$1" \
         || log "텔레그램 전송 실패 (알림만 실패했고 작업은 계속한다)"
 }
 
@@ -57,6 +70,59 @@ if [ -z "$CLAUDE" ]; then
     exit 1
 fi
 log "claude $("$CLAUDE" --version 2>/dev/null | head -1) ($CLAUDE)"
+
+# ── 서버가 살아 있고 배치가 돌았는지 ──────────────────────────────────
+#
+# 서버의 배치는 실패하면 스스로 텔레그램을 보낸다. 그런데 **아예 안 돌면**
+# 보낼 주체가 없다 — cron 이 멈췄거나, 재부팅 뒤 안 올라왔거나, 서버가
+# 꺼졌거나. 그 조용함은 '정상' 과 구분되지 않는다.
+#
+# 맥은 다른 기계, 다른 스케줄러다. 여기서 대신 확인한다.
+
+TODAY=$(date +%F)
+MISSING=()
+
+if ! ssh -o ConnectTimeout=20 "$REMOTE" true 2>>"$LOG"; then
+    log "서버에 붙지 못했다"
+    notify "⚠️ 서버에 붙지 못했습니다"$'\n\n'"$(date '+%m/%d %H:%M') · ssh jstocks 실패"$'\n'"서버가 꺼졌거나 네트워크가 끊겼을 수 있습니다."
+    exit 1
+fi
+
+# 배치가 끝나면 batch_lib.sh 가 '<라벨> 업데이트 완료: YYYY-MM-DD ...' 를
+# 로그에 찍는다. 오늘 날짜가 있는지만 본다.
+#
+# 파일 수정시각을 보지 않는 까닭: logrotate 가 copytruncate 로 비우면서
+# 시각을 건드린다. 돌지 않았는데 방금 쓴 것처럼 보인다.
+#
+# daily_update 는 보지 않는다. 휴장일이면 완료 줄을 찍기 전에 끝나므로
+# '안 돌았다' 와 구분되지 않는다. evening_update 는 휴장일에도 돌고
+# backup_db 는 주말에도 돈다 — 그 둘이면 충분하다.
+check_ran() {
+    local logfile="$1" label="$2"
+    if ssh "$REMOTE" "grep -q '완료: $TODAY' /home/stock/jstocks/logs/$logfile" 2>/dev/null; then
+        log "   $label: 오늘 돌았다"
+    else
+        MISSING+=("$label")
+        log "   $label: 오늘 돈 기록이 없다"
+    fi
+}
+
+log "── 배치 확인"
+check_ran evening_update.log "저녁 배치(19:40)"
+check_ran backup_db.log      "DB 백업(06:00)"
+
+if [ ${#MISSING[@]} -gt 0 ]; then
+    notify "⚠️ 서버 배치가 돌지 않았습니다"$'\n\n'"$(printf '%s\n' "${MISSING[@]}")"$'\n'"cron 을 확인하세요: sudo -u stock crontab -l"
+fi
+
+# 데이터가 신선한지도 여기서 본다. 저녁 배치 안에서도 돌지만, 그 배치가
+# 안 돌았으면 점검도 같이 안 돈다. 밖에서 한 번 더 본다.
+if ! FRESH=$(ssh "$REMOTE" "$APP check_freshness --quiet --log-level error" 2>&1); then
+    log "── 신선도 점검에서 걸렸다"
+    printf '%s\n' "$FRESH" | sed 's/^/     /' | tee -a "$LOG"
+    notify "⚠️ 데이터가 신선하지 않습니다"$'\n\n'"$(printf '%s' "$FRESH" | grep -v '^$' | head -8)"
+fi
+
 
 # ── 할 일 받아오기 ──
 if ! PENDING=$(ssh "$REMOTE" "$RUN --list-pending" 2>>"$LOG"); then
