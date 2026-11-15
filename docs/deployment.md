@@ -48,7 +48,7 @@ venv/bin/python manage.py collectstatic --noinput
 반쪽만 본다.
 
 ```bash
-curl -I https://cantoluna3.cafe24.com/ontoo/      # 200
+curl -I https://cantoluna3.cafe24.com/login/      # 200
 systemctl status jstocks --no-pager | head -5
 ```
 
@@ -200,11 +200,13 @@ ls -l *.sh                       # 실행 권한(+x)이 있어야 cron 이 돌�
 
 ```
 https://cantoluna3.cafe24.com/          내 화면 (로그인)
-https://cantoluna3.cafe24.com/ontoo/    같이 보는 공유 페이지 (로그인 없음)
 ```
 
-로그인 없이 열리는 곳은 `/login/` 과 `/ontoo/` 둘뿐이다. admin 도 `/login/` 을
-먼저 지나야 열린다 (`stocks/middleware.py`).
+로그인 없이 열리는 곳은 `/login/` 하나뿐이다. admin 도 `/login/` 을 먼저
+지나야 열린다 (`stocks/middleware.py`).
+
+한동안 `/ontoo/` 를 열어 두고 몇 사람과 같이 봤다. 쓸 일이 없어져 걷어냈다 —
+그 흔적은 '공유 페이지를 닫았다 (1/6)' 부터 여섯 커밋에 있다.
 
 ---
 

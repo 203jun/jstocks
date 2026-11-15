@@ -1,8 +1,11 @@
 # nginx + HTTPS 붙이기
 
-지금은 gunicorn 이 `0.0.0.0:8000` 에 그대로 떠 있고 평문이다. `/ontoo/` 링크를
-뿌리면 주소가 알려지는데, 그 상태로는 **내가 로그인할 때 비밀번호가 평문으로
-네트워크에 흐른다.** 동료는 읽기만 하니 상관없고, 위험은 내 계정에 있다.
+HTTPS 를 붙이기 전에는 gunicorn 이 `0.0.0.0:8000` 에 그대로 떠 있었다. 평문
+이라 **로그인할 때 비밀번호가 네트워크에 그대로 흘렀다.**
+
+(이 글은 그때 따라 한 순서다. 지금은 다 적용되어 있다 — 다시 세울 때나 무언가
+틀어졌을 때 본다. 처음 붙인 계기는 몇 사람과 페이지를 같이 보려던 것이었고,
+그 공유는 뒤에 걷어냈지만 HTTPS 를 붙인 이유는 그대로 남는다.)
 
 **순서가 중요하다.** 쿠키를 먼저 https 전용으로 바꾸면 인증서가 붙기 전에
 로그인이 막힌다. 아래 순서대로 한다. 각 단계에 확인 명령이 있고, 그것이
@@ -74,7 +77,7 @@ rm -f /etc/nginx/sites-enabled/default      # 기본 사이트가 요청을 먹�
 nginx -t                                     # 통과해야 다음으로 간다
 systemctl reload nginx
 
-curl -I http://cantoluna3.cafe24.com/ontoo/              # 200
+curl -I http://cantoluna3.cafe24.com/login/              # 200
 ```
 
 여기까지는 평문이다. 아직 Django 설정도 안 바꿨으니 되돌릴 것도 없다.
@@ -91,8 +94,8 @@ certbot 이 위 파일에 443 블록, 인증서 경로, http→https 리다이�
 nginx 버전에 맞게** 직접 써 넣는다. 그래서 설정 파일에 443 을 미리 적지 않았다.
 
 ```bash
-curl -I https://cantoluna3.cafe24.com/ontoo/            # 200
-curl -I http://cantoluna3.cafe24.com/ontoo/             # 301 -> https
+curl -I https://cantoluna3.cafe24.com/login/            # 200
+curl -I http://cantoluna3.cafe24.com/login/             # 301 -> https
 ```
 
 갱신은 `certbot.timer` 가 자동으로 돈다.
@@ -134,7 +137,7 @@ systemctl restart jstocks
 ```
 
 확인 — 로그인해서 **메모를 저장해 본다.** CSRF 가 틀어지면 여기서 걸린다.
-`/ontoo/` 도 열어 본다.
+`/login/` 도 열어 본다.
 
 ---
 
@@ -172,8 +175,8 @@ systemctl show jstocks -p ExecStart | tr ';' '\n' | grep -o '\-\-bind [^ ]*'
 확인한다.
 
 ```bash
-curl -I http://127.0.0.1:8000/ontoo/              # 200 (서버 안에서는 된다)
-curl -I https://cantoluna3.cafe24.com/ontoo/      # 200
+curl -I http://127.0.0.1:8000/login/              # 200 (서버 안에서는 된다)
+curl -I https://cantoluna3.cafe24.com/login/      # 200
 ```
 
 바깥에서 8000 이 막혔는지는 서버 안에서 알 수 없다. 다른 회선(휴대폰 등)에서
@@ -209,7 +212,7 @@ curl ifconfig.me
 ```
 
 `/etc/nginx/sites-available/jstocks` 아래쪽 주석을 풀고 YOUR_IP 를 그 값으로
-바꾼다. `/ontoo/` 는 건드리지 않는다 — 동료가 보는 자리다.
+바꾼다.
 
 ```bash
 nginx -t && systemctl reload nginx
@@ -221,7 +224,6 @@ nginx -t && systemctl reload nginx
 ```bash
 curl -I https://cantoluna3.cafe24.com/login/     # 내 PC: 200
                                                   # 다른 회선: 403
-curl -I https://cantoluna3.cafe24.com/ontoo/     # 어디서나: 200
 ```
 
 회선을 바꾸거나 IP 가 바뀌면 나도 못 들어온다. 그때는 서버에 ssh 로 들어가
@@ -254,7 +256,7 @@ systemctl daemon-reload && systemctl restart jstocks
 
 - **무료 호스트네임** — DuckDNS 같은 곳에서 `아무이름.duckdns.org` 를 받아
   175.126.73.5 를 가리키게 한다. duckdns.org 는 Public Suffix List 에 있어서
-  내 이름 몫의 한도를 따로 받는다. 동료에게 주는 주소가 그 이름으로 바뀐다.
+  내 이름 몫의 한도를 따로 받는다. 접속 주소가 그 이름으로 바뀐다.
 - **IP 제한만으로 버티기** — HTTPS 를 미루고 아래 7 번만 한다. 고정 IP 가 있어
   할 수 있는 선택이고, 남는 위험은 내 회선에서 서버까지의 구간이다.
 
@@ -267,5 +269,5 @@ systemctl daemon-reload && systemctl restart jstocks
   적어 두었다. IP 가 바뀌는 회선이면 쓰지 않는다.
 - **SECRET_KEY 교체** — 한 번 외부에 보인 적이 있다. 바꾸면 세션이 끊겨 다시
   로그인하는 것이 전부다.
-- **/ontoo/ 는 그대로 열어 둔다.** 동료가 보는 자리다. https 가 되면 주소만
-  `https://cantoluna3.cafe24.com/ontoo/` 로 바뀐다.
+- **로그인 없이 열리는 곳은 `/login/` 하나뿐이다.** 한동안 `/ontoo/` 를 열어
+  두고 몇 사람과 같이 봤는데 쓸 일이 없어져 걷어냈다.
