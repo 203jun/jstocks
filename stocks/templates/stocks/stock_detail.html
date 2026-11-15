@@ -727,44 +727,8 @@ a.bi-tag { text-decoration:none; }
 
 <!-- ========== 기본정보 탭 ========== -->
 <div id="info-content" class="tab-panel">
-    {% comment %}
-    공유 메모와 아래 '메모' 는 아무 관계가 없다. 하나는 스무 명에게 보여주는
-    글이고 하나는 나한테 쓰는 글이다. 같은 종목이 관심이면서 공유일 때 두 글이
-    서로 보이면 안 되므로 칸을 따로 둔다.
-
-    공유 메모를 위에 둔다. 둘 다 '메모' 라 공유 탭에서 들어오면 위쪽을 공유용
-    으로 읽는다 — 실제로 동료용 글을 내 메모 칸에 적은 일이 있었다. 자리로
-    말하는 편이 이름으로만 가르는 것보다 낫다.
-
-    쓰는 곳은 여기뿐이다. OnToo 는 읽기로만 보여준다.
-    {% endcomment %}
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">
-        <span>공유 메모 <span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">OnToo 에 보입니다</span></span>
-        {% if stock.shared_memo_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="sharedMemoUpdatedAt">update: {{ stock.shared_memo_updated_at|date:"Y-m-d" }}</span>{% endif %}
-    </h5>
-    <div class="brief-card">
-        <!-- 보기 모드 -->
-        <div id="sharedMemoViewMode">
-            <div style="max-height:400px;overflow-y:auto;">
-                <div class="content markdown-content" style="font-size:0.85rem;" id="sharedMemoMarkdown"></div>
-                <script type="text/plain" id="sharedMemoRaw">{{ stock.shared_memo|default:""|safe }}</script>
-            </div>
-            <div style="text-align:right;margin-top:8px;">
-                <span id="btnSharedMemoEdit" style="font-size:0.72rem;color:var(--text-muted);cursor:pointer;">수정</span>
-            </div>
-        </div>
-        <!-- 편집 모드 -->
-        <div id="sharedMemoEditMode" class="d-none">
-            <textarea class="form-control" id="sharedMemoTextarea" rows="8" style="font-family:monospace;font-size:0.85rem;margin-bottom:8px;" placeholder="동료와 같이 볼 내용을 적습니다. 마크다운 형식.">{{ stock.shared_memo }}</textarea>
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" id="btnSharedMemoCancel" class="btn-refresh" style="padding:4px 12px;">취소</button>
-                <button type="button" id="btnSharedMemoSave" class="btn-refresh" style="padding:4px 12px;">저장</button>
-            </div>
-        </div>
-    </div>
-
     <!-- 메모 -->
-    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;"><span>메모 <span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">나만 봅니다</span></span>{% if stock.memo_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="memoUpdatedAt">update: {{ stock.memo_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
+    <h5 class="section-heading" style="display:flex;justify-content:space-between;align-items:baseline;">메모{% if stock.memo_updated_at %}<span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);" id="memoUpdatedAt">update: {{ stock.memo_updated_at|date:"Y-m-d" }}</span>{% endif %}</h5>
     <div class="brief-card">
         <!-- 보기 모드 -->
         <div id="memoViewMode">
@@ -1915,7 +1879,6 @@ function renderContent(rawId, markdownId) {
 }
 
 renderContent('memoRaw', 'memoMarkdown');
-renderContent('sharedMemoRaw', 'sharedMemoMarkdown');
 renderContent('analysisRaw', 'analysisMarkdown');
 renderContent('finAnalysisV2Raw', 'finAnalysisV2Markdown');
 renderContent('consensusAnalysisRaw', 'consensusAnalysisMarkdown');
@@ -1944,11 +1907,10 @@ document.querySelectorAll('.btn-toggle-opinion').forEach(btn => {
 });
 
 // ===== 메모 인라인 편집 =====
-// 메모와 공유 메모가 같은 함수를 쓴다. 두 벌로 두면 한쪽만 고쳐져 어긋난다.
-// 다른 것은 요소 이름의 머리와 저장 주소뿐이다.
+// 요소 이름의 머리와 저장 주소를 받아 보기/편집을 걸어 준다.
 //
-//   pane  보기/편집 칸의 이름 머리   memoViewMode · sharedMemoViewMode
-//   btn   버튼 이름 머리            btnMemoSave  · btnSharedMemoSave
+//   pane  보기/편집 칸의 이름 머리   memoViewMode
+//   btn   버튼 이름 머리            btnMemoSave
 function setupMemo({ pane, btn, api }) {
     const el = (suffix) => document.getElementById(pane + suffix);
     const button = (suffix) => document.getElementById(btn + suffix);
@@ -2010,7 +1972,6 @@ function setupMemo({ pane, btn, api }) {
 }
 
 setupMemo({ pane: 'memo', btn: 'btnMemo', api: `/api/stock/${stockCode}/memo/` });
-setupMemo({ pane: 'sharedMemo', btn: 'btnSharedMemo', api: `/api/stock/${stockCode}/shared-memo/` });
 
 // ===== 수급분석 인라인 편집 =====
 document.getElementById('btnSdAnalysisEdit').addEventListener('click', () => {
