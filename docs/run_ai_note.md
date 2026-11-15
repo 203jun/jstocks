@@ -19,6 +19,20 @@ AiNote.update_or_create() 기준일로 저장한다
 
 ## 사용법
 
+바깥에서 Claude 를 부를 때는 세 토막으로 나눠 쓴다.
+
+```bash
+python manage.py run_ai_note --list-pending
+# market KOSPI 2026-11-13
+# market KOSDAQ 2026-11-13
+
+python manage.py run_ai_note --key KOSPI --emit-prompt > 프롬프트.txt
+claude -p --allowedTools WebSearch < 프롬프트.txt > 답.txt
+python manage.py run_ai_note --key KOSPI --basis 2026-11-13 --save-answer < 답.txt
+```
+
+서버에서 직접 부를 때 (이 서버에서는 CPU 때문에 못 쓴다):
+
 ```bash
 # 프롬프트만 보고 (부르지 않는다)
 python manage.py run_ai_note --key KOSPI --dry-run
@@ -40,6 +54,10 @@ python manage.py run_ai_note
 | `--dry-run` | X | 프롬프트만 찍고 부르지 않는다 |
 | `--show` | X | 받은 답을 전부 찍는다 |
 | `--log-level` | X | debug / info / warning / error (기본: info) |
+| `--list-pending` | X | 판단이 필요한 대상을 `자리 대상 기준일` 로 출력 |
+| `--emit-prompt` | X | 프롬프트만 stdout 으로 (부르지 않는다) |
+| `--save-answer` | X | stdin 으로 받은 답을 파싱해 저장 |
+| `--basis` | X | 기준일 YYYY-MM-DD. `--save-answer` 와 함께 |
 
 ## 기준일
 
@@ -49,6 +67,50 @@ python manage.py run_ai_note
 
 같은 기준일에 판단이 이미 있으면 **건너뛴다**. 배치가 두 번 돌아도 토큰을
 두 번 쓰지 않는다. 다시 받으려면 `--force`.
+
+## 이 서버에서는 claude 가 돌지 않는다
+
+```
+error: this CPU is missing SSE4.2 support, which Bun requires.
+```
+
+상용 서버의 게스트 CPU 가 `QEMU Virtual CPU version (cpu64-rhel6)` 으로
+노출된다. 하이퍼바이저가 기능을 가리고 있어 `sse4_2` 플래그가 없다.
+claude 바이너리(Bun 기반)가 그것을 요구한다. 상품 사양을 올려도 CPU 모델은
+그대로이므로 해결되지 않는다. 메모리도 968Mi 로 공식 요구사항(4GB)에 못
+미친다.
+
+그래서 **부르는 일만 맥에서** 하고 나머지는 서버에서 한다.
+
+```
+맥 (평일 23:00, launchd + pmset 예약 기상)
+  ├ ssh jstocks  run_ai_note --list-pending      무엇이 필요한가
+  ├ ssh jstocks  run_ai_note --emit-prompt       프롬프트를 받아
+  ├ claude -p                                    맥에서 부르고
+  └ ssh jstocks  run_ai_note --save-answer       서버에 저장
+```
+
+프롬프트를 만들고 답을 파싱해 저장하는 일은 전부 서버가 한다. 맥은 부르기만
+한다. 세 토막 모두 stdout 으로는 주고받는 내용만 내보내고 로그는 stderr 로
+보낸다 — 받는 쪽이 둘을 구분하지 못하면 프롬프트에 로그가 섞인다.
+
+### 기준일을 들고 다니는 까닭
+
+프롬프트를 뽑은 뒤 답을 저장하기까지 몇 분이 걸린다. 그사이 새 데이터가
+들어오면 기준일이 바뀌고, 옛 데이터로 내린 판단이 새 날짜에 붙는다.
+`--list-pending` 이 기준일을 함께 주고 `--save-answer` 가 `--basis` 로
+받아, 뽑을 때의 날짜에 저장한다.
+
+### 맥이 잠들어 있어도 되는가
+
+된다. 다만 **예약 기상 시각과 실행 시각이 같은 분이어야 한다.**
+
+뚜껑이 닫힌 맥북은 예약 기상 뒤 붙잡는 것이 없으면 **10초 만에** 도로
+잠든다(실측). 1분 뒤에 작업을 걸면 그때는 이미 자고 있어 뜨지 못한다.
+같은 분에 걸어 그 창 안에 떠서 `caffeinate -i -s` 로 붙잡아야 한다.
+
+맥이 깨어 있거나 클램셸이면 그냥 돈다. 예약 기상이 실패해도 `launchd` 는
+다음에 깨울 때 밀린 작업을 실행한다(`cron` 은 건너뛴다).
 
 ## 왜 API 가 아니라 CLI 인가
 
@@ -103,5 +165,6 @@ sudo -u stock claude login
 
 ## 실행 주기
 
-아직 배치에 넣지 않았다. 손으로 돌려 보며 답의 품질을 보는 중이다.
-넣는다면 지표가 들어온 뒤인 `evening_update.sh`(19:40) 뒤쪽이 맞다.
+서버 배치에는 넣지 않는다 — 여기서는 claude 가 돌지 않는다.
+맥에서 평일 23:00 에 돈다. 그 시각이면 `evening_update.sh`(19:40)가
+지표를 이미 넣어 둔 뒤다.
