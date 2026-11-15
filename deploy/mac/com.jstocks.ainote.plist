@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.jstocks.ainote</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <!-- 도는 동안 맥이 잠들지 않게 붙잡는다.
+             -s 는 시스템 절전을 막지만 AC 전원일 때만 든다.
+             -i 는 배터리에서도 유휴 절전만은 막아 준다. 둘 다 건다. -->
+        <string>/usr/bin/caffeinate</string>
+        <string>-i</string>
+        <string>-s</string>
+        <string>/bin/bash</string>
+        <string>REPLACE_HOME/jstocks-ainote/run.sh</string>
+    </array>
+
+    <!-- 평일 23:00. pmset 예약 기상과 '같은 분' 이어야 한다.
+         뚜껑 닫힌 맥북은 예약 기상 뒤 붙잡는 것이 없으면 10초 만에 도로
+         잠든다(실측). 1분만 벌려도 그때는 이미 자고 있어 뜨지 못한다.
+         Weekday 1=월 … 5=금. -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>23</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>23</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>23</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>23</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>23</integer><key>Minute</key><integer>0</integer></dict>
+    </array>
+
+    <!-- launchd 가 주는 PATH 는 /usr/bin:/bin:/usr/sbin:/sbin 뿐이다.
+         claude 는 ~/.local/bin 에 있어 그대로 두면 못 찾는다. -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>REPLACE_HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+
+    <key>StandardErrorPath</key>
+    <string>REPLACE_HOME/jstocks-ainote/stderr.log</string>
+</dict>
+</plist>
