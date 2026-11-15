@@ -67,7 +67,6 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'axes',   # 로그인 시도 제한
     'stocks',
-    'ontoo',
 ]
 
 MIDDLEWARE = [
