@@ -83,7 +83,7 @@ sudo pmset repeat wakeorpoweron MTWRF 20:20:00
 pmset -g sched
 ```
 
-## 왜 20:00 인가
+## 왜 20:20 인가
 
 서버의 `evening_update.sh` 가 19:40 에 돈다. 그 배치의 1·2단계(시장 동향,
 시장 지표)가 2~3분 안에 끝나고, 시황 판단이 읽는 것이 그 둘이다. 20:20 이면 넉넉하다. 뒤따르는
