@@ -19,12 +19,24 @@ HTTPS 를 처음 붙이는 순서는 [nginx-tls.md](./nginx-tls.md) 에 따로 �
 ## 평소 배포 (코드만 바뀔 때)
 
 ```bash
+/home/stock/jstocks/deploy.sh
+```
+
+받기 → 패키지 → 마이그레이션 → 정적 파일 → 재시작 → 확인까지 한다.
+root 로 실행하고 안에서 `stock` 으로 낮춰 돈다. 끝에 `find /home/stock
+-user root` 로 소유권이 섞이지 않았는지도 본다.
+
+손으로 할 때는 이렇게 한다.
+
+```bash
 cd /home/stock/jstocks
 sudo -u stock git pull
 systemctl restart jstocks
 ```
 
-`sudo -u stock` 을 빼먹지 않는다. 앱은 `stock` 계정으로 돌고 파일도 전부 그
+`sudo -u stock` 을 빼먹지 않는다. 빠뜨리면 git 이 `dubious ownership` 으로
+막아 준다 — **그때 안내문이 시키는 `safe.directory` 추가를 하면 안 된다.**
+막아 주던 것까지 없어져 root 소유 파일이 섞인다. 앱은 `stock` 계정으로 돌고 파일도 전부 그
 계정 것이다. root 로 `git pull` 하면 새로 받은 파일만 root 소유가 되어 앱이
 못 읽거나 못 쓰게 된다. `manage.py` 와 `pip` 도 같다.
 
