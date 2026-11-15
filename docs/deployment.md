@@ -20,28 +20,32 @@ HTTPS 를 처음 붙이는 순서는 [nginx-tls.md](./nginx-tls.md) 에 따로 �
 
 ```bash
 cd /home/stock/jstocks
-git pull
+sudo -u stock git pull
 systemctl restart jstocks
 ```
+
+`sudo -u stock` 을 빼먹지 않는다. 앱은 `stock` 계정으로 돌고 파일도 전부 그
+계정 것이다. root 로 `git pull` 하면 새로 받은 파일만 root 소유가 되어 앱이
+못 읽거나 못 쓰게 된다. `manage.py` 와 `pip` 도 같다.
 
 마이그레이션이 생겼으면 재시작 전에 돌린다. **`makemigrations` 는 상용에서
 돌리지 않는다** — 로컬에서 만들어 커밋하고 여기서는 적용만 한다. 그러지 않으면
 번호가 갈라진다.
 
 ```bash
-venv/bin/python manage.py migrate
+sudo -u stock venv/bin/python manage.py migrate
 ```
 
 패키지가 늘었으면,
 
 ```bash
-venv/bin/pip install -r requirements.txt
+sudo -u stock venv/bin/pip install -r requirements.txt
 ```
 
 화면의 CSS·JS(admin) 가 바뀌었으면,
 
 ```bash
-venv/bin/python manage.py collectstatic --noinput
+sudo -u stock venv/bin/python manage.py collectstatic --noinput
 ```
 
 확인은 바깥에서 한다. 서버 안에서 `curl 127.0.0.1:8000` 은 nginx 를 건너뛰므로
@@ -71,8 +75,12 @@ venv/bin/pip install -r requirements.txt
 화면을 긁는다. **`requirements.txt` 로는 브라우저 바이너리가 설치되지 않는다.**
 
 ```bash
-venv/bin/python -m playwright install --with-deps chromium
+sudo -u stock venv/bin/python -m playwright install --with-deps chromium
 ```
+
+**어느 계정으로 돌렸는지가 중요하다.** 브라우저는 그 계정의 홈
+(`~/.cache/ms-playwright`, 863MB)에 깔린다. root 로 설치하고 앱은 `stock`
+으로 돌리면 찾지 못한다.
 
 전에 이것 때문에 공시가 두 달 동안 한 건도 안 들어왔다. playwright 패키지가
 올라가면 새 브라우저를 다시 받아야 하는데 그것을 안 했다. 패키지를 올린 뒤에는
@@ -156,8 +164,12 @@ systemctl cat jstocks
 ```bash
 mkdir -p /etc/systemd/system/jstocks.service.d
 cp deploy/systemd/jstocks-bind.conf /etc/systemd/system/jstocks.service.d/bind.conf
+cp deploy/systemd/jstocks-user.conf /etc/systemd/system/jstocks.service.d/user.conf
 systemctl daemon-reload && systemctl restart jstocks
 ```
+
+`user.conf` 는 `stock` 계정이 있어야 뜬다. 아래 '전용 계정으로 내리기' 를
+먼저 끝내고 얹는다.
 
 ### 6. nginx 와 HTTPS
 
@@ -175,6 +187,113 @@ venv/bin/python manage.py save_stock_info --code all --log-level info
 나머지는 [commands.md](./commands.md) 에 있다.
 
 ---
+
+## 전용 계정으로 내리기 (한 번만)
+
+gunicorn 이 root 로 돌고 있었다. `.env` 에 키움 실거래 API 키가 들어 있어,
+장고나 의존 패키지에 원격 코드 실행 구멍이 하나 나면 서버 전체를 내준다.
+전용 계정이면 넘어가는 범위가 `/home/stock` 안쪽으로 그친다.
+
+**배치 시간(15:40 · 19:40 · 금 23:00)을 피해서 한다.** 중간에 cron 이 끼면
+소유권이 반반 섞인다.
+
+### 1. 계정을 만든다
+
+```bash
+useradd --system --no-create-home --home-dir /home/stock --shell /bin/bash stock
+id stock
+```
+
+`--no-create-home` 은 `/home/stock` 이 이미 있기 때문이다. 쉘을 주는 것은
+cron 이 배치 스크립트를 돌려야 해서다. 비밀번호를 걸지 않으므로 바깥에서
+이 계정으로 로그인할 수는 없다.
+
+### 2. Playwright 브라우저를 옮긴다
+
+가장 잘 걸리는 자리다. 브라우저 바이너리는 파이썬 패키지가 아니라 홈
+디렉터리(`~/.cache/ms-playwright`, 863MB)에 깔린다. root 홈에 둔 채로
+계정만 내리면 공시 수집이 그날부터 죽는다 — 예전에 이 바이너리가 없어
+두 달을 모르고 지나갔다.
+
+```bash
+mkdir -p /home/stock/.cache
+mv /root/.cache/ms-playwright /home/stock/.cache/
+ls -d /home/stock/.cache/ms-playwright/*
+```
+
+### 3. 파일 주인을 넘긴다
+
+```bash
+systemctl stop jstocks
+chown -R stock:stock /home/stock
+```
+
+`db.sqlite3` 만이 아니라 디렉터리까지 넘겨야 한다. SQLite 는 쓸 때 같은
+폴더에 `db.sqlite3-journal` 을 만든다. 파일만 주고 폴더를 안 주면
+`attempt to write a readonly database` 로 막힌다.
+
+### 4. 비밀이 든 파일을 잠근다
+
+```bash
+chmod 600 /home/stock/jstocks/.env /home/stock/jstocks/token*.json
+chmod 640 /home/stock/jstocks/db.sqlite3
+ls -l /home/stock/jstocks/.env
+```
+
+`.env` 가 644 였다. 서버에 계정이 하나 더 생기면 그대로 읽힌다.
+
+`/home/stock` 과 `/home/stock/jstocks` 는 755 로 둔다. nginx(`www-data`)가
+`staticfiles/` 를 직접 주려면 거기까지 들어갈 수 있어야 한다. 비밀은 위의
+600 으로 막혀 있다.
+
+### 5. 서비스를 내린다
+
+```bash
+cp /home/stock/jstocks/deploy/systemd/jstocks-user.conf \
+   /etc/systemd/system/jstocks.service.d/user.conf
+systemctl daemon-reload
+systemctl start jstocks
+ps -o user,cmd -C gunicorn | head -3
+```
+
+`USER` 가 `stock` 으로 나와야 한다.
+
+### 6. 배치를 옮긴다
+
+cron 은 root 것이다. 그대로 두면 매일 밤 root 소유 파일이 다시 생겨 다음
+날 웹이 못 쓴다.
+
+```bash
+crontab -l > /root/crontab.bak          # 먼저 받아 둔다
+crontab -l | crontab -u stock -         # stock 으로 복사
+crontab -r                              # root 것은 비운다
+crontab -u stock -l                     # 세 줄이 보이는지
+```
+
+root crontab 에 배치 말고 다른 줄이 있으면 `crontab -r` 로 통째로 비우지
+말고 배치 세 줄만 지운다.
+
+### 7. 확인한다
+
+```bash
+curl -I https://cantoluna3.cafe24.com/login/              # 200
+sudo -u stock /home/stock/jstocks/evening_update.sh       # 배치가 도는지
+ls -l /home/stock/jstocks/db.sqlite3                      # stock stock
+find /home/stock -user root | head                        # 아무것도 안 나와야 한다
+```
+
+마지막 `find` 가 비어 있어야 끝난 것이다. 뭔가 나오면 그 파일이 다음에
+쓰기를 막는다.
+
+### 되돌리기
+
+```bash
+rm /etc/systemd/system/jstocks.service.d/user.conf
+systemctl daemon-reload && systemctl restart jstocks
+crontab /root/crontab.bak && crontab -u stock -r
+```
+
+파일 주인은 되돌리지 않아도 된다. root 는 남의 파일도 쓴다.
 
 ## 배치 (cron)
 
@@ -220,9 +339,17 @@ https://cantoluna3.cafe24.com/          내 화면 (로그인)
 대개 크롬 바이너리다. 조용히 실패하지 않도록 고쳐 두었으니 로그 끝에
 "한 건도 받지 못했습니다" 가 찍힌다.
 
+먼저 앱 계정이 그것을 볼 수 있는 자리에 있는지 본다.
+
 ```bash
-venv/bin/python -m playwright install chromium
-venv/bin/python manage.py save_gongsi_stock --code fav --log-level info
+sudo -u stock ls -d ~stock/.cache/ms-playwright/chromium-*
+```
+
+없으면 설치한다. `sudo -u stock` 을 빼면 root 홈에 깔려 또 못 찾는다.
+
+```bash
+sudo -u stock venv/bin/python -m playwright install chromium
+sudo -u stock venv/bin/python manage.py save_gongsi_stock --code fav --log-level info
 ```
 
 ### 로그인이 잠겼다
