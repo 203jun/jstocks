@@ -10,6 +10,7 @@
 | 유틸 | `check_market_open` | - | 키움 API | 일 1회 |
 | 시황 | `save_index_chart` | IndexChart | 네이버 금융 | 일 1회 |
 | 시황 | `save_market_trend` | MarketTrend | 네이버 (m.stock) | 일 1회 |
+| AI | `run_ai_note` | AiNote | Claude Code (claude -p) | 수동 |
 | 업종 | `save_sector` | Sector | 키움 API | 일 1회 |
 | 종목 | `save_stock_list` | Info | 키움 API | 수동 |
 | 종목 | `save_stock_info` | Info | 키움 API | 일 1회 |
