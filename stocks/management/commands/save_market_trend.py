@@ -3,9 +3,13 @@ import time
 import requests
 from datetime import datetime
 from bs4 import BeautifulSoup
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from stocks.models import MarketTrend
 from stocks.logger import StockLogger
+
+
+class FetchFailed(Exception):
+    """페이지를 못 받았다. '받을 것이 없다' 와 다른 일이다."""
 
 
 class Command(BaseCommand):
@@ -94,14 +98,35 @@ class Command(BaseCommand):
 
         total_created = 0
         total_updated = 0
+        all_errors = []
 
         for market_name in markets:
-            created, updated = self.process_market(market_name, max_page)
+            created, updated, errors = self.process_market(market_name, max_page)
             total_created += created
             total_updated += updated
+            all_errors.extend(errors)
 
         self.log.separator()
-        self.log.info(f'완료 | 신규: {total_created}개, 업데이트: {total_updated}개', success=True)
+        # '오류: N개' 는 열다섯 개 명령이 끝에 찍는 공통 관례다. 날마다 도는
+        # 스크립트가 이 줄을 보고 텔레그램에 실어 보낸다 (batch_lib.sh).
+        if all_errors:
+            self.log.info(
+                f'완료 | 신규: {total_created}개, 업데이트: {total_updated}개, '
+                f'오류: {len(all_errors)}개', success=True)
+            self.log.info('')
+            self.log.info('[오류 목록]')
+            for e in all_errors:
+                self.log.error(f'  {e}')
+        else:
+            self.log.info(f'완료 | 신규: {total_created}개, 업데이트: {total_updated}개', success=True)
+
+        # 한 행도 못 받았으면 비정상 종료로 끝낸다. 로그만 찍고 0 으로 끝나면
+        # 배치가 '완료' 를 보낸다 — 네이버가 이 주소를 내린 뒤로 그랬다.
+        if all_errors and total_created == 0 and total_updated == 0:
+            raise CommandError(
+                f'시장 투자동향을 한 행도 받지 못했습니다 ({", ".join(markets)}). '
+                '네이버가 페이지를 내렸거나 화면이 바뀐 것으로 봐야 합니다.'
+            )
 
     def process_market(self, market_name, max_page):
         """Collect data for each market, return (created, updated)"""
@@ -114,12 +139,20 @@ class Command(BaseCommand):
         # Get today's date for bizdate parameter
         bizdate = datetime.now().strftime('%Y%m%d')
 
+        errors = []
+
         for page in range(1, max_page + 1):
             # Use iframe URL with bizdate
             url = f'https://finance.naver.com/sise/investorDealTrendDay.naver?bizdate={bizdate}&sosok={sosok}&page={page}'
             self.log.debug(f'  Page {page} fetching... {url}')
 
-            data = self.fetch_page(url)
+            try:
+                data = self.fetch_page(url)
+            except FetchFailed as e:
+                self.log.error(f'  [{market_name}] {page}페이지 조회 실패: {e}')
+                errors.append(f'{market_name} p{page}: {e}')
+                break
+
             if data:
                 all_data.extend(data)
                 self.log.debug(f'  -> {len(data)} rows collected ({data[0]["date"]} ~ {data[-1]["date"]})')
@@ -134,10 +167,16 @@ class Command(BaseCommand):
         # Save to DB
         if all_data:
             self.log.info(f'[{market_name}] {len(all_data)}행 수집 ({all_data[-1]["date"]} ~ {all_data[0]["date"]})')
-            return self.save_to_db(market_name, all_data)
+            created, updated = self.save_to_db(market_name, all_data)
+            return created, updated, errors
+
+        # 못 받은 것과 받을 것이 없는 것을 가려 적는다. 같은 말로 적으면
+        # 수집이 깨진 것을 '오늘은 자료가 없네' 로 읽는다.
+        if errors:
+            self.log.error(f'[{market_name}] 조회 실패로 한 행도 받지 못했습니다')
         else:
             self.log.info(f'[{market_name}] 데이터 없음')
-            return 0, 0
+        return 0, 0, errors
 
     def fetch_page(self, url):
         """Extract table data from page"""
@@ -152,10 +191,12 @@ class Command(BaseCommand):
 
             soup = BeautifulSoup(response.text, 'html.parser')
 
-            # Find table with date header
+            # 삭제된 페이지도 table.type_1 을 껍데기로 들고 있다. 표가 있다고
+            # 데이터가 있는 것이 아니다 — 네이버가 이 주소를 410 으로 내릴 때
+            # 그 껍데기 때문에 '데이터 없음' 으로 읽혔다.
             table = soup.select_one('table.type_1')
             if not table:
-                self.log.debug(f'  Table not found')
+                self.log.debug('  Table not found')
                 return []
 
             rows = []
@@ -195,8 +236,9 @@ class Command(BaseCommand):
             return rows
 
         except Exception as e:
-            self.log.error(f'Page fetch failed: {e}')
-            return []
+            # 삼키지 않는다. 부른 쪽이 '못 받은 것' 과 '받을 것이 없는 것' 을
+            # 가려 집계하고, 끝에 그 수를 보고한다.
+            raise FetchFailed(str(e)) from e
 
     def save_to_db(self, market_name, data_list):
         """Save data to DB, return (created, updated)"""
