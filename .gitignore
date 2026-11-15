@@ -20,6 +20,7 @@ db.sqlite3-journal
 # 대상으로 남아 있었다 — git add -A 한 번에 메모·매매근거·계좌가 통째로
 # 공개 저장소에 올라갈 자리였다.
 db.sqlite3.backup*
+backups/
 db.sqlite3.bak*
 .cache/
 /media

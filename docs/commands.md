@@ -9,6 +9,7 @@
 | 유틸 | `get_token` | token.json | 키움 API | 일 1회 |
 | 유틸 | `check_market_open` | - | 키움 API | 일 1회 |
 | 유틸 | `check_freshness` | - | DB | 일 1회 |
+| 유틸 | `backup_db` | - | DB | 일 1회 |
 | 시황 | `save_index_chart` | IndexChart | 네이버 금융 | 일 1회 |
 | 시황 | `save_market_trend` | MarketTrend | 네이버 (m.stock) | 일 1회 |
 | AI | `run_ai_note` | AiNote | Claude Code (claude -p) | 수동 |
