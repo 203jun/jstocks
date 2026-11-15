@@ -1,10 +1,10 @@
 import requests
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from stocks.models import DailyTradeDiary, DailyTrade, Info, InfoETF
-from stocks.utils import get_valid_token, send_telegram_error
+from stocks.utils import get_valid_token
 from stocks.logger import StockLogger
 
 
@@ -37,22 +37,20 @@ class Command(BaseCommand):
         ch_crd_tp = options.get('ch_crd_tp')
         self.log.info(f'기준일자: {base_dt}, ottks_tp: {ottks_tp}, ch_crd_tp: {ch_crd_tp}')
 
+        # 아래 셋은 종료코드로 끝낸다. 예전에는 텔레그램을 직접 보내고 0 으로
+        # 끝나서, 배치는 같은 자리에서 ✅ 를 함께 보냈다. batch_lib.sh 가
+        # 단계 이름과 원인을 실어 한 번만 보낸다.
         token = get_valid_token()
         if not token:
-            self.log.error('토큰이 없습니다. python manage.py get_token을 먼저 실행하세요.')
-            send_telegram_error('save_daily_diary', '토큰 없음')
-            return
+            raise CommandError('토큰이 없습니다. 먼저: python manage.py get_token')
 
         response_data = self.call_api(token, base_dt, ottks_tp, ch_crd_tp)
         if not response_data:
-            send_telegram_error('save_daily_diary', 'API 호출 실패')
-            return
+            raise CommandError(f'매매일지 API 호출 실패 (기준일 {base_dt})')
 
         if response_data.get('return_code') != 0:
             msg = response_data.get('return_msg', 'unknown')
-            self.log.error(f'API 에러: {msg}')
-            send_telegram_error('save_daily_diary', f'API 에러: {msg}')
-            return
+            raise CommandError(f'매매일지 API 에러: {msg}')
 
         self.save_to_db(response_data, base_dt)
 
@@ -92,9 +90,7 @@ class Command(BaseCommand):
         try:
             diary_date = datetime.strptime(base_dt, '%Y%m%d').date()
         except ValueError:
-            self.log.error(f'잘못된 일자 형식: {base_dt}')
-            send_telegram_error('save_daily_diary', f'잘못된 일자 형식: {base_dt}')
-            return
+            raise CommandError(f'잘못된 일자 형식: {base_dt}')
 
         diary_defaults = {
             'total_sell_amount': self._parse_int(data.get('tot_sell_amt')),
@@ -146,9 +142,7 @@ class Command(BaseCommand):
                     for t in parsed_trades
                 ])
         except Exception as e:
-            self.log.error(f'DB 저장 실패: {str(e)}')
-            send_telegram_error('save_daily_diary', f'DB 저장 실패: {str(e)}')
-            return
+            raise CommandError(f'매매일지 DB 저장 실패: {e}')
 
         action = '생성' if created else '갱신'
         matched = sum(1 for t in parsed_trades if t['stk_cd'] in info_codes or t['stk_cd'] in etf_codes)

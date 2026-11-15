@@ -2,10 +2,10 @@ import json
 import requests
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from stocks.models import Account, DailyAccountSnapshot, Holding, Info, InfoETF
-from stocks.utils import get_valid_token, send_telegram_error
+from stocks.utils import get_valid_token
 from stocks.logger import StockLogger
 
 
@@ -52,37 +52,59 @@ class Command(BaseCommand):
 
         accounts = list(accounts)
         if not accounts:
-            msg = f'대상 계좌 없음 (--account {account_key})' if account_key else '활성 계좌가 없습니다'
-            self.log.error(msg)
-            send_telegram_error('save_daily_account', msg)
-            return
+            raise CommandError(
+                f'대상 계좌 없음 (--account {account_key})' if account_key
+                else '활성 계좌가 없습니다')
 
+        failed = []
         for account in accounts:
-            self.process_account(account, qry_dt)
+            if not self.process_account(account, qry_dt):
+                failed.append(account.key)
+
+        self.log.separator()
+        # '오류: N개' 는 배치가 출력에서 집어내는 공통 관례다 (batch_lib.sh).
+        if failed:
+            self.log.info(f'완료 | 성공: {len(accounts) - len(failed)}개, '
+                          f'오류: {len(failed)}개', success=True)
+            self.log.info('')
+            self.log.info('[오류 목록]')
+            for key in failed:
+                self.log.error(f'  {key}')
+        else:
+            self.log.info(f'완료 | 성공: {len(accounts)}개', success=True)
+
+        # 한 계좌도 못 받았으면 비정상 종료로 끝낸다. 예전에는 지점마다
+        # 텔레그램을 직접 보내고 0 으로 끝나서, 배치는 ✅ 를 같이 보냈다.
+        if failed and len(failed) == len(accounts):
+            raise CommandError(f'계좌 자산을 한 건도 받지 못했습니다 ({", ".join(failed)}).')
 
     def process_account(self, account, qry_dt):
-        """계좌 1개분 스냅샷 + 보유 종목 수집"""
+        """계좌 1개분 스냅샷 + 보유 종목 수집. 성공 여부를 돌려준다.
+
+        계좌가 여럿일 때 하나가 막혀도 나머지는 받는다. 다 막혔는지는
+        부르는 쪽(handle)이 보고 종료코드로 알린다.
+        """
         self.log.info(f'[{account.key}] {account.name} 수집 시작')
 
         token = get_valid_token(account.key)
         if not token:
-            self.log.error(f'[{account.key}] 토큰이 없습니다. python manage.py get_token을 먼저 실행하세요.')
-            send_telegram_error('save_daily_account', f'[{account.key}] 토큰 없음')
-            return
+            self.log.error(f'[{account.key}] 토큰이 없습니다. '
+                           'python manage.py get_token을 먼저 실행하세요.')
+            return False
 
         response_data = self.call_api(token, qry_dt)
         if not response_data:
-            send_telegram_error('save_daily_account', f'[{account.key}] API 호출 실패')
-            return
+            self.log.error(f'[{account.key}] API 호출 실패')
+            return False
 
         if response_data.get('return_code') != 0:
             msg = response_data.get('return_msg', 'unknown')
             self.log.error(f'[{account.key}] API 에러: {msg}')
-            send_telegram_error('save_daily_account', f'[{account.key}] API 에러: {msg}')
-            return
+            return False
 
-        self.save_to_db(account, response_data, fallback_date=qry_dt)
-        self.save_holdings(account, response_data.get('day_bal_rt') or [])
+        saved = self.save_to_db(account, response_data, fallback_date=qry_dt)
+        held = self.save_holdings(account, response_data.get('day_bal_rt') or [])
+        return bool(saved and held)
 
     def call_api(self, token, qry_dt):
         """ka01690 일별잔고수익률 API 호출"""
@@ -114,14 +136,13 @@ class Command(BaseCommand):
             return None
 
     def save_to_db(self, account, data, fallback_date):
-        """응답 최상위 필드를 DailyAccountSnapshot에 저장"""
+        """응답 최상위 필드를 DailyAccountSnapshot에 저장. 성공 여부를 돌려준다."""
         dt_str = data.get('dt') or fallback_date
         try:
             snapshot_date = datetime.strptime(dt_str, '%Y%m%d').date()
         except ValueError:
             self.log.error(f'[{account.key}] 잘못된 일자 형식: {dt_str}')
-            send_telegram_error('save_daily_account', f'[{account.key}] 잘못된 일자 형식: {dt_str}')
-            return
+            return False
 
         defaults = {
             'total_buy_amount': self._parse_int(data.get('tot_buy_amt')),
@@ -141,8 +162,7 @@ class Command(BaseCommand):
             )
         except Exception as e:
             self.log.error(f'[{account.key}] DB 저장 실패: {str(e)}')
-            send_telegram_error('save_daily_account', f'[{account.key}] DB 저장 실패: {str(e)}')
-            return
+            return False
 
         action = '생성' if created else '갱신'
         self.log.info(
@@ -152,9 +172,10 @@ class Command(BaseCommand):
             f'수익률 {snapshot.profit_rate or 0}%',
             success=True,
         )
+        return True
 
     def save_holdings(self, account, items):
-        """day_bal_rt 리스트를 해당 계좌의 Holding으로 전체 갱신"""
+        """day_bal_rt 리스트를 해당 계좌의 Holding으로 전체 갱신. 성공 여부를 돌려준다."""
         parsed = []
         for item in items:
             stk_cd = (item.get('stk_cd') or '').strip()
@@ -192,8 +213,7 @@ class Command(BaseCommand):
                 ])
         except Exception as e:
             self.log.error(f'[{account.key}] Holding 저장 실패: {str(e)}')
-            send_telegram_error('save_daily_account', f'[{account.key}] Holding 저장 실패: {str(e)}')
-            return
+            return False
 
         matched = sum(1 for h in parsed if h['stk_cd'] in info_codes or h['stk_cd'] in etf_codes)
         self.log.info(
@@ -201,6 +221,7 @@ class Command(BaseCommand):
             success=True,
         )
         self.mark_holdings_as_interest([h['stk_cd'] for h in parsed])
+        return True
 
     def mark_holdings_as_interest(self, codes):
         """

@@ -3,7 +3,7 @@ import time
 from decimal import Decimal, InvalidOperation
 
 import requests
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from stocks.logger import StockLogger
 from stocks.models import FAV_FILTER, Consensus, Info
@@ -78,8 +78,7 @@ class Command(BaseCommand):
             stocks = Info.objects.filter(code=options['code'])
             target = options['code']
             if not stocks.exists():
-                self.log.error(f'종목 정보 없음: {options["code"]}')
-                return
+                raise CommandError(f'종목 정보 없음: {options["code"]}')
 
         stocks = list(stocks.order_by('code').values_list('code', 'name'))
         self.log.info(f'컨센서스 수집 시작 (대상: {target} {len(stocks)}개)'
@@ -124,13 +123,29 @@ class Command(BaseCommand):
         if no_data:
             self.log.info(f'컨센서스 없음 {len(no_data)}개: {", ".join(no_data[:8])}'
                           + (' …' if len(no_data) > 8 else ''))
+        tail = ' [dry-run — 저장하지 않음]' if self.dry_run else ''
+        # '오류: N개' 로 적는다. 배치가 출력에서 이 말을 집어내 텔레그램에
+        # 싣는다 (batch_lib.sh). 예전에는 '조회 실패 N개' 라고 적어서
+        # 실패가 섞여도 배치는 ✅ 로 끝났다.
         if errors:
-            self.log.error(f'조회 실패 {len(errors)}개')
-        self.log.info(
-            f'완료 | 신규 {created}건, 변경 {updated}건, 유지 {skipped}건'
-            + (' [dry-run — 저장하지 않음]' if self.dry_run else ''),
-            success=True,
-        )
+            self.log.info(
+                f'완료 | 신규 {created}건, 변경 {updated}건, 유지 {skipped}건, '
+                f'오류: {len(errors)}개{tail}', success=True)
+            self.log.info('')
+            self.log.info('[오류 목록]')
+            for stock_code, name, err in errors:
+                self.log.error(f'  {stock_code} {name}: {err}')
+        else:
+            self.log.info(
+                f'완료 | 신규 {created}건, 변경 {updated}건, 유지 {skipped}건{tail}',
+                success=True)
+
+        # 한 종목도 못 받았으면 비정상 종료로 끝낸다. 컨센서스가 없는 종목은
+        # 빈 배열로 오므로(no_data) 그것과는 다른 일이다.
+        if errors and not no_data and created == 0 and updated == 0 and skipped == 0:
+            raise CommandError(
+                f'컨센서스를 한 종목도 받지 못했습니다 ({len(errors)}개 전부). '
+                'comp.wisereport.co.kr 응답을 확인해야 합니다.')
 
     # ------------------------------------------------------------------ #
 

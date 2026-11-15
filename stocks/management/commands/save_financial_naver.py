@@ -194,7 +194,18 @@ class Command(BaseCommand):
         except Exception as e:
             raise FetchFailed(f'{period} 조회 실패: {e}') from e
 
-        info = (data or {}).get('financeInfo') or {}
+        data = data or {}
+        if 'financeInfo' not in data:
+            raise FetchFailed(
+                f'{period} 응답 모양이 다르다 (financeInfo 없음): {str(data)[:120]}')
+
+        info = data['financeInfo']
+        if info is None:
+            # 재무제표가 없는 종목이다 — 인프라펀드·리츠처럼 네이버가 아예 안
+            # 들고 있는 것들이 있다(맥쿼리인프라, KB발해인프라, 맵스리얼티 …).
+            # 응답은 멀쩡하고 '없다' 고 분명히 말하고 있으므로 고장이 아니다.
+            return []
+
         titles = info.get('trTitleList')
         rows = info.get('rowList')
         if titles is None or rows is None:

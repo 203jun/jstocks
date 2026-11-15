@@ -3,7 +3,7 @@ import bisect
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from stocks.logger import StockLogger
 from stocks.market_adr import fetch_adr, AdrFetchError
@@ -100,8 +100,10 @@ class Command(BaseCommand):
         try:
             adr_all = fetch_adr()
         except AdrFetchError as exc:
-            self.log.error(f'ADR 수집 실패: {exc}')
-            return
+            # ADR 이 없으면 네 지표 중 하나가 통째로 빈다. 계산을 돌려봐야
+            # 반쪽이라 여기서 멈춘다. 로그만 찍고 0 으로 끝나면 배치가
+            # '완료' 를 보낸다.
+            raise CommandError(f'ADR 수집 실패 (adrinfo.kr): {exc}')
         for market in markets:
             series = adr_all.get(market, {})
             self.log.debug(f'  {market} ADR {len(series)}건')
@@ -123,7 +125,20 @@ class Command(BaseCommand):
         if dry_run:
             self.log.info('완료 [dry-run] — 저장하지 않았습니다', success=True)
         else:
-            self.log.info(f'완료 | 신규: {total_created}건, 업데이트: {total_updated}건', success=True)
+            self.log.info(f'완료 | 신규: {total_created}건, 업데이트: {total_updated}건',
+                          success=True)
+
+        # 한 건도 못 셌으면 입력이 비어 있는 것이다 — 지수 차트나 수급이
+        # 안 들어왔다는 뜻이라 알려야 한다.
+        #
+        # 다만 이 명령의 더 큰 위험은 따로 있다. 입력이 '썩어도' 계산은
+        # 성공한다. 수급이 석 달 끊겼을 때 외인 20일 누적을 엉터리로
+        # 계산하면서 날마다 '완료' 를 찍고 있었다. 그것은 실패 감지로는
+        # 잡히지 않는다.
+        if not dry_run and total_created == 0 and total_updated == 0:
+            raise CommandError(
+                f'시장 지표를 한 건도 계산하지 못했습니다 ({", ".join(markets)}). '
+                'IndexChart 와 MarketTrend 가 들어왔는지 확인해야 합니다.')
 
     # ------------------------------------------------------------------ #
 

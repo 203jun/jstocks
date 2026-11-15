@@ -328,16 +328,9 @@ def send_telegram_message(message):
         return False
 
 
-def send_telegram_error(command_name, error_message):
-    """
-    오류 발생 시 텔레그램으로 알림을 보냅니다.
-
-    Args:
-        command_name: 오류가 발생한 커맨드명
-        error_message: 오류 메시지
-
-    Returns:
-        bool: 전송 성공 여부
-    """
-    message = f"<b>[오류 알림]</b>\n\n<b>커맨드:</b> {command_name}\n<b>오류:</b> {error_message}"
-    return send_telegram_message(message)
+# send_telegram_error 는 걷었다.
+#
+# 명령이 직접 텔레그램을 보내고 종료코드 0 으로 끝나면, 배치는 같은 자리에서
+# ✅ 를 함께 보낸다 — 알림 두 개가 서로 반대 말을 한다. 실패는 종료코드나
+# '오류: N개' 로 알리고 보내는 일은 batch_lib.sh 한 곳에서 한다. 거기에는
+# 걸린 단계 이름과 마지막 출력이 함께 실린다.

@@ -1,5 +1,5 @@
-from django.core.management.base import BaseCommand
-from stocks.utils import issue_token, save_token, send_telegram_error, get_active_account_keys
+from django.core.management.base import BaseCommand, CommandError
+from stocks.utils import issue_token, save_token, get_active_account_keys
 from stocks.logger import StockLogger
 
 
@@ -38,7 +38,11 @@ API 토큰 발급 및 저장 (계좌별)
                 failed.append(key)
 
         if failed:
-            send_telegram_error('get_token', f'토큰 발급 실패: {", ".join(failed)}')
+            # 종료코드로 끝낸다. 일일 배치의 첫 단계이고, 이게 없으면 뒤따르는
+            # 열다섯 단계가 전부 토큰 없이 돌아 무의미해진다. batch_lib.sh 가
+            # 단계 이름과 함께 텔레그램에 싣는다 — 여기서 직접 보내면 같은
+            # 내용이 두 번 간다.
+            raise CommandError(f'토큰 발급 실패: {", ".join(failed)}')
 
     def issue_for(self, account_key):
         """계좌 1개 토큰 발급 + 저장. 성공 여부 반환"""

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import time
 import requests
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from stocks.utils import get_valid_token
 from stocks.models import Sector, DailyChart
 from stocks.logger import StockLogger
@@ -48,8 +48,7 @@ class Command(BaseCommand):
         # Get token
         token = get_valid_token()
         if not token:
-            self.log.error('No token. Run: python manage.py get_token')
-            return
+            raise CommandError('토큰이 없습니다. 먼저: python manage.py get_token')
 
         # Get trading dates from DailyChart
         mode = options.get('mode', 'last')
@@ -62,9 +61,8 @@ class Command(BaseCommand):
         )
 
         if not trading_dates:
-            self.log.error('DailyChart 데이터가 없습니다.')
-            self.log.error('먼저 실행: python manage.py save_daily_chart')
-            return
+            raise CommandError(
+                'DailyChart 데이터가 없습니다. 먼저: python manage.py save_daily_chart')
 
         trading_dates.reverse()  # 오래된 날짜부터 처리
 
@@ -91,6 +89,14 @@ class Command(BaseCommand):
 
         self.log.separator()
         self.log.info(f'완료 | 총 {total_saved}개 저장', success=True)
+
+        # 거래일인데 한 건도 못 받았으면 고장이다. 업종은 장이 열린 날이면
+        # 늘 있다 — 0 건은 '오늘은 없었다' 가 아니라 '못 받았다' 다.
+        # 로그만 찍고 0 으로 끝나면 배치가 '완료' 를 보낸다.
+        if total_saved == 0:
+            raise CommandError(
+                f'업종 데이터를 한 건도 받지 못했습니다 ({len(trading_dates)}일 조회). '
+                '키움 API 응답을 확인해야 합니다.')
 
     def fetch_and_save_market(self, token, mrkt_tp, market_name, trade_date, date_str):
         """Fetch and save sector data for a market"""

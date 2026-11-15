@@ -2,9 +2,13 @@ import re
 import requests
 from datetime import datetime, timedelta
 from decimal import Decimal
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from stocks.models import IndexChart
 from stocks.logger import StockLogger
+
+
+class FetchFailed(Exception):
+    """못 받았다. '받을 것이 없다' 와 다른 일이다."""
 
 
 class Command(BaseCommand):
@@ -72,14 +76,37 @@ class Command(BaseCommand):
 
         total_created = 0
         total_updated = 0
+        errors = []
 
         for index_code in codes:
-            created, updated = self.process_index(index_code, mode)
+            try:
+                created, updated = self.process_index(index_code, mode)
+            except FetchFailed as e:
+                self.log.error(f'[{index_code}] 조회 실패: {e}')
+                errors.append(f'{index_code}: {e}')
+                continue
             total_created += created
             total_updated += updated
 
         self.log.separator()
-        self.log.info(f'완료 | 신규: {total_created}개, 업데이트: {total_updated}개', success=True)
+        # '오류: N개' 는 배치가 출력에서 집어내 텔레그램에 싣는 공통 관례다
+        # (batch_lib.sh).
+        if errors:
+            self.log.info(f'완료 | 신규: {total_created}개, 업데이트: {total_updated}개, '
+                          f'오류: {len(errors)}개', success=True)
+            self.log.info('')
+            self.log.info('[오류 목록]')
+            for e in errors:
+                self.log.error(f'  {e}')
+        else:
+            self.log.info(f'완료 | 신규: {total_created}개, 업데이트: {total_updated}개',
+                          success=True)
+
+        # 하나도 못 받았으면 비정상 종료로 끝낸다. 로그만 찍고 0 으로 끝나면
+        # 배치가 '완료' 를 보낸다 — ETF 정보가 그렇게 넉 달을 멈춰 있었다.
+        if errors and len(errors) == len(codes):
+            raise CommandError(
+                f'지수 차트를 하나도 받지 못했습니다 ({", ".join(codes)}).')
 
     def process_index(self, code, mode):
         """지수 데이터 처리, (created, updated) 반환"""
@@ -105,7 +132,7 @@ class Command(BaseCommand):
 
         self.log.debug(f'[{code}] 기간: {start_date} ~ {end_date}')
 
-        # 데이터 가져오기
+        # 데이터 가져오기 (실패하면 FetchFailed 가 올라간다)
         data = self.fetch_data(code, start_date, end_date)
 
         if not data:
@@ -184,5 +211,6 @@ class Command(BaseCommand):
             return rows
 
         except Exception as e:
-            self.log.error(f'API 호출 실패: {e}')
-            return []
+            # 빈 리스트로 돌려주면 '오늘은 받을 것이 없었다' 와 구분되지 않는다.
+            # 그래서 조용히 넘어가고 배치는 '완료' 를 보낸다.
+            raise FetchFailed(str(e)) from e
