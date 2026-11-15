@@ -30,7 +30,9 @@ GET https://m.stock.naver.com/api/stock/{code}/basic         현재가·등락�
 GET https://m.stock.naver.com/api/stock/{code}/etfAnalysis   NAV·시총·보수·구성종목
 ```
 
-토큰 불필요.
+토큰 불필요. 긁는 일은 `stocks/etf_naver.py` 가 한다 — 화면의 'ETF 추가'
+(`views.add_etf`)도 같은 코드를 쓴다. 예전에는 양쪽에 복사되어 있어서
+네이버가 화면을 바꿨을 때 둘 다 같이 죽었다.
 
 예전에는 `finance.naver.com/item/main.naver` 화면을 CSS 셀렉터로 긁었다.
 네이버가 그 화면을 Next.js 앱으로 다시 만들면서 예전 구조가 통째로 사라졌다.

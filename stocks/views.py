@@ -3068,9 +3068,13 @@ def etf_memo_save(request, code):
 
 @require_POST
 def add_etf(request):
-    """ETF 추가 API - 네이버 금융에서 크롤링"""
-    import requests
-    from bs4 import BeautifulSoup
+    """ETF 추가 화면이 쓰는 조회 API. 저장하지 않고 받아온 값만 돌려준다.
+
+    긁는 일은 stocks/etf_naver.py 가 한다 — 날마다 도는 save_etf_info 와
+    같은 코드다. 예전에는 양쪽에 복사되어 있어서 네이버가 화면을 바꿨을 때
+    둘 다 같이 죽었다.
+    """
+    from .etf_naver import EtfFetchFailed, NotAnEtf, fetch_etf
 
     code = request.POST.get('code', '').strip()
 
@@ -3081,110 +3085,15 @@ def add_etf(request):
     if not code.isalnum() or len(code) != 6:
         return JsonResponse({'error': '종목코드는 6자리입니다.'}, status=400)
 
-    # 네이버 금융 크롤링
-    url = f'https://finance.naver.com/item/main.naver?code={code}'
-    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
-
     try:
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-    except Exception as e:
-        return JsonResponse({'error': f'네이버 금융 접속 실패: {str(e)}'}, status=500)
+        data = fetch_etf(code)
+    except NotAnEtf as e:
+        # 사람이 코드를 잘못 넣은 것이다. 고칠 수 있게 그대로 말해준다.
+        return JsonResponse({'error': str(e)}, status=400)
+    except EtfFetchFailed as e:
+        return JsonResponse({'error': f'네이버 조회 실패: {e}'}, status=502)
 
-    soup = BeautifulSoup(response.text, 'lxml')
-
-    # 종목명 추출
-    name_elem = soup.select_one('#middle > div.h_company > div.wrap_company > h2 > a')
-    if not name_elem:
-        return JsonResponse({'error': '종목 정보를 찾을 수 없습니다. ETF 코드를 확인해주세요.'}, status=400)
-
-    name = name_elem.get_text(strip=True)
-
-    # ETF인지 확인 (ETF 섹션이 있는지)
-    etf_section = soup.select_one('#content > div.section.etf_asset')
-    if not etf_section:
-        return JsonResponse({'error': f'{name}은(는) ETF가 아닙니다.'}, status=400)
-
-    # 현재가 추출
-    current_price = None
-    price_elem = soup.select_one('#chart_area > div.rate_info > div > p.no_today > em > span.blind')
-    if price_elem:
-        try:
-            current_price = int(price_elem.get_text(strip=True).replace(',', ''))
-        except:
-            pass
-
-    # 등락률 추출
-    change_rate = None
-    rate_elem = soup.select_one('#chart_area > div.rate_info > div > p.no_exday > em:nth-child(4) > span.blind')
-    if rate_elem:
-        try:
-            rate_text = rate_elem.get_text(strip=True).replace('%', '')
-            change_rate = float(rate_text)
-            # 하락인지 확인
-            down_elem = soup.select_one('#chart_area > div.rate_info > div > p.no_exday > em.no_down')
-            if down_elem:
-                change_rate = -abs(change_rate)
-        except:
-            pass
-
-    # NAV 추출 (사용자 제공 셀렉터: #on_board_last_nav)
-    nav = None
-    nav_elem = soup.select_one('#on_board_last_nav')
-    if nav_elem:
-        try:
-            nav = int(nav_elem.get_text(strip=True).replace(',', ''))
-        except:
-            pass
-
-    # 시가총액 추출 ("시가총액" th를 찾아서 옆 td 값 가져오기)
-    # "1조 6,296억원" -> 16296, "2,345억원" -> 2345 (억원 단위)
-    market_cap = None
-    tab_con1 = soup.select_one('#tab_con1')
-    if tab_con1:
-        for th in tab_con1.find_all('th'):
-            if '시가총액' in th.get_text():
-                td = th.find_next_sibling('td')
-                if td:
-                    import re
-                    text = td.get_text(strip=True)
-                    total = 0
-                    # 조 단위 추출 (1조 = 10000억)
-                    jo_match = re.search(r'(\d+)조', text.replace(',', ''))
-                    if jo_match:
-                        total += int(jo_match.group(1)) * 10000
-                    # 억 단위 추출
-                    eok_match = re.search(r'(\d+)억', text.replace(',', ''))
-                    if eok_match:
-                        total += int(eok_match.group(1))
-                    market_cap = total if total > 0 else None
-                break
-
-    # 구성종목 추출 (td.per 클래스로 구성비중 찾기)
-    holdings = []
-    holdings_rows = soup.select('#content > div.section.etf_asset > table > tbody > tr')
-    for row in holdings_rows:
-        name_elem = row.select_one('td:first-child')
-        ratio_elem = row.select_one('td.per')
-        if name_elem and ratio_elem:
-            holding_name = name_elem.get_text(strip=True)
-            holding_ratio = ratio_elem.get_text(strip=True)
-            if holding_name and holding_name != '합계':
-                holdings.append({'name': holding_name, 'ratio': holding_ratio})
-        if len(holdings) >= 10:
-            break
-
-    # 저장하지 않고 데이터만 반환
-    return JsonResponse({
-        'success': True,
-        'code': code,
-        'name': name,
-        'current_price': current_price,
-        'change_rate': change_rate,
-        'nav': nav,
-        'market_cap': market_cap,
-        'holdings': holdings,
-    })
+    return JsonResponse({'success': True, **data})
 
 
 def fetch_etf_chart(etf, timeframe, mode='all'):
