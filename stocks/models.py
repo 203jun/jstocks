@@ -2098,22 +2098,21 @@ class IndexChart(models.Model):
 
 class MarketTrend(models.Model):
     """
-    시장별 투자자 매매동향 (KOSPI, KOSDAQ, FUTURES)
+    시장별 투자자 매매동향 (KOSPI, KOSDAQ)
 
-    네이버 금융 투자자별 매매동향 데이터 저장
-    https://finance.naver.com/sise/sise_trans_style.naver?sosok=01
+    네이버 지수 화면이 쓰는 JSON 에서 받는다. 자세한 것은
+    save_market_trend 명령과 docs/save_market_trend.md 에 적어 두었다.
 
-    ※ 시장 코드:
-    - 01: KOSPI
-    - 02: KOSDAQ
-    - 03: FUTURES (선물)
+    한때 금융투자·보험·투신·은행·기타금융·연기금·기타법인까지 열한 항목을
+    받았지만 화면이 쓰는 것은 개인·외국인·기관 셋뿐이라 걷어냈다. 선물도
+    수집만 하고 보는 곳이 없어 같이 걷었다.
     """
 
     # === 기본 정보 ===
     market = models.CharField(
         max_length=10,
         verbose_name='시장',
-        help_text='KOSPI, KOSDAQ, FUTURES',
+        help_text='KOSPI, KOSDAQ',
         db_index=True
     )
     date = models.DateField(
@@ -2124,59 +2123,15 @@ class MarketTrend(models.Model):
     # === 주요 투자자 ===
     individual = models.BigIntegerField(
         verbose_name='개인',
-        help_text='개인 순매수 (백만원)'
+        help_text='개인 순매수 (억원)'
     )
     foreign = models.BigIntegerField(
         verbose_name='외국인',
-        help_text='외국인 순매수 (백만원)'
+        help_text='외국인 순매수 (억원)'
     )
     institution = models.BigIntegerField(
         verbose_name='기관계',
-        help_text='기관 전체 순매수 (백만원)'
-    )
-
-    # === 기관 세부 ===
-    financial_investment = models.BigIntegerField(
-        verbose_name='금융투자',
-        help_text='금융투자 순매수 (백만원)',
-        null=True,
-        blank=True
-    )
-    insurance = models.BigIntegerField(
-        verbose_name='보험',
-        help_text='보험 순매수 (백만원)',
-        null=True,
-        blank=True
-    )
-    trust = models.BigIntegerField(
-        verbose_name='투신(사모)',
-        help_text='투신/사모 순매수 (백만원)',
-        null=True,
-        blank=True
-    )
-    bank = models.BigIntegerField(
-        verbose_name='은행',
-        help_text='은행 순매수 (백만원)',
-        null=True,
-        blank=True
-    )
-    other_financial = models.BigIntegerField(
-        verbose_name='기타금융기관',
-        help_text='기타금융기관 순매수 (백만원)',
-        null=True,
-        blank=True
-    )
-    pension_fund = models.BigIntegerField(
-        verbose_name='연기금등',
-        help_text='연기금 등 순매수 (백만원)',
-        null=True,
-        blank=True
-    )
-    other_corporation = models.BigIntegerField(
-        verbose_name='기타법인',
-        help_text='기타법인 순매수 (백만원)',
-        null=True,
-        blank=True
+        help_text='기관 전체 순매수 (억원)'
     )
 
     # === 메타 정보 ===
@@ -2278,7 +2233,7 @@ class MarketIndicator(models.Model):
     foreign_net_20d = models.BigIntegerField(
         null=True, blank=True,
         verbose_name='외국인 20일 누적 순매수',
-        help_text='단위: 백만원 (MarketTrend 최근 20영업일 합)'
+        help_text='단위: 억원 (MarketTrend 최근 20영업일 합)'
     )
     foreign_net_20d_pct = models.DecimalField(
         max_digits=5, decimal_places=2,
